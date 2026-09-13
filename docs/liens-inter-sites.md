@@ -78,3 +78,39 @@ Après enregistrement, sur chaque site :
    sans segment ajouté.
 4. Si le lien n'apparaît pas : vider le cache du site (plugin de cache,
    Hostinger, Cloudflare) puis recharger.
+
+---
+
+## 3. Bouton prêt à coller (site .fr → .com)
+
+Le plus rapide si l'objectif est **un seul lien bien visible pour le client**
+sur `ngsecurity38.fr`.
+
+1. Ouvrir la page d'accueil de `ngsecurity38.fr` en édition.
+2. Ajouter un bloc **HTML personnalisé** à l'endroit voulu (idéalement haut de
+   page, sous le bandeau d'accueil).
+3. Coller le code ci-dessous tel quel.
+4. **Mettre à jour**.
+
+```html
+<p style="text-align:center;margin:32px 0;">
+  <a href="https://ngsecurity38.com"
+     target="_blank"
+     rel="noopener"
+     style="display:inline-block;padding:16px 34px;background:#c8102e;
+            color:#ffffff;font-size:18px;font-weight:700;text-decoration:none;
+            border-radius:6px;font-family:inherit;">
+    Visiter notre boutique en ligne &rarr;
+  </a>
+</p>
+```
+
+Réglages courants :
+
+- **Couleur** : remplacer `#c8102e` par la couleur principale du site.
+- **Même onglet** : supprimer `target="_blank" rel="noopener"`.
+- **Libellé** : modifier le texte entre la balise ouvrante et `</a>`
+  (par exemple « Accéder au site particuliers », « Commander en ligne »).
+
+Ne pas toucher à `href="https://ngsecurity38.com"` : le `https://` est
+indispensable, sinon le lien mène à une erreur 404.
