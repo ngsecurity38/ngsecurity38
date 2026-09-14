@@ -41,6 +41,9 @@ const RESOLUTIONS = [
   { label: '8 MP / 4K — 3840 × 2160', h: 3840, v: 2160 },
   { label: '12 MP — 4000 × 3000', h: 4000, v: 3000 },
   { label: '1 MP — 1280 × 720', h: 1280, v: 720 },
+  { label: 'Thermique — 256 × 192', h: 256, v: 192 },
+  { label: 'Thermique — 384 × 288', h: 384, v: 288 },
+  { label: 'Thermique — 640 × 512', h: 640, v: 512 },
   { label: 'Autre…', h: 0, v: 0 },
 ];
 
@@ -369,11 +372,32 @@ function comparaisonEtude() {
   return confronter(champsEtude(), configCamera(), anglesDeChamp);
 }
 
+/**
+ * Matériel annoncé par l'étude, et garde-fou sur les caméras thermiques.
+ *
+ * Un microbolomètre ne se désigne pas en pouces : laisser un format visible
+ * sélectionné sur une caméra thermique donnerait un angle de champ faux, donc
+ * un écart de pointage faux, sans que rien ne le signale.
+ */
+function majMateriel() {
+  const champs = champsEtude();
+  const infos = [];
+  if (champs.modele) infos.push(`Matériel prévu : <strong>${ech(champs.modele.valeur)}</strong>`);
+  if (champs.type) infos.push(`type ${ech(champs.type.valeur.toLowerCase())}`);
+  $('#etude-materiel').innerHTML = infos.join(' — ');
+  $('#etude-materiel').hidden = !infos.length;
+
+  const annonceeThermique = /thermi/i.test(champs.type?.valeur || '')
+    || /thermi/i.test(champs.modele?.valeur || '');
+  const capteurThermique = /^Thermique/i.test(configCamera().capteurCle);
+  $('#etude-thermique').hidden = !(annonceeThermique && !capteurThermique);
+}
+
 /** Libellés des caractéristiques, pour dire clairement ce qui manque. */
 const LIBELLES_CHAMPS = {
   focale: 'focale', angle: 'angle de vue', capteur: 'capteur',
   resolution: 'résolution', distance: 'distance à la scène',
-  hauteur: 'hauteur de pose', niveau: 'niveau attendu',
+  hauteur: 'hauteur de pose', densite: 'densité px/m', niveau: 'niveau attendu',
 };
 
 /**
@@ -539,6 +563,7 @@ function majEtude() {
   bouton.onclick = () => creerCamerasDeLEtude(manquantes);
 
   $('#etude-ocr').hidden = !etat.etude.ocr;
+  majMateriel();
   majTexteLu();
 
   const lignes = comparaisonEtude();
@@ -1342,6 +1367,14 @@ function sectionCamera({ cam, d, etude }, rang, seule) {
           <td>${l.source ? `p. ${l.source.page}` : '—'}</td>
           <td>${l.conforme ? 'Conforme' : 'Écart'}</td></tr>`).join('')}</tbody>
       </table>
+      ${(() => {
+    const champs = champsPourCamera(etat.etude.analyse, cam.repereEtude);
+    const bouts = [];
+    if (champs.modele) bouts.push(`matériel prévu : ${ech(champs.modele.valeur)}`);
+    if (champs.type) bouts.push(`type ${ech(champs.type.valeur.toLowerCase())}`);
+    return bouts.length
+      ? `<p style="font-size:9pt;margin:2mm 0 0">Étude — ${bouts.join(', ')}.</p>` : '';
+  })()}
       <p style="font-size:9pt;margin-top:2mm">
         Valeurs relevées dans ${ech(etat.etude.fichier)}${etat.etude.ocr
     ? ' par lecture optique (document scanné), après vérification du technicien'

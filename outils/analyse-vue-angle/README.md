@@ -50,7 +50,10 @@ Pour le mode d'emploi complet et la mise en ligne sur WordPress, voir
    distance et hauteur annoncés sont lus dans le texte du PDF, caméra par
    caméra, puis confrontés au matériel réellement posé. Chaque valeur est
    présentée avec sa page d'origine et son extrait : l'outil propose, le
-   technicien valide. Un panneau **Texte lu** montre ce qui a été extrait,
+   technicien valide. Les caméras bispectrales, qui portent deux objectifs, sont
+   relevées avec leurs deux focales ; les caméras thermiques déclenchent un
+   rappel tant que le capteur choisi reste un format visible. Un panneau
+   **Texte lu** montre ce qui a été extrait,
    passages retenus surlignés, et se copie d'un clic : une formulation non
    reconnue se diagnostique sans sortir l'étude du dossier client.
 5. **Calculs optiques** — angles de champ horizontal / vertical / diagonal à
@@ -147,7 +150,7 @@ techniciens reste en retard sur le dépôt.
 ## Tests
 
 ```bash
-npm test                 # 57 tests unitaires, sans navigateur
+npm test                 # 66 tests unitaires, sans navigateur
 npm run build
 npm run test:navigateur  # 38 tests de bout en bout (Playwright)
 ```
@@ -157,7 +160,7 @@ transformations connues sur des scènes synthétiques (translation, zoom, roulis
 fort changement d'exposition), le rejet d'images sans rapport, la traduction des
 écarts en consignes, la lecture d'une étude (repérage des caméras, relevé des
 caractéristiques, rejet des faux positifs numériques, confrontation au matériel
-posé) et le format de dossier (conversion des fiches de la version 1, fichier
+posé, densité exigée) et le format de dossier (conversion des fiches de la version 1, fichier
 tronqué, nom de fichier proposé).
 
 Les tests navigateur vérifient ce qu'aucun test unitaire ne peut voir : le

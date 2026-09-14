@@ -21,6 +21,19 @@ export const CAPTEURS = {
   '1/1.2"': { largeur: 10.67, hauteur: 6.0 },
   '2/3"': { largeur: 8.8, hauteur: 4.95 },
   '1"': { largeur: 12.8, hauteur: 7.2 },
+
+  /*
+   * Capteurs thermiques. Un microbolomètre ne se désigne pas en pouces mais par
+   * sa matrice et son pas de pixel : 256 × 192 au pas de 12 µm mesure
+   * 3,07 × 2,30 mm. Choisir un format visible pour une caméra thermique
+   * fausserait complètement l'angle de champ, et donc toute la mesure d'écart.
+   */
+  'Thermique 256×192 — 12 µm': { largeur: 3.072, hauteur: 2.304 },
+  'Thermique 256×192 — 17 µm': { largeur: 4.352, hauteur: 3.264 },
+  'Thermique 384×288 — 12 µm': { largeur: 4.608, hauteur: 3.456 },
+  'Thermique 384×288 — 17 µm': { largeur: 6.528, hauteur: 4.896 },
+  'Thermique 640×512 — 12 µm': { largeur: 7.68, hauteur: 6.144 },
+  'Thermique 640×480 — 17 µm': { largeur: 10.88, hauteur: 8.16 },
 };
 
 /** Seuils DORI de la norme EN 62676-4, en pixels par mètre. */

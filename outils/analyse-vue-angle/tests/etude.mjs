@@ -295,3 +295,112 @@ test('numéros : le symbole degré manque souvent après lecture optique', () =>
   assert.deepEqual(reperes('Caméra n 7 - Quai'), ['CAM 07'], 'degré perdu par l\'OCR');
   assert.deepEqual(reperes('Caméra numéro 12'), ['CAM 12']);
 });
+
+/* ------------------------------- étude réelle : fiche caméra en tableau ---- */
+
+/**
+ * Fiche caméra telle qu'elle se présente dans une étude d'implantation
+ * réellement reçue : tableau à deux colonnes, libellé puis valeur, majuscules
+ * partout, caméra bispectrale.
+ */
+const FICHE_REELLE = [
+  'N° CAMERA CAMERA 4',
+  'TYPE DE CAMERA THERMIQUE',
+  'OBJECTIF OBJECTIF THERMIQUE 3,5MM – OBJECTIF CONTEXTE 4MM',
+  'REFERENCE CAMERA DAHUA– DHI-TPC-BF1241',
+  'DEBIT CAMERA 4 Mbits/s',
+  'Nombre pixel/m 62',
+  "HAUTEUR D'IMPLANTATION 4,5m",
+].join('\n');
+
+test('fiche réelle : la caméra est repérée, sans caméra fantôme', () => {
+  const e = analyserEtude([FICHE_REELLE]);
+  assert.deepEqual(e.cameras.map((c) => c.repere), ['CAM 04']);
+});
+
+test('fiche réelle : un débit n\'est pas un repère de caméra', () => {
+  // « DEBIT CAMERA 8 Mbits/s » créait auparavant une caméra 8 inexistante.
+  const e = analyserEtude(['N° CAMERA CAMERA 4\nDEBIT CAMERA 8 Mbits/s']);
+  assert.deepEqual(e.cameras.map((c) => c.repere), ['CAM 04']);
+});
+
+test('fiche réelle : « REFERENCE CAMERA » n\'est pas un numéro d\'affaire', () => {
+  const e = analyserEtude([FICHE_REELLE]);
+  assert.equal(e.entete.affaire, undefined, 'la référence produit ne doit pas passer pour l\'affaire');
+  assert.equal(champsPourCamera(e, 'CAM 04').modele.valeur, 'DAHUA– DHI-TPC-BF1241');
+});
+
+test('fiche réelle : « HAUTEUR D\'IMPLANTATION » est relevée', () => {
+  assert.equal(champsPourCamera(analyserEtude([FICHE_REELLE]), 'CAM 04').hauteur.valeur, 4.5);
+});
+
+test('fiche réelle : les deux objectifs d\'une bispectrale sont retenus', () => {
+  const c = champsPourCamera(analyserEtude([FICHE_REELLE]), 'CAM 04');
+  assert.deepEqual(c.focale.variantes, [
+    { valeur: 3.5, libelle: 'thermique' },
+    { valeur: 4, libelle: 'contexte' },
+  ]);
+});
+
+test('fiche réelle : type de caméra et densité exigée', () => {
+  const c = champsPourCamera(analyserEtude([FICHE_REELLE]), 'CAM 04');
+  assert.equal(c.type.valeur, 'THERMIQUE');
+  assert.equal(c.densite.valeur, 62, 'la ligne « Nombre pixel/m » porte l\'exigence');
+});
+
+test('bispectrale : la focale posée est confrontée au bon objectif', () => {
+  const champs = champsPourCamera(analyserEtude([FICHE_REELLE]), 'CAM 04');
+  const thermique = {
+    capteur: CAPTEURS['Thermique 256×192 — 12 µm'],
+    capteurCle: 'Thermique 256×192 — 12 µm',
+    focale: 3.5,
+    angles: anglesDeChamp(CAPTEURS['Thermique 256×192 — 12 µm'], 3.5),
+    resolution: { h: 256, v: 192 },
+    distance: 15,
+    hauteur: 4.5,
+  };
+  const ligne = confronter(champs, thermique, anglesDeChamp).find((l) => l.cle === 'focale');
+  assert.equal(ligne.conforme, true, 'le 3,5 mm thermique est bien l\'un des deux objectifs');
+  assert.match(ligne.etude, /3,5 mm \(thermique\)/);
+  assert.match(ligne.etude, /4 mm \(contexte\)/);
+  assert.match(ligne.remarque, /objectif thermique/);
+
+  // La même étude, contrôlée cette fois sur l'objectif contexte.
+  const contexte = {
+    ...thermique,
+    capteur: CAPTEURS['1/2.8"'],
+    capteurCle: '1/2.8"',
+    focale: 4,
+    angles: anglesDeChamp(CAPTEURS['1/2.8"'], 4),
+    resolution: { h: 1920, v: 1080 },
+  };
+  const ligne2 = confronter(champs, contexte, anglesDeChamp).find((l) => l.cle === 'focale');
+  assert.equal(ligne2.conforme, true);
+  assert.match(ligne2.remarque, /objectif contexte/);
+
+  // Un 6 mm ne correspond à aucun des deux.
+  const autre = { ...contexte, focale: 6, angles: anglesDeChamp(CAPTEURS['1/2.8"'], 6) };
+  assert.equal(confronter(champs, autre, anglesDeChamp).find((l) => l.cle === 'focale').conforme, false);
+});
+
+test('la densité exigée est confrontée à celle réellement obtenue', () => {
+  const champs = { densite: { valeur: 62, unite: 'px/m', page: 1, extrait: 'Nombre pixel/m 62' } };
+  // 1920 px sur 19,4 m de large à 15 m : environ 99 px/m, au-dessus de l'exigence.
+  const large = confronter(champs, POSE, anglesDeChamp).find((l) => l.cle === 'densite');
+  assert.equal(large.conforme, true);
+  assert.equal(large.etude, '62 px/m');
+
+  // La même caméra visant deux fois plus loin retombe sous l'exigence.
+  const loin = { ...POSE, distance: 30 };
+  const serre = confronter(champs, loin, anglesDeChamp).find((l) => l.cle === 'densite');
+  assert.equal(serre.conforme, false);
+  assert.match(serre.remarque, /en deçà/);
+});
+
+test('capteur thermique : le champ calculé colle à la fiche constructeur', () => {
+  // Dahua TPC-BF1241, objectif thermique 3,5 mm sur matrice 256 × 192 au pas de
+  // 12 µm. Le constructeur annonce environ 50° × 37°.
+  const a = anglesDeChamp(CAPTEURS['Thermique 256×192 — 12 µm'], 3.5);
+  assert.ok(Math.abs(a.horizontal - 50) < 4, `champ horizontal ${a.horizontal}`);
+  assert.ok(Math.abs(a.vertical - 37) < 4, `champ vertical ${a.vertical}`);
+});

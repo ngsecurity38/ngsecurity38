@@ -192,6 +192,29 @@ la fiche au bureau. Sur site, on saisit ce qui est **réellement monté** : c'es
 l'écart qui fait tout l'intérêt du relevé. **Reprendre l'en-tête** remplit d'un
 coup le client, le site, le numéro d'affaire et le repère caméra.
 
+### Caméras thermiques et bispectrales
+
+Une fiche qui annonce « OBJECTIF THERMIQUE 3,5MM – OBJECTIF CONTEXTE 4MM »
+décrit une caméra **bispectrale** : deux objectifs, deux champs différents. Les
+deux sont relevés et présentés ensemble ; la ligne passe au vert dès que la
+focale saisie correspond à l'un d'eux, et la remarque dit lequel. Chaque
+objectif se contrôle donc séparément, avec sa propre image — le plus simple
+étant d'en faire deux caméras dans le dossier (§ 2).
+
+Si l'étude annonce une caméra thermique, un bandeau orange le rappelle tant que
+le capteur choisi reste un format visible. **Ce n'est pas un détail :** un
+microbolomètre ne se désigne pas en pouces mais par sa matrice et son pas de
+pixel. Une matrice 256 × 192 au pas de 12 µm mesure 3,07 × 2,30 mm — moitié
+moins qu'un 1/2.8". Choisir le mauvais capteur donnerait un angle de champ faux,
+donc un écart de pointage faux, sans que rien ne le signale. Les formats
+thermiques courants figurent dans la liste du bloc 2.
+
+### Densité exigée
+
+Si l'étude porte une ligne « Nombre pixel/m », l'exigence est confrontée à la
+densité réellement obtenue avec l'optique et la distance saisies. La ligne passe
+au rouge si la caméra posée voit moins fin que ce que l'étude demandait.
+
 > **Angle horizontal ou diagonal ?** Les fiches constructeur annoncent souvent
 > l'angle diagonal, plus large. L'outil repère le mot « diagonal » ou
 > « vertical » dans la phrase et compare alors au bon axe. Sans précision, il
@@ -201,6 +224,15 @@ Le procès-verbal reprend ce tableau sous le titre **« Conformité à l'étude 
 avec la page d'origine de chaque valeur. Le dossier porte ainsi deux
 vérifications distinctes : le **matériel** correspond-il à l'étude, et le
 **cadrage** correspond-il à la vue demandée.
+
+> **Une page de plan n'est pas une vue demandée.** Beaucoup d'études présentent
+> la couverture sous forme de cônes tracés sur une vue aérienne. C'est précieux
+> pour le relevé des caractéristiques, mais une telle page ne peut pas être
+> comparée à l'image de la caméra : ce sont deux représentations sans rapport
+> visuel. Pour la comparaison de cadrage, il faut une **image** de la vue
+> attendue — capture validée ou photo de repérage. À défaut, le relevé du
+> matériel reste exploitable, et la partie cadrage se traite au recalage manuel
+> (§ 8) ou se réserve pour une visite ultérieure.
 
 ### Si l'étude est un scan
 

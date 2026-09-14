@@ -87,12 +87,25 @@ const EXTRACTEURS = {
     /[àa]\s*(\d+(?:[.,]\d+)?)\s*m[èe]tres?\s*(?:de\s*(?:la\s*)?(?:sc[èe]ne|zone|cible))/i,
   ],
   hauteur: [
-    /hauteur\s*(?:de\s*)?(?:pose|montage|fixation|mise en place)?\s*:?\s*(?:de\s*)?(\d+(?:[.,]\d+)?)\s*m\b/i,
+    /hauteur\s*(?:de\s*)?(?:pose|montage|fixation|implantation|mise en place)?\s*:?\s*(?:de\s*)?(\d+(?:[.,]\d+)?)\s*m\b/i,
     /pos[ée]e?\s*[àa]\s*(\d+(?:[.,]\d+)?)\s*m\b/i,
     /\bH\s*[=]\s*(\d+(?:[.,]\d+)?)\s*m\b/,
+    // Tolérant : « HAUTEUR D'IMPLANTATION 4,5m », et toute autre précision
+    // glissée entre le mot et la valeur.
+    /hauteur[^\n]{0,25}?(\d+(?:[.,]\d+)?)\s*m\b/i,
+  ],
+  densite: [
+    /(?:nombre\s*(?:de\s*)?)?pixels?\s*(?:par|\/)\s*m(?:[èe]tres?)?\b[^\n]{0,15}?(\d+(?:[.,]\d+)?)/i,
+    /(\d+(?:[.,]\d+)?)\s*(?:px|pixels?)\s*\/\s*m\b/i,
   ],
   niveau: [
     /\b(identification|reconnaissance|observation|d[ée]tection)\b/i,
+  ],
+  modele: [
+    /(?:r[ée]f[ée]rence|mod[èe]le)\s*(?:cam[ée]ra|produit|mat[ée]riel)?\s*:?\s*([^\n]{3,60})/i,
+  ],
+  type: [
+    /type\s*(?:de\s*)?cam[ée]ra\s*:?\s*([^\n]{3,40})/i,
   ],
 };
 
@@ -161,8 +174,44 @@ function lireResolution(ligne, page) {
   return null;
 }
 
+/** Mots qui qualifient une optique plutôt que de la nommer. */
+const MOTS_NEUTRES = /^(?:focale|objectif|optique|lentille|fixe|varifocal\w*|motoris\w*|de|du|la|le|les|et|en|avec|d)$/i;
+
+/**
+ * Optiques multiples annoncées sur une même ligne.
+ *
+ * Les caméras bispectrales portent deux objectifs — un thermique et un
+ * « contexte » en lumière visible — chacun avec son champ. N'en retenir qu'un
+ * silencieusement reviendrait à comparer l'image réglée au mauvais objectif.
+ *
+ * @returns {{valeur:number, libelle:string|null}[]} au moins deux optiques, sinon rien
+ */
+function optiquesMultiples(ligne) {
+  const trouvees = [];
+  const motif = /([A-Za-zÀ-ÿ]+)\s*(\d+(?:[.,]\d+)?)\s*mm/gi;
+  let m = motif.exec(ligne);
+  while (m) {
+    const valeur = nombre(m[2]);
+    if (valeur >= 0.8 && valeur <= 300 && !trouvees.some((o) => o.valeur === valeur)) {
+      trouvees.push({
+        valeur,
+        libelle: MOTS_NEUTRES.test(m[1]) ? null : m[1].toLowerCase(),
+      });
+    }
+    m = motif.exec(ligne);
+  }
+  return trouvees.length >= 2 ? trouvees : [];
+}
+
 function lireChamp(cle, ligne, page, contexte) {
   if (cle === 'resolution') return lireResolution(ligne, page);
+
+  if (cle === 'focale' && /focale|objectif|optique|lentille/i.test(ligne)) {
+    const optiques = optiquesMultiples(ligne);
+    if (optiques.length) {
+      return releve(optiques[0].valeur, ligne, page, 'mm', { variantes: optiques });
+    }
+  }
 
   // « Hauteur sous plafond » décrit le local, pas la pose de la caméra.
   if (cle === 'hauteur' && /sous\s+plafond/i.test(ligne)) return null;
@@ -175,6 +224,13 @@ function lireChamp(cle, ligne, page, contexte) {
     if (!m) continue;
 
     if (cle === 'capteur') return releve(`1/${m[1].replace(',', '.')}"`, ligne, page);
+    if (cle === 'modele') {
+      const texte = m[1].trim().replace(/\s+/g, ' ');
+      // Une référence produit porte un chiffre ; une phrase, non.
+      if (!/\d/.test(texte)) continue;
+      return releve(texte, ligne, page);
+    }
+    if (cle === 'type') return releve(m[1].trim().replace(/\s+/g, ' '), ligne, page);
     if (cle === 'niveau') {
       const mot = m[1].toLowerCase().replace('é', 'e');
       return releve(mot.startsWith('detect') ? 'detection' : mot, ligne, page);
@@ -186,13 +242,18 @@ function lireChamp(cle, ligne, page, contexte) {
     if (cle === 'angle' && (valeur < 5 || valeur > 360)) continue;
     if (cle === 'distance' && (valeur < 0.5 || valeur > 500)) continue;
     if (cle === 'hauteur' && (valeur < 0.5 || valeur > 60)) continue;
+    if (cle === 'densite' && (valeur < 1 || valeur > 5000)) continue;
+    if (cle === 'densite') return releve(valeur, ligne, page, 'px/m');
     if (cle === 'angle') return releve(valeur, ligne, page, '°', { axe: axeDeLAngle(ligne) });
     return releve(valeur, ligne, page, cle === 'focale' ? 'mm' : 'm');
   }
   return null;
 }
 
-const CHAMPS_CAMERA = ['focale', 'angle', 'capteur', 'resolution', 'distance', 'hauteur', 'niveau'];
+const CHAMPS_CAMERA = [
+  'focale', 'angle', 'capteur', 'resolution', 'distance', 'hauteur',
+  'densite', 'niveau', 'modele', 'type',
+];
 
 /* ------------------------------------------------------------ repères caméra */
 
@@ -207,7 +268,11 @@ const NUMERO = '(?:num[ée]ro\\s*|n\\s*[°o]\\s*|n\\s+)?';
  * cette réserve, une simple mention de définition créerait une caméra fantôme.
  */
 const MOTIF_CAMERA = new RegExp(
-  `\\b(?:cam[ée]ra|cam)\\s*${NUMERO}[-–—:]?\\s*(\\d{1,3})\\b(?!\\s*(?:K\\b|MP|Mpx|Mpix|M[ée]ga|mm|m\\b|°|px))`,
+  `\\b(?:cam[ée]ra|cam)\\s*${NUMERO}[-–—:]?\\s*(\\d{1,3})\\b`
+  // « DEBIT CAMERA 4 Mbits/s » : un nombre suivi d'une unité décrit le
+  // matériel, pas un repère. Sans cette réserve, chaque ligne de débit ou de
+  // définition créerait une caméra qui n'existe pas.
+  + '(?!\\s*(?:K\\b|MP|Mpx|Mpix|M[ée]ga|[MGkK]?(?:bits?|o|B)\\b|mm|m\\b|°|px|V\\b|W\\b|A\\b|Hz))',
   'i',
 );
 
@@ -250,9 +315,9 @@ export function analyserEtude(pages) {
       const m = texte.match(motif);
       if (m) {
         const valeur = m[1].trim().replace(/\s*[—–-]\s*$/, '');
-        // Un fragment d'un seul caractère est un reste d'abréviation mal
-        // découpée, pas une référence de dossier.
-        if (cle === 'affaire' && valeur.length < 2) continue;
+        // « REFERENCE CAMERA DAHUA-… » désigne le matériel, pas le dossier :
+        // un numéro d'affaire porte toujours un chiffre.
+        if (cle === 'affaire' && !/\d/.test(valeur)) continue;
         entete[cle] = releve(valeur, texte, page);
         break;
       }
@@ -340,24 +405,34 @@ export function confronter(champs, pose, anglesDeChamp) {
     lignes.push({ cle, libelle, etude, installe, conforme, remarque, source: champs[cle] || null });
   };
 
+  // Une caméra bispectrale porte deux objectifs : la fiche en contrôle un, et
+  // c'est celui dont la focale correspond au réglage saisi.
+  const variantes = champs.focale
+    ? (champs.focale.variantes || [{ valeur: champs.focale.valeur, libelle: null }])
+    : [];
+  const correspond = variantes.find((v) => Math.abs(v.valeur - pose.focale) < 0.05);
+  const retenue = correspond || variantes[0];
+
   let angleEtude = null;
   let axe = 'horizontal';
   if (champs.angle) {
     angleEtude = champs.angle.valeur;
     axe = champs.angle.axe || 'horizontal';
-  } else if (champs.focale) {
-    angleEtude = anglesDeChamp(pose.capteur, champs.focale.valeur).horizontal;
+  } else if (retenue) {
+    angleEtude = anglesDeChamp(pose.capteur, retenue.valeur).horizontal;
   }
 
   if (champs.focale) {
-    const ecart = pose.focale - champs.focale.valeur;
+    const nommer = (v) => `${fr(v.valeur, 2)} mm${v.libelle ? ` (${v.libelle})` : ''}`;
     ajouter(
       'focale',
       'Focale',
-      `${fr(champs.focale.valeur, 2)} mm`,
+      variantes.map(nommer).join(' / '),
       `${fr(pose.focale, 2)} mm`,
-      Math.abs(ecart) < 0.05,
-      Math.abs(ecart) < 0.05 ? '' : `${signe(ecart)} mm`,
+      !!correspond,
+      correspond
+        ? (variantes.length > 1 && correspond.libelle ? `objectif ${correspond.libelle}` : '')
+        : `${signe(pose.focale - retenue.valeur)} mm`,
     );
   }
 
@@ -370,7 +445,10 @@ export function confronter(champs, pose, anglesDeChamp) {
       `${fr(angleEtude)} °`,
       `${fr(anglePose)} °`,
       Math.abs(ecart) <= TOLERANCE_ANGLE_ETUDE,
-      `${signe(ecart)} °${champs.angle ? '' : ' (angle déduit de la focale de l\'étude)'}`,
+      // Un « +0 ° » n'apprend rien : ne reste alors que la provenance de l'angle.
+      [Math.abs(ecart) < 0.05 ? '' : `${signe(ecart)} °`,
+        champs.angle ? '' : 'angle déduit de la focale de l\'étude']
+        .filter(Boolean).join(' — '),
     );
   }
 
@@ -405,6 +483,21 @@ export function confronter(champs, pose, anglesDeChamp) {
       `${fr(valeurPose, 2)} m`,
       Math.abs(ecart) <= Math.max(0.2, attendu * TOLERANCE_RELATIVE),
       Math.abs(ecart) < 0.05 ? '' : `${signe(ecart, 2)} m`,
+    );
+  }
+
+  if (champs.densite && pose.distance > 0) {
+    // Largeur de scène couverte à la distance retenue, puis densité obtenue.
+    const largeur = 2 * pose.distance * Math.tan((pose.angles.horizontal * Math.PI) / 360);
+    const obtenue = largeur > 0 ? pose.resolution.h / largeur : 0;
+    const conforme = obtenue >= champs.densite.valeur;
+    ajouter(
+      'densite',
+      'Densité sur la scène',
+      `${fr(champs.densite.valeur, 0)} px/m`,
+      `${fr(obtenue, 0)} px/m`,
+      conforme,
+      conforme ? '' : 'en deçà de l\'exigence de l\'étude',
     );
   }
 
