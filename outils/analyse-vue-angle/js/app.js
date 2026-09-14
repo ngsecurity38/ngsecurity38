@@ -17,12 +17,18 @@ import { diagnostiquer, LIBELLES_VERDICT, TOLERANCES_DEFAUT } from './diagnostic
 import { estPdf, ouvrirSelecteurPdf } from './etude-pdf.js';
 import { $, $$ } from './dom.js';
 import { champsPourCamera, confronter } from './lecture-etude.js';
+import {
+  TYPE_FICHE, VERSION_FICHE, migrer, nouvelleCamera, nomDeFichier,
+} from './fiche.js';
 
 const nb = (el, defaut = 0) => {
   const v = parseFloat(el.value);
   return Number.isFinite(v) ? v : defaut;
 };
 const fmt = (v, n = 1) => (Number.isFinite(v) ? v.toFixed(n).replace('.', ',') : '—');
+
+/** Accord en nombre : un procès-verbal client ne s'écrit pas avec des « (s) ». */
+const plur = (n, mot, suffixe = 's') => `${n} ${mot}${n > 1 ? suffixe : ''}`;
 
 /** Échappe le texte saisi : une fiche .json peut venir d'un autre poste. */
 const ech = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => (
@@ -42,19 +48,32 @@ const TAILLE_ANALYSE = 480; // largeur de travail pour le recalage
 const TAILLE_RENDU = 1280; // largeur maximale des toiles
 const COULEURS_ZONES = ['#3d8bfd', '#2eae6a', '#d99b1f', '#c8102e', '#a45cd6', '#00b8c4'];
 
+/**
+ * Un dossier de chantier, plusieurs caméras.
+ *
+ * `cameras` conserve l'état de chacune ; les champs de travail (`reference`,
+ * `reglee`, `transformation`…) portent la caméra affichée. Passer d'un onglet à
+ * l'autre range la caméra courante puis déplie la suivante.
+ */
 const etat = {
-  reference: null, // { nom, dataUrl, img, largeur, hauteur }
+  cameras: [], // fiches caméra, cf. js/fiche.js
+  index: 0, // caméra affichée
+
+  reference: null, // { nom, dataUrl, img, largeur, hauteur, source }
   reglee: null,
   cache: null, // images prétraitées pour le recalage manuel
   transformation: null,
   manuel: false,
   diagnostic: null,
   zones: [],
-  etude: null, // { fichier, analyse, repere } — valeurs lues dans le PDF d'étude
+
+  etude: null, // { fichier, analyse } — valeurs lues dans le PDF d'étude, commun au dossier
   mode: 'cote',
   tracage: false,
   dernierDepot: 'reference',
 };
+
+const cameraCourante = () => etat.cameras[etat.index];
 
 /* ====================================================== initialisation UI */
 
@@ -73,21 +92,56 @@ function remplirSelecteurs() {
   $('#ch-date').value = new Date().toISOString().slice(0, 10);
 }
 
-function capteurActuel() {
-  const cle = $('#cam-capteur').value;
-  if (cle === 'libre') {
-    return {
-      largeur: nb($('#cam-capteur-l'), 5.18),
-      hauteur: nb($('#cam-capteur-h'), 2.92),
-    };
-  }
-  return CAPTEURS[cle];
+/** Valeurs d'optique telles que le formulaire les porte. */
+function lireOptique() {
+  return {
+    capteur: $('#cam-capteur').value,
+    capteurLargeur: nb($('#cam-capteur-l'), 5.18),
+    capteurHauteur: nb($('#cam-capteur-h'), 2.92),
+    focale: nb($('#cam-focale'), 4),
+    resolution: $('#cam-resolution').value,
+    resH: nb($('#cam-res-h'), 1920),
+    resV: nb($('#cam-res-v'), 1080),
+    distance: nb($('#cam-distance'), 15),
+    hauteur: nb($('#cam-hauteur'), 3.5),
+    inclinaison: nb($('#cam-inclinaison'), 15),
+  };
 }
 
-function resolutionActuelle() {
-  const r = RESOLUTIONS[parseInt($('#cam-resolution').value, 10)] || RESOLUTIONS[0];
-  if (!r.h) return { h: nb($('#cam-res-h'), 1920), v: nb($('#cam-res-v'), 1080) };
-  return { h: r.h, v: r.v };
+function ecrireOptique(o) {
+  $('#cam-capteur').value = o.capteur;
+  $('#cam-capteur-l').value = o.capteurLargeur;
+  $('#cam-capteur-h').value = o.capteurHauteur;
+  $('#cam-focale').value = o.focale;
+  $('#cam-resolution').value = o.resolution;
+  $('#cam-res-h').value = o.resH;
+  $('#cam-res-v').value = o.resV;
+  $('#cam-distance').value = o.distance;
+  $('#cam-hauteur').value = o.hauteur;
+  $('#cam-inclinaison').value = o.inclinaison;
+  basculerChampsLibres();
+}
+
+/**
+ * Configuration exploitable à partir de valeurs d'optique enregistrées.
+ * Passer par cette fonction plutôt que par le formulaire permet de traiter
+ * n'importe quelle caméra du dossier, pas seulement celle affichée.
+ */
+function configDe(o) {
+  const capteur = o.capteur === 'libre'
+    ? { largeur: o.capteurLargeur, hauteur: o.capteurHauteur }
+    : (CAPTEURS[o.capteur] || CAPTEURS['1/2.8"']);
+  const r = RESOLUTIONS[parseInt(o.resolution, 10)] || RESOLUTIONS[0];
+  return {
+    capteur,
+    capteurCle: o.capteur,
+    focale: o.focale,
+    resolution: r.h ? { h: r.h, v: r.v } : { h: o.resH, v: o.resV },
+    distance: o.distance,
+    hauteur: o.hauteur,
+    inclinaison: o.inclinaison,
+    angles: anglesDeChamp(capteur, o.focale),
+  };
 }
 
 function tolerancesActuelles() {
@@ -98,19 +152,17 @@ function tolerancesActuelles() {
   };
 }
 
-function configCamera() {
-  const capteur = capteurActuel();
-  const focale = nb($('#cam-focale'), 4);
-  return {
-    capteur,
-    capteurCle: $('#cam-capteur').value,
-    focale,
-    resolution: resolutionActuelle(),
-    distance: nb($('#cam-distance'), 15),
-    hauteur: nb($('#cam-hauteur'), 3.5),
-    inclinaison: nb($('#cam-inclinaison'), 15),
-    angles: anglesDeChamp(capteur, focale),
-  };
+const configCamera = () => configDe(lireOptique());
+
+/** Diagnostic d'une caméra enregistrée, recalculé depuis ses propres valeurs. */
+function diagnosticDe(cam) {
+  if (!cam || !cam.transformation) return null;
+  const c = configDe(cam.optique);
+  return diagnostiquer(cam.transformation, c.angles, {
+    tolerances: tolerancesActuelles(),
+    distance: c.distance,
+    focale: c.focale,
+  });
 }
 
 /* ======================================================= mesures optiques */
@@ -164,12 +216,151 @@ function majAideFocale(c) {
   ].join('');
 }
 
+/* ================================================ caméras du dossier */
+
+/** Range la caméra affichée dans le dossier avant de passer à une autre. */
+function sauverCameraCourante() {
+  const cam = cameraCourante();
+  if (!cam) return;
+  cam.nom = $('#ch-camera').value;
+  cam.optique = lireOptique();
+  cam.commentaire = $('#ch-commentaire').value;
+  cam.zones = etat.zones;
+  cam.transformation = etat.transformation;
+  cam.manuel = etat.manuel;
+  cam.images = {
+    reference: etat.reference && {
+      nom: etat.reference.nom, dataUrl: etat.reference.dataUrl, source: etat.reference.source,
+      largeur: etat.reference.largeur, hauteur: etat.reference.hauteur,
+    },
+    reglee: etat.reglee && {
+      nom: etat.reglee.nom, dataUrl: etat.reglee.dataUrl, source: etat.reglee.source,
+      largeur: etat.reglee.largeur, hauteur: etat.reglee.hauteur,
+    },
+  };
+}
+
+/** Vide les cadres d'images sans toucher au dossier. */
+function viderVues() {
+  ['reference', 'reglee'].forEach((role) => {
+    etat[role] = null;
+    const suffixe = role === 'reference' ? 'reference' : 'reglee';
+    $(`#vignette-${suffixe}`).hidden = true;
+    $(`#vignette-${suffixe}`).removeAttribute('src');
+    $(`#depot-${suffixe} .depot-texte`).hidden = false;
+    $(`#info-${suffixe}`).textContent = '';
+  });
+}
+
+/** Déplie une caméra du dossier dans le formulaire et la visionneuse. */
+async function chargerCamera(i) {
+  etat.index = Math.max(0, Math.min(i, etat.cameras.length - 1));
+  const cam = cameraCourante();
+  $('#ch-camera').value = cam.nom || '';
+  $('#ch-commentaire').value = cam.commentaire || '';
+  ecrireOptique(cam.optique);
+
+  etat.cache = null;
+  etat.transformation = cam.transformation || null;
+  etat.manuel = !!cam.manuel;
+  etat.diagnostic = null;
+  etat.zones = cam.zones || [];
+  $('#verdict').hidden = true;
+
+  viderVues();
+  if (cam.images?.reference) {
+    await definirImage('reference', cam.images.reference.dataUrl,
+      cam.images.reference.nom, cam.images.reference.source, false);
+  }
+  if (cam.images?.reglee) {
+    await definirImage('reglee', cam.images.reglee.dataUrl,
+      cam.images.reglee.nom, cam.images.reglee.source, false);
+  }
+
+  synchroniserCurseurs();
+  majOptique();
+  majEtude();
+  majZones();
+  if (etat.transformation) majDiagnostic();
+  else majVisionneuse();
+  majOnglets();
+}
+
+async function allerACamera(i) {
+  if (i === etat.index) return;
+  sauverCameraCourante();
+  await chargerCamera(i);
+}
+
+/** Nom proposé pour une nouvelle caméra : on suit la numérotation en cours. */
+function nomSuivant() {
+  const numeros = etat.cameras
+    .map((c) => (c.nom || '').match(/(\d+)/))
+    .filter(Boolean)
+    .map((m) => Number(m[1]));
+  const suivant = numeros.length ? Math.max(...numeros) + 1 : etat.cameras.length + 1;
+  return `CAM ${String(suivant).padStart(2, '0')}`;
+}
+
+async function ajouterCamera(nom, optique) {
+  sauverCameraCourante();
+  const cam = nouvelleCamera(nom || nomSuivant());
+  // La nouvelle caméra hérite de l'optique de la précédente : sur un même
+  // chantier, le matériel est le plus souvent identique d'un poste à l'autre.
+  cam.optique = optique || { ...(cameraCourante()?.optique || cam.optique) };
+  etat.cameras.push(cam);
+  await chargerCamera(etat.cameras.length - 1);
+}
+
+async function supprimerCamera() {
+  if (etat.cameras.length < 2) {
+    $('#etat-analyse').textContent = 'Un dossier comporte au moins une caméra.';
+    $('#etat-analyse').classList.add('erreur');
+    return;
+  }
+  const cam = cameraCourante();
+  if (!window.confirm(`Retirer « ${cam.nom || 'cette caméra'} » du dossier ?`)) return;
+  etat.cameras.splice(etat.index, 1);
+  await chargerCamera(Math.min(etat.index, etat.cameras.length - 1));
+}
+
+/** Onglets des caméras, avec la pastille de verdict de chacune. */
+function majOnglets() {
+  sauverCameraCourante();
+  const boite = $('#onglets-cameras');
+  boite.innerHTML = etat.cameras.map((cam, i) => {
+    const d = i === etat.index ? etat.diagnostic : diagnosticDe(cam);
+    const classe = d ? d.verdict : 'vide';
+    const titre = d ? `${LIBELLES_VERDICT[d.verdict]}${d.fiable ? ` — ${d.score}/100` : ''}` : 'Analyse non faite';
+    return `<button type="button" class="onglet ${i === etat.index ? 'actif' : ''}" data-camera="${i}"
+        title="${ech(titre)}"><span class="puce ${classe}"></span><span class="nom">${ech(cam.nom || `Caméra ${i + 1}`)}</span></button>`;
+  }).join('');
+  $$('#onglets-cameras button[data-camera]').forEach((b) => {
+    b.addEventListener('click', () => allerACamera(Number(b.dataset.camera)));
+  });
+  $('#btn-supprimer-camera').disabled = etat.cameras.length < 2;
+  majSyntheseCourte();
+}
+
+function majSyntheseCourte() {
+  const diagnostics = etat.cameras.map((cam, i) => (i === etat.index ? etat.diagnostic : diagnosticDe(cam)));
+  const faits = diagnostics.filter(Boolean);
+  if (!faits.length) {
+    $('#synthese-courte').textContent = `${plur(etat.cameras.length, 'caméra')} — aucune analysée`;
+    return;
+  }
+  const conformes = faits.filter((d) => d.verdict === 'conforme').length;
+  const reste = etat.cameras.length - faits.length;
+  $('#synthese-courte').textContent = `${conformes}/${faits.length} conforme${conformes > 1 ? 's' : ''}`
+    + (reste ? ` — ${plur(reste, 'caméra')} à analyser` : '');
+}
+
 /* ====================================================== relevé de l'étude */
 
 /** Valeurs de l'étude qui s'appliquent à la caméra retenue. */
 function champsEtude() {
   if (!etat.etude) return {};
-  return champsPourCamera(etat.etude.analyse, etat.etude.repere);
+  return champsPourCamera(etat.etude.analyse, cameraCourante()?.repereEtude);
 }
 
 /** Confrontation étude / pose, telle qu'elle est affichée et imprimée. */
@@ -222,13 +413,35 @@ function reprendre(cle) {
   majEtude();
 }
 
+/** Crée une fiche caméra par repère de l'étude encore absent du dossier. */
+async function creerCamerasDeLEtude(manquantes) {
+  sauverCameraCourante();
+  const vide = (c) => !c.images?.reference && !c.images?.reglee && !c.transformation;
+  for (const m of manquantes) {
+    // La première caméra du dossier, si elle est encore vierge, sert de support
+    // plutôt que de laisser une fiche vide traîner à côté.
+    const cible = etat.cameras.length === 1 && vide(etat.cameras[0])
+      ? etat.cameras[0]
+      : (etat.cameras.push(nouvelleCamera(m.repere)), etat.cameras[etat.cameras.length - 1]);
+    cible.nom = m.repere;
+    cible.repereEtude = m.repere;
+  }
+  await chargerCamera(etat.index);
+}
+
 function reprendreEntete() {
   const { entete } = etat.etude?.analyse || {};
   if (!entete) return;
   if (entete.client) $('#ch-client').value = entete.client.valeur;
   if (entete.site) $('#ch-site').value = entete.site.valeur;
   if (entete.affaire) $('#ch-affaire').value = entete.affaire.valeur;
-  if (etat.etude.repere) $('#ch-camera').value = etat.etude.repere;
+  // Action explicitement demandée : le repère de l'étude l'emporte sur le nom
+  // provisoire de la caméra.
+  const repere = cameraCourante()?.repereEtude;
+  if (repere) {
+    $('#ch-camera').value = repere;
+    majOnglets();
+  }
 }
 
 function majEtude() {
@@ -238,13 +451,26 @@ function majEtude() {
 
   const { cameras } = etat.etude.analyse;
   const choix = $('#etude-choix-camera');
-  choix.hidden = cameras.length < 2;
-  if (cameras.length >= 2) {
+  choix.hidden = !cameras.length;
+  if (cameras.length) {
     const select = $('#etude-camera');
     select.innerHTML = '';
     cameras.forEach((c) => select.append(new Option(`${c.repere} (page ${c.page})`, c.repere)));
-    select.value = etat.etude.repere || cameras[0].repere;
+    select.value = cameraCourante()?.repereEtude || cameras[0].repere;
+    if (cameraCourante()) cameraCourante().repereEtude = select.value;
   }
+
+  // Une étude qui décrit plus de caméras que le dossier n'en compte : proposer
+  // de créer les fiches manquantes d'un coup.
+  const manquantes = cameras.filter(
+    (c) => !etat.cameras.some((x) => x.repereEtude === c.repere),
+  );
+  const bouton = $('#etude-creer-cameras');
+  bouton.hidden = manquantes.length === 0;
+  bouton.textContent = manquantes.length > 1
+    ? `Créer les ${manquantes.length} caméras manquantes`
+    : 'Créer la caméra manquante';
+  bouton.onclick = () => creerCamerasDeLEtude(manquantes);
 
   const lignes = comparaisonEtude();
   const tableau = $('#etude-tableau');
@@ -293,7 +519,12 @@ function lireFichier(fichier) {
   });
 }
 
-async function definirImage(role, dataUrl, nom, source = null) {
+/**
+ * Installe une image dans l'un des deux cadres.
+ * `reinitialiser` est mis à faux au rechargement d'une caméra du dossier : on
+ * remet alors en place une analyse déjà faite, il ne faut pas l'effacer.
+ */
+async function definirImage(role, dataUrl, nom, source = null, reinitialiser = true) {
   const img = await chargerImage(dataUrl);
   etat[role] = {
     nom: nom || 'image', dataUrl, img, source,
@@ -307,15 +538,18 @@ async function definirImage(role, dataUrl, nom, source = null) {
   $(`#info-${suffixe}`).textContent = `${etat[role].nom} — ${img.naturalWidth} × ${img.naturalHeight} px`
     + (source?.type === 'pdf' && source.recadre ? ' (recadrée)' : '');
 
-  etat.cache = null;
-  etat.transformation = null;
-  etat.diagnostic = null;
-  $('#verdict').hidden = true;
   $('#btn-analyser').disabled = !(etat.reference && etat.reglee);
-  $('#etat-analyse').textContent = etat.reference && etat.reglee
-    ? 'Les deux vues sont chargées : lancer l\'analyse.' : '';
-  $('#etat-analyse').classList.remove('erreur');
-  majVisionneuse();
+  if (reinitialiser) {
+    etat.cache = null;
+    etat.transformation = null;
+    etat.diagnostic = null;
+    $('#verdict').hidden = true;
+    $('#etat-analyse').textContent = etat.reference && etat.reglee
+      ? 'Les deux vues sont chargées : lancer l\'analyse.' : '';
+    $('#etat-analyse').classList.remove('erreur');
+    majVisionneuse();
+    majOnglets();
+  }
 }
 
 async function traiterFichier(role, fichier) {
@@ -476,6 +710,7 @@ function majDiagnostic() {
   rendreVerdict(etat.diagnostic, c);
   majVisionneuse();
   majZones();
+  majOnglets();
 }
 
 function rendreVerdict(d, c) {
@@ -754,34 +989,44 @@ function dessinerZonesProjetees(ctx, l, h) {
   });
 }
 
-/** Part de la zone demandée réellement couverte par l'image réglée. */
-function couvertureZone(z) {
-  if (!etat.transformation || !etat.reference || !etat.reglee) return null;
-  const ref = etat.reference.img;
-  const actL = etat.reglee.img.naturalWidth;
-  const actH = etat.reglee.img.naturalHeight;
-  const m = matriceRecalage(etat.transformation, ref.naturalWidth, ref.naturalHeight, actL);
-  const cxA = (actL - 1) / 2;
-  const cyA = (actH - 1) / 2;
+/**
+ * Part de la zone demandée réellement couverte par l'image réglée.
+ *
+ * Ne travaille que sur des dimensions et une transformation, pour pouvoir
+ * chiffrer aussi les caméras du dossier qui ne sont pas à l'écran.
+ *
+ * @param {object} z zone, en fractions de la vue demandée
+ * @param {{largeur:number, hauteur:number}} ref dimensions de la vue demandée
+ * @param {{largeur:number, hauteur:number}} act dimensions de la vue réglée
+ * @param {object} t transformation trouvée par le recalage
+ */
+function couvertureZone(z, ref, act, t) {
+  if (!t || !ref || !act) return null;
+  const m = matriceRecalage(t, ref.largeur, ref.hauteur, act.largeur);
+  const cxA = (act.largeur - 1) / 2;
+  const cyA = (act.hauteur - 1) / 2;
   const N = 24;
   let dedans = 0;
   for (let i = 0; i < N; i += 1) {
     for (let j = 0; j < N; j += 1) {
-      const u = (z.x + (z.l * (i + 0.5)) / N) * ref.naturalWidth;
-      const v = (z.y + (z.h * (j + 0.5)) / N) * ref.naturalHeight;
+      const u = (z.x + (z.l * (i + 0.5)) / N) * ref.largeur;
+      const v = (z.y + (z.h * (j + 0.5)) / N) * ref.hauteur;
       const p = projeter(m, u, v, cxA, cyA);
-      if (p.x >= 0 && p.y >= 0 && p.x <= actL && p.y <= actH) dedans += 1;
+      if (p.x >= 0 && p.y >= 0 && p.x <= act.largeur && p.y <= act.hauteur) dedans += 1;
     }
   }
   return dedans / (N * N);
 }
+
+/** Couverture des zones d'une caméra enregistrée du dossier. */
+const couvertureZoneDe = (cam, z) => couvertureZone(z, cam.images?.reference, cam.images?.reglee, cam.transformation);
 
 function majZones() {
   const liste = $('#zones-liste');
   if (!etat.zones.length) { liste.innerHTML = ''; return; }
   const seuil = nb($('#tol-zone'), 95) / 100;
   liste.innerHTML = `<h3>Zones d'intérêt</h3>${etat.zones.map((z, i) => {
-    const c = couvertureZone(z);
+    const c = couvertureZone(z, etat.reference, etat.reglee, etat.transformation);
     const pct = c === null ? '—' : `${fmt(c * 100, 0)} %`;
     const classe = c === null ? '' : (c >= seuil ? 'ok' : 'ko');
     return `<div class="zone-ligne">
@@ -861,135 +1106,70 @@ function apercuZone(a, b) {
 /* ================================================== fiche : enregistrer / ouvrir */
 
 function fiche() {
+  sauverCameraCourante();
   return {
-    type: 'ng-vue-angle',
-    version: 1,
+    type: TYPE_FICHE,
+    version: VERSION_FICHE,
     enregistreLe: new Date().toISOString(),
     chantier: {
       client: $('#ch-client').value,
       site: $('#ch-site').value,
-      camera: $('#ch-camera').value,
       technicien: $('#ch-technicien').value,
       date: $('#ch-date').value,
       affaire: $('#ch-affaire').value,
-      commentaire: $('#ch-commentaire').value,
-    },
-    camera: {
-      capteur: $('#cam-capteur').value,
-      capteurLargeur: nb($('#cam-capteur-l')),
-      capteurHauteur: nb($('#cam-capteur-h')),
-      focale: nb($('#cam-focale')),
-      resolution: $('#cam-resolution').value,
-      resH: nb($('#cam-res-h')),
-      resV: nb($('#cam-res-v')),
-      distance: nb($('#cam-distance')),
-      hauteur: nb($('#cam-hauteur')),
-      inclinaison: nb($('#cam-inclinaison')),
     },
     tolerances: { ...tolerancesActuelles(), zone: nb($('#tol-zone'), 95) },
-    zones: etat.zones,
     etude: etat.etude,
-    transformation: etat.transformation,
-    manuel: etat.manuel,
-    images: {
-      reference: etat.reference && {
-        nom: etat.reference.nom, dataUrl: etat.reference.dataUrl, source: etat.reference.source,
-      },
-      reglee: etat.reglee && {
-        nom: etat.reglee.nom, dataUrl: etat.reglee.dataUrl, source: etat.reglee.source,
-      },
-    },
+    cameras: etat.cameras,
   };
 }
 
-function nomFichier() {
-  const parties = [$('#ch-affaire').value, $('#ch-client').value, $('#ch-camera').value]
-    .map((s) => s.trim()).filter(Boolean);
-  const base = parties.length ? parties.join('-') : 'vue-angle';
-  return `${base.replace(/[^\w\-À-ÿ ]+/g, '').replace(/\s+/g, '-').toLowerCase()}.json`;
-}
-
 function enregistrerFiche() {
-  const blob = new Blob([JSON.stringify(fiche(), null, 2)], { type: 'application/json' });
+  const contenu = fiche();
+  const blob = new Blob([JSON.stringify(contenu, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = nomFichier();
+  a.download = nomDeFichier(contenu.chantier, contenu.cameras);
   a.click();
   URL.revokeObjectURL(url);
 }
 
 async function ouvrirFiche(fichier) {
-  const texte = await fichier.text();
   let f;
   try {
-    f = JSON.parse(texte);
-  } catch {
-    $('#etat-analyse').textContent = 'Fichier illisible : ce n\'est pas une fiche JSON valide.';
-    $('#etat-analyse').classList.add('erreur');
-    return;
-  }
-  if (f.type !== 'ng-vue-angle') {
-    $('#etat-analyse').textContent = 'Ce fichier n\'est pas une fiche de vue d\'angle.';
+    f = migrer(JSON.parse(await fichier.text()));
+  } catch (err) {
+    $('#etat-analyse').textContent = err instanceof SyntaxError
+      ? 'Fichier illisible : ce n\'est pas une fiche JSON valide.'
+      : err.message;
     $('#etat-analyse').classList.add('erreur');
     return;
   }
 
-  const ch = f.chantier || {};
+  const ch = f.chantier;
   $('#ch-client').value = ch.client || '';
   $('#ch-site').value = ch.site || '';
-  $('#ch-camera').value = ch.camera || '';
   $('#ch-technicien').value = ch.technicien || '';
   $('#ch-date').value = ch.date || '';
   $('#ch-affaire').value = ch.affaire || '';
-  $('#ch-commentaire').value = ch.commentaire || '';
 
-  const c = f.camera || {};
-  if (c.capteur) $('#cam-capteur').value = c.capteur;
-  if (c.capteurLargeur) $('#cam-capteur-l').value = c.capteurLargeur;
-  if (c.capteurHauteur) $('#cam-capteur-h').value = c.capteurHauteur;
-  if (c.focale) $('#cam-focale').value = c.focale;
-  if (c.resolution !== undefined) $('#cam-resolution').value = c.resolution;
-  if (c.resH) $('#cam-res-h').value = c.resH;
-  if (c.resV) $('#cam-res-v').value = c.resV;
-  if (c.distance) $('#cam-distance').value = c.distance;
-  if (c.hauteur) $('#cam-hauteur').value = c.hauteur;
-  if (c.inclinaison !== undefined) $('#cam-inclinaison').value = c.inclinaison;
-  basculerChampsLibres();
-
-  const t = f.tolerances || {};
+  const t = f.tolerances;
   if (t.angle) $('#tol-angle').value = t.angle;
   if (t.roulis) $('#tol-roulis').value = t.roulis;
   if (t.zoom) $('#tol-zoom').value = t.zoom;
   if (t.zone) $('#tol-zone').value = t.zone;
 
-  etat.zones = Array.isArray(f.zones) ? f.zones : [];
-  etat.etude = f.etude || null;
-  if (f.images?.reference) {
-    await definirImage('reference', f.images.reference.dataUrl, f.images.reference.nom,
-      f.images.reference.source || null);
-  }
-  if (f.images?.reglee) {
-    await definirImage('reglee', f.images.reglee.dataUrl, f.images.reglee.nom,
-      f.images.reglee.source || null);
-  }
+  etat.etude = f.etude;
+  etat.cameras = f.cameras;
+  await chargerCamera(0);
 
-  if (f.transformation) {
-    etat.transformation = f.transformation;
-    etat.manuel = !!f.manuel;
-    synchroniserCurseurs();
-    majDiagnostic();
-  }
-  majOptique();
-  majZones();
-  majEtude();
-  majVisionneuse();
-  $('#etat-analyse').textContent = 'Fiche chargée.';
+  $('#etat-analyse').textContent = `Fiche chargée — ${plur(f.cameras.length, 'caméra')}.`;
   $('#etat-analyse').classList.remove('erreur');
 }
 
 function nouvelleFiche() {
-  if (!window.confirm('Effacer la fiche en cours et repartir d\'une fiche vierge ?')) return;
+  if (!window.confirm('Effacer le dossier en cours et repartir d\'une fiche vierge ?')) return;
   window.location.reload();
 }
 
@@ -997,46 +1177,73 @@ function nouvelleFiche() {
 
 /** Origine d'une vue, citée dans le procès-verbal. */
 function provenance(image) {
-  const s = image.source;
-  if (s?.type === 'pdf') {
-    return `Source : ${ech(s.fichier)}, page ${s.page}${s.recadre ? ' (recadrée)' : ''}`;
+  const src = image.source;
+  if (src?.type === 'pdf') {
+    return `Source : ${ech(src.fichier)}, page ${src.page}${src.recadre ? ' (recadrée)' : ''}`;
   }
   return `Source : ${ech(image.nom)}`;
 }
 
-function construireRapport() {
-  const c = configCamera();
-  const d = etat.diagnostic;
-  const ch = {
-    client: ech($('#ch-client').value) || '—',
-    site: ech($('#ch-site').value) || '—',
-    camera: ech($('#ch-camera').value) || '—',
-    technicien: ech($('#ch-technicien').value) || '—',
-    date: ech($('#ch-date').value) || '—',
-    affaire: ech($('#ch-affaire').value) || '—',
-    commentaire: ech($('#ch-commentaire').value.trim()),
-  };
-  const seuilZone = nb($('#tol-zone'), 95) / 100;
+/** Confrontation étude / pose pour une caméra donnée du dossier. */
+function comparaisonEtudeDe(cam) {
+  if (!etat.etude) return [];
+  return confronter(
+    champsPourCamera(etat.etude.analyse, cam.repereEtude),
+    configDe(cam.optique),
+    anglesDeChamp,
+  );
+}
 
-  const lignesZones = etat.zones.map((z, i) => {
-    const cov = couvertureZone(z);
+/** Tableau de tête : où en est chaque caméra du chantier. */
+function sectionSynthese(lignes) {
+  const conformes = lignes.filter((l) => l.d && l.d.verdict === 'conforme').length;
+  const analysees = lignes.filter((l) => l.d).length;
+  return `<section>
+    <h2>Synthèse du chantier</h2>
+    <table class="synthese">
+      <thead><tr>
+        <th>Caméra</th><th>Pointage H</th><th>Pointage V</th><th>Aplomb</th>
+        <th>Cadrage</th><th>Matériel</th><th>Note</th><th>Verdict</th>
+      </tr></thead>
+      <tbody>${lignes.map(({ cam, d, etude }) => {
+    const e = d ? d.ecarts : null;
+    const ecartsMateriel = etude.filter((x) => !x.conforme).length;
+    return `<tr>
+          <td>${ech(cam.nom || 'Caméra')}</td>
+          <td>${e ? `${fmt(e.pan, 1)} °` : '—'}</td>
+          <td>${e ? `${fmt(e.site, 1)} °` : '—'}</td>
+          <td>${e ? `${fmt(e.roulis, 1)} °` : '—'}</td>
+          <td>${e ? `${fmt(e.zoom, 1)} %` : '—'}</td>
+          <td>${etude.length ? (ecartsMateriel ? plur(ecartsMateriel, 'écart') : 'Conforme') : '—'}</td>
+          <td>${d && d.fiable ? d.score : '—'}</td>
+          <td class="verdict-${d ? d.verdict : 'indetermine'}">${d ? LIBELLES_VERDICT[d.verdict] : 'Non analysée'}</td>
+        </tr>`;
+  }).join('')}</tbody>
+    </table>
+    <p style="font-size:9pt;margin-top:2mm">
+      ${plur(analysees, 'caméra')} ${analysees > 1 ? 'analysées' : 'analysée'} sur ${lignes.length} —
+      ${plur(conformes, 'conforme')} à la vue demandée.
+      ${lignes.length - analysees
+    ? `${plur(lignes.length - analysees, 'caméra')} ${lignes.length - analysees > 1 ? 'restent' : 'reste'} à contrôler.`
+    : ''}
+    </p>
+  </section>`;
+}
+
+/** Bloc détaillé d'une caméra. */
+function sectionCamera({ cam, d, etude }, rang, seule) {
+  const c = configDe(cam.optique);
+  const seuilZone = nb($('#tol-zone'), 95) / 100;
+  const zones = (cam.zones || []).map((z, i) => {
+    const cov = couvertureZoneDe(cam, z);
     return `<tr><td>${ech(z.nom || `Zone ${i + 1}`)}</td>
       <td>${cov === null ? '—' : `${fmt(cov * 100, 0)} %`}</td>
       <td>${cov === null ? '—' : (cov >= seuilZone ? 'Conforme' : 'Insuffisante')}</td></tr>`;
   }).join('');
 
-  $('#rapport').innerHTML = `
-    <h1>Procès-verbal d'analyse de vue d'angle</h1>
-    <p class="sous-titre">NG Security 38 — comparaison de la vue demandée et du réglage réalisé</p>
-
-    <section>
-      <h2>Chantier</h2>
-      <table>
-        <tr><th>Client</th><td>${ch.client}</td><th>N° d'affaire</th><td>${ch.affaire}</td></tr>
-        <tr><th>Site</th><td>${ch.site}</td><th>Date</th><td>${ch.date}</td></tr>
-        <tr><th>Caméra</th><td>${ch.camera}</td><th>Technicien</th><td>${ch.technicien}</td></tr>
-      </table>
-    </section>
+  return `
+    <div class="${rang > 0 ? 'saut' : ''}">
+    ${seule ? '' : `<p class="camera-titre">${ech(cam.nom || `Caméra ${rang + 1}`)}</p>`}
 
     <section>
       <h2>Configuration optique</h2>
@@ -1052,44 +1259,38 @@ function construireRapport() {
       </table>
     </section>
 
-    ${(() => {
-      const lignes = comparaisonEtude();
-      if (!lignes.length) return '';
-      const horsTolerance = lignes.filter((l) => !l.conforme).length;
-      return `<section>
-        <h2>Conformité à l'étude${etat.etude.repere ? ` — ${ech(etat.etude.repere)}` : ''}</h2>
-        <table>
-          <thead><tr><th>Caractéristique</th><th>Étude</th><th>Posé</th><th>Source</th><th>Résultat</th></tr></thead>
-          <tbody>${lignes.map((l) => `<tr>
-            <td>${l.libelle}</td>
-            <td>${ech(l.etude)}</td>
-            <td>${ech(l.installe)}${l.remarque ? ` (${ech(l.remarque)})` : ''}</td>
-            <td>${l.source ? `p. ${l.source.page}` : '—'}</td>
-            <td>${l.conforme ? 'Conforme' : 'Écart'}</td></tr>`).join('')}</tbody>
-        </table>
-        <p style="font-size:9pt;margin-top:2mm">
-          Valeurs relevées dans ${ech(etat.etude.fichier)}
-          ${horsTolerance
-            ? `— ${horsTolerance} écart${horsTolerance > 1 ? 's' : ''} entre le matériel annoncé et le matériel posé.`
-            : '— le matériel posé correspond à l\'étude.'}
-        </p>
-      </section>`;
-    })()}
+    ${etude.length ? `<section>
+      <h2>Conformité à l'étude${cam.repereEtude ? ` — ${ech(cam.repereEtude)}` : ''}</h2>
+      <table>
+        <thead><tr><th>Caractéristique</th><th>Étude</th><th>Posé</th><th>Source</th><th>Résultat</th></tr></thead>
+        <tbody>${etude.map((l) => `<tr>
+          <td>${l.libelle}</td>
+          <td>${ech(l.etude)}</td>
+          <td>${ech(l.installe)}${l.remarque ? ` (${ech(l.remarque)})` : ''}</td>
+          <td>${l.source ? `p. ${l.source.page}` : '—'}</td>
+          <td>${l.conforme ? 'Conforme' : 'Écart'}</td></tr>`).join('')}</tbody>
+      </table>
+      <p style="font-size:9pt;margin-top:2mm">
+        Valeurs relevées dans ${ech(etat.etude.fichier)}
+        ${etude.filter((l) => !l.conforme).length
+    ? `— ${plur(etude.filter((l) => !l.conforme).length, 'écart')} entre le matériel annoncé et le matériel posé.`
+    : '— le matériel posé correspond à l\'étude.'}
+      </p>
+    </section>` : ''}
 
     <section>
       <h2>Vues comparées</h2>
       <div class="images">
         <figure><figcaption>Vue demandée par le client</figcaption>
-          ${etat.reference ? `<img src="${etat.reference.dataUrl}" alt="">
-            <p style="font-size:8pt;margin:1mm 0 0">${provenance(etat.reference)}</p>` : '<p>Non fournie</p>'}</figure>
+          ${cam.images?.reference ? `<img src="${cam.images.reference.dataUrl}" alt="">
+            <p style="font-size:8pt;margin:1mm 0 0">${provenance(cam.images.reference)}</p>` : '<p>Non fournie</p>'}</figure>
         <figure><figcaption>Image réglée sur la caméra</figcaption>
-          ${etat.reglee ? `<img src="${etat.reglee.dataUrl}" alt="">
-            <p style="font-size:8pt;margin:1mm 0 0">${provenance(etat.reglee)}</p>` : '<p>Non fournie</p>'}</figure>
+          ${cam.images?.reglee ? `<img src="${cam.images.reglee.dataUrl}" alt="">
+            <p style="font-size:8pt;margin:1mm 0 0">${provenance(cam.images.reglee)}</p>` : '<p>Non fournie</p>'}</figure>
       </div>
     </section>
 
-    ${d ? `
-    <section>
+    ${d ? `<section>
       <h2>Résultat de l'analyse</h2>
       <p class="bandeau">${LIBELLES_VERDICT[d.verdict]}${d.fiable ? ` — note ${d.score} / 100` : ''}</p>
       <table>
@@ -1101,7 +1302,7 @@ function construireRapport() {
           <td>${cr.conforme ? 'Conforme' : 'Hors tolérance'}</td></tr>`).join('')}</tbody>
       </table>
       <p style="font-size:9pt;margin-top:2mm">
-        Recalage ${etat.manuel ? 'manuel' : 'automatique'} —
+        Recalage ${cam.manuel ? 'manuel' : 'automatique'} —
         corrélation ${fmt(d.qualiteRecalage.zncc, 2)},
         recouvrement ${fmt(d.qualiteRecalage.recouvrement * 100, 0)} %.
         ${d.decalageScene ? `Décalage sur la scène à ${fmt(c.distance)} m :
@@ -1113,15 +1314,52 @@ function construireRapport() {
     <section>
       <h2>Consignes de reprise</h2>
       <ul>${d.consignes.map((x) => `<li><strong>${x.axe} :</strong> ${x.texte}</li>`).join('')}</ul>
-    </section>` : '<section><h2>Résultat</h2><p>Analyse non effectuée.</p></section>'}
+    </section>` : '<section><h2>Résultat</h2><p>Analyse non effectuée sur cette caméra.</p></section>'}
 
-    ${lignesZones ? `<section>
+    ${zones ? `<section>
       <h2>Zones d'intérêt (exigence ${fmt(seuilZone * 100, 0)} % de couverture)</h2>
       <table><thead><tr><th>Zone</th><th>Couverture</th><th>Résultat</th></tr></thead>
-        <tbody>${lignesZones}</tbody></table>
+        <tbody>${zones}</tbody></table>
     </section>` : ''}
 
-    ${ch.commentaire ? `<section><h2>Observations</h2><p>${ch.commentaire.replace(/\n/g, '<br>')}</p></section>` : ''}
+    ${cam.commentaire?.trim() ? `<section><h2>Observations</h2>
+      <p>${ech(cam.commentaire.trim()).replace(/\n/g, '<br>')}</p></section>` : ''}
+    </div>`;
+}
+
+function construireRapport() {
+  sauverCameraCourante();
+  const ch = {
+    client: ech($('#ch-client').value) || '—',
+    site: ech($('#ch-site').value) || '—',
+    technicien: ech($('#ch-technicien').value) || '—',
+    date: ech($('#ch-date').value) || '—',
+    affaire: ech($('#ch-affaire').value) || '—',
+  };
+
+  const lignes = etat.cameras.map((cam) => ({
+    cam,
+    d: diagnosticDe(cam),
+    etude: comparaisonEtudeDe(cam),
+  }));
+  const seule = lignes.length === 1;
+
+  $('#rapport').innerHTML = `
+    <h1>Procès-verbal d'analyse de vue d'angle</h1>
+    <p class="sous-titre">NG Security 38 — comparaison des vues demandées et des réglages réalisés</p>
+
+    <section>
+      <h2>Chantier</h2>
+      <table>
+        <tr><th>Client</th><td>${ch.client}</td><th>N° d'affaire</th><td>${ch.affaire}</td></tr>
+        <tr><th>Site</th><td>${ch.site}</td><th>Date</th><td>${ch.date}</td></tr>
+        <tr><th>Caméras</th><td>${lignes.length}</td><th>Technicien</th><td>${ch.technicien}</td></tr>
+      </table>
+    </section>
+
+    ${seule ? '' : sectionSynthese(lignes)}
+
+    ${lignes.map((l, i) => sectionCamera(l, seule ? 0 : i, seule)).join('')}
 
     <div class="signatures">
       <div>Technicien — ${ch.technicien}<br>Date et signature :</div>
@@ -1155,6 +1393,7 @@ function brancher() {
     '#aide-largeur', '#aide-distance'].forEach((s) => $(s).addEventListener('input', majOptique));
   ['#tol-angle', '#tol-roulis', '#tol-zoom'].forEach((s) => $(s).addEventListener('input', () => {
     if (etat.transformation) majDiagnostic();
+    else majOnglets(); // les tolérances valent pour tout le dossier
   }));
   $('#tol-zone').addEventListener('input', majZones);
 
@@ -1200,8 +1439,12 @@ function brancher() {
     majVisionneuse();
   });
 
+  $('#ch-camera').addEventListener('input', majOnglets);
+  $('#btn-ajouter-camera').addEventListener('click', () => ajouterCamera());
+  $('#btn-supprimer-camera').addEventListener('click', supprimerCamera);
+
   $('#etude-camera').addEventListener('change', (e) => {
-    etat.etude.repere = e.target.value;
+    if (cameraCourante()) cameraCourante().repereEtude = e.target.value;
     majEtude();
   });
   $('#etude-tout').addEventListener('click', () => {
@@ -1227,5 +1470,6 @@ function brancher() {
 remplirSelecteurs();
 basculerChampsLibres();
 brancher();
-majOptique();
+etat.cameras = [nouvelleCamera('CAM 01')];
+chargerCamera(0);
 majEtiquettesCurseurs();

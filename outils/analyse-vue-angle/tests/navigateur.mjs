@@ -74,7 +74,7 @@ async function cas(nom, fn) {
 const affirmer = (condition, message) => { if (!condition) throw new Error(message); };
 
 /** Deux fenêtres décalées découpées dans une même scène : le cas réel, simulé. */
-const SCENE = `() => {
+const SCENE = `(dec = ${DECALAGE}) => {
   const M = document.createElement('canvas'); M.width = 1400; M.height = 700;
   const g = M.getContext('2d');
   const ciel = g.createLinearGradient(0, 0, 0, 300);
@@ -99,11 +99,11 @@ const SCENE = `() => {
     c.getContext('2d').drawImage(M, 200 + dx, 120, L, H, 0, 0, L, H);
     return c.toDataURL('image/png');
   };
-  return { demandee: decouper(0), reglee: decouper(Math.round(${DECALAGE} * L)) };
+  return { demandee: decouper(0), reglee: decouper(Math.round(dec * L)) };
 }`;
 
 /** Joue le générateur de scène dans la page (evaluate reçoit une expression). */
-const scene = (page) => page.evaluate(`(${SCENE})()`);
+const scene = (page, decalage) => page.evaluate(`(${SCENE})(${decalage === undefined ? DECALAGE : decalage})`);
 
 const enBuffer = (dataUrl) => Buffer.from(dataUrl.split(',')[1], 'base64');
 const nombre = (texte) => parseFloat(texte.replace(',', '.'));
@@ -388,6 +388,144 @@ console.log('\nFichier unique ouvert depuis le disque (file://), étude au forma
     const info = await page.evaluate(() => document.querySelector('#info-reference').textContent);
     affirmer(/recadrée/.test(info), `recadrage non appliqué : ${info}`);
     affirmer(Number(info.match(/(\d+) × \d+ px/)[1]) < 1300, `image non rognée : ${info}`);
+  });
+
+  await cas('aucune erreur de console', () => affirmer(!erreurs.length, erreurs.join(' | ')));
+  await page.close();
+}
+
+/* ------------------------------------------- 4. dossier de plusieurs caméras */
+
+console.log('\nDossier de plusieurs caméras');
+{
+  const page = await contexte.newPage();
+  const erreurs = surveiller(page);
+  await page.goto(`${BASE}/index.html`, { waitUntil: 'networkidle' });
+
+  await cas('un dossier neuf porte une caméra', async () => {
+    const onglets = await page.evaluate(() => [...document.querySelectorAll('.onglet .nom')].map((e) => e.textContent));
+    affirmer(onglets.length === 1 && onglets[0] === 'CAM 01', `onglets : ${onglets}`);
+    affirmer(await page.evaluate(() => document.querySelector('#btn-supprimer-camera').disabled),
+      'la dernière caméra ne doit pas pouvoir être supprimée');
+  });
+
+  await cas('la première caméra s\'analyse', async () => {
+    await chargerLesDeuxVues(page, await scene(page, 0.08));
+    await page.fill('#ch-camera', 'CAM 04 — parking');
+    const r = await analyser(page);
+    affirmer(r.verdict !== 'Conforme à la vue demandée', `verdict inattendu : ${r.verdict}`);
+  });
+
+  await cas('ajouter une caméra ouvre une fiche vierge, sans perdre la première', async () => {
+    await page.click('#btn-ajouter-camera');
+    await page.waitForFunction(() => document.querySelectorAll('.onglet').length === 2);
+    const etat = await page.evaluate(() => ({
+      vues: document.querySelector('#vignette-reference').hidden
+        && document.querySelector('#vignette-reglee').hidden,
+      verdict: document.querySelector('#verdict').hidden,
+      focale: document.querySelector('#cam-focale').value,
+      actif: document.querySelector('.onglet.actif .nom').textContent,
+    }));
+    affirmer(etat.vues, 'les vues de la caméra précédente sont restées à l\'écran');
+    affirmer(etat.verdict, 'le verdict précédent est resté affiché');
+    affirmer(etat.actif === 'CAM 05', `onglet actif : ${etat.actif}`);
+    affirmer(etat.focale === '4', 'l\'optique de la caméra précédente devrait être reprise');
+  });
+
+  await cas('la seconde caméra a sa propre analyse et sa propre optique', async () => {
+    await page.fill('#cam-focale', '6');
+    await page.evaluate(() => document.querySelector('#cam-focale').dispatchEvent(new Event('input', { bubbles: true })));
+    await chargerLesDeuxVues(page, await scene(page, 0.015));
+    const r = await analyser(page);
+    affirmer(/Conforme/.test(r.verdict), `verdict : ${r.verdict}`);
+  });
+
+  await cas('revenir en arrière restitue la première caméra telle quelle', async () => {
+    await page.click('.onglet[data-camera="0"]');
+    await page.waitForFunction(() => document.querySelector('.onglet.actif').dataset.camera === '0');
+    await page.waitForTimeout(200);
+    const etat = await page.evaluate(() => ({
+      nom: document.querySelector('#ch-camera').value,
+      focale: document.querySelector('#cam-focale').value,
+      images: !document.querySelector('#vignette-reference').hidden
+        && !document.querySelector('#vignette-reglee').hidden,
+      verdict: document.querySelector('#verdict .pastille')?.textContent.trim(),
+      pan: document.querySelector('.critere .val')?.textContent.trim(),
+    }));
+    affirmer(etat.nom === 'CAM 04 — parking', `nom : ${etat.nom}`);
+    affirmer(etat.focale === '4', `focale : ${etat.focale} (celle de la seconde caméra a débordé)`);
+    affirmer(etat.images, 'images non restituées');
+    affirmer(/Ajustement|Non conforme/.test(etat.verdict || ''), `verdict : ${etat.verdict}`);
+  });
+
+  await cas('les onglets portent le verdict de chaque caméra', async () => {
+    const puces = await page.evaluate(() => [...document.querySelectorAll('.onglet .puce')]
+      .map((e) => [...e.classList].filter((c) => c !== 'puce')[0]));
+    affirmer(puces.length === 2, `puces : ${puces}`);
+    affirmer(puces[1] === 'conforme', `seconde caméra : ${puces[1]}`);
+    affirmer(puces[0] !== 'vide' && puces[0] !== 'conforme', `première caméra : ${puces[0]}`);
+    const synthese = await page.evaluate(() => document.querySelector('#synthese-courte').textContent);
+    affirmer(/1\/2 conforme/.test(synthese), `synthèse : ${synthese}`);
+  });
+
+  await cas('le procès-verbal ouvre sur une synthèse et détaille chaque caméra', async () => {
+    await page.evaluate(() => document.querySelector('#btn-rapport').click());
+    const r = await page.evaluate(() => {
+      const rap = document.querySelector('#rapport');
+      return {
+        texte: rap.textContent.replace(/\s+/g, ' '),
+        synthese: [...rap.querySelectorAll('.synthese tbody tr')].map((tr) => tr.children[0].textContent),
+        titres: [...rap.querySelectorAll('.camera-titre')].map((e) => e.textContent),
+      };
+    });
+    affirmer(/Synthèse du chantier/.test(r.texte), 'synthèse absente');
+    affirmer(r.synthese.length === 2, `lignes de synthèse : ${r.synthese}`);
+    affirmer(r.titres.length === 2, `blocs caméra : ${r.titres}`);
+    affirmer(/2 caméras analysées sur 2/.test(r.texte), 'bilan mal accordé : ' + r.texte.slice(0, 400));
+  });
+
+  await cas('le dossier complet se réenregistre et se rouvre', async () => {
+    const [telechargement] = await Promise.all([
+      page.waitForEvent('download'),
+      page.click('#btn-enregistrer'),
+    ]);
+    const chemin = await telechargement.path();
+    await page.reload({ waitUntil: 'networkidle' });
+    await page.setInputFiles('#fichier-fiche', chemin);
+    await page.waitForFunction(() => document.querySelectorAll('.onglet').length === 2, { timeout: 15000 });
+    const noms = await page.evaluate(() => [...document.querySelectorAll('.onglet .nom')].map((e) => e.textContent));
+    affirmer(noms[0] === 'CAM 04 — parking', `noms : ${noms}`);
+    await page.click('.onglet[data-camera="1"]');
+    await page.waitForTimeout(300);
+    const focale = await page.evaluate(() => document.querySelector('#cam-focale').value);
+    affirmer(focale === '6', `optique de la seconde caméra : ${focale}`);
+  });
+
+  await cas('une fiche de l\'ancienne version s\'ouvre encore', async () => {
+    const v1 = join(dossier, 'ancienne-fiche.json');
+    await writeFile(v1, JSON.stringify({
+      type: 'ng-vue-angle',
+      version: 1,
+      chantier: { client: 'Ancien client', camera: 'CAM 12', commentaire: 'Note de terrain' },
+      camera: { capteur: '1/1.8"', focale: 8, resolution: '0', distance: 30, hauteur: 5 },
+      tolerances: { angle: 3 },
+      zones: [],
+    }));
+    await page.reload({ waitUntil: 'networkidle' });
+    await page.setInputFiles('#fichier-fiche', v1);
+    await page.waitForFunction(() => document.querySelector('.onglet .nom')?.textContent === 'CAM 12',
+      { timeout: 15000 });
+    const etat = await page.evaluate(() => ({
+      onglets: document.querySelectorAll('.onglet').length,
+      client: document.querySelector('#ch-client').value,
+      focale: document.querySelector('#cam-focale').value,
+      commentaire: document.querySelector('#ch-commentaire').value,
+      tolerance: document.querySelector('#tol-angle').value,
+    }));
+    affirmer(etat.onglets === 1 && etat.client === 'Ancien client', JSON.stringify(etat));
+    affirmer(etat.focale === '8', `focale : ${etat.focale}`);
+    affirmer(etat.commentaire === 'Note de terrain', 'observations perdues');
+    affirmer(etat.tolerance === '3', 'tolérances perdues');
   });
 
   await cas('aucune erreur de console', () => affirmer(!erreurs.length, erreurs.join(' | ')));

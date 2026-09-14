@@ -20,7 +20,7 @@ const lire = (...p) => readFileSync(join(ici, ...p), 'utf8');
 /** Modules de l'application, dans l'ordre des dépendances. */
 const MODULES = [
   'dom.js', 'format.js', 'optique.js', 'alignement.js',
-  'diagnostic.js', 'lecture-etude.js', 'etude-pdf.js', 'app.js',
+  'diagnostic.js', 'lecture-etude.js', 'fiche.js', 'etude-pdf.js', 'app.js',
 ];
 
 /** Neutralise toute fin de balise qui casserait le script ou le style l'accueillant. */

@@ -27,27 +27,31 @@ Pour le mode d'emploi complet et la mise en ligne sur WordPress, voir
 
 ## Ce que fait l'outil
 
-1. **Import de l'étude au format PDF** — les pages du PDF remis par le client
+1. **Dossier de chantier** — une fiche porte autant de caméras que le site en
+   compte. Onglets avec pastille de verdict, synthèse d'avancement, un seul
+   fichier `.json` pour tout le dossier et un procès-verbal unique. Les fiches
+   de la version 1, à caméra unique, s'ouvrent toujours.
+2. **Import de l'étude au format PDF** — les pages du PDF remis par le client
    sont affichées, on choisit celle qui porte la vue attendue et on recadre
    dessus pour n'en garder que l'image utile. Le procès-verbal cite ensuite le
    fichier et le numéro de page servis de référence.
-2. **Relevé du texte de l'étude** — focale, angle de vue, capteur, résolution,
+3. **Relevé du texte de l'étude** — focale, angle de vue, capteur, résolution,
    distance et hauteur annoncés sont lus dans le texte du PDF, caméra par
    caméra, puis confrontés au matériel réellement posé. Chaque valeur est
    présentée avec sa page d'origine et son extrait : l'outil propose, le
    technicien valide.
-3. **Calculs optiques** — angles de champ horizontal / vertical / diagonal à
+4. **Calculs optiques** — angles de champ horizontal / vertical / diagonal à
    partir du capteur et de la focale, largeur de scène couverte, densité en
    pixels par mètre, portées DORI (EN 62676-4), zone morte au pied du mât,
    focale nécessaire pour couvrir une largeur donnée.
-4. **Recalage des deux vues** — estimation automatique du décalage, du zoom et
+5. **Recalage des deux vues** — estimation automatique du décalage, du zoom et
    du roulis entre l'image de référence et l'image réglée.
-5. **Diagnostic** — traduction de ce recalage en écarts de réglage réels
+6. **Diagnostic** — traduction de ce recalage en écarts de réglage réels
    (degrés de panoramique, de site, de roulis ; pourcentage de cadrage), note
    de conformité sur 100 et consignes d'intervention en clair.
-6. **Zones d'intérêt** — rectangles tracés sur la vue demandée, dont l'outil
+7. **Zones d'intérêt** — rectangles tracés sur la vue demandée, dont l'outil
    vérifie qu'ils restent couverts par le champ réellement réglé.
-7. **Fiche et rapport** — la fiche complète (paramètres + images) s'enregistre
+8. **Fiche et rapport** — la fiche complète (paramètres + images) s'enregistre
    en un fichier `.json` réouvrable ; le rapport s'imprime ou s'exporte en PDF.
 
 ## Organisation
@@ -62,12 +66,14 @@ Pour le mode d'emploi complet et la mise en ligne sur WordPress, voir
 | `js/etude-pdf.js` | ouverture du PDF d'étude et choix de la page |
 | `js/lecture-etude.js` | relevé des valeurs annoncées dans le texte — module pur, testé |
 | `js/format.js` | mise en forme des nombres à la française |
+| `js/fiche.js` | format du dossier `.json` et compatibilité des versions — module pur, testé |
 | `js/dom.js` | raccourcis de sélection partagés |
 | `js/app.js` | assemblage : formulaire, toiles, rapport |
 | `vendor/` | PDF.js (Mozilla, Apache 2.0), embarqué pour fonctionner hors ligne |
 | `build.mjs` | fabrication du fichier unique |
 | `tests/run.mjs` | tests unitaires des calculs |
 | `tests/etude.mjs` | tests unitaires de la lecture d'étude |
+| `tests/fiche.mjs` | tests unitaires du format de dossier |
 | `tests/navigateur.mjs` | tests de bout en bout dans un vrai navigateur |
 
 Les trois modules de calcul ne touchent jamais au DOM : ils reçoivent des
@@ -126,22 +132,26 @@ techniciens reste en retard sur le dépôt.
 ## Tests
 
 ```bash
-npm test                 # 39 tests unitaires, sans navigateur
+npm test                 # 46 tests unitaires, sans navigateur
 npm run build
-npm run test:navigateur  # 20 tests de bout en bout (Playwright)
+npm run test:navigateur  # 30 tests de bout en bout (Playwright)
 ```
 
 Les tests unitaires couvrent les calculs d'optique, la récupération de
 transformations connues sur des scènes synthétiques (translation, zoom, roulis,
 fort changement d'exposition), le rejet d'images sans rapport, la traduction des
-écarts en consignes, et la lecture d'une étude (repérage des caméras, relevé des
+écarts en consignes, la lecture d'une étude (repérage des caméras, relevé des
 caractéristiques, rejet des faux positifs numériques, confrontation au matériel
-posé).
+posé) et le format de dossier (conversion des fiches de la version 1, fichier
+tronqué, nom de fichier proposé).
 
 Les tests navigateur vérifient ce qu'aucun test unitaire ne peut voir : le
 dossier servi en HTTP, l'aller-retour d'une fiche `.json`, et surtout le fichier
 unique **ouvert depuis le disque** avec import d'une vraie étude PDF — jusqu'à
 retrouver le même écart angulaire que la géométrie prédit, et à relever dans le
-texte de cette étude les caractéristiques annoncées. Playwright n'est pas
+texte de cette étude les caractéristiques annoncées. Un bloc entier couvre le
+dossier multi-caméras : cloisonnement des caméras entre elles, onglets de
+verdict, synthèse du procès-verbal, aller-retour d'enregistrement et ouverture
+d'une fiche de l'ancienne version. Playwright n'est pas
 une dépendance du projet : s'il est absent, ces tests sont ignorés au lieu
 d'échouer.

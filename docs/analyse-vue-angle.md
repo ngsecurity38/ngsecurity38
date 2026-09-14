@@ -42,14 +42,50 @@ nouveau : les fiches `.json` déjà enregistrées restent lisibles.
 
 ---
 
-## 2. Avant d'aller sur site
+## 2. Un dossier, plusieurs caméras
+
+Une réception ne porte pas sur une caméra mais sur un chantier. Une fiche
+décrit donc **un dossier** : les renseignements de chantier, les tolérances
+convenues, l'étude de référence, et autant de caméras que le site en compte.
+
+La barre sous le titre porte un onglet par caméra :
+
+- **+ Ajouter** crée une caméra. Elle reprend l'optique de la précédente —
+  sur un même chantier, le matériel est le plus souvent identique d'un poste à
+  l'autre — mais repart sans images ni analyse.
+- Cliquer sur un onglet bascule dessus. Tout suit : images, optique,
+  zones d'intérêt, analyse, observations.
+- **Supprimer** retire la caméra affichée. Un dossier garde toujours au moins
+  une caméra.
+
+La pastille de chaque onglet donne le verdict d'un coup d'œil — vert conforme,
+orange ajustement, rouge non conforme, cercle vide pas encore analysée — et le
+compteur de droite annonce l'avancement : « 4/6 conformes — 2 caméras à
+analyser ». C'est le tableau de bord de la journée.
+
+Ce qui est **commun au dossier** : client, site, technicien, date, affaire,
+tolérances de réception, étude de référence. Ce qui est **propre à chaque
+caméra** : son repère, son optique, ses deux vues, ses zones, son analyse et ses
+observations.
+
+Un seul fichier `.json` enregistre tout le dossier, et le procès-verbal couvre
+tout le chantier (§ 9).
+
+> Les fiches enregistrées avec la première version de l'outil s'ouvrent
+> toujours : elles deviennent un dossier d'une seule caméra, sans rien perdre.
+
+---
+
+## 3. Avant d'aller sur site
 
 Préparer la **vue demandée** : la référence contractuelle.
 
-1. Remplir le bloc **1 · Chantier** (client, site, repère caméra, n° d'affaire).
-2. Renseigner le bloc **2 · Caméra et optique** : capteur, focale, résolution,
-   distance à la scène, hauteur de pose.
-3. Charger la vue demandée dans le premier cadre du bloc **3** — voir le § 3
+1. Remplir le bloc **1 · Chantier** (client, site, technicien, n° d'affaire) —
+   ces renseignements valent pour toutes les caméras.
+2. Renseigner le bloc **2 · Caméra et optique** : le repère de la caméra, puis
+   capteur, focale, résolution, distance à la scène, hauteur de pose.
+   Ajouter une caméra par poste prévu au chantier (§ 2).
+3. Charger la vue demandée dans le premier cadre du bloc **3** — voir le § 4
    ci-dessous pour partir directement du PDF de l'étude.
 4. **Enregistrer la fiche** : un fichier `.json` est téléchargé. Il contient
    tout, images comprises. C'est ce fichier que le technicien emporte.
@@ -76,7 +112,7 @@ largeur à telle distance, il donne la focale à monter.
 
 ---
 
-## 3. Partir du PDF de l'étude
+## 4. Partir du PDF de l'étude
 
 C'est le cas le plus courant : le client a remis une étude au format PDF, avec
 le plan d'implantation et, caméra par caméra, la vue attendue.
@@ -128,6 +164,10 @@ d'ordinaire trop tard.
 **Survoler une ligne** affiche la page et la phrase exacte d'où la valeur a été
 tirée. L'outil ne devine pas : il montre sa source.
 
+Quand l'étude décrit des caméras absentes du dossier, un bouton **Créer les
+caméras manquantes** monte le dossier d'un coup, chaque fiche étant rattachée à
+son repère dans l'étude. Il ne reste qu'à charger les images.
+
 Le bouton **Reprendre** recopie une valeur dans le bloc 2. À n'utiliser que si
 le matériel posé correspond effectivement à l'étude — par exemple en préparant
 la fiche au bureau. Sur site, on saisit ce qui est **réellement monté** : c'est
@@ -149,7 +189,7 @@ les valeurs sont alors à saisir à la main dans le bloc 2.
 
 ---
 
-## 4. Sur site, après la pose
+## 5. Sur site, après la pose
 
 1. Ouvrir la fiche (**Ouvrir une fiche…**).
 2. Prendre une capture de l'image de la caméra et la charger dans le second
@@ -163,7 +203,7 @@ Le verdict s'affiche en bas :
 - **Ajustement mineur** — reprise rapide, la consigne indique quoi faire.
 - **Non conforme** — le réglage est à refaire.
 - **Recalage non concluant** — l'outil n'a pas pu rapprocher les deux images
-  (voir le § 7).
+  (voir le § 8).
 
 Les consignes sont directement exploitables : « Pivoter la caméra de 6,4° vers
 la gauche », « Relever la caméra de 2,4° », « Élargir le champ de 12 % (focale
@@ -188,7 +228,7 @@ Trois cases complètent l'affichage :
 
 ---
 
-## 5. Zones d'intérêt
+## 6. Zones d'intérêt
 
 Pour vérifier qu'un point précis reste dans le champ (portail, caisse, quai de
 livraison, allée) :
@@ -202,7 +242,7 @@ couvert. Le seuil d'exigence se règle dans le bloc **4** (95 % par défaut).
 
 ---
 
-## 6. Tolérances de réception
+## 7. Tolérances de réception
 
 | Réglage | Défaut | Signification |
 | --- | --- | --- |
@@ -218,14 +258,14 @@ de parking. Ce sont elles qui décident du verdict : à fixer avec le client
 
 ---
 
-## 7. Quand le recalage automatique échoue
+## 8. Quand le recalage automatique échoue
 
 L'outil annonce « recalage non concluant » quand les deux images ne se
 ressemblent pas assez. Les causes habituelles :
 
 - la vue demandée est un **plan ou un croquis**, pas une photo ;
 - la page d'étude retenue porte du texte ou un cartouche : la recadrer sur la
-  seule image (§ 3) suffit souvent à débloquer la situation ;
+  seule image (§ 4) suffit souvent à débloquer la situation ;
 - les deux prises de vue ont été faites depuis **des emplacements différents** ;
 - la scène a **réellement changé** (chantier, saison, véhicules déplacés) ;
 - le décalage dépasse les trois quarts du champ : il ne reste presque plus rien
@@ -237,20 +277,35 @@ direct, et le rapport indique que le recalage a été fait à la main.
 
 ---
 
-## 8. Rapport et archivage
+## 9. Rapport et archivage
 
 **Rapport / Impression** ouvre la boîte d'impression du navigateur. Choisir
-« Enregistrer au format PDF » pour obtenir le procès-verbal : chantier,
-configuration optique, les deux vues, le tableau des écarts, les consignes, les
-zones d'intérêt, les observations et les deux cadres de signature.
+« Enregistrer au format PDF » pour obtenir le procès-verbal du chantier :
 
-**Enregistrer la fiche** produit le `.json` complet. À conserver dans le dossier
-d'affaire : rouvert plus tard, il rejoue l'analyse à l'identique et sert de
-référence lors d'un contrôle annuel ou d'une contestation.
+1. les renseignements de chantier ;
+2. une **synthèse** d'une ligne par caméra — écarts de pointage, d'aplomb et de
+   cadrage, écarts de matériel, note et verdict — qui dit en un coup d'œil ce
+   qui reste à reprendre ;
+3. puis, caméra par caméra et chacune sur sa page : configuration optique,
+   conformité à l'étude, les deux vues, le tableau des écarts, les consignes,
+   les zones d'intérêt et les observations ;
+4. les deux cadres de signature.
+
+Une caméra non analysée apparaît quand même dans la synthèse, marquée comme
+telle : le document ne laisse pas croire qu'un poste a été contrôlé alors qu'il
+ne l'a pas été.
+
+Avec une seule caméra au dossier, la synthèse est omise — elle n'apprendrait
+rien.
+
+**Enregistrer la fiche** produit le `.json` du dossier entier, toutes caméras et
+toutes images comprises. À conserver dans le dossier d'affaire : rouvert plus
+tard, il rejoue les analyses à l'identique et sert de référence lors d'un
+contrôle annuel ou d'une contestation.
 
 ---
 
-## 9. Mettre l'outil en ligne sur le site
+## 10. Mettre l'outil en ligne sur le site
 
 Utile pour y accéder depuis une tablette sans rien installer.
 
@@ -309,7 +364,7 @@ restreint, deux solutions côté hébergeur :
 
 ---
 
-## 10. Ce que l'outil ne fait pas
+## 11. Ce que l'outil ne fait pas
 
 - Il ne corrige pas la **distorsion** des objectifs très grand-angle. Les
   écarts restent justes au centre et se dégradent vers les bords de l'image.

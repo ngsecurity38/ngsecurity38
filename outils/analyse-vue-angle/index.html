@@ -26,6 +26,15 @@
   </div>
 </header>
 
+<nav class="barre-cameras" aria-label="Caméras du dossier">
+  <span class="barre-cameras-titre">Caméras</span>
+  <div class="onglets" id="onglets-cameras"></div>
+  <button type="button" id="btn-ajouter-camera" class="btn btn-fantome btn-petit">+ Ajouter</button>
+  <button type="button" id="btn-supprimer-camera" class="btn btn-fantome btn-petit">Supprimer</button>
+  <span class="pousse"></span>
+  <span class="note" id="synthese-courte"></span>
+</nav>
+
 <main class="agencement">
 
   <!-- ------------------------------------------------ colonne de réglages -->
@@ -36,7 +45,6 @@
       <div class="grille2">
         <label>Client <input type="text" id="ch-client" placeholder="Nom du client"></label>
         <label>Site <input type="text" id="ch-site" placeholder="Adresse / bâtiment"></label>
-        <label>Caméra <input type="text" id="ch-camera" placeholder="Ex. CAM 04 — parking nord"></label>
         <label>Technicien <input type="text" id="ch-technicien" placeholder="Nom"></label>
         <label>Date <input type="date" id="ch-date"></label>
         <label>N° d'affaire <input type="text" id="ch-affaire" placeholder="Ex. 2026-118"></label>
@@ -45,6 +53,9 @@
 
     <section class="bloc">
       <h2>2 · Caméra et optique</h2>
+      <label class="pleine-largeur">Repère de la caméra
+        <input type="text" id="ch-camera" placeholder="Ex. CAM 04 — parking nord">
+      </label>
       <div class="grille2">
         <label>Capteur
           <select id="cam-capteur"></select>
@@ -109,6 +120,7 @@
         <button type="button" id="etude-entete" class="btn btn-fantome btn-petit">
           Reprendre l'en-tête
         </button>
+        <button type="button" id="etude-creer-cameras" class="btn btn-fantome btn-petit" hidden></button>
       </div>
       <p class="note">
         Valeurs lues dans le texte du PDF, chacune avec sa page d'origine —
@@ -197,7 +209,7 @@
     </section>
 
     <section class="bloc">
-      <h2>6 · Observations</h2>
+      <h2>6 · Observations sur cette caméra</h2>
       <textarea id="ch-commentaire" rows="4"
                 placeholder="Remarques de terrain, contraintes de pose, réserves…"></textarea>
     </section>
