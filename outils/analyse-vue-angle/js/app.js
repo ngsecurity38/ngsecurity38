@@ -14,9 +14,9 @@ import {
   versGris, redimensionner, pretraiter, correlation, estimerTransformation,
 } from './alignement.js';
 import { diagnostiquer, LIBELLES_VERDICT, TOLERANCES_DEFAUT } from './diagnostic.js';
+import { estPdf, ouvrirSelecteurPdf } from './etude-pdf.js';
+import { $, $$ } from './dom.js';
 
-const $ = (sel) => document.querySelector(sel);
-const $$ = (sel) => [...document.querySelectorAll(sel)];
 const nb = (el, defaut = 0) => {
   const v = parseFloat(el.value);
   return Number.isFinite(v) ? v : defaut;
@@ -181,17 +181,19 @@ function lireFichier(fichier) {
   });
 }
 
-async function definirImage(role, dataUrl, nom) {
+async function definirImage(role, dataUrl, nom, source = null) {
   const img = await chargerImage(dataUrl);
   etat[role] = {
-    nom: nom || 'image', dataUrl, img, largeur: img.naturalWidth, hauteur: img.naturalHeight,
+    nom: nom || 'image', dataUrl, img, source,
+    largeur: img.naturalWidth, hauteur: img.naturalHeight,
   };
   const suffixe = role === 'reference' ? 'reference' : 'reglee';
   const vignette = $(`#vignette-${suffixe}`);
   vignette.src = dataUrl;
   vignette.hidden = false;
   $(`#depot-${suffixe} .depot-texte`).hidden = true;
-  $(`#info-${suffixe}`).textContent = `${etat[role].nom} — ${img.naturalWidth} × ${img.naturalHeight} px`;
+  $(`#info-${suffixe}`).textContent = `${etat[role].nom} — ${img.naturalWidth} × ${img.naturalHeight} px`
+    + (source?.type === 'pdf' && source.recadre ? ' (recadrée)' : '');
 
   etat.cache = null;
   etat.transformation = null;
@@ -205,8 +207,14 @@ async function definirImage(role, dataUrl, nom) {
 }
 
 async function traiterFichier(role, fichier) {
+  if (estPdf(fichier)) {
+    await ouvrirSelecteurPdf(fichier, role, (dataUrl, source) => {
+      definirImage(role, dataUrl, `${source.fichier} — page ${source.page}`, source);
+    });
+    return;
+  }
   if (!fichier || !fichier.type.startsWith('image/')) {
-    $('#etat-analyse').textContent = 'Ce fichier n\'est pas une image.';
+    $('#etat-analyse').textContent = 'Format non reconnu : déposer une image ou un PDF.';
     $('#etat-analyse').classList.add('erreur');
     return;
   }
@@ -765,8 +773,12 @@ function fiche() {
     transformation: etat.transformation,
     manuel: etat.manuel,
     images: {
-      reference: etat.reference && { nom: etat.reference.nom, dataUrl: etat.reference.dataUrl },
-      reglee: etat.reglee && { nom: etat.reglee.nom, dataUrl: etat.reglee.dataUrl },
+      reference: etat.reference && {
+        nom: etat.reference.nom, dataUrl: etat.reference.dataUrl, source: etat.reference.source,
+      },
+      reglee: etat.reglee && {
+        nom: etat.reglee.nom, dataUrl: etat.reglee.dataUrl, source: etat.reglee.source,
+      },
     },
   };
 }
@@ -833,8 +845,14 @@ async function ouvrirFiche(fichier) {
   if (t.zone) $('#tol-zone').value = t.zone;
 
   etat.zones = Array.isArray(f.zones) ? f.zones : [];
-  if (f.images?.reference) await definirImage('reference', f.images.reference.dataUrl, f.images.reference.nom);
-  if (f.images?.reglee) await definirImage('reglee', f.images.reglee.dataUrl, f.images.reglee.nom);
+  if (f.images?.reference) {
+    await definirImage('reference', f.images.reference.dataUrl, f.images.reference.nom,
+      f.images.reference.source || null);
+  }
+  if (f.images?.reglee) {
+    await definirImage('reglee', f.images.reglee.dataUrl, f.images.reglee.nom,
+      f.images.reglee.source || null);
+  }
 
   if (f.transformation) {
     etat.transformation = f.transformation;
@@ -855,6 +873,15 @@ function nouvelleFiche() {
 }
 
 /* ================================================================ rapport */
+
+/** Origine d'une vue, citée dans le procès-verbal. */
+function provenance(image) {
+  const s = image.source;
+  if (s?.type === 'pdf') {
+    return `Source : ${ech(s.fichier)}, page ${s.page}${s.recadre ? ' (recadrée)' : ''}`;
+  }
+  return `Source : ${ech(image.nom)}`;
+}
 
 function construireRapport() {
   const c = configCamera();
@@ -908,9 +935,11 @@ function construireRapport() {
       <h2>Vues comparées</h2>
       <div class="images">
         <figure><figcaption>Vue demandée par le client</figcaption>
-          ${etat.reference ? `<img src="${etat.reference.dataUrl}" alt="">` : '<p>Non fournie</p>'}</figure>
+          ${etat.reference ? `<img src="${etat.reference.dataUrl}" alt="">
+            <p style="font-size:8pt;margin:1mm 0 0">${provenance(etat.reference)}</p>` : '<p>Non fournie</p>'}</figure>
         <figure><figcaption>Image réglée sur la caméra</figcaption>
-          ${etat.reglee ? `<img src="${etat.reglee.dataUrl}" alt="">` : '<p>Non fournie</p>'}</figure>
+          ${etat.reglee ? `<img src="${etat.reglee.dataUrl}" alt="">
+            <p style="font-size:8pt;margin:1mm 0 0">${provenance(etat.reglee)}</p>` : '<p>Non fournie</p>'}</figure>
       </div>
     </section>
 

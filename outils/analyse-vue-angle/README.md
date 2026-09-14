@@ -4,30 +4,45 @@ Outil web qui compare **la vue d'angle demandée par le client** et **l'image
 réellement réglée sur la caméra**, puis en déduit les corrections de pointage à
 appliquer et produit un procès-verbal imprimable.
 
-Aucun serveur, aucune dépendance, aucun envoi d'image : tout tourne dans le
-navigateur. La page fonctionne hors ligne, y compris depuis une clé USB sur une
-tablette de chantier.
+Aucun serveur, aucune dépendance à installer, aucun envoi d'image : tout tourne
+dans le navigateur, hors ligne.
 
-## Utilisation
+## Deux formes, un seul code
 
-Ouvrir `index.html` dans un navigateur. Pour le mode d'emploi complet et la
-mise en ligne sur le site WordPress, voir
+| Forme | Fichier | Quand l'utiliser |
+| --- | --- | --- |
+| **Fichier unique** | `dist/analyse-vue-angle.html` | PC, tablette, clé USB — s'ouvre d'un double-clic |
+| **Dossier de sources** | `index.html` + `js/` + `vendor/` | mise en ligne sur le site, développement |
+
+Le fichier unique est produit par `npm run build` à partir des sources : c'est
+le même code, rassemblé en un seul fichier sans module JavaScript.
+
+Cette double forme n'est pas un confort mais une nécessité : **les navigateurs
+refusent les modules JavaScript quand une page est ouverte depuis le disque**
+(`file://`). Le dossier de sources ne fonctionne donc que servi par un serveur
+web ; seul le fichier unique s'ouvre en double-cliquant.
+
+Pour le mode d'emploi complet et la mise en ligne sur WordPress, voir
 [`docs/analyse-vue-angle.md`](../../docs/analyse-vue-angle.md).
 
 ## Ce que fait l'outil
 
-1. **Calculs optiques** — angles de champ horizontal / vertical / diagonal à
+1. **Import de l'étude au format PDF** — les pages du PDF remis par le client
+   sont affichées, on choisit celle qui porte la vue attendue et on recadre
+   dessus pour n'en garder que l'image utile. Le procès-verbal cite ensuite le
+   fichier et le numéro de page servis de référence.
+2. **Calculs optiques** — angles de champ horizontal / vertical / diagonal à
    partir du capteur et de la focale, largeur de scène couverte, densité en
    pixels par mètre, portées DORI (EN 62676-4), zone morte au pied du mât,
    focale nécessaire pour couvrir une largeur donnée.
-2. **Recalage des deux vues** — estimation automatique du décalage, du zoom et
+3. **Recalage des deux vues** — estimation automatique du décalage, du zoom et
    du roulis entre l'image de référence et l'image réglée.
-3. **Diagnostic** — traduction de ce recalage en écarts de réglage réels
+4. **Diagnostic** — traduction de ce recalage en écarts de réglage réels
    (degrés de panoramique, de site, de roulis ; pourcentage de cadrage), note
    de conformité sur 100 et consignes d'intervention en clair.
-4. **Zones d'intérêt** — rectangles tracés sur la vue demandée, dont l'outil
+5. **Zones d'intérêt** — rectangles tracés sur la vue demandée, dont l'outil
    vérifie qu'ils restent couverts par le champ réellement réglé.
-5. **Fiche et rapport** — la fiche complète (paramètres + images) s'enregistre
+6. **Fiche et rapport** — la fiche complète (paramètres + images) s'enregistre
    en un fichier `.json` réouvrable ; le rapport s'imprime ou s'exporte en PDF.
 
 ## Organisation
@@ -39,8 +54,13 @@ mise en ligne sur le site WordPress, voir
 | `js/optique.js` | calculs d'optique — module pur, testé |
 | `js/alignement.js` | recalage des deux images — module pur, testé |
 | `js/diagnostic.js` | écarts de réglage et consignes — module pur, testé |
+| `js/etude-pdf.js` | ouverture du PDF d'étude et choix de la page |
+| `js/dom.js` | raccourcis de sélection partagés |
 | `js/app.js` | assemblage : formulaire, toiles, rapport |
-| `tests/run.mjs` | tests unitaires |
+| `vendor/` | PDF.js (Mozilla, Apache 2.0), embarqué pour fonctionner hors ligne |
+| `build.mjs` | fabrication du fichier unique |
+| `tests/run.mjs` | tests unitaires des calculs |
+| `tests/navigateur.mjs` | tests de bout en bout dans un vrai navigateur |
 
 Les trois modules de calcul ne touchent jamais au DOM : ils reçoivent des
 nombres ou des images en niveaux de gris et renvoient des nombres. C'est ce qui
@@ -76,14 +96,36 @@ largeur d'image ne vaut pas la moitié d'un décalage de 50 %.
   verdict passe en « recalage non concluant » plutôt que d'annoncer un écart
   inventé. La valeur brute reste affichée pour que le technicien tranche.
 
-## Tests
+## Construire le fichier unique
 
 ```bash
 cd outils/analyse-vue-angle
-npm test          # ou : node --test tests/run.mjs
+npm run build      # écrit dist/analyse-vue-angle.html (~1,5 Mo)
 ```
 
-22 tests couvrent les calculs d'optique, la récupération de transformations
-connues sur des scènes synthétiques (translation, zoom, roulis, fort changement
-d'exposition), le rejet d'images sans rapport, et la traduction des écarts en
-consignes.
+Le script refuse de produire un fichier si deux modules déclarent un même nom au
+premier niveau : concaténés dans une seule portée, ils feraient planter la page
+au chargement. Mieux vaut un build qui échoue qu'un fichier muet.
+
+À relancer après **toute** modification des sources — sinon le fichier livré aux
+techniciens reste en retard sur le dépôt.
+
+## Tests
+
+```bash
+npm test                 # 22 tests unitaires, sans navigateur
+npm run build
+npm run test:navigateur  # 16 tests de bout en bout (Playwright)
+```
+
+Les tests unitaires couvrent les calculs d'optique, la récupération de
+transformations connues sur des scènes synthétiques (translation, zoom, roulis,
+fort changement d'exposition), le rejet d'images sans rapport, et la traduction
+des écarts en consignes.
+
+Les tests navigateur vérifient ce qu'aucun test unitaire ne peut voir : le
+dossier servi en HTTP, l'aller-retour d'une fiche `.json`, et surtout le fichier
+unique **ouvert depuis le disque** avec import d'une vraie étude PDF — jusqu'à
+retrouver le même écart angulaire que la géométrie prédit. Playwright n'est pas
+une dépendance du projet : s'il est absent, ces tests sont ignorés au lieu
+d'échouer.

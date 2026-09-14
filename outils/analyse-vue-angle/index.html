@@ -101,10 +101,10 @@
 
       <div class="depot" id="depot-reference" tabindex="0" role="button"
            aria-label="Charger la vue demandée par le client">
-        <input type="file" id="fichier-reference" accept="image/*" hidden>
-        <div class="depot-etiquette">Vue demandée par le client</div>
+        <input type="file" id="fichier-reference" accept="image/*,application/pdf,.pdf" hidden>
+        <div class="depot-etiquette">Vue demandée par le client <small>— PDF d'étude ou image</small></div>
         <div class="depot-corps">
-          <span class="depot-texte">Glisser une image, cliquer, ou coller (Ctrl+V)</span>
+          <span class="depot-texte">Glisser le PDF de l'étude ou une image,<br>cliquer, ou coller (Ctrl+V)</span>
           <img class="depot-vignette" id="vignette-reference" alt="" hidden>
         </div>
         <div class="depot-info" id="info-reference"></div>
@@ -112,7 +112,7 @@
 
       <div class="depot" id="depot-reglee" tabindex="0" role="button"
            aria-label="Charger l'image réglée sur la caméra">
-        <input type="file" id="fichier-reglee" accept="image/*" hidden>
+        <input type="file" id="fichier-reglee" accept="image/*,application/pdf,.pdf" hidden>
         <div class="depot-etiquette">Image réglée sur la caméra</div>
         <div class="depot-corps">
           <span class="depot-texte">Glisser une image, cliquer, ou coller (Ctrl+V)</span>
@@ -122,9 +122,11 @@
       </div>
 
       <p class="note">
-        La vue demandée est la référence contractuelle : capture validée par le
-        client, photo de repérage ou extrait du plan d'implantation. L'image
-        réglée est la capture prise après installation.
+        La vue demandée est la référence contractuelle. Déposer directement le
+        <strong>PDF de l'étude</strong> : l'outil affiche les pages, on choisit
+        celle qui porte la vue attendue et on recadre dessus. Une image seule
+        (capture validée, photo de repérage) fait tout aussi bien l'affaire.
+        L'image réglée est la capture prise après installation.
       </p>
     </section>
 
@@ -230,6 +232,27 @@
 
 <!-- ------------------------------------------------------------ rapport -->
 <section id="rapport" class="rapport" hidden></section>
+
+<!-- ---------------------------------------------- sélecteur de page PDF -->
+<div class="modale" id="modale-pdf" hidden>
+  <div class="modale-boite">
+    <header class="modale-entete">
+      <h2 id="pdf-titre">Étude — choisir la vue demandée</h2>
+      <button type="button" id="pdf-fermer" class="btn btn-fantome btn-petit">Fermer</button>
+    </header>
+    <div class="modale-corps">
+      <div class="pdf-pages" id="pdf-pages"></div>
+      <div class="pdf-apercu"><canvas id="pdf-toile"></canvas></div>
+    </div>
+    <footer class="modale-pied">
+      <span class="note" id="pdf-etat"></span>
+      <span class="note" id="pdf-aide"></span>
+      <span class="pousse"></span>
+      <button type="button" id="pdf-annuler-recadrage" class="btn btn-fantome">Annuler le recadrage</button>
+      <button type="button" id="pdf-valider" class="btn btn-principal">Utiliser cette vue</button>
+    </footer>
+  </div>
+</div>
 
 <script type="module" src="js/app.js"></script>
 </body>
