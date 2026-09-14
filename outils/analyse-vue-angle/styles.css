@@ -401,3 +401,9 @@ table.etude .remarque { display: block; color: var(--texte-doux); font-size: 11p
   }
   .rapport .saut { break-before: page; }
 }
+
+.alerte {
+  margin: 10px 0 0; padding: 8px 10px; font-size: 12px;
+  background: rgba(217, 155, 31, .12); border: 1px solid var(--ambre);
+  border-radius: 6px; color: var(--texte);
+}

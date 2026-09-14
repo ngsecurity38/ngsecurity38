@@ -11,9 +11,16 @@ Rien n'est envoyé sur Internet : les images et les fiches restent sur le poste.
 
 ## 1. Installation sur un PC ou une tablette
 
-Un seul fichier à récupérer :
-[`outils/analyse-vue-angle/dist/analyse-vue-angle.html`](../outils/analyse-vue-angle/dist/analyse-vue-angle.html)
-(environ 1,5 Mo).
+Un seul fichier à récupérer — deux versions au choix :
+
+| Version | Poids | Pour qui |
+| --- | --- | --- |
+| [`analyse-vue-angle.html`](../outils/analyse-vue-angle/dist/analyse-vue-angle.html) | 1,5 Mo | le cas courant : études reçues en PDF normal |
+| [`analyse-vue-angle-ocr.html`](../outils/analyse-vue-angle/dist/analyse-vue-angle-ocr.html) | 7,6 Mo | si vos études arrivent **scannées** (§ 4) |
+
+Les deux sont le même outil. La seconde embarque en plus un moteur de
+reconnaissance de caractères, qui pèse à lui seul près de 5 Mo : inutile de le
+transporter si vos clients vous remettent des PDF ordinaires.
 
 **Sur un PC (Windows ou Mac)**
 
@@ -184,8 +191,26 @@ avec la page d'origine de chaque valeur. Le dossier porte ainsi deux
 vérifications distinctes : le **matériel** correspond-il à l'étude, et le
 **cadrage** correspond-il à la vue demandée.
 
-Si l'étude est un scan (une image, sans texte), le relevé reste vide et le dit :
-les valeurs sont alors à saisir à la main dans le bloc 2.
+### Si l'étude est un scan
+
+Certaines études arrivent numérisées : le PDF ne contient pas de texte, juste la
+photographie d'une page papier. L'outil le détecte et l'annonce — « Document
+sans texte : étude probablement scannée ».
+
+Avec la version **OCR** (§ 1), un bouton **Lire l'étude scannée** apparaît alors.
+Il fait passer chaque page en reconnaissance de caractères, hors ligne, sans rien
+envoyer nulle part. Comptez une à deux secondes par page. Les valeurs reconnues
+alimentent ensuite le relevé comme celles d'un PDF ordinaire.
+
+Un bandeau orange signale que ces valeurs viennent d'une lecture optique, et le
+procès-verbal le mentionne également. **Ce n'est pas une précaution de style :**
+un « 2,8 » lu « 28 » fausserait tout le calcul d'angle sans que rien ne le
+signale. Les valeurs restent affichées avec leur page et leur extrait d'origine :
+un coup d'œil au survol suffit à les valider.
+
+Avec la version légère, le bouton n'apparaît pas et l'outil dit pourquoi. Les
+valeurs sont alors à saisir à la main dans le bloc 2 — ce qui reste tout à fait
+praticable, une étude ne comptant qu'une poignée de chiffres par caméra.
 
 ---
 
@@ -316,7 +341,7 @@ Utile pour y accéder depuis une tablette sans rien installer.
 3. Y créer un dossier `outils`.
 4. Copier dedans le dossier `analyse-vue-angle` **entier**, en conservant la
    structure : `index.html`, `styles.css`, et les sous-dossiers `js` et
-   `vendor`. Les dossiers `tests`, `dist` et les fichiers `.mjs` à la racine ne
+   `vendor` (dont `vendor/ocr`, qui permet la lecture des études scannées). Les dossiers `tests`, `dist` et les fichiers `.mjs` à la racine ne
    servent qu'au développement, inutile de les envoyer.
 5. L'outil est accessible à
    `https://ngsecurity38.fr/outils/analyse-vue-angle/`.
@@ -372,8 +397,8 @@ restreint, deux solutions côté hébergeur :
   de pointage, pas une erreur d'emplacement du mât.
 - Il ne juge pas la qualité d'image (netteté, bruit, exposition) : uniquement le
   cadrage.
-- Il lit le texte des PDF, pas les scans. Une étude numérisée en image ne
-  donnera aucun relevé automatique.
+- Il lit le texte des PDF ; les études scannées passent par la reconnaissance
+  de caractères (§ 4), plus faillible, d'où l'avertissement qui les accompagne.
 - Le relevé reconnaît les formulations courantes des études d'implantation. Une
   mise en page inhabituelle peut lui échapper : c'est pourquoi chaque valeur est
   toujours affichée avec sa page et son extrait, à vérifier d'un coup d'œil.

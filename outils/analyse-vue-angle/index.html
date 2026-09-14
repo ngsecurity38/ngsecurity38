@@ -112,6 +112,11 @@
       <label id="etude-choix-camera" hidden>Caméra de l'étude
         <select id="etude-camera"></select>
       </label>
+      <p class="alerte" id="etude-ocr" hidden>
+        Valeurs obtenues par <strong>lecture optique</strong> d'un document
+        scanné. Un chiffre mal reconnu fausserait la mesure d'angle : vérifier
+        chaque ligne au survol, contre l'extrait d'origine.
+      </p>
       <div id="etude-tableau"></div>
       <div class="etude-actions">
         <button type="button" id="etude-tout" class="btn btn-fantome btn-petit">
@@ -123,7 +128,7 @@
         <button type="button" id="etude-creer-cameras" class="btn btn-fantome btn-petit" hidden></button>
       </div>
       <p class="note">
-        Valeurs lues dans le texte du PDF, chacune avec sa page d'origine —
+        Valeurs relevées dans l'étude, chacune avec sa page d'origine —
         survoler une ligne pour voir l'extrait. « Reprendre » recopie la valeur
         dans le bloc 2 : à n'utiliser que si le matériel posé correspond
         effectivement à l'étude. Sinon, saisir ce qui est réellement monté :
@@ -284,6 +289,7 @@
       <span class="note" id="pdf-aide"></span>
       <span class="note" id="pdf-releve"></span>
       <span class="pousse"></span>
+      <button type="button" id="pdf-ocr" class="btn btn-fantome" hidden>Lire l'étude scannée (OCR)</button>
       <button type="button" id="pdf-annuler-recadrage" class="btn btn-fantome">Annuler le recadrage</button>
       <button type="button" id="pdf-valider" class="btn btn-principal">Utiliser cette vue</button>
     </footer>

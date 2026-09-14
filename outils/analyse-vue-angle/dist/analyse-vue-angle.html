@@ -411,6 +411,12 @@ table.etude .remarque { display: block; color: var(--texte-doux); font-size: 11p
   }
   .rapport .saut { break-before: page; }
 }
+
+.alerte {
+  margin: 10px 0 0; padding: 8px 10px; font-size: 12px;
+  background: rgba(217, 155, 31, .12); border: 1px solid var(--ambre);
+  border-radius: 6px; color: var(--texte);
+}
 </style>
 </head>
 <body>
@@ -518,6 +524,11 @@ table.etude .remarque { display: block; color: var(--texte-doux); font-size: 11p
       <label id="etude-choix-camera" hidden>Caméra de l'étude
         <select id="etude-camera"></select>
       </label>
+      <p class="alerte" id="etude-ocr" hidden>
+        Valeurs obtenues par <strong>lecture optique</strong> d'un document
+        scanné. Un chiffre mal reconnu fausserait la mesure d'angle : vérifier
+        chaque ligne au survol, contre l'extrait d'origine.
+      </p>
       <div id="etude-tableau"></div>
       <div class="etude-actions">
         <button type="button" id="etude-tout" class="btn btn-fantome btn-petit">
@@ -529,7 +540,7 @@ table.etude .remarque { display: block; color: var(--texte-doux); font-size: 11p
         <button type="button" id="etude-creer-cameras" class="btn btn-fantome btn-petit" hidden></button>
       </div>
       <p class="note">
-        Valeurs lues dans le texte du PDF, chacune avec sa page d'origine —
+        Valeurs relevées dans l'étude, chacune avec sa page d'origine —
         survoler une ligne pour voir l'extrait. « Reprendre » recopie la valeur
         dans le bloc 2 : à n'utiliser que si le matériel posé correspond
         effectivement à l'étude. Sinon, saisir ce qui est réellement monté :
@@ -690,6 +701,7 @@ table.etude .remarque { display: block; color: var(--texte-doux); font-size: 11p
       <span class="note" id="pdf-aide"></span>
       <span class="note" id="pdf-releve"></span>
       <span class="pousse"></span>
+      <button type="button" id="pdf-ocr" class="btn btn-fantome" hidden>Lire l'étude scannée (OCR)</button>
       <button type="button" id="pdf-annuler-recadrage" class="btn btn-fantome">Annuler le recadrage</button>
       <button type="button" id="pdf-valider" class="btn btn-principal">Utiliser cette vue</button>
     </footer>
@@ -749,6 +761,17 @@ table.etude .remarque { display: block; color: var(--texte-doux); font-size: 11p
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => [...document.querySelectorAll(sel)];
+
+/** Charge un script à la demande : les gros moteurs ne sont montés qu'au besoin. */
+function chargerScript(src) {
+  return new Promise((resoudre, rejeter) => {
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = resoudre;
+    s.onerror = () => rejeter(new Error(`Fichier introuvable : ${src}`));
+    document.head.append(s);
+  });
+}
 
 /* ===== format.js ===== */
 /** Mise en forme des nombres à la française, partagée par les modules. */
@@ -1819,6 +1842,148 @@ function nomDeFichier(chantier, cameras) {
   return `${base.replace(/[^\w\-À-ÿ ]+/g, '').replace(/\s+/g, '-').toLowerCase()}.json`;
 }
 
+/* ===== ocr.js ===== */
+/**
+ * Lecture d'une étude scannée par reconnaissance de caractères.
+ *
+ * Une étude numérisée est un PDF sans texte : seulement l'image d'une page
+ * papier. Le relevé automatique n'y trouve rien. Ce module fait lire ces pages
+ * par un moteur OCR, pour retomber sur le même texte que celui d'un PDF normal.
+ *
+ * Le moteur pèse près de 5 Mo : il n'est monté qu'à la demande, et seulement si
+ * les fichiers correspondants accompagnent la page.
+ */
+
+
+const CHEMIN = 'vendor/ocr';
+
+let moteur = null; // worker Tesseract, monté une seule fois par session
+
+/** L'OCR est-il disponible ici ? */
+function ocrPossible() {
+  // Version en fichier unique : tout est déjà embarqué.
+  if (window.__ocrIntegre) return true;
+  // Version en dossier : les fichiers sont à côté, mais inatteignables si la
+  // page a été ouverte depuis le disque — le chargement le dira.
+  return window.location.protocol !== 'file:';
+}
+
+function octets(base64) {
+  const brut = atob(base64);
+  const sortie = new Uint8Array(brut.length);
+  for (let i = 0; i < brut.length; i += 1) sortie[i] = brut.charCodeAt(i);
+  return sortie;
+}
+
+/**
+ * Assemble un worker autonome : moteur WebAssembly, modèle de langue et worker
+ * dans un seul script.
+ *
+ * Page ouverte depuis le disque, un worker ne peut ni importer un second script
+ * mémoire ni atteindre un fichier voisin. On lui livre donc tout d'un bloc et
+ * on détourne les deux appels qu'il ferait vers l'extérieur : l'import du
+ * moteur, déjà présent, et la requête du modèle de langue, servie depuis la
+ * mémoire. La bibliothèque suit ensuite son chemin habituel, sans rustine dans
+ * sa logique propre.
+ */
+function workerAutonome(assets) {
+  const detournement = ';(function(){'
+    + 'var vi = self.importScripts;'
+    + 'self.importScripts = function(u){'
+    + ' if (self.TesseractCore || self.TesseractCoreWASM) return;'
+    + ' return vi.apply(self, arguments); };'
+    + 'var oct = function(s){ var b = atob(s), a = new Uint8Array(b.length);'
+    + ' for (var i = 0; i < b.length; i++) a[i] = b.charCodeAt(i); return a; };'
+    + `var LANG = ${JSON.stringify(assets.langue)};`
+    + 'var vf = self.fetch;'
+    + 'self.fetch = function(u){ var url = String(u && u.url ? u.url : u);'
+    + ' if (/\\.traineddata(\\.gz)?$/.test(url)) {'
+    + '   return Promise.resolve(new Response(oct(LANG), { status: 200 }));'
+    + ' } return vf.apply(self, arguments); };'
+    + '}());';
+
+  return URL.createObjectURL(new Blob(
+    [octets(assets.moteur), detournement, octets(assets.worker)],
+    { type: 'text/javascript' },
+  ));
+}
+
+/** Récupère les trois pièces, embarquées ou voisines de la page. */
+async function assets() {
+  if (window.__ocrIntegre) return window.__ocrIntegre;
+  const lire = async (nom, binaire) => {
+    const r = await fetch(`${CHEMIN}/${nom}`);
+    if (!r.ok) throw new Error(`${nom} : réponse ${r.status}`);
+    const tampon = new Uint8Array(await r.arrayBuffer());
+    if (!binaire) return tampon;
+    let s = '';
+    for (let i = 0; i < tampon.length; i += 1) s += String.fromCharCode(tampon[i]);
+    return btoa(s);
+  };
+  const [moteurB, workerB, langueB] = await Promise.all([
+    lire('tesseract-core-simd-lstm.wasm.js', true),
+    lire('worker.min.js', true),
+    lire('fra.traineddata.gz', true),
+  ]);
+  return { moteur: moteurB, worker: workerB, langue: langueB };
+}
+
+/**
+ * Monte le moteur. Long la première fois (quelques secondes), immédiat ensuite.
+ * @param {(etape: string, part: number) => void} [avancement]
+ */
+async function monter(avancement) {
+  if (moteur) return moteur;
+  if (!window.Tesseract) {
+    if (window.__ocrIntegre) throw new Error('Moteur OCR absent de cette page.');
+    await chargerScript(`${CHEMIN}/tesseract.min.js`);
+  }
+  if (avancement) avancement('Préparation du moteur', 0);
+  const pieces = await assets();
+  if (avancement) avancement('Préparation du moteur', 0.4);
+
+  moteur = await window.Tesseract.createWorker('fra', 1, {
+    workerPath: workerAutonome(pieces),
+    workerBlobURL: false, // notre script est déjà prêt à servir de worker
+    corePath: 'integre',
+    langPath: 'integre',
+    gzip: true,
+    cacheMethod: 'none',
+    logger: (m) => {
+      if (avancement && m.status) avancement('Préparation du moteur', 0.4 + 0.6 * (m.progress || 0));
+    },
+  });
+  return moteur;
+}
+
+/**
+ * Lit une suite de pages rendues et renvoie leur texte.
+ *
+ * @param {HTMLCanvasElement[]} pages pages rendues du PDF
+ * @param {(etape: string, part: number) => void} [avancement]
+ * @returns {Promise<string[]>} texte de chaque page
+ */
+async function lirePages(pages, avancement) {
+  const t = await monter(avancement);
+  const textes = [];
+  for (let i = 0; i < pages.length; i += 1) {
+    if (avancement) avancement(`Lecture de la page ${i + 1} sur ${pages.length}`, i / pages.length);
+    /* eslint-disable no-await-in-loop */
+    const r = await t.recognize(pages[i]);
+    textes.push(r.data.text || '');
+  }
+  if (avancement) avancement('Lecture terminée', 1);
+  return textes;
+}
+
+/** Libère le moteur : il occupe plusieurs dizaines de Mo. */
+async function relacher() {
+  if (!moteur) return;
+  const t = moteur;
+  moteur = null;
+  await t.terminate();
+}
+
 /* ===== etude-pdf.js ===== */
 /**
  * Ouverture du PDF de l'étude et choix de la vue demandée.
@@ -1835,21 +2000,14 @@ function nomDeFichier(chantier, cameras) {
 
 
 
+
 const LARGEUR_VIGNETTE = 150;
 const LARGEUR_RENDU = 1600;
 const PAGES_MAX = 60;
+const PAGES_OCR_MAX = 20; // au-delà, la lecture optique devient trop longue
+const SEUIL_TEXTE = 40; // en deçà, le PDF est tenu pour scanné
 
 let etatPdf = null; // page PDF en cours de sélection
-
-function chargerScript(src) {
-  return new Promise((resoudre, rejeter) => {
-    const s = document.createElement('script');
-    s.src = src;
-    s.onload = resoudre;
-    s.onerror = () => rejeter(new Error(`Fichier introuvable : ${src}`));
-    document.head.append(s);
-  });
-}
 
 /**
  * Charge PDF.js si besoin.
@@ -2021,6 +2179,49 @@ async function lireLEtude(document_) {
   return { analyse: analyserEtude(pages), pages };
 }
 
+/** Rend une page hors écran, à la résolution utile à la lecture optique. */
+async function rendreHorsEcran(document_, numero) {
+  const page = await document_.getPage(numero);
+  const base = page.getViewport({ scale: 1 });
+  const vue = page.getViewport({ scale: Math.min(3, LARGEUR_RENDU / base.width) });
+  const toile = document.createElement('canvas');
+  toile.width = Math.round(vue.width);
+  toile.height = Math.round(vue.height);
+  await page.render({ canvasContext: toile.getContext('2d'), viewport: vue }).promise;
+  return toile;
+}
+
+/** Relit l'étude par reconnaissance de caractères. */
+async function lireParOcr() {
+  const bouton = $('#pdf-ocr');
+  bouton.disabled = true;
+  const total = Math.min(etatPdf.document.numPages, PAGES_OCR_MAX);
+  const dire = (etape, part) => {
+    $('#pdf-releve').textContent = `${etape}… ${Math.round((part || 0) * 100)} %`;
+  };
+  try {
+    dire('Rendu des pages', 0);
+    const toiles = [];
+    for (let n = 1; n <= total; n += 1) {
+      /* eslint-disable no-await-in-loop */
+      toiles.push(await rendreHorsEcran(etatPdf.document, n));
+      dire('Rendu des pages', n / total / 4);
+    }
+    const textes = await lirePages(toiles, (etape, part) => dire(etape, 0.25 + 0.75 * part));
+    if (!etatPdf) return;
+    etatPdf.analyse = analyserEtude(textes);
+    etatPdf.ocr = true;
+    const n = etatPdf.analyse.cameras.length;
+    $('#pdf-releve').textContent = n
+      ? `Lecture optique : ${n} caméra${n > 1 ? 's' : ''} repérée${n > 1 ? 's' : ''}. Valeurs à vérifier.`
+      : 'Lecture optique terminée : aucun repère caméra reconnu.';
+    bouton.hidden = true;
+  } catch (err) {
+    $('#pdf-releve').textContent = `Lecture optique impossible : ${err.message}`;
+    bouton.disabled = false;
+  }
+}
+
 /** Image finale : la page entière, ou seulement le rectangle tracé. */
 function extraire() {
   const { page, recadrage } = etatPdf;
@@ -2053,11 +2254,13 @@ async function ouvrirSelecteurPdf(fichier, role, onValider) {
     ? `Étude — choisir la vue demandée (${fichier.name})`
     : `Document — choisir l'image réglée (${fichier.name})`;
   $('#pdf-aide').textContent = 'Cliquer-glisser sur la page pour ne garder que la vue demandée.';
+  $('#pdf-ocr').hidden = true;
 
   if (!branche) {
     branche = true;
     brancherRecadrage();
     $('#pdf-fermer').addEventListener('click', fermer);
+    $('#pdf-ocr').addEventListener('click', lireParOcr);
     $('#pdf-annuler-recadrage').addEventListener('click', () => {
       if (!etatPdf) return;
       etatPdf.recadrage = null;
@@ -2077,7 +2280,9 @@ async function ouvrirSelecteurPdf(fichier, role, onValider) {
       };
       const image = extraire();
       const rappel = etatPdf.onValider;
-      const etude = etatPdf.analyse ? { fichier: etatPdf.nom, analyse: etatPdf.analyse } : null;
+      const etude = etatPdf.analyse
+        ? { fichier: etatPdf.nom, analyse: etatPdf.analyse, ocr: !!etatPdf.ocr }
+        : null;
       fermer();
       rappel(image, source, etude);
     });
@@ -2089,18 +2294,31 @@ async function ouvrirSelecteurPdf(fichier, role, onValider) {
     const document_ = await lib.getDocument({ data: donnees }).promise;
     etatPdf = {
       document: document_, nom: fichier.name, numero: 1,
-      page: null, recadrage: null, analyse: null, onValider,
+      page: null, recadrage: null, analyse: null, ocr: false, onValider,
     };
     await afficherPage(1);
     await afficherVignettes();
     if (role === 'reference') {
-      const { analyse } = await lireLEtude(document_);
+      const { analyse, pages } = await lireLEtude(document_);
       if (!etatPdf) return; // fenêtre refermée pendant la lecture
       etatPdf.analyse = analyse;
       const n = analyse.cameras.length;
-      $('#pdf-releve').textContent = n
-        ? `Texte lu : ${n} caméra${n > 1 ? 's' : ''} repérée${n > 1 ? 's' : ''} dans l'étude.`
-        : 'Texte lu : aucun repère caméra trouvé, les valeurs générales seront proposées.';
+      const caracteres = pages.join('').replace(/\s/g, '').length;
+
+      // Un PDF sans texte est une numérisation : seule la lecture optique peut
+      // en tirer quelque chose.
+      if (caracteres < SEUIL_TEXTE) {
+        $('#pdf-releve').textContent = 'Document sans texte : étude probablement scannée.';
+        $('#pdf-ocr').hidden = !ocrPossible();
+        $('#pdf-ocr').disabled = false;
+        if (!ocrPossible()) {
+          $('#pdf-releve').textContent += ' La lecture optique n\'est pas disponible dans cette version.';
+        }
+      } else {
+        $('#pdf-releve').textContent = n
+          ? `Texte lu : ${n} caméra${n > 1 ? 's' : ''} repérée${n > 1 ? 's' : ''} dans l'étude.`
+          : 'Texte lu : aucun repère caméra trouvé, les valeurs générales seront proposées.';
+      }
     }
   } catch (err) {
     $('#pdf-etat').textContent = `Lecture impossible : ${err.message}`;
@@ -2574,6 +2792,8 @@ function majEtude() {
     : 'Créer la caméra manquante';
   bouton.onclick = () => creerCamerasDeLEtude(manquantes);
 
+  $('#etude-ocr').hidden = !etat.etude.ocr;
+
   const lignes = comparaisonEtude();
   const tableau = $('#etude-tableau');
   if (!lignes.length) {
@@ -2658,9 +2878,12 @@ async function traiterFichier(role, fichier) {
   if (estPdf(fichier)) {
     await ouvrirSelecteurPdf(fichier, role, (dataUrl, source, etude) => {
       if (etude) {
-        const camera = etude.analyse.cameras.find((c) => c.page === source.page)
+        etat.etude = etude;
+        // La caméra courante est rattachée à la section d'étude qui porte la
+        // page retenue : c'est presque toujours la bonne.
+        const section = etude.analyse.cameras.find((c) => c.page === source.page)
           || etude.analyse.cameras[0];
-        etat.etude = { ...etude, repere: camera ? camera.repere : null };
+        if (section && cameraCourante()) cameraCourante().repereEtude = section.repere;
       }
       definirImage(role, dataUrl, `${source.fichier} — page ${source.page}`, source)
         .then(majEtude);
@@ -3373,7 +3596,9 @@ function sectionCamera({ cam, d, etude }, rang, seule) {
           <td>${l.conforme ? 'Conforme' : 'Écart'}</td></tr>`).join('')}</tbody>
       </table>
       <p style="font-size:9pt;margin-top:2mm">
-        Valeurs relevées dans ${ech(etat.etude.fichier)}
+        Valeurs relevées dans ${ech(etat.etude.fichier)}${etat.etude.ocr
+    ? ' par lecture optique (document scanné), après vérification du technicien'
+    : ''}
         ${etude.filter((l) => !l.conforme).length
     ? `— ${plur(etude.filter((l) => !l.conforme).length, 'écart')} entre le matériel annoncé et le matériel posé.`
     : '— le matériel posé correspond à l\'étude.'}

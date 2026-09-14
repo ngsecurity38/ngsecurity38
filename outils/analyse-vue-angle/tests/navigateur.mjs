@@ -20,6 +20,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const racine = dirname(dirname(fileURLToPath(import.meta.url)));
 const FICHIER_UNIQUE = join(racine, 'dist', 'analyse-vue-angle.html');
+const FICHIER_OCR = join(racine, 'dist', 'analyse-vue-angle-ocr.html');
 const DECALAGE = 0.08; // la vue réglée est prise 8 % plus à droite que la vue demandée
 const CHAMP_H = 65.66; // champ horizontal par défaut : capteur 1/2.8", focale 4 mm
 const ATTENDU = (180 / Math.PI) * Math.atan(2 * DECALAGE * Math.tan(((CHAMP_H / 2) * Math.PI) / 180));
@@ -370,6 +371,38 @@ console.log('\nFichier unique ouvert depuis le disque (file://), étude au forma
     affirmer(/écart entre le matériel annoncé et le matériel posé|écarts entre/.test(texte), 'bilan absent');
   });
 
+  await cas('le fichier léger annonce que la lecture optique lui manque', async () => {
+    // Même document scanné, mais ouvert avec la version sans moteur OCR :
+    // l'outil doit le dire plutôt que de laisser un relevé vide sans explication.
+    const scan = await page.evaluate(() => {
+      const c = document.createElement('canvas');
+      c.width = 900; c.height = 500;
+      const g = c.getContext('2d');
+      g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+      g.fillStyle = '#111'; g.font = '26px serif';
+      g.fillText('CAM 09 - Objectif 6 mm', 50, 100);
+      return c.toDataURL('image/png');
+    });
+    const atelier2 = await contexte.newPage();
+    await atelier2.setContent(`<!doctype html><meta charset="utf-8">
+      <style>@page{size:900px 500px;margin:0}html,body{margin:0}img{width:900px;height:500px;display:block}</style>
+      <img src="${scan}">`);
+    const chemin = join(dossier, 'scan-leger.pdf');
+    await writeFile(chemin, await atelier2.pdf({ preferCSSPageSize: true, printBackground: true }));
+    await atelier2.close();
+
+    await page.setInputFiles('#fichier-reference', chemin);
+    await page.waitForFunction(
+      () => /scann/i.test(document.querySelector('#pdf-releve').textContent),
+      { timeout: 60000 },
+    );
+    const releve = await page.evaluate(() => document.querySelector('#pdf-releve').textContent);
+    affirmer(/pas disponible dans cette version/.test(releve), `message : ${releve}`);
+    affirmer(await page.evaluate(() => document.querySelector('#pdf-ocr').hidden),
+      'le bouton OCR ne doit pas être proposé sans moteur');
+    await page.click('#pdf-fermer');
+  });
+
   await cas('le recadrage d\'une page ne retient que la partie choisie', async () => {
     await page.setInputFiles('#fichier-reference', cheminPdf);
     await page.waitForFunction(
@@ -526,6 +559,104 @@ console.log('\nDossier de plusieurs caméras');
     affirmer(etat.focale === '8', `focale : ${etat.focale}`);
     affirmer(etat.commentaire === 'Note de terrain', 'observations perdues');
     affirmer(etat.tolerance === '3', 'tolérances perdues');
+  });
+
+  await cas('aucune erreur de console', () => affirmer(!erreurs.length, erreurs.join(' | ')));
+  await page.close();
+}
+
+/* ----------------------------------------------- 5. étude scannée, lue par OCR */
+
+if (!existsSync(FICHIER_OCR)) {
+  console.log('\nÉtude scannée — dist/analyse-vue-angle-ocr.html absent, bloc ignoré.');
+} else {
+  console.log('\nÉtude scannée, lue par reconnaissance de caractères');
+  const page = await contexte.newPage();
+  const erreurs = surveiller(page);
+
+  // Une étude scannée : le texte est dessiné dans une image, le PDF n'en porte
+  // aucune trace exploitable.
+  const atelier = await contexte.newPage();
+  await atelier.goto(`${BASE}/index.html`, { waitUntil: 'networkidle' });
+  const vues = await scene(atelier);
+  const scan = await atelier.evaluate(() => {
+    const c = document.createElement('canvas');
+    c.width = 1240; c.height = 700;
+    const g = c.getContext('2d');
+    g.fillStyle = '#fbfbf8'; g.fillRect(0, 0, c.width, c.height);
+    g.fillStyle = '#111'; g.font = '30px serif';
+    g.fillText('ETUDE D IMPLANTATION VIDEOPROTECTION', 60, 80);
+    g.font = '26px serif';
+    [
+      'Client : SCI Les Ateliers',
+      'Affaire n 2026-118',
+      '',
+      'CAM 04 - Parking nord',
+      'Capteur 1/2.8 pouce',
+      'Objectif fixe 2,8 mm',
+      'Resolution 1920 x 1080',
+      'Hauteur de pose : 3,5 m',
+      'Distance a la scene : 15 m',
+    ].forEach((l, i) => g.fillText(l, 60, 150 + i * 46));
+    return c.toDataURL('image/png');
+  });
+  await atelier.setContent(`<!doctype html><meta charset="utf-8">
+    <style>@page{size:1240px 700px;margin:0}html,body{margin:0}
+      img{width:1240px;height:700px;display:block;page-break-after:always}</style>
+    <img src="${scan}"><img src="${vues.demandee}">`);
+  const pdf = await atelier.pdf({ preferCSSPageSize: true, printBackground: true });
+  const cheminScan = join(dossier, 'etude-scannee.pdf');
+  await writeFile(cheminScan, pdf);
+  await atelier.close();
+
+  await page.goto(pathToFileURL(FICHIER_OCR).href);
+  await page.waitForSelector('#btn-analyser');
+
+  await cas('un PDF sans texte est reconnu comme scanné', async () => {
+    await page.setInputFiles('#fichier-reference', cheminScan);
+    await page.waitForSelector('#modale-pdf:not([hidden])');
+    await page.waitForFunction(
+      () => /scann/i.test(document.querySelector('#pdf-releve').textContent),
+      { timeout: 60000 },
+    );
+    affirmer(!(await page.evaluate(() => document.querySelector('#pdf-ocr').hidden)),
+      'le bouton de lecture optique devrait être proposé');
+  });
+
+  await cas('la lecture optique retrouve les caractéristiques annoncées', async () => {
+    await page.click('#pdf-ocr');
+    await page.waitForFunction(
+      () => /Lecture optique/.test(document.querySelector('#pdf-releve').textContent),
+      { timeout: 180000 },
+    );
+    const releve = await page.evaluate(() => document.querySelector('#pdf-releve').textContent);
+    affirmer(/caméra repérée/.test(releve), `relevé : ${releve}`);
+  });
+
+  await cas('les valeurs lues alimentent la confrontation, avec avertissement', async () => {
+    await page.click('.pdf-vignette[data-page="2"]');
+    await page.waitForFunction(() => document.querySelector('#pdf-etat').textContent.includes('Page 2'));
+    await page.click('#pdf-valider');
+    await page.waitForSelector('#modale-pdf', { state: 'hidden' });
+    const r = await page.evaluate(() => ({
+      avertissement: !document.querySelector('#etude-ocr').hidden,
+      lignes: [...document.querySelectorAll('#etude-tableau tbody tr')].map((tr) => ({
+        libelle: tr.children[0].textContent.trim(),
+        etude: tr.children[1].textContent.trim(),
+      })),
+    }));
+    affirmer(r.avertissement, 'l\'avertissement « lecture optique » devrait être visible');
+    const par = Object.fromEntries(r.lignes.map((l) => [l.libelle, l.etude]));
+    affirmer(par.Focale === '2,8 mm', `focale lue : ${par.Focale}`);
+    affirmer(par.Capteur === '1/2.8"', `capteur lu : ${par.Capteur}`);
+    affirmer(/1920/.test(par['Résolution'] || ''), `résolution lue : ${par['Résolution']}`);
+    affirmer(/3,5 m/.test(par['Hauteur de pose'] || ''), `hauteur lue : ${par['Hauteur de pose']}`);
+  });
+
+  await cas('le procès-verbal signale la provenance optique', async () => {
+    await page.evaluate(() => document.querySelector('#btn-rapport').click());
+    const texte = await page.evaluate(() => document.querySelector('#rapport').textContent.replace(/\s+/g, ' '));
+    affirmer(/par lecture optique \(document scanné\)/.test(texte), 'provenance optique absente du PV');
   });
 
   await cas('aucune erreur de console', () => affirmer(!erreurs.length, erreurs.join(' | ')));

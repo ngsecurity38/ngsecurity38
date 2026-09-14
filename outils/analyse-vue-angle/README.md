@@ -11,8 +11,15 @@ dans le navigateur, hors ligne.
 
 | Forme | Fichier | Quand l'utiliser |
 | --- | --- | --- |
-| **Fichier unique** | `dist/analyse-vue-angle.html` | PC, tablette, clé USB — s'ouvre d'un double-clic |
+| **Fichier unique** | `dist/analyse-vue-angle.html` (1,5 Mo) | PC, tablette, clé USB — s'ouvre d'un double-clic |
+| **Fichier unique + OCR** | `dist/analyse-vue-angle-ocr.html` (7,6 Mo) | idem, mais sait lire les études **scannées** |
 | **Dossier de sources** | `index.html` + `js/` + `vendor/` | mise en ligne sur le site, développement |
+
+Le moteur de reconnaissance de caractères pèse près de 5 Mo pour un besoin
+occasionnel. L'embarquer d'office ferait payer ce poids à chaque ouverture, à
+tout le monde : le fichier ordinaire reste donc léger, et la seconde version le
+porte pour les agences dont les études arrivent numérisées. Servi depuis le
+site, le dossier de sources charge le moteur à la demande, sans ce choix.
 
 Le fichier unique est produit par `npm run build` à partir des sources : c'est
 le même code, rassemblé en un seul fichier sans module JavaScript.
@@ -35,23 +42,27 @@ Pour le mode d'emploi complet et la mise en ligne sur WordPress, voir
    sont affichées, on choisit celle qui porte la vue attendue et on recadre
    dessus pour n'en garder que l'image utile. Le procès-verbal cite ensuite le
    fichier et le numéro de page servis de référence.
-3. **Relevé du texte de l'étude** — focale, angle de vue, capteur, résolution,
+3. **Lecture des études scannées** — un PDF sans texte est reconnu comme tel et
+   peut être passé en reconnaissance de caractères, hors ligne. Les valeurs
+   ainsi obtenues sont signalées comme telles, à l'écran et au procès-verbal :
+   un chiffre mal reconnu fausserait la mesure d'angle.
+4. **Relevé du texte de l'étude** — focale, angle de vue, capteur, résolution,
    distance et hauteur annoncés sont lus dans le texte du PDF, caméra par
    caméra, puis confrontés au matériel réellement posé. Chaque valeur est
    présentée avec sa page d'origine et son extrait : l'outil propose, le
    technicien valide.
-4. **Calculs optiques** — angles de champ horizontal / vertical / diagonal à
+5. **Calculs optiques** — angles de champ horizontal / vertical / diagonal à
    partir du capteur et de la focale, largeur de scène couverte, densité en
    pixels par mètre, portées DORI (EN 62676-4), zone morte au pied du mât,
    focale nécessaire pour couvrir une largeur donnée.
-5. **Recalage des deux vues** — estimation automatique du décalage, du zoom et
+6. **Recalage des deux vues** — estimation automatique du décalage, du zoom et
    du roulis entre l'image de référence et l'image réglée.
-6. **Diagnostic** — traduction de ce recalage en écarts de réglage réels
+7. **Diagnostic** — traduction de ce recalage en écarts de réglage réels
    (degrés de panoramique, de site, de roulis ; pourcentage de cadrage), note
    de conformité sur 100 et consignes d'intervention en clair.
-7. **Zones d'intérêt** — rectangles tracés sur la vue demandée, dont l'outil
+8. **Zones d'intérêt** — rectangles tracés sur la vue demandée, dont l'outil
    vérifie qu'ils restent couverts par le champ réellement réglé.
-8. **Fiche et rapport** — la fiche complète (paramètres + images) s'enregistre
+9. **Fiche et rapport** — la fiche complète (paramètres + images) s'enregistre
    en un fichier `.json` réouvrable ; le rapport s'imprime ou s'exporte en PDF.
 
 ## Organisation
@@ -64,12 +75,14 @@ Pour le mode d'emploi complet et la mise en ligne sur WordPress, voir
 | `js/alignement.js` | recalage des deux images — module pur, testé |
 | `js/diagnostic.js` | écarts de réglage et consignes — module pur, testé |
 | `js/etude-pdf.js` | ouverture du PDF d'étude et choix de la page |
+| `js/ocr.js` | reconnaissance de caractères hors ligne, montée à la demande |
 | `js/lecture-etude.js` | relevé des valeurs annoncées dans le texte — module pur, testé |
 | `js/format.js` | mise en forme des nombres à la française |
 | `js/fiche.js` | format du dossier `.json` et compatibilité des versions — module pur, testé |
 | `js/dom.js` | raccourcis de sélection partagés |
 | `js/app.js` | assemblage : formulaire, toiles, rapport |
 | `vendor/` | PDF.js (Mozilla, Apache 2.0), embarqué pour fonctionner hors ligne |
+| `vendor/ocr/` | Tesseract.js et son modèle français (Apache 2.0) |
 | `build.mjs` | fabrication du fichier unique |
 | `tests/run.mjs` | tests unitaires des calculs |
 | `tests/etude.mjs` | tests unitaires de la lecture d'étude |
@@ -119,7 +132,7 @@ largeur d'image ne vaut pas la moitié d'un décalage de 50 %.
 
 ```bash
 cd outils/analyse-vue-angle
-npm run build      # écrit dist/analyse-vue-angle.html (~1,5 Mo)
+npm run build      # écrit les deux fichiers de dist/
 ```
 
 Le script refuse de produire un fichier si deux modules déclarent un même nom au
@@ -134,7 +147,7 @@ techniciens reste en retard sur le dépôt.
 ```bash
 npm test                 # 46 tests unitaires, sans navigateur
 npm run build
-npm run test:navigateur  # 30 tests de bout en bout (Playwright)
+npm run test:navigateur  # 36 tests de bout en bout (Playwright)
 ```
 
 Les tests unitaires couvrent les calculs d'optique, la récupération de
@@ -152,6 +165,10 @@ retrouver le même écart angulaire que la géométrie prédit, et à relever da
 texte de cette étude les caractéristiques annoncées. Un bloc entier couvre le
 dossier multi-caméras : cloisonnement des caméras entre elles, onglets de
 verdict, synthèse du procès-verbal, aller-retour d'enregistrement et ouverture
-d'une fiche de l'ancienne version. Playwright n'est pas
+d'une fiche de l'ancienne version. Un dernier bloc fabrique une étude
+**scannée** — le texte dessiné dans une image, sans couche texte — et vérifie
+que la reconnaissance de caractères la relit correctement, que l'avertissement
+de provenance apparaît, et que la version légère annonce honnêtement qu'elle ne
+sait pas le faire. Playwright n'est pas
 une dépendance du projet : s'il est absent, ces tests sont ignorés au lieu
 d'échouer.

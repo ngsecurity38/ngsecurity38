@@ -472,6 +472,8 @@ function majEtude() {
     : 'Créer la caméra manquante';
   bouton.onclick = () => creerCamerasDeLEtude(manquantes);
 
+  $('#etude-ocr').hidden = !etat.etude.ocr;
+
   const lignes = comparaisonEtude();
   const tableau = $('#etude-tableau');
   if (!lignes.length) {
@@ -556,9 +558,12 @@ async function traiterFichier(role, fichier) {
   if (estPdf(fichier)) {
     await ouvrirSelecteurPdf(fichier, role, (dataUrl, source, etude) => {
       if (etude) {
-        const camera = etude.analyse.cameras.find((c) => c.page === source.page)
+        etat.etude = etude;
+        // La caméra courante est rattachée à la section d'étude qui porte la
+        // page retenue : c'est presque toujours la bonne.
+        const section = etude.analyse.cameras.find((c) => c.page === source.page)
           || etude.analyse.cameras[0];
-        etat.etude = { ...etude, repere: camera ? camera.repere : null };
+        if (section && cameraCourante()) cameraCourante().repereEtude = section.repere;
       }
       definirImage(role, dataUrl, `${source.fichier} — page ${source.page}`, source)
         .then(majEtude);
@@ -1271,7 +1276,9 @@ function sectionCamera({ cam, d, etude }, rang, seule) {
           <td>${l.conforme ? 'Conforme' : 'Écart'}</td></tr>`).join('')}</tbody>
       </table>
       <p style="font-size:9pt;margin-top:2mm">
-        Valeurs relevées dans ${ech(etat.etude.fichier)}
+        Valeurs relevées dans ${ech(etat.etude.fichier)}${etat.etude.ocr
+    ? ' par lecture optique (document scanné), après vérification du technicien'
+    : ''}
         ${etude.filter((l) => !l.conforme).length
     ? `— ${plur(etude.filter((l) => !l.conforme).length, 'écart')} entre le matériel annoncé et le matériel posé.`
     : '— le matériel posé correspond à l\'étude.'}

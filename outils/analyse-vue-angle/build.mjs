@@ -20,7 +20,7 @@ const lire = (...p) => readFileSync(join(ici, ...p), 'utf8');
 /** Modules de l'application, dans l'ordre des dépendances. */
 const MODULES = [
   'dom.js', 'format.js', 'optique.js', 'alignement.js',
-  'diagnostic.js', 'lecture-etude.js', 'fiche.js', 'etude-pdf.js', 'app.js',
+  'diagnostic.js', 'lecture-etude.js', 'fiche.js', 'ocr.js', 'etude-pdf.js', 'app.js',
 ];
 
 /** Neutralise toute fin de balise qui casserait le script ou le style l'accueillant. */
@@ -67,6 +67,8 @@ for (const nom of MODULES) {
 
 const paquet = `(function () {\n'use strict';\n\n${morceaux.join('\n\n')}\n\n}());`;
 
+const base64 = (...p) => readFileSync(join(ici, ...p)).toString('base64');
+
 const scripts = [
   '<script>/* PDF.js 3.11.174 — Mozilla, Apache 2.0 — voir vendor/LICENSE-pdfjs.txt */</script>',
   `<script>${inerte(lire('vendor', 'pdf.min.js'))}</script>`,
@@ -93,6 +95,31 @@ html = injecter(html, '<script type="module" src="js/app.js"></script>', scripts
 html = injecter(html, '<head>', entete);
 
 mkdirSync(join(ici, 'dist'), { recursive: true });
-const sortie = join(ici, 'dist', 'analyse-vue-angle.html');
-writeFileSync(sortie, html);
-console.log(`${sortie} — ${(html.length / 1024 / 1024).toFixed(2)} Mo`);
+
+/**
+ * Deux fichiers sont produits.
+ *
+ * Le moteur de reconnaissance de caractères pèse près de 5 Mo pour un besoin
+ * occasionnel — les études scannées. L'embarquer d'office ferait payer ce poids
+ * à tout le monde, à chaque ouverture. Le fichier ordinaire reste donc léger, et
+ * une seconde version le porte pour les agences qui en ont l'usage.
+ */
+function ecrire(nom, contenu) {
+  const chemin = join(ici, 'dist', nom);
+  writeFileSync(chemin, contenu);
+  console.log(`${chemin} — ${(contenu.length / 1024 / 1024).toFixed(2)} Mo`);
+}
+
+ecrire('analyse-vue-angle.html', html);
+
+const ocr = [
+  '<script>/* Tesseract.js 5.1.1 — Apache 2.0 — voir vendor/ocr/LICENSE-tesseractjs.txt */</script>',
+  `<script>${inerte(lire('vendor', 'ocr', 'tesseract.min.js'))}</script>`,
+  `<script>window.__ocrIntegre=${JSON.stringify({
+    moteur: base64('vendor', 'ocr', 'tesseract-core-simd-lstm.wasm.js'),
+    worker: base64('vendor', 'ocr', 'worker.min.js'),
+    langue: base64('vendor', 'ocr', 'fra.traineddata.gz'),
+  })};</script>`,
+].join('\n');
+
+ecrire('analyse-vue-angle-ocr.html', injecter(html, '</head>', `${ocr}\n</head>`));
