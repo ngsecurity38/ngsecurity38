@@ -12,6 +12,7 @@
  */
 
 import { $ } from './dom.js';
+import { analyserEtude } from './lecture-etude.js';
 
 const LARGEUR_VIGNETTE = 150;
 const LARGEUR_RENDU = 1600;
@@ -160,6 +161,45 @@ function brancherRecadrage() {
   });
 }
 
+/**
+ * Reconstitue le texte d'une page.
+ *
+ * PDF.js rend des fragments positionnés, pas des lignes : deux fragments de
+ * même ordonnée appartiennent à la même ligne. Sans ce regroupement, « Focale »
+ * et « 2,8 mm » se retrouveraient sur deux lignes distinctes et aucune règle de
+ * lecture ne pourrait les rapprocher.
+ */
+async function texteDeLaPage(document_, numero) {
+  const page = await document_.getPage(numero);
+  const contenu = await page.getTextContent();
+  const lignes = [];
+  for (const item of contenu.items) {
+    if (!item.str) continue;
+    const y = Math.round(item.transform[5]);
+    const x = item.transform[4];
+    const ligne = lignes.find((l) => Math.abs(l.y - y) <= 3);
+    if (ligne) ligne.fragments.push({ x, texte: item.str });
+    else lignes.push({ y, fragments: [{ x, texte: item.str }] });
+  }
+  return lignes
+    .sort((a, b) => b.y - a.y)
+    .map((l) => l.fragments.sort((a, b) => a.x - b.x).map((f) => f.texte).join(' '))
+    .map((t) => t.replace(/\s+/g, ' ').trim())
+    .filter(Boolean)
+    .join('\n');
+}
+
+/** Lit le texte de toutes les pages et en tire les valeurs annoncées. */
+async function lireLEtude(document_) {
+  const pages = [];
+  const total = Math.min(document_.numPages, PAGES_MAX);
+  for (let n = 1; n <= total; n += 1) {
+    /* eslint-disable no-await-in-loop */
+    pages.push(await texteDeLaPage(document_, n));
+  }
+  return { analyse: analyserEtude(pages), pages };
+}
+
 /** Image finale : la page entière, ou seulement le rectangle tracé. */
 function extraire() {
   const { page, recadrage } = etatPdf;
@@ -181,7 +221,7 @@ let branche = false;
  *
  * @param {File} fichier le PDF de l'étude
  * @param {string} role 'reference' ou 'reglee'
- * @param {(dataUrl: string, source: object) => void} onValider appelé au choix
+ * @param {(dataUrl: string, source: object, etude: object|null) => void} onValider appelé au choix
  */
 export async function ouvrirSelecteurPdf(fichier, role, onValider) {
   const modale = $('#modale-pdf');
@@ -216,8 +256,9 @@ export async function ouvrirSelecteurPdf(fichier, role, onValider) {
       };
       const image = extraire();
       const rappel = etatPdf.onValider;
+      const etude = etatPdf.analyse ? { fichier: etatPdf.nom, analyse: etatPdf.analyse } : null;
       fermer();
-      rappel(image, source);
+      rappel(image, source, etude);
     });
   }
 
@@ -225,9 +266,21 @@ export async function ouvrirSelecteurPdf(fichier, role, onValider) {
     const lib = await bibliothequePdf();
     const donnees = new Uint8Array(await fichier.arrayBuffer());
     const document_ = await lib.getDocument({ data: donnees }).promise;
-    etatPdf = { document: document_, nom: fichier.name, numero: 1, page: null, recadrage: null, onValider };
+    etatPdf = {
+      document: document_, nom: fichier.name, numero: 1,
+      page: null, recadrage: null, analyse: null, onValider,
+    };
     await afficherPage(1);
     await afficherVignettes();
+    if (role === 'reference') {
+      const { analyse } = await lireLEtude(document_);
+      if (!etatPdf) return; // fenêtre refermée pendant la lecture
+      etatPdf.analyse = analyse;
+      const n = analyse.cameras.length;
+      $('#pdf-releve').textContent = n
+        ? `Texte lu : ${n} caméra${n > 1 ? 's' : ''} repérée${n > 1 ? 's' : ''} dans l'étude.`
+        : 'Texte lu : aucun repère caméra trouvé, les valeurs générales seront proposées.';
+    }
   } catch (err) {
     $('#pdf-etat').textContent = `Lecture impossible : ${err.message}`;
   }

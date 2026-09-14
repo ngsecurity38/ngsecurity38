@@ -263,7 +263,7 @@ canvas { max-width: 100%; display: block; border-radius: 6px; background: #000; 
 
 @media print {
   @page { size: A4; margin: 12mm; }
-  body { background: #fff; color: #000; }
+  html, body { background: #fff; color: #000; }
   .barre, .agencement { display: none !important; }
   .rapport { display: block !important; }
   .rapport, .rapport th, .rapport td, .rapport li, .rapport p { color: #000; }
@@ -342,6 +342,30 @@ canvas { max-width: 100%; display: block; border-radius: 6px; background: #000; 
   .pdf-pages { flex-direction: row; border-right: 0; border-bottom: 1px solid var(--bord); }
   .pdf-vignette { flex: none; width: 110px; }
 }
+
+/* ------------------------------------------------------ relevé de l'étude */
+
+table.etude {
+  width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px;
+  table-layout: fixed; /* sans quoi les valeurs longues font déborder la colonne */
+}
+table.etude th, table.etude td {
+  text-align: left; padding: 5px 4px; border-bottom: 1px solid var(--bord);
+  overflow-wrap: anywhere;
+}
+table.etude th { color: var(--texte-doux); font-weight: 600; font-size: 11px; }
+table.etude col.carac { width: 31%; }
+table.etude col.val { width: 23%; }
+table.etude col.action { width: 23%; }
+table.etude td:last-child { text-align: right; padding: 2px 0 2px 2px; }
+table.etude td:last-child .btn { padding: 4px 6px; font-size: 11px; width: 100%; }
+table.etude tr.ok td:first-child { box-shadow: inset 3px 0 0 var(--vert); }
+table.etude tr.ko td:first-child { box-shadow: inset 3px 0 0 var(--rouge); }
+table.etude td:first-child { padding-left: 9px; cursor: help; }
+table.etude .valeur { font-variant-numeric: tabular-nums; }
+table.etude .remarque { display: block; color: var(--texte-doux); font-size: 11px; }
+.etude-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.etude-vide { color: var(--texte-doux); font-size: 12px; margin: 10px 0 0; }
 </style>
 </head>
 <body>
@@ -431,6 +455,29 @@ canvas { max-width: 100%; display: block; border-radius: 6px; background: #000; 
         </div>
         <div class="mesures" id="aide-resultat"></div>
       </details>
+    </section>
+
+    <section class="bloc" id="bloc-etude" hidden>
+      <h2>2 bis · Relevé de l'étude</h2>
+      <label id="etude-choix-camera" hidden>Caméra de l'étude
+        <select id="etude-camera"></select>
+      </label>
+      <div id="etude-tableau"></div>
+      <div class="etude-actions">
+        <button type="button" id="etude-tout" class="btn btn-fantome btn-petit">
+          Reprendre toutes les valeurs
+        </button>
+        <button type="button" id="etude-entete" class="btn btn-fantome btn-petit">
+          Reprendre l'en-tête
+        </button>
+      </div>
+      <p class="note">
+        Valeurs lues dans le texte du PDF, chacune avec sa page d'origine —
+        survoler une ligne pour voir l'extrait. « Reprendre » recopie la valeur
+        dans le bloc 2 : à n'utiliser que si le matériel posé correspond
+        effectivement à l'étude. Sinon, saisir ce qui est réellement monté :
+        c'est justement l'écart qui fait l'intérêt du relevé.
+      </p>
     </section>
 
     <section class="bloc">
@@ -584,6 +631,7 @@ canvas { max-width: 100%; display: block; border-radius: 6px; background: #000; 
     <footer class="modale-pied">
       <span class="note" id="pdf-etat"></span>
       <span class="note" id="pdf-aide"></span>
+      <span class="note" id="pdf-releve"></span>
       <span class="pousse"></span>
       <button type="button" id="pdf-annuler-recadrage" class="btn btn-fantome">Annuler le recadrage</button>
       <button type="button" id="pdf-valider" class="btn btn-principal">Utiliser cette vue</button>
@@ -644,6 +692,20 @@ canvas { max-width: 100%; display: block; border-radius: 6px; background: #000; 
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => [...document.querySelectorAll(sel)];
+
+/* ===== format.js ===== */
+/** Mise en forme des nombres à la française, partagée par les modules. */
+
+const arrondir = (v, n = 1) => {
+  const f = 10 ** n;
+  return Math.round(v * f) / f;
+};
+
+/** « 6,4 » plutôt que « 6.4 » : ces valeurs sont lues sur le terrain. */
+const fr = (v, n = 1) => String(arrondir(v, n)).replace('.', ',');
+
+/** Idem, avec le signe explicite : un écart se lit « +2,4 » ou « −1,1 ». */
+const signe = (v, n = 1) => (v > 0 ? `+${fr(v, n)}` : fr(v, n));
 
 /* ===== optique.js ===== */
 /**
@@ -1110,6 +1172,7 @@ function estimerTransformation(refGris, actGris, options = {}) {
  */
 
 
+
 /** Tolérances par défaut d'une pose soignée. */
 const TOLERANCES_DEFAUT = {
   angle: 2.0, // écart de pointage horizontal / vertical, en degrés
@@ -1131,14 +1194,6 @@ function noter(ecart, tolerance) {
   if (e <= tolerance) return 100 - (20 * e) / tolerance;
   return Math.max(0, 80 - (80 * (e - tolerance)) / (2 * tolerance));
 }
-
-const arrondir = (v, n = 1) => {
-  const f = 10 ** n;
-  return Math.round(v * f) / f;
-};
-
-/** Nombre au format français, pour les consignes lues sur le terrain. */
-const fr = (v, n = 1) => String(arrondir(v, n)).replace('.', ',');
 
 /**
  * @param {object} transformation résultat de estimerTransformation()
@@ -1255,6 +1310,343 @@ const LIBELLES_VERDICT = {
   indetermine: 'Recalage non concluant',
 };
 
+/* ===== lecture-etude.js ===== */
+/**
+ * Lecture du texte d'une étude d'implantation.
+ *
+ * L'étude remise par le client annonce ce qui doit être posé : focale ou angle
+ * de vue, capteur, résolution, distance, hauteur, niveau d'exploitation attendu.
+ * Ce module relève ces valeurs dans le texte du PDF pour les confronter à ce qui
+ * est réellement monté.
+ *
+ * Il ne décide rien : il propose des valeurs, chacune accompagnée de l'extrait
+ * et de la page où elle a été lue. Une focale mal relevée fausserait toute la
+ * mesure d'angle — c'est au technicien de valider.
+ *
+ * Module pur (aucune dépendance au DOM), testé sous Node.
+ */
+
+
+/** Corrige l'espace insécable et les variantes d'apostrophe du texte PDF. */
+function normaliser(texte) {
+  return String(texte || '')
+    .replace(/[   ]/g, ' ')
+    .replace(/[’′]/g, "'")
+    .replace(/[″”]/g, '"')
+    .replace(/[ \t]+/g, ' ');
+}
+
+const nombre = (s) => parseFloat(String(s).replace(',', '.'));
+
+/** Une valeur relevée, toujours accompagnée de sa justification. */
+const releve = (valeur, ligne, page, unite = '', extra = {}) => ({
+  valeur, unite, page, extrait: ligne.trim().slice(0, 160), ...extra,
+});
+
+/**
+ * Sur quel axe porte un angle annoncé.
+ *
+ * Les fiches constructeur donnent volontiers l'angle diagonal, plus flatteur :
+ * le comparer à l'angle horizontal de la pose ferait apparaître un écart qui
+ * n'existe pas. À défaut de précision, l'horizontal est retenu, c'est la
+ * convention des études d'implantation.
+ */
+function axeDeLAngle(ligne) {
+  if (/diagonal/i.test(ligne)) return 'diagonal';
+  if (/vertical/i.test(ligne)) return 'vertical';
+  return 'horizontal';
+}
+
+/* ------------------------------------------------------------- extracteurs */
+
+/**
+ * Chaque extracteur reçoit une ligne et rend une valeur, ou null.
+ * L'ordre compte : le premier qui répond gagne, les motifs les plus explicites
+ * sont donc placés en tête.
+ */
+const EXTRACTEURS = {
+  focale: [
+    // « focale 2,8 - 12 mm » : sur un varifocal, seule la borne basse est retenue,
+    // c'est elle qui donne le champ le plus large annoncé.
+    /(?:focale|objectif|optique)[^\n]{0,30}?(\d+(?:[.,]\d+)?)\s*(?:[-–]|à)\s*(\d+(?:[.,]\d+)?)\s*mm/i,
+    /(?:focale|objectif|optique)[^\n]{0,30}?(\d+(?:[.,]\d+)?)\s*mm/i,
+    /(\d+(?:[.,]\d+)?)\s*mm\s*(?:de\s*)?(?:focale|d'objectif)/i,
+  ],
+  angle: [
+    /(?:angle\s*(?:de\s*)?(?:vue|champ|vision)|champ\s*(?:de\s*)?(?:vision|vue)?|ouverture)\s*(?:horizontal\w*|vertical\w*|diagonal\w*)?\s*:?\s*(?:de\s*)?(\d+(?:[.,]\d+)?)\s*(?:°|deg)/i,
+    /(\d+(?:[.,]\d+)?)\s*°\s*(?:d'angle|de\s*champ|horizontal|vertical|diagonal)/i,
+  ],
+  capteur: [
+    /\b1\s*\/\s*(\d+(?:[.,]\d+)?)\s*["'′″]/,
+    /capteur[^\n]{0,20}?\b1\s*\/\s*(\d+(?:[.,]\d+)?)/i,
+  ],
+  resolution: [
+    /(\d{3,5})\s*[x×*]\s*(\d{3,5})/,
+    /(\d+(?:[.,]\d+)?)\s*(?:MP|M[ée]gapixels?|Mpx)\b/i,
+  ],
+  distance: [
+    /(?:distance|port[ée]e|profondeur)[^\n]{0,25}?(\d+(?:[.,]\d+)?)\s*m\b/i,
+    /[àa]\s*(\d+(?:[.,]\d+)?)\s*m[èe]tres?\s*(?:de\s*(?:la\s*)?(?:sc[èe]ne|zone|cible))/i,
+  ],
+  hauteur: [
+    /hauteur\s*(?:de\s*)?(?:pose|montage|fixation|mise en place)?\s*:?\s*(?:de\s*)?(\d+(?:[.,]\d+)?)\s*m\b/i,
+    /pos[ée]e?\s*[àa]\s*(\d+(?:[.,]\d+)?)\s*m\b/i,
+  ],
+  niveau: [
+    /\b(identification|reconnaissance|observation|d[ée]tection)\b/i,
+  ],
+};
+
+/** Résolutions nommées, converties en pixels. */
+const RESOLUTIONS_NOMMEES = [
+  [/\b(?:4K|UHD)\b/i, [3840, 2160]],
+  [/\bfull\s*hd\b/i, [1920, 1080]],
+  [/\bHD\b/, [1280, 720]],
+];
+
+/** Mégapixels → définition 16/9 la plus proche du catalogue courant. */
+const PAR_MEGAPIXELS = [
+  [1, [1280, 720]], [2, [1920, 1080]], [3, [2048, 1536]], [4, [2560, 1440]],
+  [5, [2592, 1944]], [6, [3072, 2048]], [8, [3840, 2160]], [12, [4000, 3000]],
+];
+
+function lireResolution(ligne, page) {
+  const paire = ligne.match(EXTRACTEURS.resolution[0]);
+  if (paire) {
+    const h = Number(paire[1]);
+    const v = Number(paire[2]);
+    // Filtre les faux positifs du genre « 2026 x 3 » ou une référence produit.
+    if (h >= 320 && h <= 8192 && v >= 240 && v <= 8192 && h > v) {
+      return releve({ h, v }, ligne, page);
+    }
+  }
+  for (const [motif, [h, v]] of RESOLUTIONS_NOMMEES) {
+    if (motif.test(ligne)) return releve({ h, v }, ligne, page);
+  }
+  const mp = ligne.match(EXTRACTEURS.resolution[1]);
+  if (mp) {
+    const valeur = nombre(mp[1]);
+    if (valeur >= 0.3 && valeur <= 100) {
+      const [, dims] = PAR_MEGAPIXELS.reduce(
+        (meilleur, entree) => (Math.abs(entree[0] - valeur) < Math.abs(meilleur[0] - valeur) ? entree : meilleur),
+      );
+      return releve({ h: dims[0], v: dims[1], megapixels: valeur }, ligne, page);
+    }
+  }
+  return null;
+}
+
+function lireChamp(cle, ligne, page) {
+  if (cle === 'resolution') return lireResolution(ligne, page);
+
+  for (const motif of EXTRACTEURS[cle]) {
+    const m = ligne.match(motif);
+    if (!m) continue;
+
+    if (cle === 'capteur') return releve(`1/${m[1].replace(',', '.')}"`, ligne, page);
+    if (cle === 'niveau') {
+      const mot = m[1].toLowerCase().replace('é', 'e');
+      return releve(mot.startsWith('detect') ? 'detection' : mot, ligne, page);
+    }
+
+    const valeur = nombre(m[1]);
+    if (!Number.isFinite(valeur)) continue;
+    if (cle === 'focale' && (valeur < 0.8 || valeur > 300)) continue;
+    if (cle === 'angle' && (valeur < 5 || valeur > 360)) continue;
+    if (cle === 'distance' && (valeur < 0.5 || valeur > 500)) continue;
+    if (cle === 'hauteur' && (valeur < 0.5 || valeur > 60)) continue;
+    if (cle === 'angle') return releve(valeur, ligne, page, '°', { axe: axeDeLAngle(ligne) });
+    return releve(valeur, ligne, page, cle === 'focale' ? 'mm' : 'm');
+  }
+  return null;
+}
+
+const CHAMPS_CAMERA = ['focale', 'angle', 'capteur', 'resolution', 'distance', 'hauteur', 'niveau'];
+
+/* ------------------------------------------------------------ repères caméra */
+
+const MOTIF_CAMERA = /\b(?:cam[ée]ra|cam)\s*(?:n\s*[°o]\s*)?[-–—:]?\s*(\d{1,3})\b/i;
+
+/** Repère normalisé : « CAM 04 ». */
+const repereCamera = (numero) => `CAM ${String(numero).padStart(2, '0')}`;
+
+/* --------------------------------------------------------------- en-tête */
+
+const EXTRACTEURS_ENTETE = {
+  client: /\bclient\s*:?\s*(.{2,60})/i,
+  site: /\b(?:site|adresse|lieu|chantier)\s*:?\s*(.{2,80})/i,
+  affaire: /\b(?:affaire|dossier|devis|r[ée]f[ée]rence)\s*(?:n\s*[°o]\s*)?:?\s*([\w][\w\-/.]{1,20})/i,
+};
+
+/* ------------------------------------------------------------------ analyse */
+
+/**
+ * Analyse le texte d'une étude.
+ *
+ * @param {string[]} pages texte de chaque page, lignes séparées par des retours
+ * @returns {{cameras: object[], entete: object, champs: object}}
+ *   `cameras` : une entrée par repère trouvé, avec les valeurs lues dans sa
+ *   section. `champs` : les valeurs lues hors de toute section, qui servent de
+ *   repli quand l'étude ne détaille pas caméra par caméra.
+ */
+function analyserEtude(pages) {
+  const lignes = [];
+  (Array.isArray(pages) ? pages : [pages]).forEach((texte, index) => {
+    normaliser(texte).split('\n').forEach((ligne) => {
+      if (ligne.trim()) lignes.push({ texte: ligne, page: index + 1 });
+    });
+  });
+
+  const entete = {};
+  for (const [cle, motif] of Object.entries(EXTRACTEURS_ENTETE)) {
+    for (const { texte, page } of lignes) {
+      const m = texte.match(motif);
+      if (m) {
+        entete[cle] = releve(m[1].trim().replace(/\s*[—–-]\s*$/, ''), texte, page);
+        break;
+      }
+    }
+  }
+
+  // Découpage en sections : une section court d'un repère caméra au suivant.
+  const sections = [];
+  lignes.forEach((ligne, index) => {
+    const m = ligne.texte.match(MOTIF_CAMERA);
+    if (!m) return;
+    const numero = Number(m[1]);
+    const derniere = sections[sections.length - 1];
+    if (derniere && derniere.numero === numero) return; // même caméra citée plusieurs fois
+    if (derniere) derniere.fin = index;
+    sections.push({ numero, repere: repereCamera(numero), page: ligne.page, debut: index, fin: lignes.length });
+  });
+
+  const releverDans = (debut, fin) => {
+    const champs = {};
+    for (let i = debut; i < fin; i += 1) {
+      for (const cle of CHAMPS_CAMERA) {
+        if (champs[cle]) continue;
+        const trouve = lireChamp(cle, lignes[i].texte, lignes[i].page);
+        if (trouve) champs[cle] = trouve;
+      }
+    }
+    return champs;
+  };
+
+  const cameras = sections.map((s) => ({
+    repere: s.repere,
+    numero: s.numero,
+    page: s.page,
+    champs: releverDans(s.debut, s.fin),
+  }));
+
+  // Hors sections : utile quand l'étude ne décrit qu'une seule caméra.
+  const finEntete = sections.length ? sections[0].debut : lignes.length;
+  const champs = releverDans(0, finEntete);
+  if (!sections.length) Object.assign(champs, releverDans(0, lignes.length));
+
+  return { cameras, entete, champs };
+}
+
+/** Valeurs de l'étude applicables à une caméra donnée, repli sur le global. */
+function champsPourCamera(etude, repere) {
+  const camera = etude.cameras.find((c) => c.repere === repere);
+  return { ...etude.champs, ...(camera ? camera.champs : {}) };
+}
+
+/* --------------------------------------------------- confrontation à la pose */
+
+const TOLERANCE_ANGLE_ETUDE = 5; // écart d'angle admis entre étude et pose, en degrés
+const TOLERANCE_RELATIVE = 0.1; // écart admis sur distance et hauteur
+
+/**
+ * Confronte les valeurs de l'étude à la configuration réellement saisie.
+ *
+ * L'angle est le juge de paix : une focale différente n'est un problème que si
+ * elle change le champ couvert. Quand l'étude annonce une focale, elle est donc
+ * convertie en angle avec le capteur réellement monté, et ce sont les deux
+ * angles que l'on compare.
+ *
+ * @param {object} champs valeurs relevées dans l'étude
+ * @param {object} pose configuration saisie : {angles, focale, capteur, resolution, distance, hauteur}
+ * @param {(capteur: object, focale: number) => object} anglesDeChamp calcul optique injecté
+ */
+function confronter(champs, pose, anglesDeChamp) {
+  const lignes = [];
+  const ajouter = (cle, libelle, etude, installe, conforme, remarque = '') => {
+    lignes.push({ cle, libelle, etude, installe, conforme, remarque, source: champs[cle] || null });
+  };
+
+  let angleEtude = null;
+  let axe = 'horizontal';
+  if (champs.angle) {
+    angleEtude = champs.angle.valeur;
+    axe = champs.angle.axe || 'horizontal';
+  } else if (champs.focale) {
+    angleEtude = anglesDeChamp(pose.capteur, champs.focale.valeur).horizontal;
+  }
+
+  if (champs.focale) {
+    const ecart = pose.focale - champs.focale.valeur;
+    ajouter(
+      'focale',
+      'Focale',
+      `${fr(champs.focale.valeur, 2)} mm`,
+      `${fr(pose.focale, 2)} mm`,
+      Math.abs(ecart) < 0.05,
+      Math.abs(ecart) < 0.05 ? '' : `${signe(ecart)} mm`,
+    );
+  }
+
+  if (angleEtude !== null) {
+    const anglePose = pose.angles[axe];
+    const ecart = anglePose - angleEtude;
+    ajouter(
+      'angle',
+      `Angle de vue ${axe}`,
+      `${fr(angleEtude)} °`,
+      `${fr(anglePose)} °`,
+      Math.abs(ecart) <= TOLERANCE_ANGLE_ETUDE,
+      `${signe(ecart)} °${champs.angle ? '' : ' (angle déduit de la focale de l\'étude)'}`,
+    );
+  }
+
+  if (champs.capteur) {
+    ajouter('capteur', 'Capteur', champs.capteur.valeur, pose.capteurCle, champs.capteur.valeur === pose.capteurCle);
+  }
+
+  if (champs.resolution) {
+    const { h, v } = champs.resolution.valeur;
+    const conforme = pose.resolution.h >= h && pose.resolution.v >= v;
+    ajouter(
+      'resolution',
+      'Résolution',
+      `${h} × ${v} px`,
+      `${pose.resolution.h} × ${pose.resolution.v} px`,
+      conforme,
+      conforme ? '' : 'définition inférieure à l\'étude',
+    );
+  }
+
+  for (const [cle, libelle, valeurPose] of [
+    ['distance', 'Distance à la scène', pose.distance],
+    ['hauteur', 'Hauteur de pose', pose.hauteur],
+  ]) {
+    if (!champs[cle]) continue;
+    const attendu = champs[cle].valeur;
+    const ecart = valeurPose - attendu;
+    ajouter(
+      cle,
+      libelle,
+      `${fr(attendu, 2)} m`,
+      `${fr(valeurPose, 2)} m`,
+      Math.abs(ecart) <= Math.max(0.2, attendu * TOLERANCE_RELATIVE),
+      Math.abs(ecart) < 0.05 ? '' : `${signe(ecart, 2)} m`,
+    );
+  }
+
+  return lignes;
+}
+
 /* ===== etude-pdf.js ===== */
 /**
  * Ouverture du PDF de l'étude et choix de la vue demandée.
@@ -1268,6 +1660,7 @@ const LIBELLES_VERDICT = {
  * reste légère. Dans la version en fichier unique, la bibliothèque est déjà
  * présente et rien n'est téléchargé.
  */
+
 
 
 const LARGEUR_VIGNETTE = 150;
@@ -1417,6 +1810,45 @@ function brancherRecadrage() {
   });
 }
 
+/**
+ * Reconstitue le texte d'une page.
+ *
+ * PDF.js rend des fragments positionnés, pas des lignes : deux fragments de
+ * même ordonnée appartiennent à la même ligne. Sans ce regroupement, « Focale »
+ * et « 2,8 mm » se retrouveraient sur deux lignes distinctes et aucune règle de
+ * lecture ne pourrait les rapprocher.
+ */
+async function texteDeLaPage(document_, numero) {
+  const page = await document_.getPage(numero);
+  const contenu = await page.getTextContent();
+  const lignes = [];
+  for (const item of contenu.items) {
+    if (!item.str) continue;
+    const y = Math.round(item.transform[5]);
+    const x = item.transform[4];
+    const ligne = lignes.find((l) => Math.abs(l.y - y) <= 3);
+    if (ligne) ligne.fragments.push({ x, texte: item.str });
+    else lignes.push({ y, fragments: [{ x, texte: item.str }] });
+  }
+  return lignes
+    .sort((a, b) => b.y - a.y)
+    .map((l) => l.fragments.sort((a, b) => a.x - b.x).map((f) => f.texte).join(' '))
+    .map((t) => t.replace(/\s+/g, ' ').trim())
+    .filter(Boolean)
+    .join('\n');
+}
+
+/** Lit le texte de toutes les pages et en tire les valeurs annoncées. */
+async function lireLEtude(document_) {
+  const pages = [];
+  const total = Math.min(document_.numPages, PAGES_MAX);
+  for (let n = 1; n <= total; n += 1) {
+    /* eslint-disable no-await-in-loop */
+    pages.push(await texteDeLaPage(document_, n));
+  }
+  return { analyse: analyserEtude(pages), pages };
+}
+
 /** Image finale : la page entière, ou seulement le rectangle tracé. */
 function extraire() {
   const { page, recadrage } = etatPdf;
@@ -1438,7 +1870,7 @@ let branche = false;
  *
  * @param {File} fichier le PDF de l'étude
  * @param {string} role 'reference' ou 'reglee'
- * @param {(dataUrl: string, source: object) => void} onValider appelé au choix
+ * @param {(dataUrl: string, source: object, etude: object|null) => void} onValider appelé au choix
  */
 async function ouvrirSelecteurPdf(fichier, role, onValider) {
   const modale = $('#modale-pdf');
@@ -1473,8 +1905,9 @@ async function ouvrirSelecteurPdf(fichier, role, onValider) {
       };
       const image = extraire();
       const rappel = etatPdf.onValider;
+      const etude = etatPdf.analyse ? { fichier: etatPdf.nom, analyse: etatPdf.analyse } : null;
       fermer();
-      rappel(image, source);
+      rappel(image, source, etude);
     });
   }
 
@@ -1482,9 +1915,21 @@ async function ouvrirSelecteurPdf(fichier, role, onValider) {
     const lib = await bibliothequePdf();
     const donnees = new Uint8Array(await fichier.arrayBuffer());
     const document_ = await lib.getDocument({ data: donnees }).promise;
-    etatPdf = { document: document_, nom: fichier.name, numero: 1, page: null, recadrage: null, onValider };
+    etatPdf = {
+      document: document_, nom: fichier.name, numero: 1,
+      page: null, recadrage: null, analyse: null, onValider,
+    };
     await afficherPage(1);
     await afficherVignettes();
+    if (role === 'reference') {
+      const { analyse } = await lireLEtude(document_);
+      if (!etatPdf) return; // fenêtre refermée pendant la lecture
+      etatPdf.analyse = analyse;
+      const n = analyse.cameras.length;
+      $('#pdf-releve').textContent = n
+        ? `Texte lu : ${n} caméra${n > 1 ? 's' : ''} repérée${n > 1 ? 's' : ''} dans l'étude.`
+        : 'Texte lu : aucun repère caméra trouvé, les valeurs générales seront proposées.';
+    }
   } catch (err) {
     $('#pdf-etat').textContent = `Lecture impossible : ${err.message}`;
   }
@@ -1498,6 +1943,7 @@ async function ouvrirSelecteurPdf(fichier, role, onValider) {
  * qui sont testés sous Node. Ce fichier ne fait que l'assemblage : formulaire,
  * chargement des images, rendu des toiles, rapport.
  */
+
 
 
 
@@ -1536,6 +1982,7 @@ const etat = {
   manuel: false,
   diagnostic: null,
   zones: [],
+  etude: null, // { fichier, analyse, repere } — valeurs lues dans le PDF d'étude
   mode: 'cote',
   tracage: false,
   dernierDepot: 'reference',
@@ -1632,6 +2079,7 @@ function majOptique() {
       </tbody></table>`;
 
   majAideFocale(c);
+  if (etat.etude) majEtude();
   if (etat.transformation) majDiagnostic();
 }
 
@@ -1646,6 +2094,115 @@ function majAideFocale(c) {
     mesure('Densité obtenue', fmt(ppm, 0), 'px/m'),
     mesure('Niveau', niveau === 'insuffisant' ? 'Insuffisant' : SEUILS_DORI[niveau].label, '', true),
   ].join('');
+}
+
+/* ====================================================== relevé de l'étude */
+
+/** Valeurs de l'étude qui s'appliquent à la caméra retenue. */
+function champsEtude() {
+  if (!etat.etude) return {};
+  return champsPourCamera(etat.etude.analyse, etat.etude.repere);
+}
+
+/** Confrontation étude / pose, telle qu'elle est affichée et imprimée. */
+function comparaisonEtude() {
+  if (!etat.etude) return [];
+  return confronter(champsEtude(), configCamera(), anglesDeChamp);
+}
+
+const APPLICABLES = new Set(['focale', 'capteur', 'resolution', 'distance', 'hauteur', 'angle']);
+
+/** Recopie une valeur de l'étude dans le bloc « Caméra et optique ». */
+function reprendre(cle) {
+  const champs = champsEtude();
+  const champ = champs[cle];
+  if (!champ) return;
+
+  if (cle === 'focale') $('#cam-focale').value = champ.valeur;
+  if (cle === 'distance') $('#cam-distance').value = champ.valeur;
+  if (cle === 'hauteur') $('#cam-hauteur').value = champ.valeur;
+
+  if (cle === 'capteur' && CAPTEURS[champ.valeur]) $('#cam-capteur').value = champ.valeur;
+
+  if (cle === 'resolution') {
+    const { h, v } = champ.valeur;
+    const index = RESOLUTIONS.findIndex((r) => r.h === h && r.v === v);
+    if (index >= 0) {
+      $('#cam-resolution').value = String(index);
+    } else {
+      $('#cam-resolution').value = String(RESOLUTIONS.length - 1); // « Autre… »
+      $('#cam-res-h').value = h;
+      $('#cam-res-v').value = v;
+    }
+  }
+
+  // Un angle ne se règle pas directement : on remonte à la focale qui le donne
+  // avec le capteur effectivement monté.
+  if (cle === 'angle' && !champs.focale) {
+    const capteur = capteurActuel();
+    const dimension = {
+      horizontal: capteur.largeur,
+      vertical: capteur.hauteur,
+      diagonal: Math.hypot(capteur.largeur, capteur.hauteur),
+    }[champ.axe || 'horizontal'];
+    const f = dimension / (2 * Math.tan(radians(champ.valeur) / 2));
+    $('#cam-focale').value = Math.round(f * 10) / 10;
+  }
+
+  basculerChampsLibres();
+  majOptique();
+  majEtude();
+}
+
+function reprendreEntete() {
+  const { entete } = etat.etude?.analyse || {};
+  if (!entete) return;
+  if (entete.client) $('#ch-client').value = entete.client.valeur;
+  if (entete.site) $('#ch-site').value = entete.site.valeur;
+  if (entete.affaire) $('#ch-affaire').value = entete.affaire.valeur;
+  if (etat.etude.repere) $('#ch-camera').value = etat.etude.repere;
+}
+
+function majEtude() {
+  const bloc = $('#bloc-etude');
+  if (!etat.etude) { bloc.hidden = true; return; }
+  bloc.hidden = false;
+
+  const { cameras } = etat.etude.analyse;
+  const choix = $('#etude-choix-camera');
+  choix.hidden = cameras.length < 2;
+  if (cameras.length >= 2) {
+    const select = $('#etude-camera');
+    select.innerHTML = '';
+    cameras.forEach((c) => select.append(new Option(`${c.repere} (page ${c.page})`, c.repere)));
+    select.value = etat.etude.repere || cameras[0].repere;
+  }
+
+  const lignes = comparaisonEtude();
+  const tableau = $('#etude-tableau');
+  if (!lignes.length) {
+    tableau.innerHTML = '<p class="etude-vide">Aucune caractéristique technique reconnue dans le '
+      + 'texte de ce PDF. L\'étude est peut-être scannée en image, ou rédigée dans une forme que '
+      + 'l\'outil ne sait pas lire : saisir les valeurs à la main dans le bloc 2.</p>';
+    return;
+  }
+
+  tableau.innerHTML = `<table class="etude">
+      <colgroup><col class="carac"><col class="val"><col class="val"><col class="action"></colgroup>
+      <thead><tr><th>Caractéristique</th><th>Étude</th><th>Posé</th><th></th></tr></thead>
+      <tbody>${lignes.map((l) => `
+        <tr class="${l.conforme ? 'ok' : 'ko'}">
+          <td title="${l.source ? `Page ${l.source.page} : « ${ech(l.source.extrait)} »` : ''}">${l.libelle}</td>
+          <td class="valeur">${ech(l.etude)}</td>
+          <td class="valeur">${ech(l.installe)}${l.remarque ? `<span class="remarque">${ech(l.remarque)}</span>` : ''}</td>
+          <td>${APPLICABLES.has(l.cle) && l.source
+            ? `<button type="button" class="btn btn-fantome btn-petit" data-reprendre="${l.cle}">Reprendre</button>`
+            : ''}</td>
+        </tr>`).join('')}</tbody></table>`;
+
+  $$('#etude-tableau button[data-reprendre]').forEach((b) => {
+    b.addEventListener('click', () => reprendre(b.dataset.reprendre));
+  });
 }
 
 /* ======================================================== chargement images */
@@ -1695,8 +2252,14 @@ async function definirImage(role, dataUrl, nom, source = null) {
 
 async function traiterFichier(role, fichier) {
   if (estPdf(fichier)) {
-    await ouvrirSelecteurPdf(fichier, role, (dataUrl, source) => {
-      definirImage(role, dataUrl, `${source.fichier} — page ${source.page}`, source);
+    await ouvrirSelecteurPdf(fichier, role, (dataUrl, source, etude) => {
+      if (etude) {
+        const camera = etude.analyse.cameras.find((c) => c.page === source.page)
+          || etude.analyse.cameras[0];
+        etat.etude = { ...etude, repere: camera ? camera.repere : null };
+      }
+      definirImage(role, dataUrl, `${source.fichier} — page ${source.page}`, source)
+        .then(majEtude);
     });
     return;
   }
@@ -2257,6 +2820,7 @@ function fiche() {
     },
     tolerances: { ...tolerancesActuelles(), zone: nb($('#tol-zone'), 95) },
     zones: etat.zones,
+    etude: etat.etude,
     transformation: etat.transformation,
     manuel: etat.manuel,
     images: {
@@ -2332,6 +2896,7 @@ async function ouvrirFiche(fichier) {
   if (t.zone) $('#tol-zone').value = t.zone;
 
   etat.zones = Array.isArray(f.zones) ? f.zones : [];
+  etat.etude = f.etude || null;
   if (f.images?.reference) {
     await definirImage('reference', f.images.reference.dataUrl, f.images.reference.nom,
       f.images.reference.source || null);
@@ -2349,6 +2914,7 @@ async function ouvrirFiche(fichier) {
   }
   majOptique();
   majZones();
+  majEtude();
   majVisionneuse();
   $('#etat-analyse').textContent = 'Fiche chargée.';
   $('#etat-analyse').classList.remove('erreur');
@@ -2417,6 +2983,30 @@ function construireRapport() {
             <th>Densité</th><td>${fmt(pixelsParMetre(c.resolution.h, c.angles.horizontal, c.distance), 0)} px/m</td></tr>
       </table>
     </section>
+
+    ${(() => {
+      const lignes = comparaisonEtude();
+      if (!lignes.length) return '';
+      const horsTolerance = lignes.filter((l) => !l.conforme).length;
+      return `<section>
+        <h2>Conformité à l'étude${etat.etude.repere ? ` — ${ech(etat.etude.repere)}` : ''}</h2>
+        <table>
+          <thead><tr><th>Caractéristique</th><th>Étude</th><th>Posé</th><th>Source</th><th>Résultat</th></tr></thead>
+          <tbody>${lignes.map((l) => `<tr>
+            <td>${l.libelle}</td>
+            <td>${ech(l.etude)}</td>
+            <td>${ech(l.installe)}${l.remarque ? ` (${ech(l.remarque)})` : ''}</td>
+            <td>${l.source ? `p. ${l.source.page}` : '—'}</td>
+            <td>${l.conforme ? 'Conforme' : 'Écart'}</td></tr>`).join('')}</tbody>
+        </table>
+        <p style="font-size:9pt;margin-top:2mm">
+          Valeurs relevées dans ${ech(etat.etude.fichier)}
+          ${horsTolerance
+            ? `— ${horsTolerance} écart${horsTolerance > 1 ? 's' : ''} entre le matériel annoncé et le matériel posé.`
+            : '— le matériel posé correspond à l\'étude.'}
+        </p>
+      </section>`;
+    })()}
 
     <section>
       <h2>Vues comparées</h2>
@@ -2541,6 +3131,17 @@ function brancher() {
     }
     majVisionneuse();
   });
+
+  $('#etude-camera').addEventListener('change', (e) => {
+    etat.etude.repere = e.target.value;
+    majEtude();
+  });
+  $('#etude-tout').addEventListener('click', () => {
+    const champs = champsEtude();
+    ['capteur', 'resolution', 'focale', 'angle', 'distance', 'hauteur']
+      .filter((cle) => champs[cle]).forEach(reprendre);
+  });
+  $('#etude-entete').addEventListener('click', reprendreEntete);
 
   $('#btn-enregistrer').addEventListener('click', enregistrerFiche);
   $('#btn-nouveau').addEventListener('click', nouvelleFiche);

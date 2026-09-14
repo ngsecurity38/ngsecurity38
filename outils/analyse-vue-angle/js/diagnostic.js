@@ -6,6 +6,7 @@
  */
 
 import { fractionVersAngle, radians } from './optique.js';
+import { arrondir, fr } from './format.js';
 
 /** Tolérances par défaut d'une pose soignée. */
 export const TOLERANCES_DEFAUT = {
@@ -28,14 +29,6 @@ export function noter(ecart, tolerance) {
   if (e <= tolerance) return 100 - (20 * e) / tolerance;
   return Math.max(0, 80 - (80 * (e - tolerance)) / (2 * tolerance));
 }
-
-const arrondir = (v, n = 1) => {
-  const f = 10 ** n;
-  return Math.round(v * f) / f;
-};
-
-/** Nombre au format français, pour les consignes lues sur le terrain. */
-const fr = (v, n = 1) => String(arrondir(v, n)).replace('.', ',');
 
 /**
  * @param {object} transformation résultat de estimerTransformation()

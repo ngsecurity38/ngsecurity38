@@ -31,18 +31,23 @@ Pour le mode d'emploi complet et la mise en ligne sur WordPress, voir
    sont affichées, on choisit celle qui porte la vue attendue et on recadre
    dessus pour n'en garder que l'image utile. Le procès-verbal cite ensuite le
    fichier et le numéro de page servis de référence.
-2. **Calculs optiques** — angles de champ horizontal / vertical / diagonal à
+2. **Relevé du texte de l'étude** — focale, angle de vue, capteur, résolution,
+   distance et hauteur annoncés sont lus dans le texte du PDF, caméra par
+   caméra, puis confrontés au matériel réellement posé. Chaque valeur est
+   présentée avec sa page d'origine et son extrait : l'outil propose, le
+   technicien valide.
+3. **Calculs optiques** — angles de champ horizontal / vertical / diagonal à
    partir du capteur et de la focale, largeur de scène couverte, densité en
    pixels par mètre, portées DORI (EN 62676-4), zone morte au pied du mât,
    focale nécessaire pour couvrir une largeur donnée.
-3. **Recalage des deux vues** — estimation automatique du décalage, du zoom et
+4. **Recalage des deux vues** — estimation automatique du décalage, du zoom et
    du roulis entre l'image de référence et l'image réglée.
-4. **Diagnostic** — traduction de ce recalage en écarts de réglage réels
+5. **Diagnostic** — traduction de ce recalage en écarts de réglage réels
    (degrés de panoramique, de site, de roulis ; pourcentage de cadrage), note
    de conformité sur 100 et consignes d'intervention en clair.
-5. **Zones d'intérêt** — rectangles tracés sur la vue demandée, dont l'outil
+6. **Zones d'intérêt** — rectangles tracés sur la vue demandée, dont l'outil
    vérifie qu'ils restent couverts par le champ réellement réglé.
-6. **Fiche et rapport** — la fiche complète (paramètres + images) s'enregistre
+7. **Fiche et rapport** — la fiche complète (paramètres + images) s'enregistre
    en un fichier `.json` réouvrable ; le rapport s'imprime ou s'exporte en PDF.
 
 ## Organisation
@@ -55,11 +60,14 @@ Pour le mode d'emploi complet et la mise en ligne sur WordPress, voir
 | `js/alignement.js` | recalage des deux images — module pur, testé |
 | `js/diagnostic.js` | écarts de réglage et consignes — module pur, testé |
 | `js/etude-pdf.js` | ouverture du PDF d'étude et choix de la page |
+| `js/lecture-etude.js` | relevé des valeurs annoncées dans le texte — module pur, testé |
+| `js/format.js` | mise en forme des nombres à la française |
 | `js/dom.js` | raccourcis de sélection partagés |
 | `js/app.js` | assemblage : formulaire, toiles, rapport |
 | `vendor/` | PDF.js (Mozilla, Apache 2.0), embarqué pour fonctionner hors ligne |
 | `build.mjs` | fabrication du fichier unique |
 | `tests/run.mjs` | tests unitaires des calculs |
+| `tests/etude.mjs` | tests unitaires de la lecture d'étude |
 | `tests/navigateur.mjs` | tests de bout en bout dans un vrai navigateur |
 
 Les trois modules de calcul ne touchent jamais au DOM : ils reçoivent des
@@ -86,6 +94,11 @@ largeur d'image ne vaut pas la moitié d'un décalage de 50 %.
 
 ### Limites
 
+- La lecture du texte de l'étude suppose un **PDF **texte****. Une étude scannée en
+  image ne donne rien : le panneau de relevé le dit et renvoie à la saisie
+  manuelle. Les formulations reconnues sont celles des études d'implantation
+  courantes ; une mise en page inhabituelle peut passer au travers, d'où
+  l'affichage systématique de la page et de l'extrait d'origine.
 - Le recalage suppose **le même point de vue**. Deux photos prises depuis des
   emplacements différents ne sont pas comparables par cette méthode : il faut
   alors passer par le recalage manuel.
@@ -113,19 +126,22 @@ techniciens reste en retard sur le dépôt.
 ## Tests
 
 ```bash
-npm test                 # 22 tests unitaires, sans navigateur
+npm test                 # 39 tests unitaires, sans navigateur
 npm run build
-npm run test:navigateur  # 16 tests de bout en bout (Playwright)
+npm run test:navigateur  # 20 tests de bout en bout (Playwright)
 ```
 
 Les tests unitaires couvrent les calculs d'optique, la récupération de
 transformations connues sur des scènes synthétiques (translation, zoom, roulis,
-fort changement d'exposition), le rejet d'images sans rapport, et la traduction
-des écarts en consignes.
+fort changement d'exposition), le rejet d'images sans rapport, la traduction des
+écarts en consignes, et la lecture d'une étude (repérage des caméras, relevé des
+caractéristiques, rejet des faux positifs numériques, confrontation au matériel
+posé).
 
 Les tests navigateur vérifient ce qu'aucun test unitaire ne peut voir : le
 dossier servi en HTTP, l'aller-retour d'une fiche `.json`, et surtout le fichier
 unique **ouvert depuis le disque** avec import d'une vraie étude PDF — jusqu'à
-retrouver le même écart angulaire que la géométrie prédit. Playwright n'est pas
+retrouver le même écart angulaire que la géométrie prédit, et à relever dans le
+texte de cette étude les caractéristiques annoncées. Playwright n'est pas
 une dépendance du projet : s'il est absent, ces tests sont ignorés au lieu
 d'échouer.

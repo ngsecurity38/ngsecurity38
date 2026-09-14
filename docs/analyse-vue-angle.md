@@ -101,6 +101,52 @@ quelle pièce du dossier le contrôle s'est appuyé.
 Le PDF lui-même n'est pas conservé dans la fiche, seulement l'image retenue et
 la référence de la page.
 
+### Le relevé de l'étude
+
+En même temps qu'il affiche les pages, l'outil **lit le texte du PDF** et en
+extrait ce que l'étude annonce : focale, angle de vue, capteur, résolution,
+distance à la scène, hauteur de pose, niveau d'exploitation attendu. Si l'étude
+détaille plusieurs caméras (« CAM 04 », « Caméra n° 7 »…), les valeurs restent
+rattachées à la bonne caméra.
+
+Un bloc **« 2 bis · Relevé de l'étude »** apparaît alors dans la colonne de
+gauche, avec trois colonnes :
+
+| Caractéristique | Étude | Posé |
+| --- | --- | --- |
+| Focale | 2,8 mm | 4 mm  (+1,2 mm) |
+| Angle de vue horizontal | 105 ° | 65,8 °  (−39,2 °) |
+| Capteur | 1/2.8" | 1/2.8" |
+
+Un liseré vert ou rouge indique, ligne par ligne, si le matériel posé tient la
+promesse de l'étude. Dans l'exemple ci-dessus, une caméra 4 mm a été montée là
+où l'étude demandait un 2,8 mm : le champ couvert est bien plus étroit que
+prévu. Le cadrage aura beau être parfaitement réglé, la caméra ne verra pas ce
+que le client a commandé — c'est exactement le genre d'écart qu'on découvre
+d'ordinaire trop tard.
+
+**Survoler une ligne** affiche la page et la phrase exacte d'où la valeur a été
+tirée. L'outil ne devine pas : il montre sa source.
+
+Le bouton **Reprendre** recopie une valeur dans le bloc 2. À n'utiliser que si
+le matériel posé correspond effectivement à l'étude — par exemple en préparant
+la fiche au bureau. Sur site, on saisit ce qui est **réellement monté** : c'est
+l'écart qui fait tout l'intérêt du relevé. **Reprendre l'en-tête** remplit d'un
+coup le client, le site, le numéro d'affaire et le repère caméra.
+
+> **Angle horizontal ou diagonal ?** Les fiches constructeur annoncent souvent
+> l'angle diagonal, plus large. L'outil repère le mot « diagonal » ou
+> « vertical » dans la phrase et compare alors au bon axe. Sans précision, il
+> retient l'horizontal, convention des études d'implantation.
+
+Le procès-verbal reprend ce tableau sous le titre **« Conformité à l'étude »**,
+avec la page d'origine de chaque valeur. Le dossier porte ainsi deux
+vérifications distinctes : le **matériel** correspond-il à l'étude, et le
+**cadrage** correspond-il à la vue demandée.
+
+Si l'étude est un scan (une image, sans texte), le relevé reste vide et le dit :
+les valeurs sont alors à saisir à la main dans le bloc 2.
+
 ---
 
 ## 4. Sur site, après la pose
@@ -271,7 +317,10 @@ restreint, deux solutions côté hébergeur :
   de pointage, pas une erreur d'emplacement du mât.
 - Il ne juge pas la qualité d'image (netteté, bruit, exposition) : uniquement le
   cadrage.
-- Il lit les PDF pour en extraire une image de référence ; il ne relit pas le
-  texte de l'étude et ne vérifie donc pas, par exemple, qu'une focale annoncée
-  au cahier des charges est bien celle montée sur le mât. Ce champ-là reste à
-  saisir à la main dans le bloc 2.
+- Il lit le texte des PDF, pas les scans. Une étude numérisée en image ne
+  donnera aucun relevé automatique.
+- Le relevé reconnaît les formulations courantes des études d'implantation. Une
+  mise en page inhabituelle peut lui échapper : c'est pourquoi chaque valeur est
+  toujours affichée avec sa page et son extrait, à vérifier d'un coup d'œil.
+- Il ne vérifie pas les points non chiffrés d'un cahier des charges (indice de
+  protection, alimentation, chemin de câbles, conformité RGPD de l'affichage).

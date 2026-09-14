@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "build": "node build.mjs",
-    "test": "node --test tests/run.mjs",
+    "test": "node --test tests/run.mjs tests/etude.mjs",
     "test:navigateur": "node tests/navigateur.mjs",
     "start": "npx --yes http-server -p 8080 ."
   }

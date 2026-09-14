@@ -251,11 +251,25 @@ console.log('\nFichier unique ouvert depuis le disque (file://), étude au forma
   await atelier.goto(`${BASE}/index.html`, { waitUntil: 'networkidle' });
   const vues = await scene(atelier);
   await atelier.setContent(`<!doctype html><meta charset="utf-8">
-    <style>@page{size:800px 450px;margin:0}html,body{margin:0;font:16px sans-serif}
-      .p{width:800px;height:450px;page-break-after:always;box-sizing:border-box;padding:50px}
-      img{width:800px;height:450px;display:block}</style>
-    <div class="p"><h1>Étude d'implantation vidéoprotection</h1><p>Affaire 2026-118</p></div>
-    <div class="p"><h2>Plan d'implantation</h2></div>
+    <style>@page{size:800px 450px;margin:0}html,body{margin:0;font:15px sans-serif}
+      .p{width:800px;height:450px;page-break-after:always;box-sizing:border-box;padding:40px}
+      img{width:800px;height:450px;display:block} li{margin:4px 0}</style>
+    <div class="p">
+      <h1>Étude d'implantation vidéoprotection</h1>
+      <p>Client : SCI Les Ateliers</p>
+      <p>Site : ZA de Chartreuse, 38500 Voiron</p>
+      <p>Affaire n° 2026-118</p>
+    </div>
+    <div class="p">
+      <h2>CAM 04 — Parking nord</h2>
+      <ul>
+        <li>Caméra bullet extérieure, capteur 1/2.8"</li>
+        <li>Objectif fixe 2,8 mm — angle de vue 105°</li>
+        <li>Résolution 1920 x 1080</li>
+        <li>Hauteur de pose : 3,5 m — distance à la scène : 15 m</li>
+        <li>Niveau attendu : reconnaissance</li>
+      </ul>
+    </div>
     <div class="p" style="padding:0"><img src="${vues.demandee}"></div>`);
   const pdf = await atelier.pdf({ preferCSSPageSize: true, printBackground: true });
   const cheminPdf = join(dossier, 'etude.pdf');
@@ -300,6 +314,60 @@ console.log('\nFichier unique ouvert depuis le disque (file://), étude au forma
     await page.evaluate(() => document.querySelector('#btn-rapport').click());
     const texte = await page.evaluate(() => document.querySelector('#rapport').textContent.replace(/\s+/g, ' '));
     affirmer(/etude\.pdf, page 3/.test(texte), 'provenance absente du rapport');
+  });
+
+  await cas('les caractéristiques annoncées sont relevées dans le texte', async () => {
+    const releve = await page.evaluate(() => {
+      const lignes = [...document.querySelectorAll('#etude-tableau tbody tr')].map((tr) => ({
+        libelle: tr.children[0].textContent.trim(),
+        etude: tr.children[1].textContent.trim(),
+        pose: tr.children[2].textContent.trim(),
+        conforme: tr.classList.contains('ok'),
+        source: tr.children[0].title,
+      }));
+      return { visible: !document.querySelector('#bloc-etude').hidden, lignes };
+    });
+    affirmer(releve.visible, 'le bloc de relevé est resté masqué');
+    const par = Object.fromEntries(releve.lignes.map((l) => [l.libelle, l]));
+    affirmer(par.Focale?.etude === '2,8 mm', `focale relevée : ${par.Focale?.etude}`);
+    affirmer(par.Capteur?.conforme, 'capteur 1/2.8" attendu conforme');
+    affirmer(/105 °/.test(par['Angle de vue horizontal']?.etude || ''), 'angle de vue non relevé');
+    affirmer(!par['Angle de vue horizontal'].conforme, '105° demandés contre 65,8° obtenus : écart attendu');
+    affirmer(/Page 2/.test(par.Focale.source), `source non citée : ${par.Focale.source}`);
+  });
+
+  await cas('« Reprendre » recopie la valeur de l\'étude dans la configuration', async () => {
+    await page.click('#etude-tableau button[data-reprendre="focale"]');
+    await page.waitForTimeout(150);
+    const focale = await page.evaluate(() => document.querySelector('#cam-focale').value);
+    affirmer(Number(focale) === 2.8, `focale non reprise : ${focale}`);
+    const conforme = await page.evaluate(() => document.querySelector('#etude-tableau tbody tr').classList.contains('ok'));
+    affirmer(conforme, 'la ligne devrait passer conforme après reprise');
+    await page.evaluate(() => {
+      const el = document.querySelector('#cam-focale');
+      el.value = '4';
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+  });
+
+  await cas('« Reprendre l\'en-tête » remplit la fiche chantier', async () => {
+    await page.click('#etude-entete');
+    const ch = await page.evaluate(() => ({
+      client: document.querySelector('#ch-client').value,
+      affaire: document.querySelector('#ch-affaire').value,
+      camera: document.querySelector('#ch-camera').value,
+    }));
+    affirmer(ch.client === 'SCI Les Ateliers', `client : ${ch.client}`);
+    affirmer(ch.affaire === '2026-118', `affaire : ${ch.affaire}`);
+    affirmer(ch.camera === 'CAM 04', `repère : ${ch.camera}`);
+  });
+
+  await cas('le rapport porte la conformité à l\'étude', async () => {
+    await page.evaluate(() => document.querySelector('#btn-rapport').click());
+    const texte = await page.evaluate(() => document.querySelector('#rapport').textContent.replace(/\s+/g, ' '));
+    affirmer(/Conformité à l'étude — CAM 04/.test(texte), 'section absente du rapport');
+    affirmer(/Angle de vue horizontal/.test(texte), 'ligne d\'angle absente');
+    affirmer(/écart entre le matériel annoncé et le matériel posé|écarts entre/.test(texte), 'bilan absent');
   });
 
   await cas('le recadrage d\'une page ne retient que la partie choisie', async () => {

@@ -96,6 +96,29 @@
       </details>
     </section>
 
+    <section class="bloc" id="bloc-etude" hidden>
+      <h2>2 bis · Relevé de l'étude</h2>
+      <label id="etude-choix-camera" hidden>Caméra de l'étude
+        <select id="etude-camera"></select>
+      </label>
+      <div id="etude-tableau"></div>
+      <div class="etude-actions">
+        <button type="button" id="etude-tout" class="btn btn-fantome btn-petit">
+          Reprendre toutes les valeurs
+        </button>
+        <button type="button" id="etude-entete" class="btn btn-fantome btn-petit">
+          Reprendre l'en-tête
+        </button>
+      </div>
+      <p class="note">
+        Valeurs lues dans le texte du PDF, chacune avec sa page d'origine —
+        survoler une ligne pour voir l'extrait. « Reprendre » recopie la valeur
+        dans le bloc 2 : à n'utiliser que si le matériel posé correspond
+        effectivement à l'étude. Sinon, saisir ce qui est réellement monté :
+        c'est justement l'écart qui fait l'intérêt du relevé.
+      </p>
+    </section>
+
     <section class="bloc">
       <h2>3 · Les deux vues</h2>
 
@@ -247,6 +270,7 @@
     <footer class="modale-pied">
       <span class="note" id="pdf-etat"></span>
       <span class="note" id="pdf-aide"></span>
+      <span class="note" id="pdf-releve"></span>
       <span class="pousse"></span>
       <button type="button" id="pdf-annuler-recadrage" class="btn btn-fantome">Annuler le recadrage</button>
       <button type="button" id="pdf-valider" class="btn btn-principal">Utiliser cette vue</button>

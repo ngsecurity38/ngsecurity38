@@ -253,7 +253,7 @@ canvas { max-width: 100%; display: block; border-radius: 6px; background: #000; 
 
 @media print {
   @page { size: A4; margin: 12mm; }
-  body { background: #fff; color: #000; }
+  html, body { background: #fff; color: #000; }
   .barre, .agencement { display: none !important; }
   .rapport { display: block !important; }
   .rapport, .rapport th, .rapport td, .rapport li, .rapport p { color: #000; }
@@ -332,3 +332,27 @@ canvas { max-width: 100%; display: block; border-radius: 6px; background: #000; 
   .pdf-pages { flex-direction: row; border-right: 0; border-bottom: 1px solid var(--bord); }
   .pdf-vignette { flex: none; width: 110px; }
 }
+
+/* ------------------------------------------------------ relevé de l'étude */
+
+table.etude {
+  width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px;
+  table-layout: fixed; /* sans quoi les valeurs longues font déborder la colonne */
+}
+table.etude th, table.etude td {
+  text-align: left; padding: 5px 4px; border-bottom: 1px solid var(--bord);
+  overflow-wrap: anywhere;
+}
+table.etude th { color: var(--texte-doux); font-weight: 600; font-size: 11px; }
+table.etude col.carac { width: 31%; }
+table.etude col.val { width: 23%; }
+table.etude col.action { width: 23%; }
+table.etude td:last-child { text-align: right; padding: 2px 0 2px 2px; }
+table.etude td:last-child .btn { padding: 4px 6px; font-size: 11px; width: 100%; }
+table.etude tr.ok td:first-child { box-shadow: inset 3px 0 0 var(--vert); }
+table.etude tr.ko td:first-child { box-shadow: inset 3px 0 0 var(--rouge); }
+table.etude td:first-child { padding-left: 9px; cursor: help; }
+table.etude .valeur { font-variant-numeric: tabular-nums; }
+table.etude .remarque { display: block; color: var(--texte-doux); font-size: 11px; }
+.etude-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.etude-vide { color: var(--texte-doux); font-size: 12px; margin: 10px 0 0; }
