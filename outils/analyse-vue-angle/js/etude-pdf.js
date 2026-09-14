@@ -224,6 +224,7 @@ async function lireParOcr() {
     const textes = await lirePages(toiles, (etape, part) => dire(etape, 0.25 + 0.75 * part));
     if (!etatPdf) return;
     etatPdf.analyse = analyserEtude(textes);
+    etatPdf.pages = textes;
     etatPdf.ocr = true;
     const n = etatPdf.analyse.cameras.length;
     $('#pdf-releve').textContent = n
@@ -295,7 +296,12 @@ export async function ouvrirSelecteurPdf(fichier, role, onValider) {
       const image = extraire();
       const rappel = etatPdf.onValider;
       const etude = etatPdf.analyse
-        ? { fichier: etatPdf.nom, analyse: etatPdf.analyse, ocr: !!etatPdf.ocr }
+        ? {
+          fichier: etatPdf.nom,
+          analyse: etatPdf.analyse,
+          ocr: !!etatPdf.ocr,
+          pages: etatPdf.pages || [],
+        }
         : null;
       fermer();
       rappel(image, source, etude);
@@ -308,7 +314,7 @@ export async function ouvrirSelecteurPdf(fichier, role, onValider) {
     const document_ = await lib.getDocument({ data: donnees }).promise;
     etatPdf = {
       document: document_, nom: fichier.name, numero: 1,
-      page: null, recadrage: null, analyse: null, ocr: false, onValider,
+      page: null, recadrage: null, analyse: null, pages: [], ocr: false, onValider,
     };
     await afficherPage(1);
     await afficherVignettes();
@@ -316,6 +322,7 @@ export async function ouvrirSelecteurPdf(fichier, role, onValider) {
       const { analyse, pages } = await lireLEtude(document_);
       if (!etatPdf) return; // fenêtre refermée pendant la lecture
       etatPdf.analyse = analyse;
+      etatPdf.pages = pages;
       const n = analyse.cameras.length;
       const caracteres = pages.join('').replace(/\s/g, '').length;
 

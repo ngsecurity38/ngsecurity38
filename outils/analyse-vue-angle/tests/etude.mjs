@@ -194,3 +194,104 @@ test('confrontation : une résolution supérieure à l\'étude reste conforme', 
 test('confrontation : une étude muette ne produit aucune ligne', () => {
   assert.deepEqual(confronter({}, POSE, anglesDeChamp), []);
 });
+
+/* ------------------------------------------------- formulations rencontrées */
+
+/** Relève une caractéristique sur une ou deux lignes, hors de toute section. */
+const lire = (cle, ...lignes) => analyserEtude([lignes.join('\n')]).champs[cle];
+
+test('focale : notations des fiches constructeur', () => {
+  assert.equal(lire('focale', 'Focale : 3,6 mm').valeur, 3.6);
+  assert.equal(lire('focale', 'f = 3,6 mm').valeur, 3.6);
+  assert.equal(lire('focale', 'f=2.8mm').valeur, 2.8);
+  assert.equal(lire('focale', 'Objectif 2.8mm/F2.0').valeur, 2.8);
+  assert.equal(lire('focale', 'Lentille 6 mm').valeur, 6);
+  assert.equal(lire('focale', 'Optique : 4mm').valeur, 4);
+  assert.equal(lire('focale', 'Objectif varifocal motorisé 2,7 — 13,5 mm').valeur, 2.7);
+  assert.equal(lire('focale', '4 mm de focale').valeur, 4);
+});
+
+test('angle : notations abrégées des fiches produit', () => {
+  assert.equal(lire('angle', 'H : 102° V : 54°').valeur, 102);
+  assert.equal(lire('angle', 'H : 102° V : 54°').axe, 'horizontal');
+  assert.equal(lire('angle', '106°(H) / 56°(V)').valeur, 106);
+  assert.equal(lire('angle', 'AOV 106°').valeur, 106);
+  assert.equal(lire('angle', 'FOV : 90 °').valeur, 90);
+  assert.equal(lire('angle', "Angle d'ouverture 110 degrés").valeur, 110);
+  assert.equal(lire('angle', 'Champ de vision horizontal 87,7°').valeur, 87.7);
+});
+
+test('capteur : pouces écrits en toutes lettres ou en abrégé', () => {
+  assert.equal(lire('capteur', 'CMOS 1/2,8 pouce').valeur, '1/2.8"');
+  assert.equal(lire('capteur', 'Capteur : 1/1.8 in').valeur, '1/1.8"');
+  assert.equal(lire('capteur', '1/2.9" progressive scan CMOS').valeur, '1/2.9"');
+  assert.equal(lire('capteur', 'Capteur 1/3 pouces').valeur, '1/3"');
+});
+
+test('résolution : espaces de milliers, suffixes p, mégapixels', () => {
+  assert.deepEqual(lire('resolution', 'Définition 1 920 x 1 080').valeur, { h: 1920, v: 1080 });
+  assert.deepEqual(lire('resolution', 'Flux principal 2688 × 1520').valeur, { h: 2688, v: 1520 });
+  assert.deepEqual(lire('resolution', 'Enregistrement 1080p').valeur, { h: 1920, v: 1080 });
+  assert.deepEqual(lire('resolution', 'Caméra 2160p').valeur, { h: 3840, v: 2160 });
+  assert.equal(lire('resolution', 'Capteur 8 Mpix').valeur.h, 3840);
+});
+
+test('valeurs en tableau : reprises sous leur en-tête de colonne', () => {
+  const focale = lire('focale', 'Focale     Capteur      Résolution', '2,8 mm    1/2.8"    1920 x 1080');
+  assert.equal(focale.valeur, 2.8, 'la valeur sous un en-tête « Focale » est retenue');
+  const hauteur = lire('hauteur', 'Hauteur de pose', '3,50 m');
+  assert.equal(hauteur.valeur, 3.5);
+});
+
+test('en-tête ambigu : rien plutôt qu\'une valeur prise à l\'envers', () => {
+  // « Hauteur » et « Distance » partagent l'unité : impossible de dire à quelle
+  // colonne appartient le premier nombre.
+  const deux = analyserEtude(['Hauteur    Distance\n3,5 m    15 m']);
+  assert.equal(deux.champs.hauteur, undefined);
+  assert.equal(deux.champs.distance, undefined);
+});
+
+test('« hauteur sous plafond » décrit le local, pas la pose', () => {
+  assert.equal(lire('hauteur', 'Hauteur sous plafond : 2,70 m'), undefined);
+  assert.equal(lire('hauteur', 'Hauteur de pose : 3,5 m').valeur, 3.5);
+});
+
+test('repères caméra : formes admises et pièges écartés', () => {
+  const reperes = (t) => analyserEtude([t]).cameras.map((c) => c.repere);
+  assert.deepEqual(reperes('CAM04 - Parking'), ['CAM 04']);
+  assert.deepEqual(reperes('CAM-7 : Quai'), ['CAM 07']);
+  assert.deepEqual(reperes('Caméra n° 12'), ['CAM 12']);
+  assert.deepEqual(reperes('Caméra 4K UHD'), [], 'une définition n\'est pas un repère');
+  assert.deepEqual(reperes('Caméra 4 MP extérieure'), [], 'ni une résolution');
+  assert.deepEqual(reperes('Caméra 105 °'), [], 'ni un angle');
+});
+
+test('une caméra citée à deux endroits ne compte que pour une', () => {
+  const e = analyserEtude([
+    'CAM 04 - Parking nord\nObjectif fixe 2,8 mm',
+    'CAM 07 - Quai\nObjectif 6 mm',
+    'Récapitulatif\nCAM 04 : hauteur de pose 3,5 m',
+  ]);
+  assert.deepEqual(e.cameras.map((c) => c.repere), ['CAM 04', 'CAM 07']);
+  const c4 = champsPourCamera(e, 'CAM 04');
+  assert.equal(c4.focale.valeur, 2.8, 'valeur de la fiche détaillée');
+  assert.equal(c4.hauteur.valeur, 3.5, 'valeur reprise du récapitulatif');
+});
+
+test('les caméras sont rendues dans l\'ordre de leur numéro', () => {
+  const e = analyserEtude(['CAM 12 : hall\nCAM 03 : cour\nCAM 07 : quai']);
+  assert.deepEqual(e.cameras.map((c) => c.repere), ['CAM 03', 'CAM 07', 'CAM 12']);
+});
+
+test('numéros : le symbole degré manque souvent après lecture optique', () => {
+  const affaire = (t) => analyserEtude([t]).entete.affaire?.valeur;
+  assert.equal(affaire('Affaire n° 2026-118'), '2026-118');
+  assert.equal(affaire('Affaire n 2026-118'), '2026-118', 'degré perdu par l\'OCR');
+  assert.equal(affaire('Dossier numéro 45'), '45');
+  assert.equal(affaire('Référence AB-12'), 'AB-12');
+  assert.equal(affaire('Affaire n'), undefined, 'un reste d\'abréviation n\'est pas une référence');
+
+  const reperes = (t) => analyserEtude([t]).cameras.map((c) => c.repere);
+  assert.deepEqual(reperes('Caméra n 7 - Quai'), ['CAM 07'], 'degré perdu par l\'OCR');
+  assert.deepEqual(reperes('Caméra numéro 12'), ['CAM 12']);
+});

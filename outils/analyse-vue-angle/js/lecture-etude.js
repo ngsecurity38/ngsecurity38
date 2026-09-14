@@ -21,7 +21,10 @@ function normaliser(texte) {
     .replace(/[   ]/g, ' ')
     .replace(/[’′]/g, "'")
     .replace(/[″”]/g, '"')
-    .replace(/[ \t]+/g, ' ');
+    .replace(/[ \t]+/g, ' ')
+    // « 1 920 x 1 080 » : les PDF séparent volontiers les milliers. Sans cette
+    // reconstitution, aucune définition d'image ne serait reconnue.
+    .replace(/(\d) (?=\d{3}\b)/g, '$1');
 }
 
 const nombre = (s) => parseFloat(String(s).replace(',', '.'));
@@ -54,23 +57,30 @@ function axeDeLAngle(ligne) {
  */
 const EXTRACTEURS = {
   focale: [
-    // « focale 2,8 - 12 mm » : sur un varifocal, seule la borne basse est retenue,
-    // c'est elle qui donne le champ le plus large annoncé.
-    /(?:focale|objectif|optique)[^\n]{0,30}?(\d+(?:[.,]\d+)?)\s*(?:[-–]|à)\s*(\d+(?:[.,]\d+)?)\s*mm/i,
-    /(?:focale|objectif|optique)[^\n]{0,30}?(\d+(?:[.,]\d+)?)\s*mm/i,
+    // « focale 2,8 - 12 mm » : sur un varifocal, seule la borne basse est
+    // retenue, c'est elle qui donne le champ le plus large annoncé.
+    /(?:focale|objectif|optique|lentille)[^\n]{0,30}?(\d+(?:[.,]\d+)?)\s*(?:[-–—]|à)\s*(\d+(?:[.,]\d+)?)\s*mm/i,
+    /(?:focale|objectif|optique|lentille)[^\n]{0,30}?(\d+(?:[.,]\d+)?)\s*mm/i,
+    // « f = 3,6 mm », notation des fiches constructeur
+    /\bf\s*[=:]\s*(\d+(?:[.,]\d+)?)\s*mm/i,
     /(\d+(?:[.,]\d+)?)\s*mm\s*(?:de\s*)?(?:focale|d'objectif)/i,
   ],
   angle: [
-    /(?:angle\s*(?:de\s*)?(?:vue|champ|vision)|champ\s*(?:de\s*)?(?:vision|vue)?|ouverture)\s*(?:horizontal\w*|vertical\w*|diagonal\w*)?\s*:?\s*(?:de\s*)?(\d+(?:[.,]\d+)?)\s*(?:°|deg)/i,
-    /(\d+(?:[.,]\d+)?)\s*°\s*(?:d'angle|de\s*champ|horizontal|vertical|diagonal)/i,
+    // « H : 102° » et « 102°(H) » : notation courante des fiches produit.
+    /\bH\s*[:=]\s*(\d+(?:[.,]\d+)?)\s*°/,
+    /(\d+(?:[.,]\d+)?)\s*°\s*\(\s*H\s*\)/i,
+    /(?:angle\s*(?:de\s*)?(?:vue|champ|vision)|champ\s*(?:de\s*)?(?:vision|vue)?|ouverture|AOV|FOV|HFOV)\s*(?:horizontal\w*|vertical\w*|diagonal\w*)?\s*:?\s*(?:de\s*)?(\d+(?:[.,]\d+)?)\s*(?:°|deg)/i,
+    /(\d+(?:[.,]\d+)?)\s*(?:°|degr[ée]s?)\s*(?:d'angle|de\s*champ|horizontal|vertical|diagonal)/i,
   ],
   capteur: [
     /\b1\s*\/\s*(\d+(?:[.,]\d+)?)\s*["'′″]/,
-    /capteur[^\n]{0,20}?\b1\s*\/\s*(\d+(?:[.,]\d+)?)/i,
+    /\b1\s*\/\s*(\d+(?:[.,]\d+)?)\s*(?:pouces?|in\b)/i,
+    /capteur[^\n]{0,25}?\b1\s*\/\s*(\d+(?:[.,]\d+)?)/i,
+    /\b1\s*\/\s*(\d+(?:[.,]\d+)?)\s*(?:CMOS|progressive)/i,
   ],
   resolution: [
     /(\d{3,5})\s*[x×*]\s*(\d{3,5})/,
-    /(\d+(?:[.,]\d+)?)\s*(?:MP|M[ée]gapixels?|Mpx)\b/i,
+    /(\d+(?:[.,]\d+)?)\s*(?:MP|M[ée]gapixels?|Mpx|Mpix)\b/i,
   ],
   distance: [
     /(?:distance|port[ée]e|profondeur)[^\n]{0,25}?(\d+(?:[.,]\d+)?)\s*m\b/i,
@@ -79,17 +89,44 @@ const EXTRACTEURS = {
   hauteur: [
     /hauteur\s*(?:de\s*)?(?:pose|montage|fixation|mise en place)?\s*:?\s*(?:de\s*)?(\d+(?:[.,]\d+)?)\s*m\b/i,
     /pos[ée]e?\s*[àa]\s*(\d+(?:[.,]\d+)?)\s*m\b/i,
+    /\bH\s*[=]\s*(\d+(?:[.,]\d+)?)\s*m\b/,
   ],
   niveau: [
     /\b(identification|reconnaissance|observation|d[ée]tection)\b/i,
   ],
 };
 
+/**
+ * Mots-clés de chaque caractéristique, et motif « nu » utilisable quand la
+ * valeur se trouve dans une cellule de tableau, sous un en-tête qui porte seul
+ * le mot-clé. Sans cela, une étude présentée en tableau ne donnerait rien.
+ */
+const EN_TABLEAU = {
+  focale: { cles: /focale|objectif|optique|lentille/i, nu: /(\d+(?:[.,]\d+)?)\s*mm\b/ },
+  angle: { cles: /angle|champ|ouverture|AOV|FOV/i, nu: /(\d+(?:[.,]\d+)?)\s*(?:°|degr[ée]s?)/ },
+  distance: { cles: /distance|port[ée]e/i, nu: /(\d+(?:[.,]\d+)?)\s*m\b/ },
+  hauteur: { cles: /hauteur|pose|montage/i, nu: /(\d+(?:[.,]\d+)?)\s*m\b/ },
+};
+
+/**
+ * Le mot-clé d'un en-tête de tableau désigne-t-il cette seule caractéristique ?
+ *
+ * « Hauteur » et « Distance » partagent l'unité : si l'en-tête cite les deux,
+ * rien ne dit à quelle colonne appartient le premier nombre venu. Mieux vaut
+ * alors ne rien relever que relever à l'envers.
+ */
+function enTeteSansAmbiguite(contexte, cle) {
+  if (!contexte || !EN_TABLEAU[cle]) return false;
+  const presents = Object.entries(EN_TABLEAU).filter(([, v]) => v.cles.test(contexte));
+  return presents.length === 1 && presents[0][0] === cle;
+}
+
 /** Résolutions nommées, converties en pixels. */
 const RESOLUTIONS_NOMMEES = [
-  [/\b(?:4K|UHD)\b/i, [3840, 2160]],
-  [/\bfull\s*hd\b/i, [1920, 1080]],
-  [/\bHD\b/, [1280, 720]],
+  [/\b(?:4K|UHD|2160p)\b/i, [3840, 2160]],
+  [/\b1440p\b/i, [2560, 1440]],
+  [/\b(?:full\s*hd|1080p)\b/i, [1920, 1080]],
+  [/\b(?:HD|720p)\b/, [1280, 720]],
 ];
 
 /** Mégapixels → définition 16/9 la plus proche du catalogue courant. */
@@ -124,10 +161,16 @@ function lireResolution(ligne, page) {
   return null;
 }
 
-function lireChamp(cle, ligne, page) {
+function lireChamp(cle, ligne, page, contexte) {
   if (cle === 'resolution') return lireResolution(ligne, page);
 
-  for (const motif of EXTRACTEURS[cle]) {
+  // « Hauteur sous plafond » décrit le local, pas la pose de la caméra.
+  if (cle === 'hauteur' && /sous\s+plafond/i.test(ligne)) return null;
+
+  const motifs = [...EXTRACTEURS[cle]];
+  if (enTeteSansAmbiguite(contexte, cle)) motifs.push(EN_TABLEAU[cle].nu);
+
+  for (const motif of motifs) {
     const m = ligne.match(motif);
     if (!m) continue;
 
@@ -153,7 +196,20 @@ const CHAMPS_CAMERA = ['focale', 'angle', 'capteur', 'resolution', 'distance', '
 
 /* ------------------------------------------------------------ repères caméra */
 
-const MOTIF_CAMERA = /\b(?:cam[ée]ra|cam)\s*(?:n\s*[°o]\s*)?[-–—:]?\s*(\d{1,3})\b/i;
+/*
+ * « n° », « no », « numéro », ou simplement « n » — la lecture optique perd
+ * volontiers le symbole degré, et le repère deviendrait alors introuvable.
+ */
+const NUMERO = '(?:num[ée]ro\\s*|n\\s*[°o]\\s*|n\\s+)?';
+
+/*
+ * « Caméra 4K » et « Caméra 4 MP » décrivent le matériel, pas un repère : sans
+ * cette réserve, une simple mention de définition créerait une caméra fantôme.
+ */
+const MOTIF_CAMERA = new RegExp(
+  `\\b(?:cam[ée]ra|cam)\\s*${NUMERO}[-–—:]?\\s*(\\d{1,3})\\b(?!\\s*(?:K\\b|MP|Mpx|Mpix|M[ée]ga|mm|m\\b|°|px))`,
+  'i',
+);
 
 /** Repère normalisé : « CAM 04 ». */
 const repereCamera = (numero) => `CAM ${String(numero).padStart(2, '0')}`;
@@ -163,7 +219,10 @@ const repereCamera = (numero) => `CAM ${String(numero).padStart(2, '0')}`;
 const EXTRACTEURS_ENTETE = {
   client: /\bclient\s*:?\s*(.{2,60})/i,
   site: /\b(?:site|adresse|lieu|chantier)\s*:?\s*(.{2,80})/i,
-  affaire: /\b(?:affaire|dossier|devis|r[ée]f[ée]rence)\s*(?:n\s*[°o]\s*)?:?\s*([\w][\w\-/.]{1,20})/i,
+  affaire: new RegExp(
+    `\\b(?:affaire|dossier|devis|r[ée]f[ée]rence)\\s*${NUMERO}:?\\s*([\\w][\\w\\-/.]{1,20})`,
+    'i',
+  ),
 };
 
 /* ------------------------------------------------------------------ analyse */
@@ -190,7 +249,11 @@ export function analyserEtude(pages) {
     for (const { texte, page } of lignes) {
       const m = texte.match(motif);
       if (m) {
-        entete[cle] = releve(m[1].trim().replace(/\s*[—–-]\s*$/, ''), texte, page);
+        const valeur = m[1].trim().replace(/\s*[—–-]\s*$/, '');
+        // Un fragment d'un seul caractère est un reste d'abréviation mal
+        // découpée, pas une référence de dossier.
+        if (cle === 'affaire' && valeur.length < 2) continue;
+        entete[cle] = releve(valeur, texte, page);
         break;
       }
     }
@@ -211,21 +274,34 @@ export function analyserEtude(pages) {
   const releverDans = (debut, fin) => {
     const champs = {};
     for (let i = debut; i < fin; i += 1) {
+      const contexte = i > 0 ? lignes[i - 1].texte : null;
       for (const cle of CHAMPS_CAMERA) {
         if (champs[cle]) continue;
-        const trouve = lireChamp(cle, lignes[i].texte, lignes[i].page);
+        const trouve = lireChamp(cle, lignes[i].texte, lignes[i].page, contexte);
         if (trouve) champs[cle] = trouve;
       }
     }
     return champs;
   };
 
-  const cameras = sections.map((s) => ({
-    repere: s.repere,
-    numero: s.numero,
-    page: s.page,
-    champs: releverDans(s.debut, s.fin),
-  }));
+  // Une même caméra peut être citée à plusieurs endroits (fiche détaillée, puis
+  // tableau récapitulatif) : ses sections sont réunies, la première valeur
+  // trouvée faisant foi.
+  const parNumero = new Map();
+  for (const section of sections) {
+    const champs = releverDans(section.debut, section.fin);
+    const deja = parNumero.get(section.numero);
+    if (deja) {
+      for (const [cle, valeur] of Object.entries(champs)) {
+        if (!deja.champs[cle]) deja.champs[cle] = valeur;
+      }
+    } else {
+      parNumero.set(section.numero, {
+        repere: section.repere, numero: section.numero, page: section.page, champs,
+      });
+    }
+  }
+  const cameras = [...parNumero.values()].sort((a, b) => a.numero - b.numero);
 
   // Hors sections : utile quand l'étude ne décrit qu'une seule caméra.
   const finEntete = sections.length ? sections[0].debut : lignes.length;

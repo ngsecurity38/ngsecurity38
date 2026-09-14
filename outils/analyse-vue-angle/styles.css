@@ -407,3 +407,22 @@ table.etude .remarque { display: block; color: var(--texte-doux); font-size: 11p
   background: rgba(217, 155, 31, .12); border: 1px solid var(--ambre);
   border-radius: 6px; color: var(--texte);
 }
+
+/* --------------------------------------------------- texte lu dans l'étude */
+
+.texte-lu {
+  max-height: 260px; overflow: auto; margin-top: 8px;
+  background: var(--fond); border: 1px solid var(--bord); border-radius: 6px;
+  padding: 8px 10px; font-size: 11px; line-height: 1.45;
+}
+.texte-lu h4 {
+  margin: 10px 0 4px; font-size: 10px; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--texte-doux);
+}
+.texte-lu h4:first-child { margin-top: 0; }
+.texte-lu p { margin: 0; white-space: pre-wrap; word-break: break-word; color: var(--texte-doux); }
+.texte-lu mark {
+  background: rgba(46, 174, 106, .22); color: var(--texte);
+  border-radius: 3px; padding: 0 2px;
+}
+.texte-lu .vide { font-style: italic; }

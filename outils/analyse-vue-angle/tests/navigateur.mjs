@@ -351,6 +351,28 @@ console.log('\nFichier unique ouvert depuis le disque (file://), étude au forma
     });
   });
 
+  await cas('le texte lu est consultable, passages retenus surlignés', async () => {
+    await page.click('#etude-diagnostic summary');
+    const r = await page.evaluate(() => ({
+      visible: !document.querySelector('#etude-diagnostic').hidden,
+      pages: document.querySelectorAll('#etude-texte h4').length,
+      surlignes: [...document.querySelectorAll('#etude-texte mark')].map((m) => m.textContent),
+      manquant: document.querySelector('#etude-manquant').textContent,
+    }));
+    affirmer(r.visible, 'le diagnostic devrait être disponible');
+    affirmer(r.pages === 3, `pages affichées : ${r.pages}`);
+    affirmer(r.surlignes.some((t) => /2,8 mm/.test(t)),
+      `la ligne de la focale devrait être surlignée : ${JSON.stringify(r.surlignes)}`);
+    affirmer(/relevé/i.test(r.manquant), `bilan des manques : ${r.manquant}`);
+  });
+
+  await cas('le texte lu se copie en un geste', async () => {
+    await page.click('#etude-copier');
+    await page.waitForTimeout(200);
+    const libelle = await page.evaluate(() => document.querySelector('#etude-copier').textContent.trim());
+    affirmer(/copié|sélectionné/i.test(libelle), `bouton : ${libelle}`);
+  });
+
   await cas('« Reprendre l\'en-tête » remplit la fiche chantier', async () => {
     await page.click('#etude-entete');
     const ch = await page.evaluate(() => ({

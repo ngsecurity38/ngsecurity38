@@ -50,7 +50,9 @@ Pour le mode d'emploi complet et la mise en ligne sur WordPress, voir
    distance et hauteur annoncés sont lus dans le texte du PDF, caméra par
    caméra, puis confrontés au matériel réellement posé. Chaque valeur est
    présentée avec sa page d'origine et son extrait : l'outil propose, le
-   technicien valide.
+   technicien valide. Un panneau **Texte lu** montre ce qui a été extrait,
+   passages retenus surlignés, et se copie d'un clic : une formulation non
+   reconnue se diagnostique sans sortir l'étude du dossier client.
 5. **Calculs optiques** — angles de champ horizontal / vertical / diagonal à
    partir du capteur et de la focale, largeur de scène couverte, densité en
    pixels par mètre, portées DORI (EN 62676-4), zone morte au pied du mât,
@@ -145,9 +147,9 @@ techniciens reste en retard sur le dépôt.
 ## Tests
 
 ```bash
-npm test                 # 46 tests unitaires, sans navigateur
+npm test                 # 57 tests unitaires, sans navigateur
 npm run build
-npm run test:navigateur  # 36 tests de bout en bout (Playwright)
+npm run test:navigateur  # 38 tests de bout en bout (Playwright)
 ```
 
 Les tests unitaires couvrent les calculs d'optique, la récupération de

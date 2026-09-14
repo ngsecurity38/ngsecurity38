@@ -171,6 +171,17 @@ d'ordinaire trop tard.
 **Survoler une ligne** affiche la page et la phrase exacte d'où la valeur a été
 tirée. L'outil ne devine pas : il montre sa source.
 
+### Quand une caractéristique manque
+
+Déplier **Texte lu par l'outil**, sous le tableau. On y voit, page par page, ce
+que l'outil a réellement extrait du PDF, les passages retenus surlignés en vert.
+Une ligne présente mais non surlignée, c'est une formulation qu'il ne sait pas
+encore lire ; une page vide, c'est un scan (§ 4).
+
+Le bouton **Copier le texte** met ce contenu dans le presse-papiers. Le
+transmettre suffit à faire ajouter la formulation manquante — inutile de sortir
+l'étude du dossier client.
+
 Quand l'étude décrit des caméras absentes du dossier, un bouton **Créer les
 caméras manquantes** monte le dossier d'un coup, chaque fiche étant rattachée à
 son repère dans l'étude. Il ne reste qu'à charger les images.
@@ -399,8 +410,11 @@ restreint, deux solutions côté hébergeur :
   cadrage.
 - Il lit le texte des PDF ; les études scannées passent par la reconnaissance
   de caractères (§ 4), plus faillible, d'où l'avertissement qui les accompagne.
-- Le relevé reconnaît les formulations courantes des études d'implantation. Une
-  mise en page inhabituelle peut lui échapper : c'est pourquoi chaque valeur est
-  toujours affichée avec sa page et son extrait, à vérifier d'un coup d'œil.
+- Le relevé reconnaît les formulations courantes des études d'implantation et
+  des fiches constructeur — « focale 3,6 mm », « f = 4 mm », « H : 102° »,
+  « 1/2,8 pouce », « 1 920 x 1 080 », « 1080p », valeurs en colonnes sous leur
+  en-tête. Une mise en page inhabituelle peut malgré tout lui échapper : chaque
+  valeur est donc affichée avec sa page et son extrait, et le texte lu reste
+  consultable pour comprendre ce qui manque (§ 4).
 - Il ne vérifie pas les points non chiffrés d'un cahier des charges (indice de
   protection, alimentation, chemin de câbles, conformité RGPD de l'affichage).

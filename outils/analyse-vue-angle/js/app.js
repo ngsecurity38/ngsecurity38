@@ -369,6 +369,51 @@ function comparaisonEtude() {
   return confronter(champsEtude(), configCamera(), anglesDeChamp);
 }
 
+/** Libellés des caractéristiques, pour dire clairement ce qui manque. */
+const LIBELLES_CHAMPS = {
+  focale: 'focale', angle: 'angle de vue', capteur: 'capteur',
+  resolution: 'résolution', distance: 'distance à la scène',
+  hauteur: 'hauteur de pose', niveau: 'niveau attendu',
+};
+
+/**
+ * Montre ce que l'outil a réellement lu, passages retenus surlignés.
+ *
+ * C'est le seul moyen de comprendre, sans le document sous les yeux, pourquoi
+ * une caractéristique manque : mauvaise formulation, colonne de tableau non
+ * rattachée, ou page simplement absente du texte.
+ */
+function majTexteLu() {
+  const bloc = $('#etude-diagnostic');
+  const pages = etat.etude?.pages || [];
+  bloc.hidden = !pages.length;
+  if (!pages.length) return;
+
+  const champs = champsEtude();
+  const manquants = Object.keys(LIBELLES_CHAMPS).filter((c) => !champs[c]);
+  $('#etude-manquant').textContent = manquants.length
+    ? `Non relevé pour cette caméra : ${manquants.map((c) => LIBELLES_CHAMPS[c]).join(', ')}.`
+    : 'Toutes les caractéristiques attendues ont été relevées.';
+
+  // Toutes les lignes retenues, caméras comprises : ce sont elles qu'on surligne.
+  const retenues = new Set();
+  const collecter = (o) => Object.values(o || {}).forEach((v) => v?.extrait && retenues.add(v.extrait));
+  collecter(etat.etude.analyse.entete);
+  collecter(etat.etude.analyse.champs);
+  etat.etude.analyse.cameras.forEach((c) => collecter(c.champs));
+
+  $('#etude-texte').innerHTML = pages.map((texte, i) => {
+    const lignes = String(texte || '').split('\n').filter((l) => l.trim());
+    const corps = lignes.length
+      ? lignes.map((l) => {
+        const marque = [...retenues].some((e) => l.trim().startsWith(e.slice(0, 40)));
+        return marque ? `<p><mark>${ech(l)}</mark></p>` : `<p>${ech(l)}</p>`;
+      }).join('')
+      : '<p class="vide">(aucun texte sur cette page)</p>';
+    return `<h4>Page ${i + 1}</h4>${corps}`;
+  }).join('');
+}
+
 const APPLICABLES = new Set(['focale', 'capteur', 'resolution', 'distance', 'hauteur', 'angle']);
 
 /** Recopie une valeur de l'étude dans le bloc « Caméra et optique ». */
@@ -429,6 +474,27 @@ async function creerCamerasDeLEtude(manquantes) {
   await chargerCamera(etat.index);
 }
 
+/** Met le texte lu dans le presse-papiers, pour le transmettre tel quel. */
+async function copierTexteLu() {
+  const bouton = $('#etude-copier');
+  const texte = (etat.etude?.pages || [])
+    .map((p, i) => `--- Page ${i + 1} ---\n${p}`).join('\n\n');
+  try {
+    await navigator.clipboard.writeText(texte);
+    bouton.textContent = 'Texte copié';
+  } catch {
+    // Le presse-papiers est refusé à une page ouverte depuis le disque sur
+    // certains navigateurs : on sélectionne alors le texte, à copier à la main.
+    const plage = document.createRange();
+    plage.selectNodeContents($('#etude-texte'));
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(plage);
+    bouton.textContent = 'Texte sélectionné — Ctrl+C';
+  }
+  setTimeout(() => { bouton.textContent = 'Copier le texte'; }, 4000);
+}
+
 function reprendreEntete() {
   const { entete } = etat.etude?.analyse || {};
   if (!entete) return;
@@ -473,6 +539,7 @@ function majEtude() {
   bouton.onclick = () => creerCamerasDeLEtude(manquantes);
 
   $('#etude-ocr').hidden = !etat.etude.ocr;
+  majTexteLu();
 
   const lignes = comparaisonEtude();
   const tableau = $('#etude-tableau');
@@ -1460,6 +1527,7 @@ function brancher() {
       .filter((cle) => champs[cle]).forEach(reprendre);
   });
   $('#etude-entete').addEventListener('click', reprendreEntete);
+  $('#etude-copier').addEventListener('click', copierTexteLu);
 
   $('#btn-enregistrer').addEventListener('click', enregistrerFiche);
   $('#btn-nouveau').addEventListener('click', nouvelleFiche);
