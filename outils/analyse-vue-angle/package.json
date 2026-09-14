@@ -1,0 +1,11 @@
+{
+  "name": "ng-analyse-vue-angle",
+  "version": "1.0.0",
+  "description": "Comparaison de la vue d'angle demandée par le client et du réglage réel de la caméra.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/run.mjs",
+    "start": "npx --yes http-server -p 8080 ."
+  }
+}

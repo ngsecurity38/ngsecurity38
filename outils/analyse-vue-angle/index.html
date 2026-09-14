@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Analyse de vue d'angle — NG Security 38</title>
+<meta name="description" content="Comparaison de la vue d'angle demandée par le client et de l'image réellement réglée sur la caméra.">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="barre">
+  <div class="marque">
+    <span class="logo" aria-hidden="true"></span>
+    <span>
+      <strong>Analyse de vue d'angle</strong>
+      <small>Conformité du réglage caméra / vue demandée</small>
+    </span>
+  </div>
+  <div class="barre-actions">
+    <button type="button" id="btn-nouveau" class="btn btn-fantome">Nouvelle fiche</button>
+    <button type="button" id="btn-ouvrir" class="btn btn-fantome">Ouvrir une fiche…</button>
+    <button type="button" id="btn-enregistrer" class="btn btn-fantome">Enregistrer la fiche</button>
+    <button type="button" id="btn-rapport" class="btn btn-principal">Rapport / Impression</button>
+    <input type="file" id="fichier-fiche" accept=".json,application/json" hidden>
+  </div>
+</header>
+
+<main class="agencement">
+
+  <!-- ------------------------------------------------ colonne de réglages -->
+  <aside class="colonne" id="reglages">
+
+    <section class="bloc">
+      <h2>1 · Chantier</h2>
+      <div class="grille2">
+        <label>Client <input type="text" id="ch-client" placeholder="Nom du client"></label>
+        <label>Site <input type="text" id="ch-site" placeholder="Adresse / bâtiment"></label>
+        <label>Caméra <input type="text" id="ch-camera" placeholder="Ex. CAM 04 — parking nord"></label>
+        <label>Technicien <input type="text" id="ch-technicien" placeholder="Nom"></label>
+        <label>Date <input type="date" id="ch-date"></label>
+        <label>N° d'affaire <input type="text" id="ch-affaire" placeholder="Ex. 2026-118"></label>
+      </div>
+    </section>
+
+    <section class="bloc">
+      <h2>2 · Caméra et optique</h2>
+      <div class="grille2">
+        <label>Capteur
+          <select id="cam-capteur"></select>
+        </label>
+        <label>Focale (mm)
+          <input type="number" id="cam-focale" value="4" min="0.5" max="300" step="0.1">
+        </label>
+        <label>Résolution
+          <select id="cam-resolution"></select>
+        </label>
+        <label>Distance à la scène (m)
+          <input type="number" id="cam-distance" value="15" min="0.5" max="500" step="0.5">
+        </label>
+        <label>Hauteur de pose (m)
+          <input type="number" id="cam-hauteur" value="3.5" min="0.5" max="40" step="0.1">
+        </label>
+        <label>Inclinaison (°)
+          <input type="number" id="cam-inclinaison" value="15" min="0" max="90" step="1">
+        </label>
+      </div>
+      <div class="grille2 sous-champs" id="capteur-libre" hidden>
+        <label>Largeur capteur (mm) <input type="number" id="cam-capteur-l" step="0.01" min="0.5"></label>
+        <label>Hauteur capteur (mm) <input type="number" id="cam-capteur-h" step="0.01" min="0.5"></label>
+      </div>
+      <div class="grille2 sous-champs" id="resolution-libre" hidden>
+        <label>Pixels horizontaux <input type="number" id="cam-res-h" step="1" min="160"></label>
+        <label>Pixels verticaux <input type="number" id="cam-res-v" step="1" min="120"></label>
+      </div>
+
+      <div class="mesures" id="mesures-optique"></div>
+
+      <details class="repli">
+        <summary>Portées DORI (EN 62676-4)</summary>
+        <div id="tableau-dori"></div>
+        <p class="note">
+          Distances maximales auxquelles chaque niveau reste tenu avec l'optique
+          ci-dessus. Au-delà, la caméra voit la scène mais ne permet plus le
+          niveau d'exploitation visé.
+        </p>
+      </details>
+
+      <details class="repli">
+        <summary>Aide au choix de focale</summary>
+        <div class="grille2">
+          <label>Largeur à couvrir (m) <input type="number" id="aide-largeur" value="8" min="0.2" step="0.1"></label>
+          <label>À la distance (m) <input type="number" id="aide-distance" value="15" min="0.5" step="0.5"></label>
+        </div>
+        <div class="mesures" id="aide-resultat"></div>
+      </details>
+    </section>
+
+    <section class="bloc">
+      <h2>3 · Les deux vues</h2>
+
+      <div class="depot" id="depot-reference" tabindex="0" role="button"
+           aria-label="Charger la vue demandée par le client">
+        <input type="file" id="fichier-reference" accept="image/*" hidden>
+        <div class="depot-etiquette">Vue demandée par le client</div>
+        <div class="depot-corps">
+          <span class="depot-texte">Glisser une image, cliquer, ou coller (Ctrl+V)</span>
+          <img class="depot-vignette" id="vignette-reference" alt="" hidden>
+        </div>
+        <div class="depot-info" id="info-reference"></div>
+      </div>
+
+      <div class="depot" id="depot-reglee" tabindex="0" role="button"
+           aria-label="Charger l'image réglée sur la caméra">
+        <input type="file" id="fichier-reglee" accept="image/*" hidden>
+        <div class="depot-etiquette">Image réglée sur la caméra</div>
+        <div class="depot-corps">
+          <span class="depot-texte">Glisser une image, cliquer, ou coller (Ctrl+V)</span>
+          <img class="depot-vignette" id="vignette-reglee" alt="" hidden>
+        </div>
+        <div class="depot-info" id="info-reglee"></div>
+      </div>
+
+      <p class="note">
+        La vue demandée est la référence contractuelle : capture validée par le
+        client, photo de repérage ou extrait du plan d'implantation. L'image
+        réglée est la capture prise après installation.
+      </p>
+    </section>
+
+    <section class="bloc">
+      <h2>4 · Tolérances de réception</h2>
+      <div class="grille2">
+        <label>Pointage (°) <input type="number" id="tol-angle" value="2" min="0.1" max="30" step="0.1"></label>
+        <label>Aplomb (°) <input type="number" id="tol-roulis" value="1.5" min="0.1" max="30" step="0.1"></label>
+        <label>Cadrage (%) <input type="number" id="tol-zoom" value="5" min="0.5" max="60" step="0.5"></label>
+        <label>Couverture zone (%) <input type="number" id="tol-zone" value="95" min="10" max="100" step="1"></label>
+      </div>
+    </section>
+
+    <section class="bloc">
+      <h2>5 · Analyse</h2>
+      <button type="button" id="btn-analyser" class="btn btn-principal btn-large" disabled>
+        Analyser la conformité
+      </button>
+      <label class="case">
+        <input type="checkbox" id="opt-rotation" checked> Chercher aussi un défaut d'aplomb
+      </label>
+      <label class="case">
+        <input type="checkbox" id="opt-echelle" checked> Chercher aussi un écart de zoom
+      </label>
+      <div id="etat-analyse" class="etat-analyse"></div>
+
+      <details class="repli" id="bloc-manuel">
+        <summary>Recalage manuel</summary>
+        <p class="note">
+          À utiliser quand la vue demandée est un plan, un croquis ou une photo
+          prise d'un autre point de vue : le recalage automatique ne peut pas
+          s'accrocher. Ajuster les curseurs jusqu'à la superposition, les écarts
+          se recalculent en direct.
+        </p>
+        <label class="curseur">Décalage horizontal <output id="out-tx"></output>
+          <input type="range" id="man-tx" min="-0.5" max="0.5" step="0.002" value="0"></label>
+        <label class="curseur">Décalage vertical <output id="out-ty"></output>
+          <input type="range" id="man-ty" min="-0.5" max="0.5" step="0.002" value="0"></label>
+        <label class="curseur">Zoom <output id="out-echelle"></output>
+          <input type="range" id="man-echelle" min="0.4" max="2.5" step="0.005" value="1"></label>
+        <label class="curseur">Roulis <output id="out-rotation"></output>
+          <input type="range" id="man-rotation" min="-20" max="20" step="0.1" value="0"></label>
+        <button type="button" id="btn-reinit-manuel" class="btn btn-fantome btn-petit">Remettre à zéro</button>
+      </details>
+    </section>
+
+    <section class="bloc">
+      <h2>6 · Observations</h2>
+      <textarea id="ch-commentaire" rows="4"
+                placeholder="Remarques de terrain, contraintes de pose, réserves…"></textarea>
+    </section>
+
+  </aside>
+
+  <!-- ---------------------------------------------------- zone de comparaison -->
+  <section class="scene">
+
+    <div class="scene-outils">
+      <div class="groupe-boutons" role="group" aria-label="Mode d'affichage">
+        <button type="button" class="mode actif" data-mode="cote">Côte à côte</button>
+        <button type="button" class="mode" data-mode="superposition">Superposition</button>
+        <button type="button" class="mode" data-mode="rideau">Rideau</button>
+        <button type="button" class="mode" data-mode="difference">Différence</button>
+      </div>
+      <label class="curseur en-ligne" id="ctrl-opacite">Opacité <output id="out-opacite">50 %</output>
+        <input type="range" id="opacite" min="0" max="100" value="50">
+      </label>
+      <label class="curseur en-ligne" id="ctrl-rideau" hidden>Rideau
+        <input type="range" id="rideau" min="0" max="100" value="50">
+      </label>
+      <label class="case"><input type="checkbox" id="opt-recalage" checked> Appliquer le recalage</label>
+      <label class="case"><input type="checkbox" id="opt-grille"> Grille des tiers</label>
+      <label class="case"><input type="checkbox" id="opt-reticule" checked> Réticules et écart</label>
+      <button type="button" id="btn-zones" class="btn btn-fantome btn-petit">Tracer une zone d'intérêt</button>
+    </div>
+
+    <div class="visionneuse" id="visionneuse">
+      <div class="vide" id="message-vide">
+        <h3>Charger les deux vues pour démarrer</h3>
+        <p>
+          À gauche : la <strong>vue demandée</strong> par le client.<br>
+          À droite : l'<strong>image réglée</strong> relevée sur la caméra.
+        </p>
+      </div>
+
+      <div class="paire" id="paire" hidden>
+        <figure><figcaption>Vue demandée</figcaption>
+          <canvas id="toile-reference"></canvas></figure>
+        <figure><figcaption>Image réglée</figcaption>
+          <canvas id="toile-reglee"></canvas></figure>
+      </div>
+
+      <div class="fusion" id="fusion" hidden>
+        <canvas id="toile-fusion"></canvas>
+      </div>
+    </div>
+
+    <div class="verdict" id="verdict" hidden></div>
+
+    <div class="zones-liste" id="zones-liste"></div>
+  </section>
+</main>
+
+<!-- ------------------------------------------------------------ rapport -->
+<section id="rapport" class="rapport" hidden></section>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
