@@ -16,7 +16,7 @@ Un seul fichier à récupérer — deux versions au choix :
 | Version | Poids | Pour qui |
 | --- | --- | --- |
 | [`analyse-vue-angle.html`](../outils/analyse-vue-angle/dist/analyse-vue-angle.html) | 1,5 Mo | le cas courant : études reçues en PDF normal |
-| [`analyse-vue-angle-ocr.html`](../outils/analyse-vue-angle/dist/analyse-vue-angle-ocr.html) | 7,6 Mo | si vos études arrivent **scannées** (§ 4) |
+| [`analyse-vue-angle-ocr.html`](../outils/analyse-vue-angle/dist/analyse-vue-angle-ocr.html) | 7,6 Mo | si vos études arrivent **scannées** (§ 5) |
 
 Les deux sont le même outil. La seconde embarque en plus un moteur de
 reconnaissance de caractères, qui pèse à lui seul près de 5 Mo : inutile de le
@@ -76,14 +76,86 @@ caméra** : son repère, son optique, ses deux vues, ses zones, son analyse et s
 observations.
 
 Un seul fichier `.json` enregistre tout le dossier, et le procès-verbal couvre
-tout le chantier (§ 9).
+tout le chantier (§ 10).
 
 > Les fiches enregistrées avec la première version de l'outil s'ouvrent
 > toujours : elles deviennent un dossier d'une seule caméra, sans rien perdre.
 
 ---
 
-## 3. Avant d'aller sur site
+## 3. Concevoir un champ sur plan
+
+L'outil sert dans les deux sens. Les sections suivantes vérifient qu'une caméra
+posée respecte l'étude ; celle-ci fait l'inverse : **tracer le champ voulu sur
+une vue aérienne, et en déduire la caméra et le zoom**.
+
+C'est le geste des études d'implantation, où la couverture est dessinée en cônes
+sur une photo satellite. Bloc **Champ sur plan**, dans la colonne de gauche.
+
+1. **Charger le plan** — une capture de vue aérienne, ou directement la page de
+   plan du PDF de l'étude.
+2. **Étalonner.** Saisir une distance connue (largeur d'une cour, longueur d'un
+   bâtiment, entraxe de deux poteaux), puis cliquer les deux points
+   correspondants. Sans cette échelle, aucune distance n'est mesurable — c'est
+   l'étape qui conditionne tout le reste.
+3. **Placer la caméra** d'un clic, à l'emplacement du mât ou de la façade.
+4. **Viser la zone** : cliquer le point le plus éloigné à couvrir. La direction
+   et la portée en découlent.
+5. **Régler l'ouverture** au curseur jusqu'à ce que le cône couvre la zone.
+
+L'outil affiche alors en direct :
+
+| | |
+| --- | --- |
+| Portée visée | distance réelle jusqu'au point visé |
+| Azimut | direction de visée, 0° au nord du plan |
+| Largeur couverte | largeur de scène embrassée à cette portée |
+| **Focale nécessaire** | l'objectif qui donne exactement cette ouverture |
+| Densité à la portée | pixels par mètre au point le plus éloigné |
+| Niveau atteint | détection, observation, reconnaissance ou identification |
+
+Et, juste en dessous, **la caméra à poser et le zoom à régler**, pris dans le
+catalogue (§ ci-dessous).
+
+### Dans l'autre sens : le champ réel d'une caméra choisie
+
+Cocher **Suivre la focale saisie au bloc 2** : l'ouverture n'est plus réglée à
+la main, elle est déduite de l'objectif. Le cône dessiné devient alors le champ
+**réel** de la caméra retenue — de quoi vérifier sur le plan qu'elle couvre bien
+ce qu'on attend d'elle, avant de monter sur l'échelle.
+
+### Le catalogue du matériel
+
+Le repli **Catalogue du matériel** liste les caméras que vous posez :
+référence, voie (thermique, contexte…), focale minimale et maximale, type. Une
+focale fixe se saisit deux fois la même valeur ; un varifocal, avec ses deux
+bornes.
+
+L'outil y cherche ce qui donne la focale calculée, et dit quoi faire :
+« focale fixe 4 mm, rien à régler », ou « varifocal 2,7–13,5 mm, régler le zoom
+sur 5,2 mm ». Si rien ne convient, il le dit et propose la focale du commerce la
+plus proche.
+
+> **Le catalogue ne contient que ce que vous y mettez.** Il démarre avec la
+> seule caméra figurant dans l'étude qui a servi à régler l'outil. Complétez-le
+> avec votre matériel réel : une référence inventée serait pire que pas de
+> référence. Il reste sur le poste et voyage avec la fiche.
+
+### Ce que ça produit
+
+**Exporter le plan annoté** enregistre le plan avec son cône, en pleine
+définition — à coller dans l'étude remise au client.
+
+**Appliquer au bloc 2** recopie la focale et la distance dans la configuration
+caméra : la suite de l'analyse s'aligne alors sur ce qui a été dessiné.
+
+Et le procès-verbal porte une **fiche d'implantation** reprenant la disposition
+habituelle des études : n° de caméra, type, objectif, référence, nombre de
+pixels par mètre, hauteur — plus le plan annoté.
+
+---
+
+## 4. Avant d'aller sur site
 
 Préparer la **vue demandée** : la référence contractuelle.
 
@@ -92,7 +164,7 @@ Préparer la **vue demandée** : la référence contractuelle.
 2. Renseigner le bloc **2 · Caméra et optique** : le repère de la caméra, puis
    capteur, focale, résolution, distance à la scène, hauteur de pose.
    Ajouter une caméra par poste prévu au chantier (§ 2).
-3. Charger la vue demandée dans le premier cadre du bloc **3** — voir le § 4
+3. Charger la vue demandée dans le premier cadre du bloc **3** — voir le § 5
    ci-dessous pour partir directement du PDF de l'étude.
 4. **Enregistrer la fiche** : un fichier `.json` est téléchargé. Il contient
    tout, images comprises. C'est ce fichier que le technicien emporte.
@@ -119,7 +191,7 @@ largeur à telle distance, il donne la focale à monter.
 
 ---
 
-## 4. Partir du PDF de l'étude
+## 5. Partir du PDF de l'étude
 
 C'est le cas le plus courant : le client a remis une étude au format PDF, avec
 le plan d'implantation et, caméra par caméra, la vue attendue.
@@ -176,7 +248,7 @@ tirée. L'outil ne devine pas : il montre sa source.
 Déplier **Texte lu par l'outil**, sous le tableau. On y voit, page par page, ce
 que l'outil a réellement extrait du PDF, les passages retenus surlignés en vert.
 Une ligne présente mais non surlignée, c'est une formulation qu'il ne sait pas
-encore lire ; une page vide, c'est un scan (§ 4).
+encore lire ; une page vide, c'est un scan (§ 5).
 
 Le bouton **Copier le texte** met ce contenu dans le presse-papiers. Le
 transmettre suffit à faire ajouter la formulation manquante — inutile de sortir
@@ -232,7 +304,7 @@ vérifications distinctes : le **matériel** correspond-il à l'étude, et le
 > visuel. Pour la comparaison de cadrage, il faut une **image** de la vue
 > attendue — capture validée ou photo de repérage. À défaut, le relevé du
 > matériel reste exploitable, et la partie cadrage se traite au recalage manuel
-> (§ 8) ou se réserve pour une visite ultérieure.
+> (§ 9) ou se réserve pour une visite ultérieure.
 
 ### Si l'étude est un scan
 
@@ -257,7 +329,7 @@ praticable, une étude ne comptant qu'une poignée de chiffres par caméra.
 
 ---
 
-## 5. Sur site, après la pose
+## 6. Sur site, après la pose
 
 1. Ouvrir la fiche (**Ouvrir une fiche…**).
 2. Prendre une capture de l'image de la caméra et la charger dans le second
@@ -271,7 +343,7 @@ Le verdict s'affiche en bas :
 - **Ajustement mineur** — reprise rapide, la consigne indique quoi faire.
 - **Non conforme** — le réglage est à refaire.
 - **Recalage non concluant** — l'outil n'a pas pu rapprocher les deux images
-  (voir le § 8).
+  (voir le § 9).
 
 Les consignes sont directement exploitables : « Pivoter la caméra de 6,4° vers
 la gauche », « Relever la caméra de 2,4° », « Élargir le champ de 12 % (focale
@@ -296,7 +368,7 @@ Trois cases complètent l'affichage :
 
 ---
 
-## 6. Zones d'intérêt
+## 7. Zones d'intérêt
 
 Pour vérifier qu'un point précis reste dans le champ (portail, caisse, quai de
 livraison, allée) :
@@ -310,7 +382,7 @@ couvert. Le seuil d'exigence se règle dans le bloc **4** (95 % par défaut).
 
 ---
 
-## 7. Tolérances de réception
+## 8. Tolérances de réception
 
 | Réglage | Défaut | Signification |
 | --- | --- | --- |
@@ -326,14 +398,14 @@ de parking. Ce sont elles qui décident du verdict : à fixer avec le client
 
 ---
 
-## 8. Quand le recalage automatique échoue
+## 9. Quand le recalage automatique échoue
 
 L'outil annonce « recalage non concluant » quand les deux images ne se
 ressemblent pas assez. Les causes habituelles :
 
 - la vue demandée est un **plan ou un croquis**, pas une photo ;
 - la page d'étude retenue porte du texte ou un cartouche : la recadrer sur la
-  seule image (§ 4) suffit souvent à débloquer la situation ;
+  seule image (§ 5) suffit souvent à débloquer la situation ;
 - les deux prises de vue ont été faites depuis **des emplacements différents** ;
 - la scène a **réellement changé** (chantier, saison, véhicules déplacés) ;
 - le décalage dépasse les trois quarts du champ : il ne reste presque plus rien
@@ -345,7 +417,7 @@ direct, et le rapport indique que le recalage a été fait à la main.
 
 ---
 
-## 9. Rapport et archivage
+## 10. Rapport et archivage
 
 **Rapport / Impression** ouvre la boîte d'impression du navigateur. Choisir
 « Enregistrer au format PDF » pour obtenir le procès-verbal du chantier :
@@ -373,7 +445,7 @@ contrôle annuel ou d'une contestation.
 
 ---
 
-## 10. Mettre l'outil en ligne sur le site
+## 11. Mettre l'outil en ligne sur le site
 
 Utile pour y accéder depuis une tablette sans rien installer.
 
@@ -432,7 +504,7 @@ restreint, deux solutions côté hébergeur :
 
 ---
 
-## 11. Ce que l'outil ne fait pas
+## 12. Ce que l'outil ne fait pas
 
 - Il ne corrige pas la **distorsion** des objectifs très grand-angle. Les
   écarts restent justes au centre et se dégradent vers les bords de l'image.
@@ -441,12 +513,12 @@ restreint, deux solutions côté hébergeur :
 - Il ne juge pas la qualité d'image (netteté, bruit, exposition) : uniquement le
   cadrage.
 - Il lit le texte des PDF ; les études scannées passent par la reconnaissance
-  de caractères (§ 4), plus faillible, d'où l'avertissement qui les accompagne.
+  de caractères (§ 5), plus faillible, d'où l'avertissement qui les accompagne.
 - Le relevé reconnaît les formulations courantes des études d'implantation et
   des fiches constructeur — « focale 3,6 mm », « f = 4 mm », « H : 102° »,
   « 1/2,8 pouce », « 1 920 x 1 080 », « 1080p », valeurs en colonnes sous leur
   en-tête. Une mise en page inhabituelle peut malgré tout lui échapper : chaque
   valeur est donc affichée avec sa page et son extrait, et le texte lu reste
-  consultable pour comprendre ce qui manque (§ 4).
+  consultable pour comprendre ce qui manque (§ 5).
 - Il ne vérifie pas les points non chiffrés d'un cahier des charges (indice de
   protection, alimentation, chemin de câbles, conformité RGPD de l'affichage).

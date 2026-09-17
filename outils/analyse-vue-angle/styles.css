@@ -426,3 +426,40 @@ table.etude .remarque { display: block; color: var(--texte-doux); font-size: 11p
   border-radius: 3px; padding: 0 2px;
 }
 .texte-lu .vide { font-style: italic; }
+
+/* ------------------------------------------------------- champ sur plan */
+
+.plan-vue { max-width: 100%; }
+.plan-vue canvas { max-height: calc(100vh - 300px); margin: 0 auto; cursor: crosshair; }
+.etapes { display: flex; gap: 6px; flex-wrap: wrap; margin: 10px 0; }
+.etapes .btn.actif { border-color: var(--rouge); color: var(--texte); background: #2a3140; }
+.etapes .btn.fait { border-color: var(--vert); }
+.consigne {
+  margin: 0; padding: 8px 10px; font-size: 12px;
+  background: rgba(61, 139, 253, .12); border: 1px solid var(--bleu);
+  border-radius: 6px; color: var(--texte);
+}
+.conseil {
+  margin: 10px 0 0; padding: 8px 10px; font-size: 12px;
+  background: var(--fond); border: 1px solid var(--bord);
+  border-left: 3px solid var(--rouge); border-radius: 6px;
+}
+.propositions { list-style: none; margin: 8px 0 0; padding: 0; font-size: 12px; }
+.propositions li {
+  display: flex; justify-content: space-between; gap: 8px;
+  padding: 5px 0; border-bottom: 1px solid var(--bord);
+}
+.propositions li:last-child { border-bottom: 0; }
+.propositions .reglage { color: var(--texte-doux); white-space: nowrap; }
+
+table.catalogue { width: 100%; border-collapse: collapse; font-size: 11px; table-layout: fixed; }
+table.catalogue th, table.catalogue td {
+  padding: 3px 2px; border-bottom: 1px solid var(--bord); text-align: left;
+}
+table.catalogue th { color: var(--texte-doux); font-size: 10px; font-weight: 600; }
+table.catalogue input, table.catalogue select {
+  margin: 0; padding: 3px 4px; font-size: 11px;
+}
+table.catalogue col.ref { width: 34%; }
+table.catalogue col.foc { width: 17%; }
+table.catalogue col.sup { width: 16%; }

@@ -107,6 +107,70 @@
       </details>
     </section>
 
+    <section class="bloc" id="bloc-plan">
+      <h2>Champ sur plan <small>— conception</small></h2>
+
+      <div class="depot" id="depot-plan" tabindex="0" role="button"
+           aria-label="Charger le plan d'implantation">
+        <input type="file" id="fichier-plan" accept="image/*,application/pdf,.pdf" hidden>
+        <div class="depot-etiquette">Plan d'implantation <small>— vue aérienne</small></div>
+        <div class="depot-corps">
+          <span class="depot-texte">Glisser une vue aérienne ou le PDF de l'étude,<br>cliquer, ou coller (Ctrl+V)</span>
+          <img class="depot-vignette" id="vignette-plan" alt="" hidden>
+        </div>
+        <div class="depot-info" id="info-plan"></div>
+      </div>
+
+      <div id="plan-reglages" hidden>
+        <p class="consigne" id="plan-consigne"></p>
+        <label class="pleine-largeur">Distance connue entre les deux repères (m)
+          <input type="number" id="plan-etalon-metres" value="20" min="0.5" step="0.5">
+        </label>
+        <div class="etapes">
+          <button type="button" class="btn btn-fantome btn-petit" data-etape="etalon">1 · Étalonner</button>
+          <button type="button" class="btn btn-fantome btn-petit" data-etape="sommet">2 · Placer la caméra</button>
+          <button type="button" class="btn btn-fantome btn-petit" data-etape="vise">3 · Viser la zone</button>
+        </div>
+
+        <label class="curseur">Ouverture du champ <output id="out-ouverture"></output>
+          <input type="range" id="plan-ouverture" min="5" max="170" step="0.5" value="60">
+        </label>
+        <label class="case">
+          <input type="checkbox" id="plan-lier"> Suivre la focale saisie au bloc 2
+        </label>
+
+        <div class="mesures" id="plan-mesures"></div>
+        <p class="conseil" id="plan-conseil"></p>
+        <div id="plan-propositions"></div>
+
+        <div class="etude-actions">
+          <button type="button" id="plan-exporter" class="btn btn-fantome btn-petit">
+            Exporter le plan annoté
+          </button>
+          <button type="button" id="plan-reprendre" class="btn btn-fantome btn-petit">
+            Appliquer au bloc 2
+          </button>
+          <button type="button" id="plan-effacer" class="btn btn-fantome btn-petit">
+            Effacer le tracé
+          </button>
+        </div>
+      </div>
+
+      <details class="repli">
+        <summary>Catalogue du matériel</summary>
+        <div id="catalogue-liste"></div>
+        <button type="button" id="catalogue-ajouter" class="btn btn-fantome btn-petit">
+          Ajouter une caméra
+        </button>
+        <p class="note">
+          Le catalogue ne contient que le matériel que vous y mettez. Il part de
+          la caméra figurant dans l'étude fournie ; complétez-le avec ce que vous
+          posez réellement — une référence inventée serait pire que pas de
+          référence. Il est conservé sur ce poste et voyage avec la fiche.
+        </p>
+      </details>
+    </section>
+
     <section class="bloc" id="bloc-etude" hidden>
       <h2>2 bis · Relevé de l'étude</h2>
       <label id="etude-choix-camera" hidden>Caméra de l'étude
@@ -253,6 +317,7 @@
         <button type="button" class="mode" data-mode="superposition">Superposition</button>
         <button type="button" class="mode" data-mode="rideau">Rideau</button>
         <button type="button" class="mode" data-mode="difference">Différence</button>
+        <button type="button" class="mode" data-mode="plan">Plan</button>
       </div>
       <label class="curseur en-ligne" id="ctrl-opacite">Opacité <output id="out-opacite">50 %</output>
         <input type="range" id="opacite" min="0" max="100" value="50">
@@ -284,6 +349,10 @@
 
       <div class="fusion" id="fusion" hidden>
         <canvas id="toile-fusion"></canvas>
+      </div>
+
+      <div class="plan-vue" id="plan-vue" hidden>
+        <canvas id="toile-plan"></canvas>
       </div>
     </div>
 

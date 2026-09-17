@@ -20,6 +20,12 @@ import { champsPourCamera, confronter } from './lecture-etude.js';
 import {
   TYPE_FICHE, VERSION_FICHE, migrer, nouvelleCamera, nomDeFichier,
 } from './fiche.js';
+import {
+  echelleDuPlan, dimensionner, polygoneCone, ouverturePourFocale,
+} from './plan.js';
+import {
+  CATALOGUE_INITIAL, normaliserEntree, proposer, conseil, estFixe,
+} from './catalogue.js';
 
 const nb = (el, defaut = 0) => {
   const v = parseFloat(el.value);
@@ -71,6 +77,8 @@ const etat = {
   zones: [],
 
   etude: null, // { fichier, analyse } — valeurs lues dans le PDF d'étude, commun au dossier
+  catalogue: [], // matériel de l'agence, cf. js/catalogue.js
+  planEtape: null, // étape de tracé en cours sur le plan
   mode: 'cote',
   tracage: false,
   dernierDepot: 'reference',
@@ -202,6 +210,7 @@ function majOptique() {
       </tbody></table>`;
 
   majAideFocale(c);
+  if (cameraCourante()?.plan?.image) majPlan();
   if (etat.etude) majEtude();
   if (etat.transformation) majDiagnostic();
 }
@@ -231,6 +240,8 @@ function sauverCameraCourante() {
   cam.zones = etat.zones;
   cam.transformation = etat.transformation;
   cam.manuel = etat.manuel;
+  // L'élément image décodé ne se sérialise pas : seule la source est conservée.
+  if (cam.plan?.image?.img) cam.plan.image = { ...cam.plan.image, img: cam.plan.image.img };
   cam.images = {
     reference: etat.reference && {
       nom: etat.reference.nom, dataUrl: etat.reference.dataUrl, source: etat.reference.source,
@@ -280,8 +291,23 @@ async function chargerCamera(i) {
       cam.images.reglee.nom, cam.images.reglee.source, false);
   }
 
+  $('#vignette-plan').hidden = true;
+  $('#vignette-plan').removeAttribute('src');
+  $('#depot-plan .depot-texte').hidden = false;
+  $('#info-plan').textContent = '';
+  $('#plan-reglages').hidden = true;
+  etat.planEtape = null;
+  if (cam.plan?.image?.dataUrl) {
+    cam.plan.image.img = await chargerImage(cam.plan.image.dataUrl);
+    $('#vignette-plan').src = cam.plan.image.dataUrl;
+    $('#vignette-plan').hidden = false;
+    $('#depot-plan .depot-texte').hidden = true;
+    $('#info-plan').textContent = cam.plan.image.nom || 'plan';
+  }
+
   synchroniserCurseurs();
   majOptique();
+  majPlan();
   majEtude();
   majZones();
   if (etat.transformation) majDiagnostic();
@@ -356,6 +382,355 @@ function majSyntheseCourte() {
   const reste = etat.cameras.length - faits.length;
   $('#synthese-courte').textContent = `${conformes}/${faits.length} conforme${conformes > 1 ? 's' : ''}`
     + (reste ? ` — ${plur(reste, 'caméra')} à analyser` : '');
+}
+
+/* ================================================== champ tracé sur plan */
+
+const CLE_CATALOGUE = 'ng-vue-angle-catalogue';
+
+function chargerCatalogue() {
+  try {
+    const brut = JSON.parse(window.localStorage.getItem(CLE_CATALOGUE) || 'null');
+    if (Array.isArray(brut) && brut.length) return brut.map(normaliserEntree);
+  } catch {
+    // Stockage refusé ou contenu abîmé : on repart du catalogue de départ.
+  }
+  return CATALOGUE_INITIAL.map(normaliserEntree);
+}
+
+function enregistrerCatalogue() {
+  try {
+    window.localStorage.setItem(CLE_CATALOGUE, JSON.stringify(etat.catalogue));
+  } catch {
+    // Navigation privée : le catalogue vaut pour la session, et part avec la fiche.
+  }
+}
+
+/** Plan de la caméra affichée, créé à la demande. */
+function planCourant() {
+  const cam = cameraCourante();
+  if (!cam) return null;
+  if (!cam.plan) {
+    cam.plan = {
+      image: null, etalon: null, sommet: null, vise: null,
+      ouverture: 60, lieeFocale: false,
+    };
+  }
+  return cam.plan;
+}
+
+/** Dimensionnement du tracé d'une caméra donnée, ou null s'il est incomplet. */
+function mesurePlanDe(cam) {
+  const plan = cam?.plan;
+  if (!plan?.etalon || !plan.sommet || !plan.vise) return null;
+  const echelle = echelleDuPlan(plan.etalon.a, plan.etalon.b, plan.etalon.metres);
+  if (!echelle) return null;
+  const c = configDe(cam.optique);
+  return {
+    ...dimensionner(
+      { sommet: plan.sommet, vise: plan.vise, ouverture: plan.ouverture },
+      echelle, c.capteur, c.resolution.h,
+    ),
+    echelle,
+  };
+}
+
+/** Dimensionnement de la caméra affichée, d'après le formulaire en cours. */
+function mesurePlan() {
+  const cam = cameraCourante();
+  if (!cam?.plan?.image) return null;
+  return mesurePlanDe({ ...cam, optique: lireOptique() });
+}
+
+const CONSIGNES = {
+  etalon: 'Saisir la distance connue ci-dessus, puis cliquer les deux points correspondants sur le plan — un marquage au sol, une façade, un portail.',
+  etalonB: 'Cliquer le second point de la distance connue.',
+  sommet: 'Cliquer l\'emplacement de la caméra sur le plan.',
+  vise: 'Cliquer le point le plus éloigné de la zone à couvrir.',
+  pret: 'Tracé complet. Ajuster l\'ouverture au curseur, ou la lier à la focale saisie.',
+};
+
+function majConsigne() {
+  const plan = planCourant();
+  const etape = etat.planEtape;
+  let texte;
+  if (etape === 'etalon') texte = plan.etalonPartiel ? CONSIGNES.etalonB : CONSIGNES.etalon;
+  else if (etape) texte = CONSIGNES[etape];
+  else if (!plan.etalon) texte = 'Commencer par étalonner le plan : sans échelle, aucune distance n\'est mesurable.';
+  else if (!plan.sommet) texte = 'Placer la caméra sur le plan.';
+  else if (!plan.vise) texte = 'Viser la zone à couvrir.';
+  else texte = CONSIGNES.pret;
+  $('#plan-consigne').textContent = texte;
+
+  $$('.etapes [data-etape]').forEach((b) => {
+    b.classList.toggle('actif', b.dataset.etape === etape);
+    const fait = { etalon: !!plan.etalon, sommet: !!plan.sommet, vise: !!plan.vise }[b.dataset.etape];
+    b.classList.toggle('fait', !!fait);
+  });
+}
+
+function majPlan() {
+  const plan = planCourant();
+  const pret = !!plan?.image;
+  $('#plan-reglages').hidden = !pret;
+  if (!pret) return;
+
+  // L'ouverture peut suivre l'objectif saisi plutôt que le curseur : c'est
+  // alors le champ réel de la caméra qui se dessine sur le plan.
+  const c = configCamera();
+  if (plan.lieeFocale) plan.ouverture = ouverturePourFocale(c.capteur, c.focale);
+  $('#plan-ouverture').value = plan.ouverture;
+  $('#plan-ouverture').disabled = plan.lieeFocale;
+  $('#plan-lier').checked = plan.lieeFocale;
+  $('#out-ouverture').textContent = `${fmt(plan.ouverture)} °`;
+
+  const m = mesurePlan();
+  const boite = $('#plan-mesures');
+  if (!m) {
+    boite.innerHTML = '';
+    $('#plan-conseil').textContent = '';
+    $('#plan-propositions').innerHTML = '';
+    majConsigne();
+    majVisionneuse();
+    return;
+  }
+
+  const niveau = niveauDori(m.densite);
+  boite.innerHTML = [
+    mesure('Portée visée', fmt(m.portee), 'm'),
+    mesure('Azimut', fmt(m.azimut, 0), '°'),
+    mesure('Largeur couverte', fmt(m.largeur), 'm'),
+    mesure('Focale nécessaire', fmt(m.focale, 1), 'mm'),
+    mesure('Densité à la portée', fmt(m.densite, 0), 'px/m'),
+    mesure('Niveau atteint', niveau === 'insuffisant' ? 'Insuffisant' : SEUILS_DORI[niveau].label, ''),
+  ].join('');
+
+  const type = /^Thermique/i.test(c.capteurCle) ? 'thermique' : 'visible';
+  const propositions = proposer(etat.catalogue, m.focale, { type });
+  $('#plan-conseil').textContent = conseil(m.focale, propositions).texte;
+  $('#plan-propositions').innerHTML = propositions.length
+    ? `<ul class="propositions">${propositions.map((p) => {
+      const nom = [p.entree.reference, p.entree.voie].filter(Boolean).join(' — ');
+      const reglage = estFixe(p.entree)
+        ? `fixe ${fmt(p.entree.focaleMin, 1)} mm`
+        : `zoom ${fmt(p.reglage, 1)} mm`;
+      return `<li><span>${ech(nom)}</span><span class="reglage">${reglage}</span></li>`;
+    }).join('')}</ul>`
+    : '';
+
+  majConsigne();
+  majVisionneuse();
+}
+
+/* ------------------------------------------------------------- rendu du plan */
+
+function rendrePlan() {
+  const plan = planCourant();
+  if (!plan?.image?.img) return;
+  const toile = $('#toile-plan');
+  const { l, h } = dimensionsRendu(plan.image.img);
+  toile.width = l;
+  toile.height = h;
+  const ctx = toile.getContext('2d');
+  ctx.drawImage(plan.image.img, 0, 0, l, h);
+  dessinerTracePlan(ctx, l, plan, mesurePlan());
+}
+
+/** Coordonnées normalisées (fractions de largeur) vers pixels de la toile. */
+const versToile = (p, l) => ({ x: p.x * l, y: p.y * l });
+
+function dessinerTracePlan(ctx, l, plan, m) {
+  const trait = Math.max(1.5, l / 500);
+  ctx.save();
+  ctx.lineWidth = trait;
+
+  if (plan.etalon) {
+    const a = versToile(plan.etalon.a, l);
+    const b = versToile(plan.etalon.b, l);
+    ctx.strokeStyle = '#ffd400';
+    ctx.setLineDash([6, 4]);
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x, b.y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    [a, b].forEach((p) => {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, trait * 2, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffd400';
+      ctx.fill();
+    });
+    etiquette(ctx, `${fmt(plan.etalon.metres)} m`, (a.x + b.x) / 2, (a.y + b.y) / 2, l);
+  }
+
+  if (plan.sommet && plan.vise) {
+    const rayon = Math.hypot(plan.vise.x - plan.sommet.x, plan.vise.y - plan.sommet.y);
+    const points = polygoneCone(plan.sommet, m ? m.azimut : 0, plan.ouverture, rayon)
+      .map((p) => versToile(p, l));
+    ctx.beginPath();
+    points.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(232, 86, 20, .35)';
+    ctx.fill();
+    ctx.strokeStyle = '#e85614';
+    ctx.stroke();
+    if (m) {
+      const s = versToile(plan.sommet, l);
+      etiquette(ctx, `${fmt(plan.ouverture, 0)}° · ${fmt(m.portee)} m · ${fmt(m.focale, 1)} mm`,
+        s.x + trait * 4, s.y + trait * 4, l);
+    }
+  }
+
+  if (plan.sommet) {
+    const s = versToile(plan.sommet, l);
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, trait * 4, 0, Math.PI * 2);
+    ctx.fillStyle = '#fff';
+    ctx.fill();
+    ctx.strokeStyle = '#e85614';
+    ctx.lineWidth = trait * 1.6;
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/* --------------------------------------------------------- interactions plan */
+
+function brancherPlan() {
+  const toile = $('#toile-plan');
+  const position = (e) => {
+    const r = toile.getBoundingClientRect();
+    return {
+      x: (e.clientX - r.left) / r.width,
+      y: ((e.clientY - r.top) / r.height) * (toile.height / toile.width),
+    };
+  };
+
+  toile.addEventListener('click', (e) => {
+    const plan = planCourant();
+    if (!plan?.image || !etat.planEtape) return;
+    const p = position(e);
+
+    if (etat.planEtape === 'etalon') {
+      if (!plan.etalonPartiel) {
+        plan.etalonPartiel = p;
+      } else {
+        const metres = nb($('#plan-etalon-metres'), 0);
+        if (metres > 0) plan.etalon = { a: plan.etalonPartiel, b: p, metres };
+        plan.etalonPartiel = null;
+        etat.planEtape = plan.sommet ? null : 'sommet';
+      }
+    } else if (etat.planEtape === 'sommet') {
+      plan.sommet = p;
+      etat.planEtape = plan.vise ? null : 'vise';
+    } else if (etat.planEtape === 'vise') {
+      plan.vise = p;
+      etat.planEtape = null;
+    }
+    majPlan();
+  });
+
+  $$('.etapes [data-etape]').forEach((b) => b.addEventListener('click', () => {
+    // Affectation et non bascule : l'outil arme l'étape suivante tout seul, et
+    // re-cliquer sur un bouton doit la reprendre, pas l'annuler.
+    etat.planEtape = b.dataset.etape;
+    planCourant().etalonPartiel = null;
+    if (etat.mode !== 'plan') basculerMode('plan');
+    majConsigne();
+  }));
+
+  $('#plan-etalon-metres').addEventListener('input', () => {
+    const plan = planCourant();
+    if (!plan?.etalon) return;
+    plan.etalon.metres = nb($('#plan-etalon-metres'), plan.etalon.metres);
+    majPlan();
+  });
+  $('#plan-ouverture').addEventListener('input', (e) => {
+    planCourant().ouverture = nb(e.target, 60);
+    majPlan();
+  });
+  $('#plan-lier').addEventListener('change', (e) => {
+    planCourant().lieeFocale = e.target.checked;
+    majPlan();
+  });
+  $('#plan-effacer').addEventListener('click', () => {
+    const plan = planCourant();
+    plan.sommet = null;
+    plan.vise = null;
+    plan.etalonPartiel = null;
+    etat.planEtape = 'sommet';
+    majPlan();
+  });
+  $('#plan-reprendre').addEventListener('click', () => {
+    const m = mesurePlan();
+    if (!m) return;
+    // Le tracé fixe la focale et la distance : le bloc 2 les reprend, et toute
+    // l'analyse de cadrage s'aligne sur ce qui a été dessiné.
+    $('#cam-focale').value = Math.round(m.focale * 10) / 10;
+    $('#cam-distance').value = Math.round(m.portee * 10) / 10;
+    majOptique();
+    majPlan();
+  });
+  $('#plan-exporter').addEventListener('click', exporterPlan);
+}
+
+/** Plan annoté du tracé, en pleine définition — pour l'export et le rapport. */
+function planAnnote(cam) {
+  const plan = cam?.plan;
+  if (!plan?.image?.img) return null;
+  const toile = document.createElement('canvas');
+  const l = plan.image.img.naturalWidth;
+  toile.width = l;
+  toile.height = plan.image.img.naturalHeight;
+  const ctx = toile.getContext('2d');
+  ctx.drawImage(plan.image.img, 0, 0);
+  dessinerTracePlan(ctx, l, plan, mesurePlanDe(cam));
+  return toile;
+}
+
+function exporterPlan() {
+  const toile = planAnnote(cameraCourante());
+  if (!toile) return;
+  const a = document.createElement('a');
+  a.href = toile.toDataURL('image/png');
+  a.download = `${(cameraCourante()?.nom || 'camera').replace(/\s+/g, '-').toLowerCase()}-plan.png`;
+  a.click();
+}
+
+/* -------------------------------------------------------------- catalogue */
+
+function majCatalogue() {
+  const lignes = etat.catalogue.map((e, i) => `<tr>
+      <td><input type="text" data-cat="${i}" data-champ="reference" value="${ech(e.reference)}" placeholder="Référence"></td>
+      <td><input type="text" data-cat="${i}" data-champ="voie" value="${ech(e.voie)}" placeholder="voie"></td>
+      <td><input type="text" data-cat="${i}" data-champ="focaleMin" value="${fmt(e.focaleMin, 1)}"></td>
+      <td><input type="text" data-cat="${i}" data-champ="focaleMax" value="${fmt(e.focaleMax, 1)}"></td>
+      <td><select data-cat="${i}" data-champ="type">
+        <option value="visible"${e.type === 'visible' ? ' selected' : ''}>visible</option>
+        <option value="thermique"${e.type === 'thermique' ? ' selected' : ''}>thermique</option>
+      </select></td>
+      <td><button type="button" class="btn btn-fantome btn-petit" data-cat-suppr="${i}">×</button></td>
+    </tr>`).join('');
+
+  $('#catalogue-liste').innerHTML = `<table class="catalogue">
+      <colgroup><col class="ref"><col class="sup"><col class="foc"><col class="foc"><col class="sup"><col></colgroup>
+      <thead><tr><th>Référence</th><th>Voie</th><th>f min</th><th>f max</th><th>Type</th><th></th></tr></thead>
+      <tbody>${lignes}</tbody></table>`;
+
+  $$('#catalogue-liste [data-cat]').forEach((el) => el.addEventListener('change', () => {
+    const i = Number(el.dataset.cat);
+    etat.catalogue[i] = normaliserEntree(
+      { ...etat.catalogue[i], [el.dataset.champ]: el.value }, i,
+    );
+    enregistrerCatalogue();
+    majPlan();
+  }));
+  $$('#catalogue-liste [data-cat-suppr]').forEach((el) => el.addEventListener('click', () => {
+    etat.catalogue.splice(Number(el.dataset.catSuppr), 1);
+    enregistrerCatalogue();
+    majCatalogue();
+    majPlan();
+  }));
 }
 
 /* ====================================================== relevé de l'étude */
@@ -646,6 +1021,35 @@ async function definirImage(role, dataUrl, nom, source = null, reinitialiser = t
   }
 }
 
+/** Installe le plan d'implantation de la caméra affichée. */
+async function definirPlan(dataUrl, nom) {
+  const img = await chargerImage(dataUrl);
+  const plan = planCourant();
+  plan.image = { nom, dataUrl, img, largeur: img.naturalWidth, hauteur: img.naturalHeight };
+  $('#vignette-plan').src = dataUrl;
+  $('#vignette-plan').hidden = false;
+  $('#depot-plan .depot-texte').hidden = true;
+  $('#info-plan').textContent = `${nom} — ${img.naturalWidth} × ${img.naturalHeight} px`;
+  if (!plan.etalon) etat.planEtape = 'etalon';
+  basculerMode('plan');
+  majPlan();
+}
+
+async function traiterPlan(fichier) {
+  if (estPdf(fichier)) {
+    await ouvrirSelecteurPdf(fichier, 'plan', (dataUrl, source) => {
+      definirPlan(dataUrl, `${source.fichier} — page ${source.page}`);
+    });
+    return;
+  }
+  if (!fichier || !fichier.type.startsWith('image/')) {
+    $('#etat-analyse').textContent = 'Format non reconnu : déposer une image ou un PDF.';
+    $('#etat-analyse').classList.add('erreur');
+    return;
+  }
+  await definirPlan(await lireFichier(fichier), fichier.name);
+}
+
 async function traiterFichier(role, fichier) {
   if (estPdf(fichier)) {
     await ouvrirSelecteurPdf(fichier, role, (dataUrl, source, etude) => {
@@ -668,6 +1072,29 @@ async function traiterFichier(role, fichier) {
     return;
   }
   await definirImage(role, await lireFichier(fichier), fichier.name);
+}
+
+/** Dépôt du plan : même geste que pour les vues, autre destination. */
+function brancherDepotPlan() {
+  const zone = $('#depot-plan');
+  const entree = $('#fichier-plan');
+  zone.addEventListener('click', () => { etat.dernierDepot = 'plan'; entree.click(); });
+  zone.addEventListener('focus', () => { etat.dernierDepot = 'plan'; });
+  zone.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); entree.click(); }
+  });
+  entree.addEventListener('change', () => {
+    if (entree.files[0]) traiterPlan(entree.files[0]);
+    entree.value = '';
+  });
+  ['dragenter', 'dragover'].forEach((ev) => zone.addEventListener(ev, (e) => {
+    e.preventDefault(); zone.classList.add('survol'); etat.dernierDepot = 'plan';
+  }));
+  ['dragleave', 'drop'].forEach((ev) => zone.addEventListener(ev, () => zone.classList.remove('survol')));
+  zone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    if (e.dataTransfer.files[0]) traiterPlan(e.dataTransfer.files[0]);
+  });
 }
 
 function brancherDepot(role) {
@@ -698,6 +1125,10 @@ document.addEventListener('paste', (e) => {
   const item = [...(e.clipboardData?.items || [])].find((i) => i.type.startsWith('image/'));
   if (!item) return;
   e.preventDefault();
+  if (etat.dernierDepot === 'plan') {
+    traiterPlan(item.getAsFile());
+    return;
+  }
   const role = etat.reference ? etat.dernierDepot : 'reference';
   traiterFichier(role, item.getAsFile());
 });
@@ -876,11 +1307,30 @@ function transformationCourante() {
     : { tx: 0, ty: 0, echelle: 1, rotation: 0 };
 }
 
+function basculerMode(mode) {
+  $$('.mode').forEach((x) => x.classList.toggle('actif', x.dataset.mode === mode));
+  etat.mode = mode;
+  majVisionneuse();
+}
+
 function majVisionneuse() {
   const pret = etat.reference && etat.reglee;
-  $('#message-vide').hidden = !!(etat.reference || etat.reglee);
+  const plan = cameraCourante()?.plan;
+  const surPlan = etat.mode === 'plan';
+  $('#message-vide').hidden = !!(etat.reference || etat.reglee) || surPlan;
   $('#paire').hidden = etat.mode !== 'cote' || !(etat.reference || etat.reglee);
-  $('#fusion').hidden = etat.mode === 'cote' || !pret;
+  $('#fusion').hidden = surPlan || etat.mode === 'cote' || !pret;
+  $('#plan-vue').hidden = !(surPlan && plan?.image?.img);
+  if (surPlan) {
+    if (plan?.image?.img) rendrePlan();
+    else {
+      $('#message-vide').hidden = false;
+      $('#message-vide').innerHTML = '<h3>Charger un plan d\'implantation</h3>'
+        + '<p>Une vue aérienne du site, ou la page de plan de l\'étude.<br>'
+        + 'Le tracé du champ se fait dessus.</p>';
+    }
+    return;
+  }
   $('#ctrl-opacite').hidden = etat.mode !== 'superposition';
   $('#ctrl-rideau').hidden = etat.mode !== 'rideau';
 
@@ -1217,7 +1667,10 @@ function fiche() {
     },
     tolerances: { ...tolerancesActuelles(), zone: nb($('#tol-zone'), 95) },
     etude: etat.etude,
-    cameras: etat.cameras,
+    catalogue: etat.catalogue,
+    cameras: etat.cameras.map((cam) => (cam.plan?.image
+      ? { ...cam, plan: { ...cam.plan, image: { ...cam.plan.image, img: undefined } } }
+      : cam)),
   };
 }
 
@@ -1258,6 +1711,11 @@ async function ouvrirFiche(fichier) {
   if (t.zone) $('#tol-zone').value = t.zone;
 
   etat.etude = f.etude;
+  if (Array.isArray(f.catalogue) && f.catalogue.length) {
+    etat.catalogue = f.catalogue.map(normaliserEntree);
+    enregistrerCatalogue();
+    majCatalogue();
+  }
   etat.cameras = f.cameras;
   await chargerCamera(0);
 
@@ -1385,6 +1843,41 @@ function sectionCamera({ cam, d, etude }, rang, seule) {
       </p>
     </section>` : ''}
 
+    ${(() => {
+    const m = mesurePlanDe(cam);
+    if (!m) return '';
+    const type = /^Thermique/i.test(c.capteurCle) ? 'thermique' : 'visible';
+    const propositions = proposer(etat.catalogue, m.focale, { type });
+    const avis = conseil(m.focale, propositions);
+    const niveau = niveauDori(m.densite);
+    const champs = etat.etude ? champsPourCamera(etat.etude.analyse, cam.repereEtude) : {};
+    return `<section>
+      <h2>Fiche d'implantation — champ à réaliser</h2>
+      <table>
+        <tr><th>N° caméra</th><td>${ech(cam.nom || '')}</td></tr>
+        <tr><th>Type de caméra</th><td>${ech(champs.type?.valeur || (type === 'thermique' ? 'THERMIQUE' : 'VISIBLE'))}</td></tr>
+        <tr><th>Objectif</th><td>${fmt(m.focale, 1)} mm — ${ech(avis.texte)}</td></tr>
+        <tr><th>Référence caméra</th><td>${propositions.length
+      ? ech([propositions[0].entree.reference, propositions[0].entree.voie].filter(Boolean).join(' — '))
+      : (champs.modele ? ech(champs.modele.valeur) : 'à choisir')}</td></tr>
+        <tr><th>Nombre pixel/m</th><td>${fmt(m.densite, 0)} px/m à ${fmt(m.portee)} m —
+          ${niveau === 'insuffisant' ? 'insuffisant' : SEUILS_DORI[niveau].label}</td></tr>
+        <tr><th>Hauteur d'implantation</th><td>${fmt(c.hauteur)} m</td></tr>
+      </table>
+      <table style="margin-top:2mm">
+        <thead><tr><th>Azimut</th><th>Portée</th><th>Ouverture</th><th>Largeur couverte</th></tr></thead>
+        <tbody><tr>
+          <td>${fmt(m.azimut, 0)} °</td><td>${fmt(m.portee)} m</td>
+          <td>${fmt(m.ouverture, 0)} °</td><td>${fmt(m.largeur)} m</td>
+        </tr></tbody>
+      </table>
+      ${cam.plan?.image?.img
+      ? `<figure style="margin:3mm 0 0"><img src="${planAnnote(cam).toDataURL('image/png')}" alt="" style="width:100%;border:1px solid #999">
+           <figcaption style="font-size:8pt">Champ tracé sur ${ech(cam.plan.image.nom || 'le plan')} — échelle relevée sur site.</figcaption></figure>`
+      : ''}
+    </section>`;
+  })()}
+
     <section>
       <h2>Vues comparées</h2>
       <div class="images">
@@ -1506,7 +1999,14 @@ function brancher() {
 
   brancherDepot('reference');
   brancherDepot('reglee');
+  brancherDepotPlan();
+  brancherPlan();
   brancherTracageZones();
+  $('#catalogue-ajouter').addEventListener('click', () => {
+    etat.catalogue.push(normaliserEntree({ reference: '', focaleMin: 4, focaleMax: 4 }, etat.catalogue.length));
+    enregistrerCatalogue();
+    majCatalogue();
+  });
 
   $('#btn-analyser').addEventListener('click', analyser);
   ['#man-tx', '#man-ty', '#man-echelle', '#man-rotation'].forEach((s) => {
@@ -1518,11 +2018,7 @@ function brancher() {
     recalageManuel();
   });
 
-  $$('.mode').forEach((b) => b.addEventListener('click', () => {
-    $$('.mode').forEach((x) => x.classList.toggle('actif', x === b));
-    etat.mode = b.dataset.mode;
-    majVisionneuse();
-  }));
+  $$('.mode').forEach((b) => b.addEventListener('click', () => basculerMode(b.dataset.mode)));
   ['#opacite', '#rideau'].forEach((s) => $(s).addEventListener('input', () => {
     $('#out-opacite').textContent = `${$('#opacite').value} %`;
     majVisionneuse();
@@ -1578,6 +2074,8 @@ function brancher() {
 remplirSelecteurs();
 basculerChampsLibres();
 brancher();
+etat.catalogue = chargerCatalogue();
+majCatalogue();
 etat.cameras = [nouvelleCamera('CAM 01')];
 chargerCamera(0);
 majEtiquettesCurseurs();

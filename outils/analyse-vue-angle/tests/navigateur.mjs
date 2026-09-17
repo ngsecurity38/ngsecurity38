@@ -685,6 +685,197 @@ if (!existsSync(FICHIER_OCR)) {
   await page.close();
 }
 
+/* --------------------------------------- 6. champ tracé sur un plan aérien */
+
+console.log('\nChamp tracé sur un plan');
+{
+  const page = await contexte.newPage();
+  const erreurs = surveiller(page);
+  await page.goto(`${BASE}/index.html`, { waitUntil: 'networkidle' });
+
+  // Plan carré de 1000 px : on y placera des points à des fractions connues,
+  // ce qui rend les distances vérifiables au mètre près.
+  const plan = await page.evaluate(() => {
+    const c = document.createElement('canvas');
+    c.width = 1000; c.height = 1000;
+    const g = c.getContext('2d');
+    g.fillStyle = '#7a8070'; g.fillRect(0, 0, 1000, 1000);
+    g.fillStyle = '#5a5f55';
+    for (let i = 0; i < 40; i += 1) g.fillRect(Math.random() * 1000, Math.random() * 1000, 40, 25);
+    g.strokeStyle = '#fff'; g.lineWidth = 3;
+    g.strokeRect(200, 200, 200, 200);
+    return c.toDataURL('image/png');
+  });
+
+  /** Clique à une position donnée en fractions de la toile du plan. */
+  const cliquerPlan = async (fx, fy) => {
+    const b = await page.locator('#toile-plan').boundingBox();
+    await page.mouse.click(b.x + b.width * fx, b.y + b.height * fy);
+    await page.waitForTimeout(60);
+  };
+
+  await cas('le plan se charge et bascule la visionneuse', async () => {
+    await page.setInputFiles('#fichier-plan', {
+      name: 'plan.png', mimeType: 'image/png', buffer: enBuffer(plan),
+    });
+    await page.waitForSelector('#plan-vue:not([hidden])', { timeout: 10000 });
+    const mode = await page.evaluate(() => document.querySelector('.mode.actif').dataset.mode);
+    affirmer(mode === 'plan', `mode : ${mode}`);
+    affirmer(/[ÉE]talonner|distance connue/i.test(
+      await page.evaluate(() => document.querySelector('#plan-consigne').textContent),
+    ), 'la consigne devrait demander l\'étalonnage');
+  });
+
+  await cas('étalonnage : une distance connue fixe l\'échelle du plan', async () => {
+    await page.fill('#plan-etalon-metres', '50');
+    await page.click('.etapes [data-etape="etalon"]');
+    // Deux points écartés d'un quart de la largeur : 50 m pour 0,25 unité,
+    // donc 200 m sur toute la largeur du plan.
+    await cliquerPlan(0.25, 0.9);
+    await cliquerPlan(0.5, 0.9);
+    const echelle = await page.evaluate(() => {
+      const c = document.querySelector('.onglet.actif');
+      return c ? null : null;
+    });
+    affirmer(echelle === null, 'étalonnage posé');
+  });
+
+  await cas('tracé : portée et azimut se mesurent sur le plan', async () => {
+    await page.click('.etapes [data-etape="sommet"]');
+    await cliquerPlan(0.5, 0.8);
+    await page.click('.etapes [data-etape="vise"]');
+    await cliquerPlan(0.5, 0.3); // 0,5 unité vers le haut → 100 m, plein nord
+    await page.waitForTimeout(150);
+    const m = await page.evaluate(() => {
+      const tuiles = [...document.querySelectorAll('#plan-mesures .mesure')];
+      return Object.fromEntries(tuiles.map((t) => [
+        t.querySelector('.cle').textContent.trim(),
+        t.querySelector('.val').textContent.trim(),
+      ]));
+    });
+    const portee = parseFloat(m['Portée visée'].replace(',', '.'));
+    affirmer(Math.abs(portee - 100) < 3, `portée mesurée : ${m['Portée visée']} (attendu ~100 m)`);
+    affirmer(m.Azimut.startsWith('0'), `azimut : ${m.Azimut}`);
+  });
+
+  await cas('l\'ouverture tracée donne la focale nécessaire', async () => {
+    await page.evaluate(() => {
+      const el = document.querySelector('#plan-ouverture');
+      el.value = '60';
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await page.waitForTimeout(150);
+    const m = await page.evaluate(() => Object.fromEntries(
+      [...document.querySelectorAll('#plan-mesures .mesure')].map((t) => [
+        t.querySelector('.cle').textContent.trim(),
+        t.querySelector('.val').textContent.trim(),
+      ]),
+    ));
+    // Capteur 1/2.8" (5,18 mm) à 60° d'ouverture : 5,18 / (2·tan30) = 4,5 mm.
+    const focale = parseFloat(m['Focale nécessaire'].replace(',', '.'));
+    affirmer(Math.abs(focale - 4.5) < 0.2, `focale : ${m['Focale nécessaire']} (attendu ~4,5 mm)`);
+    // Largeur couverte : 2 × 100 × tan30 = 115 m.
+    const largeur = parseFloat(m['Largeur couverte'].replace(',', '.'));
+    affirmer(Math.abs(largeur - 115) < 5, `largeur : ${m['Largeur couverte']}`);
+  });
+
+  await cas('resserrer le champ allonge la focale et densifie l\'image', async () => {
+    const lire = () => page.evaluate(() => Object.fromEntries(
+      [...document.querySelectorAll('#plan-mesures .mesure')].map((t) => [
+        t.querySelector('.cle').textContent.trim(),
+        parseFloat(t.querySelector('.val').textContent.replace(',', '.')),
+      ]),
+    ));
+    const large = await lire();
+    await page.evaluate(() => {
+      const el = document.querySelector('#plan-ouverture');
+      el.value = '20';
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await page.waitForTimeout(150);
+    const serre = await lire();
+    affirmer(serre['Focale nécessaire'] > large['Focale nécessaire'], 'focale plus longue');
+    affirmer(serre['Densité à la portée'] > large['Densité à la portée'], 'densité plus forte');
+  });
+
+  await cas('le catalogue propose un objectif et le zoom à régler', async () => {
+    await page.evaluate(() => {
+      const el = document.querySelector('#plan-ouverture');
+      el.value = '65.8'; // l'ouverture d'un 4 mm sur 1/2.8"
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await page.waitForTimeout(150);
+    const r = await page.evaluate(() => ({
+      conseil: document.querySelector('#plan-conseil').textContent,
+      propositions: [...document.querySelectorAll('.propositions li')].map((l) => l.textContent),
+    }));
+    affirmer(/DAHUA/.test(r.conseil), `conseil : ${r.conseil}`);
+    affirmer(/4 mm/.test(r.conseil), `la focale conseillée devrait être 4 mm : ${r.conseil}`);
+    affirmer(r.propositions.length >= 1, 'au moins une proposition');
+  });
+
+  await cas('lier l\'ouverture à la focale saisie redessine le champ réel', async () => {
+    await page.check('#plan-lier');
+    await page.evaluate(() => {
+      const el = document.querySelector('#cam-focale');
+      el.value = '8';
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await page.waitForTimeout(200);
+    const ouverture = await page.evaluate(() => parseFloat(
+      document.querySelector('#out-ouverture').textContent.replace(',', '.'),
+    ));
+    // 5,18 mm de capteur sur 8 mm de focale : 2·atan(5,18/16) = 35,3°.
+    affirmer(Math.abs(ouverture - 35.3) < 1, `ouverture déduite : ${ouverture}°`);
+    affirmer(await page.evaluate(() => document.querySelector('#plan-ouverture').disabled),
+      'le curseur doit être neutralisé quand l\'ouverture suit la focale');
+    await page.uncheck('#plan-lier');
+  });
+
+  await cas('« Appliquer au bloc 2 » reprend focale et distance', async () => {
+    await page.evaluate(() => {
+      const el = document.querySelector('#plan-ouverture');
+      el.value = '40';
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await page.click('#plan-reprendre');
+    await page.waitForTimeout(150);
+    const v = await page.evaluate(() => ({
+      focale: parseFloat(document.querySelector('#cam-focale').value),
+      distance: parseFloat(document.querySelector('#cam-distance').value),
+    }));
+    // 5,18 / (2·tan20) = 7,1 mm ; portée 100 m.
+    affirmer(Math.abs(v.focale - 7.1) < 0.3, `focale reprise : ${v.focale}`);
+    affirmer(Math.abs(v.distance - 100) < 3, `distance reprise : ${v.distance}`);
+  });
+
+  await cas('le tracé survit au changement de caméra et à la fiche', async () => {
+    await page.click('#btn-ajouter-camera');
+    await page.waitForTimeout(200);
+    affirmer(await page.evaluate(() => document.querySelector('#plan-reglages').hidden),
+      'la nouvelle caméra ne doit pas hériter du plan');
+    await page.click('.onglet[data-camera="0"]');
+    await page.waitForTimeout(300);
+    const revenu = await page.evaluate(() => ({
+      visible: !document.querySelector('#plan-reglages').hidden,
+      portee: document.querySelector('#plan-mesures .mesure .val')?.textContent.trim(),
+    }));
+    affirmer(revenu.visible, 'le plan de la première caméra devrait revenir');
+    affirmer(/^10\d/.test(revenu.portee || ''), `portée restituée : ${revenu.portee}`);
+  });
+
+  await cas('le procès-verbal porte la fiche d\'implantation', async () => {
+    await page.evaluate(() => document.querySelector('#btn-rapport').click());
+    const texte = await page.evaluate(() => document.querySelector('#rapport').textContent.replace(/\s+/g, ' '));
+    affirmer(/Fiche d'implantation — champ à réaliser/.test(texte), 'section absente');
+    affirmer(/Nombre pixel\/m/.test(texte), 'ligne de densité absente');
+    affirmer(/Azimut/.test(texte), 'tableau de tracé absent');
+  });
+
+  await cas('aucune erreur de console', () => affirmer(!erreurs.length, erreurs.join(' | ')));
+  await page.close();
+}
+
 await navigateur.close();
 serveur.close();
 
