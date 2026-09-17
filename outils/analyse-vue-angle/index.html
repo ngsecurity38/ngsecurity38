@@ -132,17 +132,21 @@
           <label>Hauteur de prise de vue (m)
             <input type="number" id="photo-hauteur" value="4.5" min="0.5" max="40" step="0.1">
           </label>
-          <label>Distance du point de calage (m)
-            <input type="number" id="photo-distance" value="25" min="1" max="500" step="1">
+          <label>Repère proche (m)
+            <input type="number" id="photo-distance" value="10" min="1" max="500" step="1">
+          </label>
+          <label>Repère lointain (m)
+            <input type="number" id="photo-distance2" value="30" min="1" max="500" step="1">
+          </label>
+          <label>Appareil <small>si un seul repère</small>
+            <select id="photo-appareil"></select>
           </label>
         </div>
-        <label>Appareil
-          <select id="photo-appareil"></select>
-        </label>
 
         <div class="etapes">
-          <button type="button" class="btn btn-fantome btn-petit" data-photo-etape="calage">1 · Caler la distance</button>
-          <button type="button" class="btn btn-fantome btn-petit" data-photo-etape="zone">2 · Entourer la zone</button>
+          <button type="button" class="btn btn-fantome btn-petit" data-photo-etape="calage">1 · Repère proche</button>
+          <button type="button" class="btn btn-fantome btn-petit" data-photo-etape="calage2">2 · Repère lointain</button>
+          <button type="button" class="btn btn-fantome btn-petit" data-photo-etape="zone">3 · Entourer la zone</button>
         </div>
         <label class="case">
           <input type="checkbox" id="photo-distances" checked> Afficher les lignes de distance
@@ -418,6 +422,7 @@
 
       <div class="plan-vue" id="photo-vue" hidden>
         <canvas id="toile-photo"></canvas>
+        <canvas id="toile-schema" hidden></canvas>
       </div>
     </div>
 

@@ -927,18 +927,31 @@ console.log('\nÉtude depuis une photo de repérage');
     await page.waitForSelector('#photo-vue:not([hidden])', { timeout: 10000 });
     const mode = await page.evaluate(() => document.querySelector('.mode.actif').dataset.mode);
     affirmer(mode === 'photo', `mode : ${mode}`);
-    affirmer(/calage|caler/i.test(await page.evaluate(() => document.querySelector('#photo-consigne').textContent)),
-      'la consigne devrait demander le calage');
+    affirmer(/repère/i.test(await page.evaluate(() => document.querySelector('#photo-consigne').textContent)),
+      'la consigne devrait demander le premier repère');
   });
 
-  await cas('calage : un point de distance connue donne l\'inclinaison', async () => {
+  await cas('un seul repère : le champ reste supposé', async () => {
     await page.fill('#photo-hauteur', '4.5');
-    await page.fill('#photo-distance', '25');
+    await page.fill('#photo-distance', '12');
+    await page.fill('#photo-distance2', '35');
     await page.click('[data-photo-etape="calage"]');
-    await cliquerPhoto(0.5, 0.55);
+    await cliquerPhoto(0.5, 0.82);
     const m = await tuiles();
+    affirmer(m['Champ supposé'], `un seul repère : le champ devrait être annoncé supposé — ${JSON.stringify(m)}`);
     const inclinaison = parseFloat((m['Inclinaison déduite'] || '').replace(',', '.'));
-    affirmer(inclinaison > 0 && inclinaison < 45, `inclinaison déduite : ${m['Inclinaison déduite']}`);
+    affirmer(inclinaison > 0 && inclinaison < 60, `inclinaison déduite : ${m['Inclinaison déduite']}`);
+  });
+
+  await cas('deux repères : l\'angle de vue est mesuré, plus supposé', async () => {
+    await page.click('[data-photo-etape="calage2"]');
+    await cliquerPhoto(0.5, 0.52);
+    const m = await tuiles();
+    affirmer(m['Champ mesuré'], `le champ devrait être mesuré — ${JSON.stringify(m)}`);
+    const champ = parseFloat(m['Champ mesuré'].replace(',', '.'));
+    affirmer(champ > 15 && champ < 150, `champ mesuré : ${m['Champ mesuré']}`);
+    const auto = await page.evaluate(() => document.querySelector('#photo-consigne').textContent);
+    affirmer(/zone|Zone/.test(auto), `la consigne devrait passer à la zone : ${auto}`);
   });
 
   await cas('la zone entourée est analysée toute seule', async () => {
@@ -946,6 +959,7 @@ console.log('\nÉtude depuis une photo de repérage');
     await glisser(0.2, 0.45, 0.8, 0.9);
     const m = await tuiles();
     const nb = (cle) => parseFloat((m[cle] || '').replace(',', '.'));
+    affirmer(m['Champ de la photo (mesuré)'], `le champ mesuré devrait être rappelé — ${JSON.stringify(m)}`);
     affirmer(nb('Angle de vue nécessaire') > 10 && nb('Angle de vue nécessaire') < 90,
       `angle : ${m['Angle de vue nécessaire']}`);
     affirmer(nb('Focale à poser') > 1 && nb('Focale à poser') < 40, `focale : ${m['Focale à poser']}`);
@@ -1002,7 +1016,18 @@ console.log('\nÉtude depuis une photo de repérage');
     affirmer(/reconnaître une personne déjà connue/.test(r.texte), 'explication en clair absente');
     affirmer(/Méthode et hypothèses/.test(r.texte), 'hypothèses absentes');
     affirmer(/sol est supposé plan/.test(r.texte), 'la limite du sol plan doit être écrite');
-    affirmer(r.images >= 1, 'la photo annotée doit figurer dans la proposition');
+    affirmer(/tracé d'angle/i.test(r.texte), 'le tracé d\'angle doit figurer dans la proposition');
+    affirmer(/mesuré sur deux repères/.test(r.texte), 'la provenance du champ doit être dite');
+    affirmer(r.images >= 2, `photo annotée et tracé d'angle attendus : ${r.images} image(s)`);
+  });
+
+  await cas('le tracé d\'angle est dessiné sous la photo', async () => {
+    const schema = await page.evaluate(() => {
+      const c = document.querySelector('#toile-schema');
+      return { visible: !c.hidden, largeur: c.width, hauteur: c.height };
+    });
+    affirmer(schema.visible, 'le schéma devrait être affiché');
+    affirmer(schema.largeur > 100 && schema.hauteur > 100, `dimensions : ${JSON.stringify(schema)}`);
   });
 
   await cas('le procès-verbal reste un document distinct', async () => {

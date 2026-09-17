@@ -8,6 +8,7 @@ import assert from 'node:assert/strict';
 import {
   rayon, pointAuSol, inclinaisonPourDistance, angleHorizontal, angleVertical,
   dimensionnerDepuisPhoto, porteeUtile, ordonneePourDistance, APPAREILS,
+  calibrerDeuxPoints, champVertical,
 } from '../js/photo.js';
 import { CAPTEURS, anglesDeChamp, niveauDori } from '../js/optique.js';
 
@@ -184,4 +185,67 @@ test('lignes d\'iso-distance : ordonnées croissantes vers le bas', () => {
   const v10 = ordonneePourDistance(0.5, 10, PRISE);
   const v30 = ordonneePourDistance(0.5, 30, PRISE);
   assert.ok(v10 > v30, 'les 10 m sont plus bas dans l\'image que les 30 m');
+});
+
+/* ------------------------------- calage automatique du champ de vision ---- */
+
+/** Fabrique deux repères à partir d'une prise de vue connue. */
+function reperes(prise, points) {
+  return points.map(([u, v]) => {
+    const p = pointAuSol(u, v, prise);
+    return { u, v, distance: p.distance };
+  });
+}
+
+test('deux points de distance connue donnent le champ ET l\'inclinaison', () => {
+  const vrai = { hauteur: 4.5, inclinaison: 18, angleH: 67, angleV: champVertical(67, 900 / 1600) };
+  const [a, b] = reperes(vrai, [[0.5, 0.45], [0.5, 0.85]]);
+  const r = calibrerDeuxPoints(a, b, { hauteur: 4.5, rapport: 900 / 1600 });
+  assert.ok(r, 'une solution est trouvée');
+  proche(r.angleH, 67, 0.5, 'champ horizontal retrouvé');
+  proche(r.inclinaison, 18, 0.2, 'inclinaison retrouvée');
+});
+
+test('calage automatique : un ultra grand-angle est reconnu comme tel', () => {
+  const vrai = { hauteur: 6, inclinaison: 30, angleH: 105, angleV: champVertical(105, 3 / 4) };
+  const [a, b] = reperes(vrai, [[0.4, 0.4], [0.6, 0.9]]);
+  const r = calibrerDeuxPoints(a, b, { hauteur: 6, rapport: 3 / 4 });
+  proche(r.angleH, 105, 1, 'champ large retrouvé');
+  proche(r.inclinaison, 30, 0.3);
+});
+
+test('calage automatique : un téléobjectif aussi', () => {
+  const vrai = { hauteur: 8, inclinaison: 12, angleH: 34, angleV: champVertical(34, 900 / 1600) };
+  const [a, b] = reperes(vrai, [[0.5, 0.35], [0.5, 0.8]]);
+  const r = calibrerDeuxPoints(a, b, { hauteur: 8, rapport: 900 / 1600 });
+  proche(r.angleH, 34, 0.8);
+  proche(r.inclinaison, 12, 0.2);
+});
+
+test('calage automatique : les distances mesurées retombent juste', () => {
+  const vrai = { hauteur: 4.5, inclinaison: 22, angleH: 74, angleV: champVertical(74, 900 / 1600) };
+  const [a, b] = reperes(vrai, [[0.3, 0.5], [0.7, 0.88]]);
+  const r = calibrerDeuxPoints(a, b, { hauteur: 4.5, rapport: 900 / 1600 });
+  const prise = { hauteur: 4.5, inclinaison: r.inclinaison, angleH: r.angleH, angleV: r.angleV };
+  proche(pointAuSol(a.u, a.v, prise).distance, a.distance, 0.1, 'premier repère');
+  proche(pointAuSol(b.u, b.v, prise).distance, b.distance, 0.1, 'second repère');
+});
+
+test('calage automatique : deux points à la même hauteur n\'apprennent rien', () => {
+  const vrai = { hauteur: 4.5, inclinaison: 18, angleH: 67, angleV: champVertical(67, 0.5625) };
+  const [a, b] = reperes(vrai, [[0.3, 0.7], [0.7, 0.705]]);
+  assert.equal(calibrerDeuxPoints(a, b, { hauteur: 4.5, rapport: 0.5625 }), null);
+});
+
+test('calage automatique : des distances incohérentes ne donnent rien', () => {
+  const a = { u: 0.5, v: 0.5, distance: 30 };
+  const b = { u: 0.5, v: 0.9, distance: 60 }; // plus bas dans l'image, donc plus près : impossible
+  assert.equal(calibrerDeuxPoints(a, b, { hauteur: 4.5, rapport: 0.5625 }), null);
+  assert.equal(calibrerDeuxPoints({ ...a, distance: 0 }, b, { hauteur: 4.5, rapport: 0.5625 }), null);
+  assert.equal(calibrerDeuxPoints(a, b, { hauteur: 0, rapport: 0.5625 }), null);
+});
+
+test('champ vertical : déduit du format de l\'image', () => {
+  proche(champVertical(90, 1), 90, 1e-9, 'image carrée');
+  assert.ok(champVertical(67, 900 / 1600) < 67, 'image en paysage : champ vertical plus étroit');
 });

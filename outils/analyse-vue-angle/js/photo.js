@@ -128,6 +128,78 @@ export function ordonneePourDistance(u, distance, prise) {
   return v > 0 && v < 1 ? v : null;
 }
 
+/** Champ vertical déduit du champ horizontal et du format de l'image. */
+export const champVertical = (angleH, rapport) => degres(
+  2 * Math.atan(Math.tan(radians(angleH) / 2) * rapport),
+);
+
+/**
+ * Champ de vision ET inclinaison déduits de deux points de distance connue.
+ *
+ * Choisir l'appareil dans une liste reste une approximation : un recadrage, un
+ * zoom intermédiaire, et l'échelle angulaire est fausse. Avec deux points du
+ * sol dont on connaît la distance, les deux inconnues se lèvent d'un coup —
+ * plus rien n'est supposé, tout est mesuré.
+ *
+ * Le premier point fixe l'inclinaison pour un champ donné ; le second dit si ce
+ * champ était le bon. On balaie les champs plausibles jusqu'au changement de
+ * signe de l'écart, puis on affine par dichotomie.
+ *
+ * @param {{u:number, v:number, distance:number}} a premier repère
+ * @param {{u:number, v:number, distance:number}} b second repère
+ * @param {{hauteur:number, rapport:number}} prise hauteur en m, rapport hauteur/largeur de l'image
+ * @returns {{angleH:number, angleV:number, inclinaison:number}|null}
+ */
+export function calibrerDeuxPoints(a, b, prise) {
+  const { hauteur, rapport } = prise;
+  if (!(hauteur > 0) || !(rapport > 0)) return null;
+  if (!(a.distance > 0) || !(b.distance > 0)) return null;
+  if (Math.abs(a.v - b.v) < 0.02) return null; // deux points à la même hauteur n'apprennent rien
+
+  const resoudre = (angleH) => {
+    const p = { hauteur, angleH, angleV: champVertical(angleH, rapport) };
+    const inclinaison = inclinaisonPourDistance(a.u, a.v, a.distance, p);
+    if (!(inclinaison > 0)) return null;
+    const sol = pointAuSol(b.u, b.v, { ...p, inclinaison });
+    if (!sol) return null;
+    return { inclinaison, ecart: sol.distance - b.distance };
+  };
+
+  // Balayage des champs plausibles, du téléobjectif au très grand-angle.
+  let precedent = null;
+  let borneBasse = null;
+  let borneHaute = null;
+  for (let angle = 15; angle <= 150; angle += 1) {
+    const r = resoudre(angle);
+    if (!r) { precedent = null; continue; }
+    if (precedent && Math.sign(r.ecart) !== Math.sign(precedent.ecart)) {
+      borneBasse = precedent.angle;
+      borneHaute = angle;
+      break;
+    }
+    precedent = { angle, ecart: r.ecart };
+  }
+  if (borneBasse === null) return null; // aucune solution dans la plage
+
+  for (let i = 0; i < 50; i += 1) {
+    const milieu = (borneBasse + borneHaute) / 2;
+    const r = resoudre(milieu);
+    if (!r) break;
+    const bas = resoudre(borneBasse);
+    if (Math.sign(r.ecart) === Math.sign(bas.ecart)) borneBasse = milieu;
+    else borneHaute = milieu;
+  }
+
+  const angleH = (borneBasse + borneHaute) / 2;
+  const final = resoudre(angleH);
+  if (!final) return null;
+  return {
+    angleH,
+    angleV: champVertical(angleH, rapport),
+    inclinaison: final.inclinaison,
+  };
+}
+
 /** Angle, par rapport à l'axe optique, du rayon passant par une abscisse. */
 export const angleHorizontal = (u, angleH) => degres(Math.atan((2 * u - 1) * Math.tan(radians(angleH) / 2)));
 

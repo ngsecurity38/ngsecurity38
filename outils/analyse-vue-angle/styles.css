@@ -463,3 +463,5 @@ table.catalogue input, table.catalogue select {
 table.catalogue col.ref { width: 34%; }
 table.catalogue col.foc { width: 17%; }
 table.catalogue col.sup { width: 16%; }
+
+#toile-schema { margin-top: 12px; cursor: default; background: #fff; }

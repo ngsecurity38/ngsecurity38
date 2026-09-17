@@ -34,16 +34,19 @@ Pour le mode d'emploi complet et la mise en ligne sur WordPress, voir
 
 ## Ce que fait l'outil
 
-1. **Étude depuis la photo de repérage** — le chemin principal. Une photo prise
-   depuis l'emplacement prévu, calée sur une distance connue, suffit à mesurer
-   les distances réelles de toute la scène : l'ordonnée d'un point dans l'image
-   donne sa distance. On entoure la zone à couvrir, l'outil en tire l'angle de
-   vue nécessaire, la focale, la définition obtenue et le niveau d'exploitation
-   garanti, puis propose le matériel. Des lignes d'iso-distance tracées sur la
-   photo rendent l'échelle vérifiable d'un coup d'œil.
+1. **Étude depuis la photo de repérage** — le chemin principal. Deux points du
+   sol dont la distance est connue suffisent à **mesurer** l'angle de vue de la
+   photo et son inclinaison — rien n'est supposé. L'ordonnée de n'importe quel
+   point donne alors sa distance réelle. On entoure la zone à couvrir, l'outil
+   en tire l'angle de vue nécessaire, la focale, la définition obtenue et le
+   niveau d'exploitation garanti, puis propose le matériel. Des lignes
+   d'iso-distance rendent l'échelle vérifiable d'un coup d'œil, et un **tracé
+   d'angle vu de dessus** est dessiné automatiquement, avec les portées de
+   chaque niveau d'exploitation.
 2. **Proposition client** — document commercial distinct du procès-verbal :
-   synthèse de couverture, photo annotée, matériel préconisé, tableau « ce que
-   permettra l'image » en français courant, méthode et hypothèses.
+   synthèse de couverture, photo annotée, tracé d'angle, matériel préconisé,
+   tableau « ce que permettra l'image » en français courant, méthode et
+   hypothèses.
 3. **Conception d'un champ sur plan** — tracer sur une vue aérienne la zone à
    couvrir, et en déduire portée, ouverture, largeur couverte, **focale
    nécessaire**, densité en pixels par mètre et niveau DORI atteint. Un
@@ -144,9 +147,10 @@ largeur d'image ne vaut pas la moitié d'un décalage de 50 %.
   distances. Les lignes d'iso-distance affichées servent justement à s'en
   apercevoir : si elles ne tombent pas où l'on sait que tombent les distances,
   le calage est à refaire.
-- Le champ de l'appareil ayant pris la photo est choisi dans une liste de
-  valeurs usuelles. Une photo prise avec un zoom intermédiaire, ou recadrée,
-  fausse l'échelle angulaire — et donc la focale calculée.
+- Le champ de l'appareil est mesuré dès que deux repères sont posés. Avec un
+  seul, il reste supposé d'après une liste de valeurs usuelles, et une photo
+  recadrée fausse alors l'échelle angulaire ; l'interface dit toujours dans
+  lequel des deux cas on se trouve.
 - La lecture du texte de l'étude suppose un **PDF **texte****. Une étude scannée en
   image ne donne rien : le panneau de relevé le dit et renvoie à la saisie
   manuelle. Les formulations reconnues sont celles des études d'implantation
@@ -179,9 +183,9 @@ techniciens reste en retard sur le dépôt.
 ## Tests
 
 ```bash
-npm test                 # 102 tests unitaires, sans navigateur
+npm test                 # 109 tests unitaires, sans navigateur
 npm run build
-npm run test:navigateur  # 59 tests de bout en bout (Playwright)
+npm run test:navigateur  # 61 tests de bout en bout (Playwright)
 ```
 
 Les tests unitaires couvrent les calculs d'optique, la récupération de
@@ -190,8 +194,8 @@ fort changement d'exposition), le rejet d'images sans rapport, la traduction des
 écarts en consignes, la lecture d'une étude (repérage des caméras, relevé des
 caractéristiques, rejet des faux positifs numériques, confrontation au matériel
 posé, densité exigée), la géométrie du tracé sur plan avec son choix
-d'objectif, la mesure des distances sur photo (sol plan, sténopé) avec son
-calage par point connu, et le format de dossier (conversion des fiches de la version 1, fichier
+d'objectif, la mesure des distances sur photo (sol plan, sténopé) avec le
+calage automatique du champ de vision sur deux repères, et le format de dossier (conversion des fiches de la version 1, fichier
 tronqué, nom de fichier proposé).
 
 Les tests navigateur vérifient ce qu'aucun test unitaire ne peut voir : le

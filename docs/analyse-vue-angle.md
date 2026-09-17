@@ -93,11 +93,17 @@ l'emplacement prévu de chaque caméra ; l'outil en tire tout le reste.
 2. **Renseigner la hauteur** de prise de vue, et choisir l'appareil dans la
    liste — téléphone, ultra grand-angle, caméra en place. C'est ce qui donne le
    champ de la photo.
-3. **Caler la photo.** Saisir une distance connue, puis cliquer le point du sol
-   qui s'y trouve : le portail, l'angle du bâtiment, une place de parking.
-   L'outil en déduit l'inclinaison de la prise de vue, et **des lignes de
-   distance apparaissent sur la photo** — 10 m, 15 m, 20 m, 30 m… posées à
-   l'endroit exact où elles tombent.
+3. **Poser deux repères.** Saisir une distance connue, cliquer le point du sol
+   qui s'y trouve ; recommencer avec un second point, plus haut dans l'image.
+   Un portail, l'angle d'un bâtiment, une place de parking suffisent.
+
+   Ces deux repères lèvent les deux inconnues : **l'angle de vue de la photo et
+   son inclinaison sont mesurés, plus supposés**. Le panneau l'affiche en
+   toutes lettres — « champ mesuré : 59,6° ». Avec un seul repère, l'outil se
+   rabat sur le champ déclaré de l'appareil et annonce « champ supposé ».
+
+   Des lignes de distance apparaissent alors sur la photo — 10 m, 15 m, 20 m,
+   30 m… posées à l'endroit exact où elles tombent.
 4. **Entourer la zone** que le client veut voir couverte, au cliquer-glisser.
 
 L'analyse se fait alors seule :
@@ -115,6 +121,18 @@ Puis le matériel : la caméra du catalogue qui donne cette focale, et le zoom �
 régler. Et un tableau des portées — jusqu'où on détecte, observe, reconnaît,
 identifie.
 
+### Le tracé d'angle
+
+Sous la photo, l'outil **dessine le champ vu de dessus** : la caméra, son cône à
+l'angle calculé, et des arcs marquant la distance au-delà de laquelle chaque
+niveau d'exploitation décroche. C'est le tracé qui figure sur les études
+d'implantation, produit sans plan ni vue aérienne, à partir des seules mesures
+faites sur la photo.
+
+**Exporter la photo annotée** enregistre les deux images : la photo avec sa zone
+et ses distances, et le tracé d'angle. Les deux figurent aussi dans la
+proposition client.
+
 > **Les lignes de distance ne sont pas décoratives.** Elles montrent que
 > l'échelle tient : si la ligne des 20 m ne tombe pas là où vous savez que se
 > trouvent 20 m, c'est que la hauteur ou le point de calage sont à revoir. Un
@@ -127,9 +145,10 @@ Le bouton **Proposition client** produit le document à remettre :
 1. l'affaire — client, site, n° d'affaire, date ;
 2. une **synthèse** d'une ligne par caméra : zone couverte, angle de vue,
    matériel préconisé, exploitation garantie ;
-3. par caméra : la **photo annotée** avec la zone et les distances, le tableau
-   du matériel préconisé, et un tableau **« Ce que permettra l'image »** en
-   français courant — « reconnaître une personne déjà connue : jusqu'à 14 m » ;
+3. par caméra : la **photo annotée** avec la zone et les distances, le **tracé
+   d'angle** vu de dessus, le tableau du matériel préconisé, et un tableau
+   **« Ce que permettra l'image »** en français courant — « reconnaître une
+   personne déjà connue : jusqu'à 14 m » ;
 4. les **méthode et hypothèses** en toutes lettres — sol supposé plan, valeurs
    de jour, mise en œuvre soumise au relevé définitif ;
 5. les deux cadres de signature.
