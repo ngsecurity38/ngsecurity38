@@ -33,6 +33,7 @@ export function nouvelleCamera(nom = 'Caméra 1') {
     repereEtude: null,
     images: { reference: null, reglee: null },
     plan: null, // tracé du champ sur une vue aérienne, cf. js/plan.js
+    etude3d: null, // zone entourée sur une photo de repérage, cf. js/photo.js
     zones: [],
     transformation: null,
     manuel: false,

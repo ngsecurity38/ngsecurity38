@@ -34,25 +34,35 @@ Pour le mode d'emploi complet et la mise en ligne sur WordPress, voir
 
 ## Ce que fait l'outil
 
-1. **Conception d'un champ sur plan** — tracer sur une vue aérienne la zone à
+1. **Étude depuis la photo de repérage** — le chemin principal. Une photo prise
+   depuis l'emplacement prévu, calée sur une distance connue, suffit à mesurer
+   les distances réelles de toute la scène : l'ordonnée d'un point dans l'image
+   donne sa distance. On entoure la zone à couvrir, l'outil en tire l'angle de
+   vue nécessaire, la focale, la définition obtenue et le niveau d'exploitation
+   garanti, puis propose le matériel. Des lignes d'iso-distance tracées sur la
+   photo rendent l'échelle vérifiable d'un coup d'œil.
+2. **Proposition client** — document commercial distinct du procès-verbal :
+   synthèse de couverture, photo annotée, matériel préconisé, tableau « ce que
+   permettra l'image » en français courant, méthode et hypothèses.
+3. **Conception d'un champ sur plan** — tracer sur une vue aérienne la zone à
    couvrir, et en déduire portée, ouverture, largeur couverte, **focale
    nécessaire**, densité en pixels par mètre et niveau DORI atteint. Un
    catalogue du matériel, tenu par l'agence, désigne alors la caméra à poser et
    le zoom à régler. Le plan annoté s'exporte, et le procès-verbal porte une
    fiche d'implantation au format des études.
-2. **Dossier de chantier** — une fiche porte autant de caméras que le site en
+4. **Dossier de chantier** — une fiche porte autant de caméras que le site en
    compte. Onglets avec pastille de verdict, synthèse d'avancement, un seul
    fichier `.json` pour tout le dossier et un procès-verbal unique. Les fiches
    de la version 1, à caméra unique, s'ouvrent toujours.
-3. **Import de l'étude au format PDF** — les pages du PDF remis par le client
+5. **Import de l'étude au format PDF** — les pages du PDF remis par le client
    sont affichées, on choisit celle qui porte la vue attendue et on recadre
    dessus pour n'en garder que l'image utile. Le procès-verbal cite ensuite le
    fichier et le numéro de page servis de référence.
-4. **Lecture des études scannées** — un PDF sans texte est reconnu comme tel et
+6. **Lecture des études scannées** — un PDF sans texte est reconnu comme tel et
    peut être passé en reconnaissance de caractères, hors ligne. Les valeurs
    ainsi obtenues sont signalées comme telles, à l'écran et au procès-verbal :
    un chiffre mal reconnu fausserait la mesure d'angle.
-5. **Relevé du texte de l'étude** — focale, angle de vue, capteur, résolution,
+7. **Relevé du texte de l'étude** — focale, angle de vue, capteur, résolution,
    distance et hauteur annoncés sont lus dans le texte du PDF, caméra par
    caméra, puis confrontés au matériel réellement posé. Chaque valeur est
    présentée avec sa page d'origine et son extrait : l'outil propose, le
@@ -62,18 +72,18 @@ Pour le mode d'emploi complet et la mise en ligne sur WordPress, voir
    **Texte lu** montre ce qui a été extrait,
    passages retenus surlignés, et se copie d'un clic : une formulation non
    reconnue se diagnostique sans sortir l'étude du dossier client.
-6. **Calculs optiques** — angles de champ horizontal / vertical / diagonal à
+8. **Calculs optiques** — angles de champ horizontal / vertical / diagonal à
    partir du capteur et de la focale, largeur de scène couverte, densité en
    pixels par mètre, portées DORI (EN 62676-4), zone morte au pied du mât,
    focale nécessaire pour couvrir une largeur donnée.
-7. **Recalage des deux vues** — estimation automatique du décalage, du zoom et
+9. **Recalage des deux vues** — estimation automatique du décalage, du zoom et
    du roulis entre l'image de référence et l'image réglée.
-8. **Diagnostic** — traduction de ce recalage en écarts de réglage réels
+10. **Diagnostic** — traduction de ce recalage en écarts de réglage réels
    (degrés de panoramique, de site, de roulis ; pourcentage de cadrage), note
    de conformité sur 100 et consignes d'intervention en clair.
-9. **Zones d'intérêt** — rectangles tracés sur la vue demandée, dont l'outil
+11. **Zones d'intérêt** — rectangles tracés sur la vue demandée, dont l'outil
    vérifie qu'ils restent couverts par le champ réellement réglé.
-10. **Fiche et rapport** — la fiche complète (paramètres + images) s'enregistre
+12. **Fiche et rapport** — la fiche complète (paramètres + images) s'enregistre
    en un fichier `.json` réouvrable ; le rapport s'imprime ou s'exporte en PDF.
 
 ## Organisation
@@ -83,6 +93,7 @@ Pour le mode d'emploi complet et la mise en ligne sur WordPress, voir
 | `index.html` | structure de la page |
 | `styles.css` | présentation, y compris la feuille d'impression du rapport |
 | `js/optique.js` | calculs d'optique — module pur, testé |
+| `js/photo.js` | mesure des distances sur une photo de repérage — module pur, testé |
 | `js/plan.js` | géométrie du champ tracé sur un plan — module pur, testé |
 | `js/catalogue.js` | matériel de l'agence et choix d'objectif — module pur, testé |
 | `js/alignement.js` | recalage des deux images — module pur, testé |
@@ -101,6 +112,7 @@ Pour le mode d'emploi complet et la mise en ligne sur WordPress, voir
 | `tests/etude.mjs` | tests unitaires de la lecture d'étude |
 | `tests/fiche.mjs` | tests unitaires du format de dossier |
 | `tests/plan.mjs` | tests unitaires du tracé sur plan et du catalogue |
+| `tests/photo.mjs` | tests unitaires de l'analyse depuis photo |
 | `tests/navigateur.mjs` | tests de bout en bout dans un vrai navigateur |
 
 Les trois modules de calcul ne touchent jamais au DOM : ils reçoivent des
@@ -127,6 +139,14 @@ largeur d'image ne vaut pas la moitié d'un décalage de 50 %.
 
 ### Limites
 
+- La mesure sur photo suppose un **sol plan** et une prise de vue **sans
+  roulis**. Un relief marqué, un dévers, ou un appareil penché faussent les
+  distances. Les lignes d'iso-distance affichées servent justement à s'en
+  apercevoir : si elles ne tombent pas où l'on sait que tombent les distances,
+  le calage est à refaire.
+- Le champ de l'appareil ayant pris la photo est choisi dans une liste de
+  valeurs usuelles. Une photo prise avec un zoom intermédiaire, ou recadrée,
+  fausse l'échelle angulaire — et donc la focale calculée.
 - La lecture du texte de l'étude suppose un **PDF **texte****. Une étude scannée en
   image ne donne rien : le panneau de relevé le dit et renvoie à la saisie
   manuelle. Les formulations reconnues sont celles des études d'implantation
@@ -159,9 +179,9 @@ techniciens reste en retard sur le dépôt.
 ## Tests
 
 ```bash
-npm test                 # 81 tests unitaires, sans navigateur
+npm test                 # 102 tests unitaires, sans navigateur
 npm run build
-npm run test:navigateur  # 49 tests de bout en bout (Playwright)
+npm run test:navigateur  # 59 tests de bout en bout (Playwright)
 ```
 
 Les tests unitaires couvrent les calculs d'optique, la récupération de
@@ -170,7 +190,8 @@ fort changement d'exposition), le rejet d'images sans rapport, la traduction des
 écarts en consignes, la lecture d'une étude (repérage des caméras, relevé des
 caractéristiques, rejet des faux positifs numériques, confrontation au matériel
 posé, densité exigée), la géométrie du tracé sur plan avec son choix
-d'objectif, et le format de dossier (conversion des fiches de la version 1, fichier
+d'objectif, la mesure des distances sur photo (sol plan, sténopé) avec son
+calage par point connu, et le format de dossier (conversion des fiches de la version 1, fichier
 tronqué, nom de fichier proposé).
 
 Les tests navigateur vérifient ce qu'aucun test unitaire ne peut voir : le

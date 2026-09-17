@@ -8,7 +8,7 @@
 
 import {
   CAPTEURS, SEUILS_DORI, anglesDeChamp, couverture, focaleRequise,
-  pixelsParMetre, tableauDori, niveauDori, zoneMorte, radians,
+  pixelsParMetre, tableauDori, niveauDori, zoneMorte, radians, degres,
 } from './optique.js';
 import {
   versGris, redimensionner, pretraiter, correlation, estimerTransformation,
@@ -23,6 +23,10 @@ import {
 import {
   echelleDuPlan, dimensionner, polygoneCone, ouverturePourFocale,
 } from './plan.js';
+import {
+  APPAREILS, dimensionnerDepuisPhoto, inclinaisonPourDistance,
+  ordonneePourDistance, porteeUtile,
+} from './photo.js';
 import {
   CATALOGUE_INITIAL, normaliserEntree, proposer, conseil, estFixe,
 } from './catalogue.js';
@@ -79,6 +83,8 @@ const etat = {
   etude: null, // { fichier, analyse } — valeurs lues dans le PDF d'étude, commun au dossier
   catalogue: [], // matériel de l'agence, cf. js/catalogue.js
   planEtape: null, // étape de tracé en cours sur le plan
+  photoEtape: null, // étape en cours sur la photo de repérage
+  document: 'pv', // 'pv' ou 'proposition' — ce que l'impression doit produire
   mode: 'cote',
   tracage: false,
   dernierDepot: 'reference',
@@ -99,6 +105,9 @@ function remplirSelecteurs() {
   const selRes = $('#cam-resolution');
   RESOLUTIONS.forEach((r, i) => selRes.append(new Option(r.label, String(i))));
   selRes.value = '0';
+
+  const selApp = $('#photo-appareil');
+  Object.keys(APPAREILS).forEach((cle) => selApp.append(new Option(cle, cle)));
 
   $('#ch-date').value = new Date().toISOString().slice(0, 10);
 }
@@ -210,6 +219,7 @@ function majOptique() {
       </tbody></table>`;
 
   majAideFocale(c);
+  if (cameraCourante()?.etude3d?.image) majPhoto();
   if (cameraCourante()?.plan?.image) majPlan();
   if (etat.etude) majEtude();
   if (etat.transformation) majDiagnostic();
@@ -240,8 +250,8 @@ function sauverCameraCourante() {
   cam.zones = etat.zones;
   cam.transformation = etat.transformation;
   cam.manuel = etat.manuel;
-  // L'élément image décodé ne se sérialise pas : seule la source est conservée.
-  if (cam.plan?.image?.img) cam.plan.image = { ...cam.plan.image, img: cam.plan.image.img };
+  // Les éléments image décodés ne se sérialisent pas : seules les sources
+  // partent dans la fiche, et sont redécodées au rechargement.
   cam.images = {
     reference: etat.reference && {
       nom: etat.reference.nom, dataUrl: etat.reference.dataUrl, source: etat.reference.source,
@@ -297,6 +307,19 @@ async function chargerCamera(i) {
   $('#info-plan').textContent = '';
   $('#plan-reglages').hidden = true;
   etat.planEtape = null;
+  $('#vignette-photo').hidden = true;
+  $('#vignette-photo').removeAttribute('src');
+  $('#depot-photo .depot-texte').hidden = false;
+  $('#info-photo').textContent = '';
+  $('#photo-reglages').hidden = true;
+  etat.photoEtape = null;
+  if (cam.etude3d?.image?.dataUrl) {
+    cam.etude3d.image.img = await chargerImage(cam.etude3d.image.dataUrl);
+    $('#vignette-photo').src = cam.etude3d.image.dataUrl;
+    $('#vignette-photo').hidden = false;
+    $('#depot-photo .depot-texte').hidden = true;
+    $('#info-photo').textContent = cam.etude3d.image.nom || 'photo';
+  }
   if (cam.plan?.image?.dataUrl) {
     cam.plan.image.img = await chargerImage(cam.plan.image.dataUrl);
     $('#vignette-plan').src = cam.plan.image.dataUrl;
@@ -307,6 +330,7 @@ async function chargerCamera(i) {
 
   synchroniserCurseurs();
   majOptique();
+  majPhoto();
   majPlan();
   majEtude();
   majZones();
@@ -382,6 +406,359 @@ function majSyntheseCourte() {
   const reste = etat.cameras.length - faits.length;
   $('#synthese-courte').textContent = `${conformes}/${faits.length} conforme${conformes > 1 ? 's' : ''}`
     + (reste ? ` — ${plur(reste, 'caméra')} à analyser` : '');
+}
+
+/* ============================================ étude depuis la photo */
+
+/** Distances jalonnées sur la photo, en mètres. */
+const JALONS = [5, 10, 15, 20, 30, 40, 50, 75, 100];
+
+/** Étude photo de la caméra affichée, créée à la demande. */
+function photoCourante() {
+  const cam = cameraCourante();
+  if (!cam) return null;
+  if (!cam.etude3d) {
+    cam.etude3d = {
+      image: null, hauteur: 4.5, appareil: 'Téléphone — objectif principal',
+      calage: null, distance: 25, inclinaison: null, zone: null,
+    };
+  }
+  return cam.etude3d;
+}
+
+/** Paramètres de prise de vue, champ vertical déduit du format de l'image. */
+function priseDeVue(etude) {
+  if (!etude?.image) return null;
+  const c = configCamera();
+  const angleH = APPAREILS[etude.appareil] || c.angles.horizontal;
+  const rapport = etude.image.hauteur / etude.image.largeur;
+  // Même optique, même capteur : le champ vertical se déduit du cadrage.
+  const angleV = degres(2 * Math.atan(Math.tan(radians(angleH) / 2) * rapport));
+  return {
+    hauteur: etude.hauteur,
+    inclinaison: etude.inclinaison ?? 0,
+    angleH,
+    angleV,
+  };
+}
+
+/** Étude de la zone entourée, ou null tant qu'il manque une pièce. */
+function mesurePhotoDe(cam) {
+  const etude = cam?.etude3d;
+  if (!etude?.image || !etude.zone || etude.inclinaison === null) return null;
+  const prise = { ...priseDeVue(etude), inclinaison: etude.inclinaison };
+  const c = configDe(cam.optique);
+  return { ...dimensionnerDepuisPhoto(etude.zone, prise, c.capteur, c.resolution), prise };
+}
+
+const mesurePhoto = () => {
+  const cam = cameraCourante();
+  if (!cam?.etude3d?.image) return null;
+  return mesurePhotoDe({ ...cam, optique: lireOptique() });
+};
+
+const CONSIGNES_PHOTO = {
+  calage: 'Calage : saisir la distance ci-dessus, puis cliquer sur la photo le point du sol qui se trouve à cette distance.',
+  zone: 'Zone : tracer par cliquer-glisser le rectangle que le client veut voir couvert.',
+  pret: 'Zone tracée. L\'analyse est faite : matériel proposé ci-dessous.',
+  aCaler: 'Commencer par caler la photo : sans un point de distance connue, aucune mesure n\'est possible.',
+  aTracer: 'Photo calée. Entourer maintenant la zone à couvrir.',
+};
+
+function majConsignePhoto() {
+  const etude = photoCourante();
+  const etape = etat.photoEtape;
+  let texte;
+  if (etape) texte = CONSIGNES_PHOTO[etape];
+  else if (etude.inclinaison === null) texte = CONSIGNES_PHOTO.aCaler;
+  else if (!etude.zone) texte = CONSIGNES_PHOTO.aTracer;
+  else texte = CONSIGNES_PHOTO.pret;
+  $('#photo-consigne').textContent = texte;
+  $$('[data-photo-etape]').forEach((b) => {
+    b.classList.toggle('actif', b.dataset.photoEtape === etape);
+    const fait = b.dataset.photoEtape === 'calage' ? etude.inclinaison !== null : !!etude.zone;
+    b.classList.toggle('fait', fait);
+  });
+}
+
+function majPhoto() {
+  const etude = photoCourante();
+  const pret = !!etude?.image;
+  $('#photo-reglages').hidden = !pret;
+  if (!pret) return;
+
+  $('#photo-hauteur').value = etude.hauteur;
+  $('#photo-distance').value = etude.distance;
+  $('#photo-appareil').value = etude.appareil;
+
+  const m = mesurePhoto();
+  const boite = $('#photo-mesures');
+  if (!m) {
+    boite.innerHTML = etude.inclinaison !== null
+      ? mesure('Inclinaison déduite', fmt(etude.inclinaison), '°', true)
+      : '';
+    $('#photo-conseil').textContent = '';
+    $('#photo-propositions').innerHTML = '';
+    $('#photo-portees').innerHTML = '';
+    majConsignePhoto();
+    majVisionneuse();
+    return;
+  }
+
+  const c = configCamera();
+  const niveau = niveauDori(m.densite);
+  boite.innerHTML = [
+    mesure('Angle de vue nécessaire', fmt(m.angleRequis), '°'),
+    mesure('Focale à poser', fmt(m.focale, 1), 'mm'),
+    mesure('Zone la plus proche', fmt(m.distanceMin), 'm'),
+    mesure('Zone la plus éloignée', fmt(m.distanceMax), 'm'),
+    mesure('Largeur au fond de zone', fmt(m.largeur), 'm'),
+    mesure('Définition au fond', fmt(m.densite, 0), 'px/m'),
+    mesure('Niveau garanti', niveau === 'insuffisant' ? 'Insuffisant' : SEUILS_DORI[niveau].label, '', true),
+  ].join('');
+
+  const type = /^Thermique/i.test(c.capteurCle) ? 'thermique' : 'visible';
+  const propositions = proposer(etat.catalogue, m.focale, { type });
+  $('#photo-conseil').textContent = conseil(m.focale, propositions).texte;
+  $('#photo-propositions').innerHTML = propositions.length
+    ? `<ul class="propositions">${propositions.map((p) => {
+      const nom = [p.entree.reference, p.entree.voie].filter(Boolean).join(' — ');
+      const reglage = estFixe(p.entree) ? `fixe ${fmt(p.entree.focaleMin, 1)} mm` : `zoom ${fmt(p.reglage, 1)} mm`;
+      return `<li><span>${ech(nom)}</span><span class="reglage">${reglage}</span></li>`;
+    }).join('')}</ul>`
+    : '';
+
+  $('#photo-portees').innerHTML = `<table class="dori">
+      <thead><tr><th>Ce que permet l'image</th><th>Jusqu'à</th></tr></thead>
+      <tbody>${tableauPortees(m, c).map((l) => `
+        <tr><td>${l.label}</td><td>${l.distance >= m.distanceMax ? 'toute la zone' : `${fmt(l.distance)} m`}</td></tr>`).join('')}
+      </tbody></table>`;
+
+  majConsignePhoto();
+  majVisionneuse();
+}
+
+/** Portée utile de chaque niveau d'exploitation, avec l'angle retenu. */
+function tableauPortees(m, c) {
+  return Object.values(SEUILS_DORI).map((s) => ({
+    label: s.label,
+    distance: porteeUtile(c.resolution.h, m.angleRequis, s.ppm),
+  }));
+}
+
+/* ------------------------------------------------------------ rendu photo */
+
+function rendrePhoto() {
+  const etude = photoCourante();
+  if (!etude?.image?.img) return;
+  const toile = $('#toile-photo');
+  const { l, h } = dimensionsRendu(etude.image.img);
+  toile.width = l;
+  toile.height = h;
+  const ctx = toile.getContext('2d');
+  ctx.drawImage(etude.image.img, 0, 0, l, h);
+  dessinerAnnotationsPhoto(ctx, l, h, etude, mesurePhoto());
+}
+
+function dessinerAnnotationsPhoto(ctx, l, h, etude, m) {
+  const trait = Math.max(1.5, l / 600);
+  const prise = { ...priseDeVue(etude), inclinaison: etude.inclinaison ?? 0 };
+  ctx.save();
+  ctx.lineWidth = trait;
+
+  // Lignes de distance : la preuve visuelle que l'échelle est juste.
+  if (etude.inclinaison !== null && $('#photo-distances').checked) {
+    ctx.setLineDash([10, 6]);
+    // Près de l'horizon les jalons se tassent : on saute ceux qui se
+    // chevaucheraient, une échelle illisible ne prouve rien.
+    let precedent = Infinity;
+    for (const d of JALONS) {
+      const v = ordonneePourDistance(0.5, d, prise);
+      if (v === null) continue;
+      const y = v * h;
+      if (precedent - y < trait * 16) continue;
+      precedent = y;
+      ctx.strokeStyle = 'rgba(255, 212, 0, .75)';
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(l, y);
+      ctx.stroke();
+      etiquette(ctx, `${d} m`, 8, Math.max(0, y - trait * 12), l);
+    }
+    ctx.setLineDash([]);
+  }
+
+  if (etude.calage) {
+    const p = { x: etude.calage.u * l, y: etude.calage.v * h };
+    ctx.strokeStyle = '#3d8bfd';
+    ctx.lineWidth = trait * 1.4;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, trait * 5, 0, Math.PI * 2);
+    ctx.stroke();
+    etiquette(ctx, `calage ${fmt(etude.distance)} m`, p.x + trait * 7, p.y - trait * 7, l);
+  }
+
+  if (etude.zone) {
+    const z = etude.zone;
+    const x = Math.min(z.u1, z.u2) * l;
+    const y = Math.min(z.v1, z.v2) * h;
+    const larg = Math.abs(z.u2 - z.u1) * l;
+    const haut = Math.abs(z.v2 - z.v1) * h;
+    ctx.fillStyle = 'rgba(232, 86, 20, .22)';
+    ctx.fillRect(x, y, larg, haut);
+    ctx.strokeStyle = '#e85614';
+    ctx.lineWidth = trait * 1.6;
+    ctx.strokeRect(x, y, larg, haut);
+    if (m) {
+      etiquette(ctx, `${fmt(m.angleRequis)}° · ${fmt(m.focale, 1)} mm · ${fmt(m.densite, 0)} px/m`,
+        x + 6, Math.max(0, y - trait * 14), l);
+    }
+  }
+  ctx.restore();
+}
+
+/* ------------------------------------------------------ interactions photo */
+
+function brancherPhoto() {
+  const toile = $('#toile-photo');
+  const position = (e) => {
+    const r = toile.getBoundingClientRect();
+    return {
+      u: Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)),
+      v: Math.min(1, Math.max(0, (e.clientY - r.top) / r.height)),
+    };
+  };
+  let depart = null;
+
+  toile.addEventListener('pointerdown', (e) => {
+    const etude = photoCourante();
+    if (!etude?.image || etat.photoEtape !== 'zone') return;
+    depart = position(e);
+    toile.setPointerCapture(e.pointerId);
+  });
+  toile.addEventListener('pointermove', (e) => {
+    if (!depart) return;
+    const p = position(e);
+    photoCourante().zone = { u1: depart.u, v1: depart.v, u2: p.u, v2: p.v };
+    rendrePhoto();
+  });
+  toile.addEventListener('pointerup', (e) => {
+    if (!depart) return;
+    const p = position(e);
+    const etude = photoCourante();
+    if (Math.abs(p.u - depart.u) > 0.03 && Math.abs(p.v - depart.v) > 0.03) {
+      etude.zone = { u1: depart.u, v1: depart.v, u2: p.u, v2: p.v };
+      etat.photoEtape = null;
+    } else {
+      etude.zone = null;
+    }
+    depart = null;
+    majPhoto();
+  });
+
+  toile.addEventListener('click', (e) => {
+    const etude = photoCourante();
+    if (!etude?.image || etat.photoEtape !== 'calage') return;
+    const p = position(e);
+    etude.calage = p;
+    etude.distance = nb($('#photo-distance'), 25);
+    etude.inclinaison = inclinaisonPourDistance(p.u, p.v, etude.distance, priseDeVue(etude));
+    etat.photoEtape = etude.zone ? null : 'zone';
+    majPhoto();
+  });
+
+  $$('[data-photo-etape]').forEach((b) => b.addEventListener('click', () => {
+    etat.photoEtape = b.dataset.photoEtape;
+    if (etat.mode !== 'photo') basculerMode('photo');
+    majConsignePhoto();
+  }));
+
+  ['#photo-hauteur', '#photo-distance'].forEach((sel) => $(sel).addEventListener('input', () => {
+    const etude = photoCourante();
+    etude.hauteur = nb($('#photo-hauteur'), 4.5);
+    etude.distance = nb($('#photo-distance'), 25);
+    // Le calage dépend de ces deux valeurs : il se refait tout seul.
+    if (etude.calage) {
+      etude.inclinaison = inclinaisonPourDistance(
+        etude.calage.u, etude.calage.v, etude.distance, priseDeVue(etude),
+      );
+    }
+    majPhoto();
+  }));
+  $('#photo-appareil').addEventListener('change', () => {
+    const etude = photoCourante();
+    etude.appareil = $('#photo-appareil').value;
+    if (etude.calage) {
+      etude.inclinaison = inclinaisonPourDistance(
+        etude.calage.u, etude.calage.v, etude.distance, priseDeVue(etude),
+      );
+    }
+    majPhoto();
+  });
+  $('#photo-distances').addEventListener('change', () => majVisionneuse());
+  $('#photo-effacer').addEventListener('click', () => {
+    const etude = photoCourante();
+    etude.zone = null;
+    etude.calage = null;
+    etude.inclinaison = null;
+    etat.photoEtape = 'calage';
+    majPhoto();
+  });
+  $('#photo-reprendre').addEventListener('click', () => {
+    const m = mesurePhoto();
+    if (!m) return;
+    $('#cam-focale').value = Math.round(m.focale * 10) / 10;
+    $('#cam-distance').value = Math.round(m.distanceMax * 10) / 10;
+    $('#cam-hauteur').value = photoCourante().hauteur;
+    majOptique();
+    majPhoto();
+  });
+  $('#photo-exporter').addEventListener('click', () => {
+    const toileExport = photoAnnotee(cameraCourante());
+    if (!toileExport) return;
+    const a = document.createElement('a');
+    a.href = toileExport.toDataURL('image/jpeg', 0.9);
+    a.download = `${(cameraCourante()?.nom || 'camera').replace(/\s+/g, '-').toLowerCase()}-zone.jpg`;
+    a.click();
+  });
+  $('#photo-depuis-reglee').addEventListener('click', () => {
+    if (!etat.reglee) {
+      $('#etat-analyse').textContent = 'Charger d\'abord l\'image réglée dans le bloc 3.';
+      $('#etat-analyse').classList.add('erreur');
+      return;
+    }
+    definirPhoto(etat.reglee.dataUrl, etat.reglee.nom);
+    photoCourante().appareil = 'Caméra en place (champ calculé au bloc 2)';
+    majPhoto();
+  });
+}
+
+/** Photo annotée en pleine définition, pour l'export et la proposition. */
+function photoAnnotee(cam) {
+  const etude = cam?.etude3d;
+  if (!etude?.image?.img) return null;
+  const toile = document.createElement('canvas');
+  const l = etude.image.img.naturalWidth;
+  const h = etude.image.img.naturalHeight;
+  toile.width = l;
+  toile.height = h;
+  const ctx = toile.getContext('2d');
+  ctx.drawImage(etude.image.img, 0, 0);
+  dessinerAnnotationsPhoto(ctx, l, h, etude, mesurePhotoDe(cam));
+  return toile;
+}
+
+async function definirPhoto(dataUrl, nom) {
+  const img = await chargerImage(dataUrl);
+  const etude = photoCourante();
+  etude.image = { nom, dataUrl, img, largeur: img.naturalWidth, hauteur: img.naturalHeight };
+  $('#vignette-photo').src = dataUrl;
+  $('#vignette-photo').hidden = false;
+  $('#depot-photo .depot-texte').hidden = true;
+  $('#info-photo').textContent = `${nom} — ${img.naturalWidth} × ${img.naturalHeight} px`;
+  if (etude.inclinaison === null) etat.photoEtape = 'calage';
+  basculerMode('photo');
+  majPhoto();
 }
 
 /* ================================================== champ tracé sur plan */
@@ -1074,6 +1451,38 @@ async function traiterFichier(role, fichier) {
   await definirImage(role, await lireFichier(fichier), fichier.name);
 }
 
+/** Dépôt de la photo de repérage. */
+function brancherDepotPhoto() {
+  const zone = $('#depot-photo');
+  const entree = $('#fichier-photo');
+  const traiter = async (fichier) => {
+    if (!fichier || !fichier.type.startsWith('image/')) {
+      $('#etat-analyse').textContent = 'La photo de repérage doit être une image.';
+      $('#etat-analyse').classList.add('erreur');
+      return;
+    }
+    await definirPhoto(await lireFichier(fichier), fichier.name);
+  };
+  zone.addEventListener('click', () => { etat.dernierDepot = 'photo'; entree.click(); });
+  zone.addEventListener('focus', () => { etat.dernierDepot = 'photo'; });
+  zone.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); entree.click(); }
+  });
+  entree.addEventListener('change', () => {
+    if (entree.files[0]) traiter(entree.files[0]);
+    entree.value = '';
+  });
+  ['dragenter', 'dragover'].forEach((ev) => zone.addEventListener(ev, (e) => {
+    e.preventDefault(); zone.classList.add('survol'); etat.dernierDepot = 'photo';
+  }));
+  ['dragleave', 'drop'].forEach((ev) => zone.addEventListener(ev, () => zone.classList.remove('survol')));
+  zone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    if (e.dataTransfer.files[0]) traiter(e.dataTransfer.files[0]);
+  });
+  etat.traiterPhoto = traiter;
+}
+
 /** Dépôt du plan : même geste que pour les vues, autre destination. */
 function brancherDepotPlan() {
   const zone = $('#depot-plan');
@@ -1127,6 +1536,10 @@ document.addEventListener('paste', (e) => {
   e.preventDefault();
   if (etat.dernierDepot === 'plan') {
     traiterPlan(item.getAsFile());
+    return;
+  }
+  if (etat.dernierDepot === 'photo') {
+    etat.traiterPhoto(item.getAsFile());
     return;
   }
   const role = etat.reference ? etat.dernierDepot : 'reference';
@@ -1316,11 +1729,24 @@ function basculerMode(mode) {
 function majVisionneuse() {
   const pret = etat.reference && etat.reglee;
   const plan = cameraCourante()?.plan;
+  const etudePhoto = cameraCourante()?.etude3d;
   const surPlan = etat.mode === 'plan';
-  $('#message-vide').hidden = !!(etat.reference || etat.reglee) || surPlan;
+  const surPhoto = etat.mode === 'photo';
+  $('#message-vide').hidden = !!(etat.reference || etat.reglee) || surPlan || surPhoto;
   $('#paire').hidden = etat.mode !== 'cote' || !(etat.reference || etat.reglee);
-  $('#fusion').hidden = surPlan || etat.mode === 'cote' || !pret;
+  $('#fusion').hidden = surPlan || surPhoto || etat.mode === 'cote' || !pret;
   $('#plan-vue').hidden = !(surPlan && plan?.image?.img);
+  $('#photo-vue').hidden = !(surPhoto && etudePhoto?.image?.img);
+  if (surPhoto) {
+    if (etudePhoto?.image?.img) rendrePhoto();
+    else {
+      $('#message-vide').hidden = false;
+      $('#message-vide').innerHTML = '<h3>Charger une photo de repérage</h3>'
+        + '<p>Une photo prise depuis l\'emplacement prévu de la caméra.<br>'
+        + 'La zone à couvrir se trace dessus.</p>';
+    }
+    return;
+  }
   if (surPlan) {
     if (plan?.image?.img) rendrePlan();
     else {
@@ -1668,9 +2094,13 @@ function fiche() {
     tolerances: { ...tolerancesActuelles(), zone: nb($('#tol-zone'), 95) },
     etude: etat.etude,
     catalogue: etat.catalogue,
-    cameras: etat.cameras.map((cam) => (cam.plan?.image
-      ? { ...cam, plan: { ...cam.plan, image: { ...cam.plan.image, img: undefined } } }
-      : cam)),
+    cameras: etat.cameras.map((cam) => ({
+      ...cam,
+      plan: cam.plan?.image
+        ? { ...cam.plan, image: { ...cam.plan.image, img: undefined } } : cam.plan,
+      etude3d: cam.etude3d?.image
+        ? { ...cam.etude3d, image: { ...cam.etude3d.image, img: undefined } } : cam.etude3d,
+    })),
   };
 }
 
@@ -1927,6 +2357,146 @@ function sectionCamera({ cam, d, etude }, rang, seule) {
     </div>`;
 }
 
+/**
+ * Proposition d'implantation remise au client.
+ *
+ * Document commercial, distinct du procès-verbal de réception : il dit ce qui
+ * est proposé et ce que le client pourra en faire, avec la photo du site à
+ * l'appui. Les hypothèses y figurent en toutes lettres — une proposition qui
+ * tait ses conditions de validité n'engage personne.
+ */
+function construireProposition() {
+  sauverCameraCourante();
+  const ch = {
+    client: ech($('#ch-client').value) || '—',
+    site: ech($('#ch-site').value) || '—',
+    affaire: ech($('#ch-affaire').value) || '—',
+    date: ech($('#ch-date').value) || '—',
+    technicien: ech($('#ch-technicien').value) || '—',
+  };
+
+  const etudes = etat.cameras.map((cam) => {
+    const m = mesurePhotoDe(cam);
+    const c = configDe(cam.optique);
+    const type = /^Thermique/i.test(c.capteurCle) ? 'thermique' : 'visible';
+    const propositions = m ? proposer(etat.catalogue, m.focale, { type }) : [];
+    return { cam, m, c, propositions, avis: m ? conseil(m.focale, propositions) : null };
+  });
+  const retenues = etudes.filter((e) => e.m);
+
+  const materiel = (e) => (e.propositions.length
+    ? ech([e.propositions[0].entree.reference, e.propositions[0].entree.voie].filter(Boolean).join(' — '))
+    : `objectif ${fmt(e.avis.focale, 1)} mm — référence à arrêter`);
+
+  $('#rapport').innerHTML = `
+    <h1>Proposition d'implantation vidéoprotection</h1>
+    <p class="sous-titre">NG Security 38 — étude de couverture et matériel préconisé</p>
+
+    <section>
+      <h2>Affaire</h2>
+      <table>
+        <tr><th>Client</th><td>${ch.client}</td><th>N° d'affaire</th><td>${ch.affaire}</td></tr>
+        <tr><th>Site</th><td>${ch.site}</td><th>Date</th><td>${ch.date}</td></tr>
+        <tr><th>Caméras proposées</th><td>${retenues.length}</td><th>Établie par</th><td>${ch.technicien}</td></tr>
+      </table>
+    </section>
+
+    ${retenues.length ? `<section>
+      <h2>Synthèse de la couverture</h2>
+      <table class="synthese">
+        <thead><tr>
+          <th>Poste</th><th>Zone couverte</th><th>Angle de vue</th>
+          <th>Matériel préconisé</th><th>Exploitation garantie</th>
+        </tr></thead>
+        <tbody>${retenues.map((e) => {
+    const niveau = niveauDori(e.m.densite);
+    return `<tr>
+            <td>${ech(e.cam.nom || 'Caméra')}</td>
+            <td>de ${fmt(e.m.distanceMin)} à ${fmt(e.m.distanceMax)} m</td>
+            <td>${fmt(e.m.angleRequis)} °</td>
+            <td>${materiel(e)}</td>
+            <td>${niveau === 'insuffisant' ? 'insuffisante' : SEUILS_DORI[niveau].label.toLowerCase()}
+              jusqu'à ${fmt(e.m.distanceMax)} m</td>
+          </tr>`;
+  }).join('')}</tbody>
+      </table>
+    </section>` : '<section><h2>Synthèse</h2><p>Aucune zone n\'a encore été étudiée sur photo.</p></section>'}
+
+    ${retenues.map((e, i) => {
+    const niveau = niveauDori(e.m.densite);
+    const portees = tableauPortees(e.m, e.c);
+    const photo = photoAnnotee(e.cam);
+    return `<div class="${i > 0 ? 'saut' : ''}">
+      <p class="camera-titre">${ech(e.cam.nom || `Caméra ${i + 1}`)}</p>
+
+      ${photo ? `<section>
+        <h2>Zone à couvrir</h2>
+        <img src="${photo.toDataURL('image/jpeg', 0.85)}" alt="" style="width:100%;border:1px solid #999">
+        <p style="font-size:8pt;margin:1mm 0 0">
+          Photo prise depuis l'emplacement prévu, à ${fmt(e.cam.etude3d.hauteur)} m de hauteur.
+          En orange, la zone retenue ; en pointillés jaunes, les distances relevées sur le terrain.
+        </p>
+      </section>` : ''}
+
+      <section>
+        <h2>Matériel préconisé</h2>
+        <table>
+          <tr><th>Caméra</th><td colspan="3">${materiel(e)}</td></tr>
+          <tr><th>Objectif</th><td>${fmt(e.m.focale, 1)} mm</td>
+              <th>Angle de vue</th><td>${fmt(e.m.angleRequis)} °</td></tr>
+          <tr><th>Hauteur de pose</th><td>${fmt(e.cam.etude3d.hauteur)} m</td>
+              <th>Définition</th><td>${e.c.resolution.h} × ${e.c.resolution.v} px</td></tr>
+          <tr><th>Zone couverte</th><td>de ${fmt(e.m.distanceMin)} à ${fmt(e.m.distanceMax)} m</td>
+              <th>Largeur au fond</th><td>${fmt(e.m.largeur)} m</td></tr>
+        </table>
+        ${e.avis ? `<p style="font-size:9pt;margin-top:2mm">${ech(e.avis.texte)}</p>` : ''}
+      </section>
+
+      <section>
+        <h2>Ce que permettra l'image</h2>
+        <table>
+          <thead><tr><th>Niveau d'exploitation</th><th>Ce que l'on peut en faire</th><th>Jusqu'à</th></tr></thead>
+          <tbody>
+            <tr><td>Détection</td><td>constater qu'une personne est présente</td>
+                <td>${fmt(portees[0].distance)} m</td></tr>
+            <tr><td>Observation</td><td>suivre ses déplacements, décrire sa tenue</td>
+                <td>${fmt(portees[1].distance)} m</td></tr>
+            <tr><td>Reconnaissance</td><td>reconnaître une personne déjà connue</td>
+                <td>${fmt(portees[2].distance)} m</td></tr>
+            <tr><td>Identification</td><td>identifier un inconnu, exploitable en justice</td>
+                <td>${fmt(portees[3].distance)} m</td></tr>
+          </tbody>
+        </table>
+        <p class="bandeau">Sur la zone demandée, jusqu'à ${fmt(e.m.distanceMax)} m :
+          ${niveau === 'insuffisant'
+    ? 'la définition reste insuffisante — resserrer la zone ou rapprocher la caméra'
+    : `${SEUILS_DORI[niveau].label.toLowerCase()} (${fmt(e.m.densite, 0)} pixels par mètre)`}</p>
+      </section>
+      </div>`;
+  }).join('')}
+
+    <section class="saut">
+      <h2>Méthode et hypothèses</h2>
+      <ul>
+        <li>Les distances sont mesurées sur les photos du site, à partir de la
+          hauteur de prise de vue et d'un point de distance connue relevé sur place.</li>
+        <li>Le sol est supposé plan sur la zone étudiée ; un relief marqué modifie
+          les distances annoncées.</li>
+        <li>Les niveaux d'exploitation suivent la norme EN 62676-4 : 25 pixels par
+          mètre pour détecter, 62 pour observer, 125 pour reconnaître, 250 pour identifier.</li>
+        <li>Les valeurs annoncées valent de jour, par temps clair. De nuit, la portée
+          utile dépend de l'éclairage du site et de la portée infrarouge du matériel.</li>
+        <li>La mise en œuvre est soumise au relevé définitif sur site : hauteurs
+          réelles de fixation, cheminements de câbles et contraintes d'accès.</li>
+      </ul>
+    </section>
+
+    <div class="signatures">
+      <div>NG Security 38 — ${ch.technicien}<br>Date et signature :</div>
+      <div>Le client — ${ch.client}<br>Date, signature et mention « bon pour accord » :</div>
+    </div>`;
+}
+
 function construireRapport() {
   sauverCameraCourante();
   const ch = {
@@ -2000,7 +2570,9 @@ function brancher() {
   brancherDepot('reference');
   brancherDepot('reglee');
   brancherDepotPlan();
+  brancherDepotPhoto();
   brancherPlan();
+  brancherPhoto();
   brancherTracageZones();
   $('#catalogue-ajouter').addEventListener('click', () => {
     etat.catalogue.push(normaliserEntree({ reference: '', focaleMin: 4, focaleMax: 4 }, etat.catalogue.length));
@@ -2067,6 +2639,10 @@ function brancher() {
   });
   $('#btn-rapport').addEventListener('click', () => {
     construireRapport();
+    window.print();
+  });
+  $('#btn-proposition').addEventListener('click', () => {
+    construireProposition();
     window.print();
   });
 }

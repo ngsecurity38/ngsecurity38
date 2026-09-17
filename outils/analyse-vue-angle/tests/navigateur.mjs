@@ -876,6 +876,159 @@ console.log('\nChamp tracé sur un plan');
   await page.close();
 }
 
+/* ----------------------------- 7. étude depuis une photo, et proposition client */
+
+console.log('\nÉtude depuis une photo de repérage');
+{
+  const page = await contexte.newPage();
+  const erreurs = surveiller(page);
+  await page.goto(`${BASE}/index.html`, { waitUntil: 'networkidle' });
+
+  // Photo type : ciel en haut, cour au sol, quelques objets pour la lisibilité.
+  const photo = await page.evaluate(() => {
+    const c = document.createElement('canvas');
+    c.width = 1600; c.height = 900;
+    const g = c.getContext('2d');
+    g.fillStyle = '#aebfd0'; g.fillRect(0, 0, 1600, 300);
+    g.fillStyle = '#8a8a82'; g.fillRect(0, 300, 1600, 600);
+    g.fillStyle = '#3a5f2a'; g.fillRect(0, 280, 1600, 40);
+    for (let i = 0; i < 6; i += 1) {
+      g.fillStyle = '#2f5f9e';
+      g.fillRect(1100 + i * 80, 340 + i * 30, 70, 50 + i * 10);
+    }
+    g.fillStyle = '#d8d8d2'; g.fillRect(500, 600, 200, 90);
+    return c.toDataURL('image/png');
+  });
+
+  const glisser = async (u1, v1, u2, v2) => {
+    const b = await page.locator('#toile-photo').boundingBox();
+    await page.mouse.move(b.x + b.width * u1, b.y + b.height * v1);
+    await page.mouse.down();
+    await page.mouse.move(b.x + b.width * u2, b.y + b.height * v2, { steps: 8 });
+    await page.mouse.up();
+    await page.waitForTimeout(120);
+  };
+  const cliquerPhoto = async (u, v) => {
+    const b = await page.locator('#toile-photo').boundingBox();
+    await page.mouse.click(b.x + b.width * u, b.y + b.height * v);
+    await page.waitForTimeout(120);
+  };
+  const tuiles = () => page.evaluate(() => Object.fromEntries(
+    [...document.querySelectorAll('#photo-mesures .mesure')].map((t) => [
+      t.querySelector('.cle').textContent.trim(),
+      t.querySelector('.val').textContent.trim(),
+    ]),
+  ));
+
+  await cas('la photo se charge et bascule la visionneuse', async () => {
+    await page.setInputFiles('#fichier-photo', {
+      name: 'reperage.png', mimeType: 'image/png', buffer: enBuffer(photo),
+    });
+    await page.waitForSelector('#photo-vue:not([hidden])', { timeout: 10000 });
+    const mode = await page.evaluate(() => document.querySelector('.mode.actif').dataset.mode);
+    affirmer(mode === 'photo', `mode : ${mode}`);
+    affirmer(/calage|caler/i.test(await page.evaluate(() => document.querySelector('#photo-consigne').textContent)),
+      'la consigne devrait demander le calage');
+  });
+
+  await cas('calage : un point de distance connue donne l\'inclinaison', async () => {
+    await page.fill('#photo-hauteur', '4.5');
+    await page.fill('#photo-distance', '25');
+    await page.click('[data-photo-etape="calage"]');
+    await cliquerPhoto(0.5, 0.55);
+    const m = await tuiles();
+    const inclinaison = parseFloat((m['Inclinaison déduite'] || '').replace(',', '.'));
+    affirmer(inclinaison > 0 && inclinaison < 45, `inclinaison déduite : ${m['Inclinaison déduite']}`);
+  });
+
+  await cas('la zone entourée est analysée toute seule', async () => {
+    await page.click('[data-photo-etape="zone"]');
+    await glisser(0.2, 0.45, 0.8, 0.9);
+    const m = await tuiles();
+    const nb = (cle) => parseFloat((m[cle] || '').replace(',', '.'));
+    affirmer(nb('Angle de vue nécessaire') > 10 && nb('Angle de vue nécessaire') < 90,
+      `angle : ${m['Angle de vue nécessaire']}`);
+    affirmer(nb('Focale à poser') > 1 && nb('Focale à poser') < 40, `focale : ${m['Focale à poser']}`);
+    affirmer(nb('Zone la plus éloignée') > nb('Zone la plus proche'), 'le fond est plus loin que le bord');
+    affirmer(m['Niveau garanti'], 'un niveau d\'exploitation est annoncé');
+  });
+
+  await cas('resserrer la zone allonge la focale', async () => {
+    const avant = parseFloat((await tuiles())['Focale à poser'].replace(',', '.'));
+    await page.click('[data-photo-etape="zone"]');
+    await glisser(0.4, 0.45, 0.6, 0.9);
+    const apres = parseFloat((await tuiles())['Focale à poser'].replace(',', '.'));
+    affirmer(apres > avant, `focale ${apres} devrait dépasser ${avant}`);
+  });
+
+  await cas('le matériel est proposé avec son réglage', async () => {
+    const r = await page.evaluate(() => ({
+      conseil: document.querySelector('#photo-conseil').textContent,
+      portees: document.querySelector('#photo-portees').textContent,
+    }));
+    affirmer(r.conseil.length > 20, `conseil : ${r.conseil}`);
+    affirmer(/Reconnaissance|Identification|Détection|Observation/.test(r.portees),
+      'les portées d\'exploitation devraient être listées');
+  });
+
+  await cas('« Appliquer au bloc 2 » reprend focale, distance et hauteur', async () => {
+    const m = await tuiles();
+    await page.click('#photo-reprendre');
+    await page.waitForTimeout(150);
+    const v = await page.evaluate(() => ({
+      focale: parseFloat(document.querySelector('#cam-focale').value),
+      distance: parseFloat(document.querySelector('#cam-distance').value),
+      hauteur: parseFloat(document.querySelector('#cam-hauteur').value),
+    }));
+    affirmer(Math.abs(v.focale - parseFloat(m['Focale à poser'].replace(',', '.'))) < 0.2,
+      `focale reprise : ${v.focale}`);
+    affirmer(Math.abs(v.hauteur - 4.5) < 0.01, `hauteur reprise : ${v.hauteur}`);
+    affirmer(v.distance > 1, `distance reprise : ${v.distance}`);
+  });
+
+  await cas('la proposition client est un document complet', async () => {
+    await page.fill('#ch-client', 'Communauté de communes');
+    await page.fill('#ch-site', 'Déchetterie intercommunale');
+    await page.fill('#ch-camera', 'CAM 04 — quai de dépôt');
+    await page.evaluate(() => document.querySelector('#btn-proposition').click());
+    const r = await page.evaluate(() => ({
+      texte: document.querySelector('#rapport').textContent.replace(/\s+/g, ' '),
+      images: document.querySelectorAll('#rapport img').length,
+    }));
+    affirmer(/Proposition d'implantation vidéoprotection/.test(r.texte), 'titre absent');
+    affirmer(/Synthèse de la couverture/.test(r.texte), 'synthèse absente');
+    affirmer(/Matériel préconisé/.test(r.texte), 'matériel absent');
+    affirmer(/Ce que permettra l'image/.test(r.texte), 'niveaux d\'exploitation absents');
+    affirmer(/reconnaître une personne déjà connue/.test(r.texte), 'explication en clair absente');
+    affirmer(/Méthode et hypothèses/.test(r.texte), 'hypothèses absentes');
+    affirmer(/sol est supposé plan/.test(r.texte), 'la limite du sol plan doit être écrite');
+    affirmer(r.images >= 1, 'la photo annotée doit figurer dans la proposition');
+  });
+
+  await cas('le procès-verbal reste un document distinct', async () => {
+    await page.evaluate(() => document.querySelector('#btn-rapport').click());
+    const texte = await page.evaluate(() => document.querySelector('#rapport').textContent);
+    affirmer(/Procès-verbal/.test(texte), 'le PV doit rester accessible');
+    affirmer(!/Proposition d'implantation/.test(texte), 'les deux documents ne doivent pas se mélanger');
+  });
+
+  await cas('l\'étude photo survit au changement de caméra', async () => {
+    const avant = await tuiles();
+    await page.click('#btn-ajouter-camera');
+    await page.waitForTimeout(200);
+    affirmer(await page.evaluate(() => document.querySelector('#photo-reglages').hidden),
+      'la nouvelle caméra part sans photo');
+    await page.click('.onglet[data-camera="0"]');
+    await page.waitForTimeout(300);
+    const apres = await tuiles();
+    affirmer(apres['Focale à poser'] === avant['Focale à poser'],
+      `focale restituée : ${apres['Focale à poser']} au lieu de ${avant['Focale à poser']}`);
+  });
+
+  await cas('aucune erreur de console', () => affirmer(!erreurs.length, erreurs.join(' | ')));
+  await page.close();
+}
+
 await navigateur.close();
 serveur.close();
 

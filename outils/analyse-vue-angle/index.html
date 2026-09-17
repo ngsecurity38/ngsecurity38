@@ -21,7 +21,8 @@
     <button type="button" id="btn-nouveau" class="btn btn-fantome">Nouvelle fiche</button>
     <button type="button" id="btn-ouvrir" class="btn btn-fantome">Ouvrir une fiche…</button>
     <button type="button" id="btn-enregistrer" class="btn btn-fantome">Enregistrer la fiche</button>
-    <button type="button" id="btn-rapport" class="btn btn-principal">Rapport / Impression</button>
+    <button type="button" id="btn-proposition" class="btn btn-fantome">Proposition client</button>
+    <button type="button" id="btn-rapport" class="btn btn-principal">Procès-verbal</button>
     <input type="file" id="fichier-fiche" accept=".json,application/json" hidden>
   </div>
 </header>
@@ -105,6 +106,65 @@
         </div>
         <div class="mesures" id="aide-resultat"></div>
       </details>
+    </section>
+
+    <section class="bloc" id="bloc-photo">
+      <h2>Étude depuis la photo <small>— conception</small></h2>
+
+      <div class="depot" id="depot-photo" tabindex="0" role="button"
+           aria-label="Charger la photo de repérage">
+        <input type="file" id="fichier-photo" accept="image/*" hidden>
+        <div class="depot-etiquette">Photo prise depuis l'emplacement de la caméra</div>
+        <div class="depot-corps">
+          <span class="depot-texte">Glisser la photo de repérage,<br>cliquer, ou coller (Ctrl+V)</span>
+          <img class="depot-vignette" id="vignette-photo" alt="" hidden>
+        </div>
+        <div class="depot-info" id="info-photo"></div>
+      </div>
+      <button type="button" id="photo-depuis-reglee" class="btn btn-fantome btn-petit">
+        Utiliser l'image réglée du bloc 3
+      </button>
+
+      <div id="photo-reglages" hidden>
+        <p class="consigne" id="photo-consigne"></p>
+
+        <div class="grille2">
+          <label>Hauteur de prise de vue (m)
+            <input type="number" id="photo-hauteur" value="4.5" min="0.5" max="40" step="0.1">
+          </label>
+          <label>Distance du point de calage (m)
+            <input type="number" id="photo-distance" value="25" min="1" max="500" step="1">
+          </label>
+        </div>
+        <label>Appareil
+          <select id="photo-appareil"></select>
+        </label>
+
+        <div class="etapes">
+          <button type="button" class="btn btn-fantome btn-petit" data-photo-etape="calage">1 · Caler la distance</button>
+          <button type="button" class="btn btn-fantome btn-petit" data-photo-etape="zone">2 · Entourer la zone</button>
+        </div>
+        <label class="case">
+          <input type="checkbox" id="photo-distances" checked> Afficher les lignes de distance
+        </label>
+
+        <div class="mesures" id="photo-mesures"></div>
+        <p class="conseil" id="photo-conseil"></p>
+        <div id="photo-propositions"></div>
+        <div id="photo-portees"></div>
+
+        <div class="etude-actions">
+          <button type="button" id="photo-reprendre" class="btn btn-fantome btn-petit">
+            Appliquer au bloc 2
+          </button>
+          <button type="button" id="photo-exporter" class="btn btn-fantome btn-petit">
+            Exporter la photo annotée
+          </button>
+          <button type="button" id="photo-effacer" class="btn btn-fantome btn-petit">
+            Effacer
+          </button>
+        </div>
+      </div>
     </section>
 
     <section class="bloc" id="bloc-plan">
@@ -317,6 +377,7 @@
         <button type="button" class="mode" data-mode="superposition">Superposition</button>
         <button type="button" class="mode" data-mode="rideau">Rideau</button>
         <button type="button" class="mode" data-mode="difference">Différence</button>
+        <button type="button" class="mode" data-mode="photo">Photo</button>
         <button type="button" class="mode" data-mode="plan">Plan</button>
       </div>
       <label class="curseur en-ligne" id="ctrl-opacite">Opacité <output id="out-opacite">50 %</output>
@@ -353,6 +414,10 @@
 
       <div class="plan-vue" id="plan-vue" hidden>
         <canvas id="toile-plan"></canvas>
+      </div>
+
+      <div class="plan-vue" id="photo-vue" hidden>
+        <canvas id="toile-photo"></canvas>
       </div>
     </div>
 
