@@ -31,6 +31,10 @@ import {
   CATALOGUE_INITIAL, normaliserEntree, proposer, conseil, estFixe,
   nomComplet, versCsv, depuisCsv, depuisReleveCommercial, estComplete, aConfirmer,
 } from './catalogue.js';
+import {
+  LIMITE_LIEN, TYPES_MATERIEL, nouveauSynoptique, nouveauNoeud, nouveauLien,
+  noeudPar, trajet, mesurerLien, recapitulatif, dispositionLogique, nomNoeud,
+} from './reseau.js';
 
 const nb = (el, defaut = 0) => {
   const v = parseFloat(el.value);
@@ -84,6 +88,11 @@ const etat = {
   etude: null, // { fichier, analyse } — valeurs lues dans le PDF d'étude, commun au dossier
   catalogue: [], // matériel de l'agence, cf. js/catalogue.js
   planEtape: null, // étape de tracé en cours sur le plan
+  reseauOutil: null, // outil actif sur le synoptique : calage, poser, relier…
+  reseauDepuis: null, // premier matériel d'une liaison en cours
+  reseauPoints: [], // points de passage de la liaison en cours
+  reseauChoisi: null, // matériel sélectionné
+  synoptique: null, // câblage du site, cf. js/reseau.js
   photoEtape: null, // étape en cours sur la photo de repérage
   document: 'pv', // 'pv' ou 'proposition' — ce que l'impression doit produire
   mode: 'cote',
@@ -2190,14 +2199,33 @@ function majVisionneuse() {
   const etudePhoto = cameraCourante()?.etude3d;
   const surPlan = etat.mode === 'plan';
   const surPhoto = etat.mode === 'photo';
-  $('#message-vide').hidden = !!(etat.reference || etat.reglee) || surPlan || surPhoto;
+  $('#message-vide').hidden = !!(etat.reference || etat.reglee) || surPlan || surPhoto
+    || etat.mode === 'reseau';
   $('#paire').hidden = etat.mode !== 'cote' || !(etat.reference || etat.reglee);
-  $('#fusion').hidden = surPlan || surPhoto || etat.mode === 'cote' || !pret;
+  $('#fusion').hidden = surPlan || surPhoto || etat.mode === 'reseau' || etat.mode === 'cote' || !pret;
   $('#plan-vue').hidden = !(surPlan && plan?.image?.img);
   $('#photo-vue').hidden = !(surPhoto && etudePhoto?.image?.img);
+  const surReseau = etat.mode === 'reseau';
+  $('#reseau-vue').hidden = !(surReseau && etat.synoptique?.image?.img);
   if (!surPhoto || !etudePhoto?.image?.img) {
     $('#photo-resultats').hidden = true;
+  }
+  if (!surReseau || !etat.synoptique?.image?.img) $('#reseau-resultats').hidden = true;
+  if (!(surPhoto && etudePhoto?.image?.img) && !(surReseau && etat.synoptique?.image?.img)) {
     $('.scene').classList.remove('avec-resultats');
+  }
+  if (surReseau) {
+    if (etat.synoptique?.image?.img) {
+      $('#reseau-resultats').hidden = false;
+      $('.scene').classList.add('avec-resultats');
+      rendreReseau();
+    } else {
+      $('#message-vide').hidden = false;
+      $('#message-vide').innerHTML = '<h3>Charger une vue aérienne du site</h3>'
+        + '<p>Le matériel se pose dessus, les liaisons se tirent entre eux,<br>'
+        + 'et les longueurs de câble se mesurent.</p>';
+    }
+    return;
   }
   if (surPhoto) {
     if (etudePhoto?.image?.img) rendrePhoto();
@@ -2538,6 +2566,655 @@ function apercuZone(a, b) {
   ctx.restore();
 }
 
+/* ============================================================== synoptique */
+
+/** Police des toiles : celle de la page, pour que schémas et écran s'accordent. */
+const policeToile = () => getComputedStyle(document.body).fontFamily;
+
+/** Rayon d'un pictogramme de matériel, en pixels de toile. */
+const RAYON_NOEUD = 18;
+
+/** Synoptique du site, créé à la demande. */
+function synoptiqueCourant() {
+  if (!etat.synoptique) etat.synoptique = { ...nouveauSynoptique(), image: null, etalon: null };
+  return etat.synoptique;
+}
+
+/** Échelle du plan de câblage — 0 tant qu'il n'est pas calibré. */
+function echelleReseau() {
+  const r = etat.synoptique;
+  return r?.etalon ? echelleDuPlan(r.etalon.a, r.etalon.b, r.etalon.metres) : 0;
+}
+
+/** Récapitulatif courant, réserve prise au formulaire. */
+function recapReseau() {
+  const r = synoptiqueCourant();
+  return recapitulatif(r, echelleReseau(), { reserve: nb($('#reseau-reserve'), 10) / 100 });
+}
+
+async function definirPlanReseau(dataUrl, nom, bascule = true) {
+  const img = await chargerImage(dataUrl);
+  const r = synoptiqueCourant();
+  r.image = { nom, dataUrl, img, largeur: img.naturalWidth, hauteur: img.naturalHeight };
+  $('#vignette-reseau').src = dataUrl;
+  $('#vignette-reseau').hidden = false;
+  $('#depot-reseau .depot-texte').hidden = true;
+  $('#info-reseau').textContent = `${nom} — ${img.naturalWidth} × ${img.naturalHeight} px`;
+  if (!r.etalon) etat.reseauOutil = 'calage';
+  if (bascule) basculerMode('reseau');
+  majReseau();
+}
+
+/** Consigne du moment : dire quoi faire vaut mieux que laisser chercher. */
+function consigneReseau() {
+  const r = synoptiqueCourant();
+  if (!r.image) return 'Chargez une vue aérienne du site.';
+  if (!r.etalon) {
+    return etat.etalonReseauPartiel
+      ? 'Cliquez le second point de la distance connue.'
+      : 'Calibrer : saisissez une distance connue, puis cliquez ses deux extrémités.';
+  }
+  if (etat.reseauOutil === 'poser') return 'Cliquez pour poser le matériel choisi.';
+  if (etat.reseauOutil === 'relier') {
+    return etat.reseauDepuis
+      ? 'Cliquez le matériel d\'arrivée — ou un point de passage pour contourner.'
+      : 'Cliquez le matériel de départ.';
+  }
+  if (etat.reseauOutil === 'deplacer') return 'Faites glisser un matériel pour le replacer.';
+  if (etat.reseauOutil === 'supprimer') return 'Cliquez un matériel ou une liaison à supprimer.';
+  return 'Plan calibré. Posez le matériel, puis tirez les liaisons.';
+}
+
+function majReseau() {
+  const r = synoptiqueCourant();
+  $('#reseau-reglages').hidden = !r.image;
+  $('#reseau-consigne').textContent = consigneReseau();
+  $$('[data-reseau-outil]').forEach((b) => b.classList.toggle(
+    'actif', b.dataset.reseauOutil === etat.reseauOutil,
+  ));
+
+  const recap = recapReseau();
+  majTableauReseau(recap);
+  majSelectionReseau();
+  majVisionneuse();
+}
+
+/** Tableau des liaisons, récapitulatif et alertes. */
+function majTableauReseau(recap) {
+  const aQuelqueChose = recap.mesures.length > 0;
+  const liens = synoptiqueCourant().liens.length;
+  $('#reseau-attente').hidden = aQuelqueChose || liens > 0;
+
+  $('#reseau-tableau').innerHTML = aQuelqueChose
+    ? `<table class="dori liaisons">
+        <thead><tr><th>Liaison</th><th>Au plan</th><th>Descentes</th><th>Câble</th></tr></thead>
+        <tbody>${recap.mesures.map((m, i) => `
+          <tr class="${m.depasse ? 'depasse' : ''}">
+            <td>${ech(nomNoeud(m.de, i))} → ${ech(nomNoeud(m.vers, i))}</td>
+            <td>${fmt(m.auPlan)} m</td>
+            <td>${fmt(m.descentes)} m</td>
+            <td><b>${fmt(m.cable)} m</b>${m.depasse ? ' ⚠' : ''}</td>
+          </tr>`).join('')}
+        </tbody></table>`
+    : '';
+
+  const inventaire = Object.entries(recap.parType)
+    .map(([t, n]) => mesure(TYPES_MATERIEL[t]?.label || t, String(n), ''))
+    .join('');
+  $('#reseau-mesures').innerHTML = aQuelqueChose || inventaire
+    ? inventaire
+      + mesure('Câble total', fmt(recap.totalCable), 'm', true)
+      + (recap.plusLong ? mesure('Liaison la plus longue', fmt(recap.plusLong.cable), 'm') : '')
+    : '';
+
+  const alertes = [];
+  if (!recap.mesurable && synoptiqueCourant().noeuds.length) {
+    alertes.push(`Plan non calibré : le matériel se pose et ${liens > 1 ? 'les' : 'la'} `
+      + `${plur(liens, 'liaison')} se trace${liens > 1 ? 'nt' : ''}, mais aucune longueur ne `
+      + 'peut être chiffrée tant qu\'une distance connue n\'a pas été relevée.');
+  }
+  for (const m of recap.depassements) {
+    alertes.push(`${ech(nomNoeud(m.de))} → ${ech(nomNoeud(m.vers))} : ${fmt(m.cable)} m, `
+      + `au-delà des ${LIMITE_LIEN} m admis en cuivre. Prévoir un switch intermédiaire, `
+      + 'un répéteur PoE ou de la fibre.');
+  }
+  if (recap.orphelins.length) {
+    alertes.push(`${plur(recap.orphelins.length, 'matériel')} au bout d'aucun câble : `
+      + recap.orphelins.map((n, i) => ech(nomNoeud(n, i))).join(', ') + '.');
+  }
+  if (recap.sansEnregistreur.length) {
+    alertes.push(`${plur(recap.sansEnregistreur.length, 'caméra')} ne remonte`
+      + `${recap.sansEnregistreur.length > 1 ? 'nt' : ''} à aucun enregistreur : `
+      + recap.sansEnregistreur.map((n, i) => ech(nomNoeud(n, i))).join(', ') + '.');
+  }
+  $('#reseau-alertes').innerHTML = alertes.length
+    ? `<ul class="alertes">${alertes.map((a) => `<li>${a}</li>`).join('')}</ul>` : '';
+}
+
+/* ------------------------------------------------------------ rendu */
+
+function rendreReseau() {
+  const r = synoptiqueCourant();
+  if (!r.image?.img) return;
+  const toile = $('#toile-reseau');
+  const { l, h } = dimensionsRendu(r.image.img);
+  toile.width = l;
+  toile.height = h;
+  const ctx = toile.getContext('2d');
+  ctx.drawImage(r.image.img, 0, 0, l, h);
+  dessinerReseau(ctx, l, r, recapReseau());
+
+  const arbre = $('#toile-arbre');
+  arbre.width = l;
+  arbre.height = Math.round(l * 0.62);
+  dessinerArbre(arbre.getContext('2d'), arbre.width, arbre.height, r);
+}
+
+function dessinerReseau(ctx, l, r, recap) {
+  const trait = Math.max(1.5, l / 500);
+  const pt = (p) => ({ x: p.x * l, y: p.y * l });
+  ctx.save();
+  ctx.lineWidth = trait * 1.6;
+  ctx.font = `600 ${Math.max(10, Math.round(l / 70))}px ${policeToile()}`;
+  ctx.textBaseline = 'middle';
+
+  if (r.etalon) {
+    const a = pt(r.etalon.a);
+    const b = pt(r.etalon.b);
+    ctx.strokeStyle = '#ffd400';
+    ctx.setLineDash([6, 4]);
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x, b.y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    cartouche(ctx, `${fmt(r.etalon.metres)} m`, (a.x + b.x) / 2, (a.y + b.y) / 2, '#ffd400');
+  }
+  if (etat.etalonReseauPartiel) {
+    const a = pt(etat.etalonReseauPartiel);
+    ctx.fillStyle = '#ffd400';
+    ctx.beginPath();
+    ctx.arc(a.x, a.y, trait * 3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  /*
+   * Les liaisons d'abord : le matériel doit rester lisible par-dessus.
+   *
+   * On les dessine depuis le synoptique, pas depuis les mesures : sans plan
+   * calibré il n'y a pas de mesure, et le câblage tracé disparaîtrait de
+   * l'écran alors qu'il existe bel et bien. La longueur, elle, n'est écrite
+   * que lorsqu'elle est connue.
+   */
+  const mesureDe = new Map(recap.mesures.map((m) => [m.lien, m]));
+  for (const lien of r.liens) {
+    const brut = trajet(r, lien);
+    if (!brut) continue;
+    const points = brut.map(pt);
+    const m = mesureDe.get(lien);
+    ctx.strokeStyle = m?.depasse ? '#e8394f' : '#6f5bd6';
+    ctx.setLineDash(m?.depasse ? [8, 5] : []);
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
+    for (const p of points.slice(1)) ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    if (m) {
+      const milieu = pointMedian(points);
+      cartouche(ctx, `${fmt(m.cable)} m`, milieu.x, milieu.y, m.depasse ? '#e8394f' : '#fff');
+    }
+  }
+
+  // Liaison en cours de tracé.
+  if (etat.reseauDepuis) {
+    const depart = noeudPar(r, etat.reseauDepuis);
+    if (depart) {
+      const points = [pt(depart), ...etat.reseauPoints.map(pt)];
+      ctx.strokeStyle = '#6f5bd6';
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, points[0].y);
+      for (const p of points.slice(1)) ctx.lineTo(p.x, p.y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  }
+
+  r.noeuds.forEach((n, i) => {
+    const p = pt(n);
+    const t = TYPES_MATERIEL[n.type] || TYPES_MATERIEL.camera;
+    const rayon = Math.max(RAYON_NOEUD, l / 45);
+    ctx.fillStyle = t.couleur;
+    ctx.strokeStyle = n.id === etat.reseauChoisi ? '#fff' : '#101317';
+    ctx.lineWidth = n.id === etat.reseauChoisi ? trait * 2.5 : trait * 1.5;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, rayon, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = 'center';
+    ctx.fillText(t.court, p.x, p.y);
+    ctx.textAlign = 'left';
+    cartouche(ctx, nomNoeud(n, i), p.x + rayon + 4, p.y, '#fff');
+  });
+  ctx.restore();
+}
+
+/**
+ * Point situé à mi-longueur d'une polyligne.
+ *
+ * Prendre le point du milieu de la liste revenait, pour une liaison droite, à
+ * prendre l'extrémité : l'étiquette de longueur se retrouvait cachée sous le
+ * pictogramme du matériel.
+ */
+function pointMedian(points) {
+  let total = 0;
+  for (let i = 1; i < points.length; i += 1) {
+    total += Math.hypot(points[i].x - points[i - 1].x, points[i].y - points[i - 1].y);
+  }
+  let parcouru = 0;
+  for (let i = 1; i < points.length; i += 1) {
+    const d = Math.hypot(points[i].x - points[i - 1].x, points[i].y - points[i - 1].y);
+    if (parcouru + d >= total / 2) {
+      const t = d > 0 ? (total / 2 - parcouru) / d : 0;
+      return {
+        x: points[i - 1].x + t * (points[i].x - points[i - 1].x),
+        y: points[i - 1].y + t * (points[i].y - points[i - 1].y),
+      };
+    }
+    parcouru += d;
+  }
+  return points[points.length - 1];
+}
+
+/** Étiquette lisible sur n'importe quel fond : un cartouche sombre, du texte clair. */
+function cartouche(ctx, texte, x, y, couleur) {
+  const large = ctx.measureText(texte).width;
+  const haut = Number.parseInt(ctx.font, 10) + 6;
+  ctx.save();
+  ctx.fillStyle = 'rgba(16, 19, 23, .78)';
+  ctx.fillRect(x - 3, y - haut / 2, large + 6, haut);
+  ctx.fillStyle = couleur;
+  ctx.fillText(texte, x, y);
+  ctx.restore();
+}
+
+/** Arborescence : qui dépend de qui, indépendamment du chemin des câbles. */
+function dessinerArbre(ctx, l, h, r) {
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, l, h);
+  const d = dispositionLogique(r);
+  const marge = Math.max(30, l / 14);
+  const police = Math.max(9, Math.round(l / 78));
+  ctx.font = `600 ${police}px ${policeToile()}`;
+  ctx.textBaseline = 'middle';
+
+  ctx.fillStyle = '#101317';
+  ctx.textAlign = 'left';
+  ctx.fillText('Synoptique — arborescence', 10, 14);
+
+  if (!d.noeuds.length) {
+    ctx.fillStyle = '#6b7482';
+    ctx.textAlign = 'center';
+    ctx.fillText('Aucun matériel posé', l / 2, h / 2);
+    return;
+  }
+
+  const pt = (n) => ({ x: marge + n.x * (l - 2 * marge), y: marge + n.y * (h - 2 * marge) });
+  const place = new Map(d.noeuds.map((n) => [n.id, pt(n)]));
+
+  ctx.strokeStyle = '#6f5bd6';
+  ctx.lineWidth = 1.4;
+  for (const lien of d.liens) {
+    const a = place.get(lien.de);
+    const b = place.get(lien.vers);
+    if (!a || !b) continue;
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x, b.y);
+    ctx.stroke();
+  }
+
+  d.noeuds.forEach((n, i) => {
+    const p = place.get(n.id);
+    const t = TYPES_MATERIEL[n.type] || TYPES_MATERIEL.camera;
+    const rayon = Math.max(12, l / 62);
+    ctx.fillStyle = t.couleur;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, rayon, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = 'center';
+    ctx.fillText(t.court, p.x, p.y);
+    ctx.fillStyle = '#101317';
+    ctx.fillText(nomNoeud(n, i), p.x, p.y + rayon + police);
+  });
+  ctx.textAlign = 'left';
+}
+
+/* --------------------------------------------------------- interactions */
+
+/** Matériel sous le pointeur, ou null. */
+function noeudSous(p, l) {
+  const r = synoptiqueCourant();
+  const rayon = Math.max(RAYON_NOEUD, l / 45) / l;
+  let trouve = null;
+  let meilleure = rayon;
+  for (const n of r.noeuds) {
+    const d = Math.hypot(n.x - p.x, n.y - p.y);
+    if (d <= meilleure) { meilleure = d; trouve = n; }
+  }
+  return trouve;
+}
+
+/** Liaison passant sous le pointeur, ou null. */
+function lienSous(p, l) {
+  const r = synoptiqueCourant();
+  const seuil = Math.max(6, l / 120) / l;
+  for (const lien of r.liens) {
+    const points = trajet(r, lien);
+    if (!points) continue;
+    for (let i = 1; i < points.length; i += 1) {
+      if (distancePointSegment(p, points[i - 1], points[i]) <= seuil) return lien;
+    }
+  }
+  return null;
+}
+
+/** Distance d'un point à un segment, en unités normalisées. */
+function distancePointSegment(p, a, b) {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const carre = dx * dx + dy * dy;
+  if (carre < 1e-12) return Math.hypot(p.x - a.x, p.y - a.y);
+  const t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / carre));
+  return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));
+}
+
+/** Supprime un matériel et, avec lui, les liaisons qui y aboutissaient. */
+function supprimerNoeud(id) {
+  const r = synoptiqueCourant();
+  r.noeuds = r.noeuds.filter((n) => n.id !== id);
+  // Laisser des liaisons pendantes donnerait un synoptique qui ne se mesure
+  // plus : on les retire avec le matériel.
+  r.liens = r.liens.filter((l) => l.de !== id && l.vers !== id);
+  if (etat.reseauChoisi === id) etat.reseauChoisi = null;
+  if (etat.reseauDepuis === id) { etat.reseauDepuis = null; etat.reseauPoints = []; }
+}
+
+function brancherReseau() {
+  const toile = $('#toile-reseau');
+  const position = (e) => {
+    const rect = toile.getBoundingClientRect();
+    return {
+      x: (e.clientX - rect.left) / rect.width,
+      y: ((e.clientY - rect.top) / rect.height) * (toile.height / toile.width),
+    };
+  };
+
+  let glisse = null;
+
+  toile.addEventListener('pointerdown', (e) => {
+    const r = synoptiqueCourant();
+    if (!r.image) return;
+    const p = position(e);
+    const l = toile.width;
+
+    if (etat.reseauOutil === 'calage') {
+      if (!etat.etalonReseauPartiel) {
+        etat.etalonReseauPartiel = p;
+      } else {
+        const metres = nb($('#reseau-etalon'), 0);
+        if (metres > 0) r.etalon = { a: etat.etalonReseauPartiel, b: p, metres };
+        etat.etalonReseauPartiel = null;
+        etat.reseauOutil = 'poser';
+      }
+      majReseau();
+      return;
+    }
+
+    if (etat.reseauOutil === 'poser') {
+      const type = $('#reseau-type').value;
+      const rang = r.noeuds.filter((n) => n.type === type).length;
+      r.noeuds.push(nouveauNoeud(type, p.x, p.y, {
+        nom: `${TYPES_MATERIEL[type].court} ${rang + 1}`,
+      }));
+      majReseau();
+      return;
+    }
+
+    if (etat.reseauOutil === 'relier') {
+      const n = noeudSous(p, l);
+      if (!etat.reseauDepuis) {
+        if (n) { etat.reseauDepuis = n.id; etat.reseauPoints = []; }
+      } else if (n && n.id !== etat.reseauDepuis) {
+        r.liens.push(nouveauLien(etat.reseauDepuis, n.id, etat.reseauPoints));
+        etat.reseauDepuis = null;
+        etat.reseauPoints = [];
+      } else if (!n) {
+        // Un clic dans le vide pose un point de passage : c'est ainsi qu'on
+        // fait contourner un bâtiment au câble au lieu de le faire voler.
+        etat.reseauPoints.push(p);
+      }
+      majReseau();
+      return;
+    }
+
+    if (etat.reseauOutil === 'supprimer') {
+      const n = noeudSous(p, l);
+      if (n) supprimerNoeud(n.id);
+      else {
+        const lien = lienSous(p, l);
+        if (lien) r.liens = r.liens.filter((x) => x !== lien);
+      }
+      majReseau();
+      return;
+    }
+
+    const n = noeudSous(p, l);
+    etat.reseauChoisi = n ? n.id : null;
+    if (n && etat.reseauOutil === 'deplacer') {
+      glisse = { id: n.id, dx: n.x - p.x, dy: n.y - p.y };
+      toile.setPointerCapture(e.pointerId);
+    }
+    majReseau();
+  });
+
+  toile.addEventListener('pointermove', (e) => {
+    const r = synoptiqueCourant();
+    if (!r.image) return;
+    if (glisse) {
+      const p = position(e);
+      const n = noeudPar(r, glisse.id);
+      if (n) { n.x = p.x + glisse.dx; n.y = p.y + glisse.dy; }
+      rendreReseau();
+      return;
+    }
+    toile.style.cursor = curseurReseau(position(e), toile.width);
+  });
+
+  const relacher = () => {
+    if (!glisse) return;
+    glisse = null;
+    majReseau();
+  };
+  toile.addEventListener('pointerup', relacher);
+  toile.addEventListener('pointercancel', relacher);
+}
+
+/** Le curseur dit ce que fera le clic. */
+function curseurReseau(p, l) {
+  if (etat.reseauOutil === 'calage' || etat.reseauOutil === 'poser') return 'crosshair';
+  const n = noeudSous(p, l);
+  if (etat.reseauOutil === 'supprimer') return n || lienSous(p, l) ? 'pointer' : 'default';
+  if (etat.reseauOutil === 'relier') return n ? 'pointer' : 'crosshair';
+  if (etat.reseauOutil === 'deplacer') return n ? 'grab' : 'default';
+  return n ? 'pointer' : 'default';
+}
+
+/** Fiche du matériel sélectionné : nom, hauteur, référence. */
+function majSelectionReseau() {
+  const n = noeudPar(synoptiqueCourant(), etat.reseauChoisi);
+  const boite = $('#reseau-selection');
+  if (!n) { boite.innerHTML = ''; return; }
+  boite.innerHTML = `<div class="grille2">
+      <label>Repère<input type="text" id="sel-nom" value="${ech(n.nom)}"></label>
+      <label>Hauteur de pose (m)
+        <input type="number" id="sel-hauteur" value="${n.hauteur}" min="0" max="40" step="0.1">
+      </label>
+    </div>`;
+  $('#sel-nom').addEventListener('change', () => { n.nom = $('#sel-nom').value; majReseau(); });
+  $('#sel-hauteur').addEventListener('change', () => {
+    n.hauteur = nb($('#sel-hauteur'), 0);
+    majReseau();
+  });
+}
+
+/** Pose une caméra par entrée de la fiche, alignées, prêtes à être déplacées. */
+function poserCamerasDeLaFiche() {
+  const r = synoptiqueCourant();
+  const dejaLa = new Set(r.noeuds.filter((n) => n.type === 'camera').map((n) => n.nom));
+  let posees = 0;
+  etat.cameras.forEach((cam, i) => {
+    if (dejaLa.has(cam.nom)) return;
+    r.noeuds.push(nouveauNoeud('camera', 0.1 + (i % 6) * 0.13, 0.1 + Math.floor(i / 6) * 0.12, {
+      nom: cam.nom,
+      hauteur: nb2(cam.optique?.hauteur, 3.5),
+    }));
+    posees += 1;
+  });
+  etat.reseauOutil = 'deplacer';
+  majReseau();
+  $('#etat-analyse').textContent = posees
+    ? `${plur(posees, 'caméra')} posée${posees > 1 ? 's' : ''} — faites-les glisser à leur place.`
+    : 'Toutes les caméras de la fiche figurent déjà au synoptique.';
+  $('#etat-analyse').classList.remove('erreur');
+}
+
+/** Valeur numérique d'une donnée de fiche, repli sur un défaut. */
+const nb2 = (v, defaut) => (Number.isFinite(parseFloat(v)) ? parseFloat(v) : defaut);
+
+/** Exporte le plan câblé et l'arborescence, en pleine définition. */
+function exporterReseau() {
+  for (const [id, suffixe] of [['#toile-reseau', 'plan'], ['#toile-arbre', 'arborescence']]) {
+    const a = document.createElement('a');
+    a.href = $(id).toDataURL('image/png');
+    a.download = `synoptique-${suffixe}.png`;
+    a.click();
+  }
+}
+
+/** Dépôt du plan de câblage — même mécanique que le plan du bloc B. */
+function brancherDepotReseau() {
+  const zone = $('#depot-reseau');
+  const entree = $('#fichier-reseau');
+  const traiter = async (fichier) => {
+    if (estPdf(fichier)) {
+      await ouvrirSelecteurPdf(fichier, 'reseau', (dataUrl, source) => {
+        definirPlanReseau(dataUrl, `${source.fichier} — page ${source.page}`);
+      });
+      return;
+    }
+    if (!fichier || !fichier.type.startsWith('image/')) {
+      $('#etat-analyse').textContent = 'Format non reconnu : déposer une image ou un PDF.';
+      $('#etat-analyse').classList.add('erreur');
+      return;
+    }
+    await definirPlanReseau(await lireFichier(fichier), fichier.name);
+  };
+  zone.addEventListener('click', () => { etat.dernierDepot = 'reseau'; entree.click(); });
+  zone.addEventListener('focus', () => { etat.dernierDepot = 'reseau'; });
+  zone.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); entree.click(); }
+  });
+  entree.addEventListener('change', () => {
+    if (entree.files[0]) traiter(entree.files[0]);
+    entree.value = '';
+  });
+  ['dragenter', 'dragover'].forEach((ev) => zone.addEventListener(ev, (e) => {
+    e.preventDefault(); zone.classList.add('survol'); etat.dernierDepot = 'reseau';
+  }));
+  ['dragleave', 'drop'].forEach((ev) => zone.addEventListener(ev, () => zone.classList.remove('survol')));
+  zone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    if (e.dataTransfer.files[0]) traiter(e.dataTransfer.files[0]);
+  });
+}
+
+/** Commandes du bloc synoptique. */
+function brancherCommandesReseau() {
+  $('#reseau-type').innerHTML = Object.entries(TYPES_MATERIEL)
+    .map(([cle, t]) => `<option value="${cle}">${t.label}</option>`).join('');
+
+  /*
+   * Cliquer une étape l'active, toujours.
+   *
+   * Un basculement paraissait plus malin — recliquer pour arrêter — mais avec
+   * des boutons numérotés « 1 · 2 · 3 » on reclique l'étape en cours sans y
+   * penser, et l'outil se désarmait en silence : les clics suivants ne
+   * faisaient plus rien. Pour arrêter, il y a Échap.
+   */
+  $$('[data-reseau-outil]').forEach((b) => b.addEventListener('click', () => {
+    etat.reseauOutil = b.dataset.reseauOutil;
+    etat.reseauDepuis = null;
+    etat.reseauPoints = [];
+    etat.etalonReseauPartiel = null;
+    majReseau();
+  }));
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || etat.mode !== 'reseau') return;
+    if (!etat.reseauOutil && !etat.reseauDepuis) return;
+    etat.reseauOutil = null;
+    etat.reseauDepuis = null;
+    etat.reseauPoints = [];
+    etat.etalonReseauPartiel = null;
+    majReseau();
+  });
+
+  $('#reseau-etalon').addEventListener('change', () => {
+    const r = synoptiqueCourant();
+    const metres = nb($('#reseau-etalon'), 0);
+    // Corriger la distance saisie après coup doit corriger toutes les
+    // longueurs, sans obliger à recliquer les deux points.
+    if (r.etalon && metres > 0) { r.etalon.metres = metres; majReseau(); }
+  });
+  $('#reseau-reserve').addEventListener('change', majReseau);
+
+  $('#reseau-depuis-plan').addEventListener('click', () => {
+    const plan = cameraCourante()?.plan;
+    if (!plan?.image) {
+      $('#etat-analyse').textContent = 'Aucun plan chargé dans le bloc B.';
+      $('#etat-analyse').classList.add('erreur');
+      return;
+    }
+    const r = synoptiqueCourant();
+    definirPlanReseau(plan.image.dataUrl, plan.image.nom).then(() => {
+      // L'étalonnage du bloc B vaut pour la même image : le reprendre évite de
+      // recliquer une distance déjà relevée.
+      if (plan.etalon && !r.etalon) { r.etalon = { ...plan.etalon }; etat.reseauOutil = 'poser'; }
+      majReseau();
+    });
+  });
+
+  $('#reseau-cameras').addEventListener('click', poserCamerasDeLaFiche);
+  $('#reseau-exporter').addEventListener('click', exporterReseau);
+  $('#reseau-effacer').addEventListener('click', () => {
+    if (!window.confirm('Effacer tout le matériel et toutes les liaisons du synoptique ?')) return;
+    const r = synoptiqueCourant();
+    r.noeuds = [];
+    r.liens = [];
+    etat.reseauChoisi = null;
+    etat.reseauDepuis = null;
+    etat.reseauPoints = [];
+    majReseau();
+  });
+
+  brancherReseau();
+  brancherDepotReseau();
+}
+
 /* ================================================== fiche : enregistrer / ouvrir */
 
 function fiche() {
@@ -2556,6 +3233,13 @@ function fiche() {
     tolerances: { ...tolerancesActuelles(), zone: nb($('#tol-zone'), 95) },
     etude: etat.etude,
     catalogue: etat.catalogue,
+    synoptique: etat.synoptique
+      ? {
+        ...etat.synoptique,
+        image: etat.synoptique.image
+          ? { ...etat.synoptique.image, img: undefined } : null,
+      }
+      : null,
     cameras: etat.cameras.map((cam) => ({
       ...cam,
       plan: cam.plan?.image
@@ -2609,6 +3293,10 @@ async function ouvrirFiche(fichier) {
     majCatalogue();
   }
   etat.cameras = f.cameras;
+  etat.synoptique = f.synoptique || null;
+  if (etat.synoptique?.image?.dataUrl) {
+    await definirPlanReseau(etat.synoptique.image.dataUrl, etat.synoptique.image.nom, false);
+  }
   await chargerCamera(0);
 
   $('#etat-analyse').textContent = `Fiche chargée — ${plur(f.cameras.length, 'caméra')}.`;
@@ -2955,6 +3643,8 @@ function construireProposition() {
       </div>`;
   }).join('')}
 
+    ${sectionSynoptique(true)}
+
     <section class="saut">
       <h2>Méthode et hypothèses</h2>
       <ul>
@@ -2975,6 +3665,74 @@ function construireProposition() {
       <div>NG Security 38 — ${ch.technicien}<br>Date et signature :</div>
       <div>Le client — ${ch.client}<br>Date, signature et mention « bon pour accord » :</div>
     </div>`;
+}
+
+/**
+ * Section « synoptique de câblage » des documents.
+ *
+ * Elle ne figure que si le matériel a été posé : un dossier ne doit pas porter
+ * une page vide qui laisserait croire qu'un câblage a été étudié.
+ */
+function sectionSynoptique(pourClient = false) {
+  const r = etat.synoptique;
+  if (!r?.image?.img || !r.noeuds.length) return '';
+  const recap = recapReseau();
+  const plan = $('#toile-reseau').toDataURL('image/png');
+  const arbre = $('#toile-arbre').toDataURL('image/png');
+
+  const inventaire = Object.entries(recap.parType)
+    .map(([t, n]) => `<li>${n} × ${ech(TYPES_MATERIEL[t]?.label || t)}</li>`).join('');
+
+  const reserves = [];
+  for (const m of recap.depassements) {
+    reserves.push(`${ech(nomNoeud(m.de))} → ${ech(nomNoeud(m.vers))} : ${fmt(m.cable)} m, `
+      + `au-delà des ${LIMITE_LIEN} m admis en cuivre — switch intermédiaire, répéteur PoE `
+      + 'ou fibre à prévoir.');
+  }
+  if (recap.orphelins.length) {
+    reserves.push(`Matériel non raccordé au synoptique : `
+      + recap.orphelins.map((n, i) => ech(nomNoeud(n, i))).join(', ') + '.');
+  }
+  if (recap.sansEnregistreur.length) {
+    reserves.push('Caméra ne remontant à aucun enregistreur : '
+      + recap.sansEnregistreur.map((n, i) => ech(nomNoeud(n, i))).join(', ') + '.');
+  }
+
+  return `<section class="saut">
+      <h2>Synoptique de câblage</h2>
+      <div class="images">
+        <figure><figcaption>Cheminement sur le site</figcaption>
+          <img src="${plan}" alt="Plan de câblage"></figure>
+        <figure><figcaption>Arborescence</figcaption>
+          <img src="${arbre}" alt="Arborescence du réseau"></figure>
+      </div>
+
+      <h3>Matériel</h3>
+      <ul>${inventaire}</ul>
+
+      ${recap.mesurable ? `<h3>Longueurs de câble</h3>
+      <table>
+        <thead><tr><th>Liaison</th><th>Au plan</th><th>Descentes</th><th>Câble à prévoir</th></tr></thead>
+        <tbody>${recap.mesures.map((m, i) => `<tr>
+          <td>${ech(nomNoeud(m.de, i))} → ${ech(nomNoeud(m.vers, i))}</td>
+          <td>${fmt(m.auPlan)} m</td>
+          <td>${fmt(m.descentes)} m</td>
+          <td><b>${fmt(m.cable)} m</b></td></tr>`).join('')}
+          <tr><td colspan="3"><b>Total</b></td><td><b>${fmt(recap.totalCable)} m</b></td></tr>
+        </tbody>
+      </table>
+      <p class="note">Longueur de câble = trajet mesuré sur le plan + descentes
+        verticales aux deux extrémités + ${fmt(nb($('#reseau-reserve'), 10), 0)} % de réserve.
+        Les longueurs sont relevées sur un plan calibré sur une distance connue ;
+        elles servent au chiffrage et non à la commande au mètre près.</p>`
+    : '<p>Le plan n\'ayant pas été calibré sur une distance connue, les longueurs '
+      + 'de câble ne sont pas chiffrées.</p>'}
+
+      ${reserves.length ? `<h3>Points à traiter</h3>
+        <ul>${reserves.map((x) => `<li>${x}</li>`).join('')}</ul>` : ''}
+      ${pourClient ? '<p class="note">Les cheminements figurés sont ceux retenus à '
+        + 'l\'étude. Le relevé définitif sur site peut les modifier.</p>' : ''}
+    </section>`;
 }
 
 function construireRapport() {
@@ -3010,6 +3768,8 @@ function construireRapport() {
     ${seule ? '' : sectionSynthese(lignes)}
 
     ${lignes.map((l, i) => sectionCamera(l, seule ? 0 : i, seule)).join('')}
+
+    ${sectionSynoptique()}
 
     <div class="signatures">
       <div>Technicien — ${ch.technicien}<br>Date et signature :</div>
@@ -3052,6 +3812,7 @@ function brancher() {
   brancherDepotPlan();
   brancherDepotPhoto();
   brancherPlan();
+  brancherCommandesReseau();
   brancherPhoto();
   brancherTracageZones();
   $('#catalogue-exporter').addEventListener('click', exporterCatalogue);

@@ -16,7 +16,7 @@ Un seul fichier à récupérer — deux versions au choix :
 | Version | Poids | Pour qui |
 | --- | --- | --- |
 | [`analyse-vue-angle.html`](../outils/analyse-vue-angle/dist/analyse-vue-angle.html) | 1,5 Mo | le cas courant : études reçues en PDF normal |
-| [`analyse-vue-angle-ocr.html`](../outils/analyse-vue-angle/dist/analyse-vue-angle-ocr.html) | 7,6 Mo | si vos études arrivent **scannées** (§ 6) |
+| [`analyse-vue-angle-ocr.html`](../outils/analyse-vue-angle/dist/analyse-vue-angle-ocr.html) | 7,6 Mo | si vos études arrivent **scannées** (§ 7) |
 
 Les deux sont le même outil. La seconde embarque en plus un moteur de
 reconnaissance de caractères, qui pèse à lui seul près de 5 Mo : inutile de le
@@ -76,7 +76,7 @@ caméra** : son repère, son optique, ses deux vues, ses zones, son analyse et s
 observations.
 
 Un seul fichier `.json` enregistre tout le dossier, et le procès-verbal couvre
-tout le chantier (§ 11).
+tout le chantier (§ 12).
 
 > Les fiches enregistrées avec la première version de l'outil s'ouvrent
 > toujours : elles deviennent un dossier d'une seule caméra, sans rien perdre.
@@ -180,7 +180,7 @@ Le bouton **Proposition client** produit le document à remettre :
    de jour, mise en œuvre soumise au relevé définitif ;
 5. les deux cadres de signature.
 
-C'est un document commercial, distinct du procès-verbal de réception (§ 11) :
+C'est un document commercial, distinct du procès-verbal de réception (§ 12) :
 l'un dit ce qui est proposé, l'autre constate ce qui a été posé.
 
 > Une proposition qui tait ses conditions de validité n'engage personne. Les
@@ -188,7 +188,73 @@ l'un dit ce qui est proposé, l'autre constate ce qui a été posé.
 
 ---
 
-## 4. Concevoir un champ sur plan
+## 4. Synoptique de câblage — « ça passe, en longueur ? »
+
+C'est la question que pose tout client dès que le devis arrive. Le bloc **C ·
+Synoptique de câblage** y répond en mesurant, pas en estimant.
+
+1. **Charger une vue aérienne** du site — ou reprendre celle du bloc B d'un
+   bouton, calibrage compris.
+2. **Calibrer** : saisir une distance connue, cliquer ses deux extrémités. Un
+   portail, une façade, deux poteaux d'éclairage. C'est ce qui donne l'échelle.
+3. **Poser le matériel** : caméra, switch PoE, enregistreur, écran, baie. Le
+   bouton **Poser les caméras de la fiche** place d'un coup toutes celles du
+   dossier, à glisser ensuite à leur place.
+4. **Relier** : cliquer le matériel de départ, puis celui d'arrivée. Un clic
+   dans le vide entre les deux pose un **point de passage** — c'est ainsi qu'on
+   fait contourner un bâtiment au câble au lieu de le faire voler.
+
+Chaque liaison porte alors sa longueur, à l'écran et dans un tableau.
+
+### Deux longueurs, et il ne faut pas les confondre
+
+| | |
+| --- | --- |
+| **Au plan** | la longueur du trait, à plat, telle que le plan la donne |
+| **Descentes** | les montées et descentes verticales aux deux extrémités — une caméra à 4 m ne se raccorde pas au ras du sol |
+| **Câble à prévoir** | (au plan + descentes) + la réserve, réglable, 10 % par défaut |
+
+C'est la troisième qu'on commande. Les deux premières servent à comprendre d'où
+elle sort.
+
+### Ce que l'outil refuse de laisser passer
+
+- **Une liaison de plus de 90 m.** C'est la limite du lien permanent en cuivre
+  (EN 50173-1 / ISO 11801 : 90 m de câble fixe, 100 m pour le canal complet
+  avec les cordons). Au-delà, le lien ne fonctionne plus de façon garantie :
+  l'outil le signale en rouge et rappelle les trois issues — switch
+  intermédiaire, répéteur PoE, ou fibre.
+- **Un matériel au bout d'aucun câble.** Posé, oublié, jamais relié.
+- **Une caméra qui ne remonte à aucun enregistreur**, même par les switches.
+
+Ces trois relevés figurent aussi au dossier, sous « Points à traiter ».
+
+### L'arborescence
+
+À côté du plan, l'outil dessine **le synoptique logique** : qui dépend de qui,
+l'enregistreur en haut, les switches au milieu, les caméras en bas. Le plan dit
+où passent les câbles ; l'arborescence dit comment l'installation est
+construite. Les deux répondent à des questions différentes, et les deux
+figurent au dossier.
+
+Un matériel relié à rien y apparaît quand même, rangé en bas : un oubli doit se
+voir, pas disparaître du schéma.
+
+### Au dossier
+
+Le **procès-verbal** et la **proposition client** portent tous deux une section
+*Synoptique de câblage* : les deux images, l'inventaire du matériel, le tableau
+des longueurs avec son total, et les points à traiter. Sur la proposition, une
+réserve rappelle que les cheminements figurés sont ceux de l'étude et que le
+relevé définitif peut les modifier.
+
+Si le plan n'a pas été calibré, le dossier le dit au lieu d'avancer des
+longueurs : le matériel se pose et les liaisons se tracent sans échelle, mais
+rien n'est chiffré.
+
+---
+
+## 5. Concevoir un champ sur plan
 
 L'outil sert dans les deux sens. Les sections suivantes vérifient qu'une caméra
 posée respecte l'étude ; celle-ci fait l'inverse : **tracer le champ voulu sur
@@ -320,7 +386,7 @@ pixels par mètre, hauteur — plus le plan annoté.
 
 ---
 
-## 5. Avant d'aller sur site
+## 6. Avant d'aller sur site
 
 Préparer la **vue demandée** : la référence contractuelle.
 
@@ -329,7 +395,7 @@ Préparer la **vue demandée** : la référence contractuelle.
 2. Renseigner le bloc **2 · Caméra et optique** : le repère de la caméra, puis
    capteur, focale, résolution, distance à la scène, hauteur de pose.
    Ajouter une caméra par poste prévu au chantier (§ 2).
-3. Charger la vue demandée dans le premier cadre du bloc **3** — voir le § 6
+3. Charger la vue demandée dans le premier cadre du bloc **3** — voir le § 7
    ci-dessous pour partir directement du PDF de l'étude.
 4. **Enregistrer la fiche** : un fichier `.json` est téléchargé. Il contient
    tout, images comprises. C'est ce fichier que le technicien emporte.
@@ -356,7 +422,7 @@ largeur à telle distance, il donne la focale à monter.
 
 ---
 
-## 6. Partir du PDF de l'étude
+## 7. Partir du PDF de l'étude
 
 C'est le cas le plus courant : le client a remis une étude au format PDF, avec
 le plan d'implantation et, caméra par caméra, la vue attendue.
@@ -413,7 +479,7 @@ tirée. L'outil ne devine pas : il montre sa source.
 Déplier **Texte lu par l'outil**, sous le tableau. On y voit, page par page, ce
 que l'outil a réellement extrait du PDF, les passages retenus surlignés en vert.
 Une ligne présente mais non surlignée, c'est une formulation qu'il ne sait pas
-encore lire ; une page vide, c'est un scan (§ 6).
+encore lire ; une page vide, c'est un scan (§ 7).
 
 Le bouton **Copier le texte** met ce contenu dans le presse-papiers. Le
 transmettre suffit à faire ajouter la formulation manquante — inutile de sortir
@@ -469,7 +535,7 @@ vérifications distinctes : le **matériel** correspond-il à l'étude, et le
 > visuel. Pour la comparaison de cadrage, il faut une **image** de la vue
 > attendue — capture validée ou photo de repérage. À défaut, le relevé du
 > matériel reste exploitable, et la partie cadrage se traite au recalage manuel
-> (§ 10) ou se réserve pour une visite ultérieure.
+> (§ 11) ou se réserve pour une visite ultérieure.
 
 ### Si l'étude est un scan
 
@@ -494,7 +560,7 @@ praticable, une étude ne comptant qu'une poignée de chiffres par caméra.
 
 ---
 
-## 7. Sur site, après la pose
+## 8. Sur site, après la pose
 
 1. Ouvrir la fiche (**Ouvrir une fiche…**).
 2. Prendre une capture de l'image de la caméra et la charger dans le second
@@ -508,7 +574,7 @@ Le verdict s'affiche en bas :
 - **Ajustement mineur** — reprise rapide, la consigne indique quoi faire.
 - **Non conforme** — le réglage est à refaire.
 - **Recalage non concluant** — l'outil n'a pas pu rapprocher les deux images
-  (voir le § 10).
+  (voir le § 11).
 
 Les consignes sont directement exploitables : « Pivoter la caméra de 6,4° vers
 la gauche », « Relever la caméra de 2,4° », « Élargir le champ de 12 % (focale
@@ -533,7 +599,7 @@ Trois cases complètent l'affichage :
 
 ---
 
-## 8. Zones d'intérêt
+## 9. Zones d'intérêt
 
 Pour vérifier qu'un point précis reste dans le champ (portail, caisse, quai de
 livraison, allée) :
@@ -547,7 +613,7 @@ couvert. Le seuil d'exigence se règle dans le bloc **4** (95 % par défaut).
 
 ---
 
-## 9. Tolérances de réception
+## 10. Tolérances de réception
 
 | Réglage | Défaut | Signification |
 | --- | --- | --- |
@@ -563,14 +629,14 @@ de parking. Ce sont elles qui décident du verdict : à fixer avec le client
 
 ---
 
-## 10. Quand le recalage automatique échoue
+## 11. Quand le recalage automatique échoue
 
 L'outil annonce « recalage non concluant » quand les deux images ne se
 ressemblent pas assez. Les causes habituelles :
 
 - la vue demandée est un **plan ou un croquis**, pas une photo ;
 - la page d'étude retenue porte du texte ou un cartouche : la recadrer sur la
-  seule image (§ 6) suffit souvent à débloquer la situation ;
+  seule image (§ 7) suffit souvent à débloquer la situation ;
 - les deux prises de vue ont été faites depuis **des emplacements différents** ;
 - la scène a **réellement changé** (chantier, saison, véhicules déplacés) ;
 - le décalage dépasse les trois quarts du champ : il ne reste presque plus rien
@@ -582,7 +648,7 @@ direct, et le rapport indique que le recalage a été fait à la main.
 
 ---
 
-## 11. Rapport et archivage
+## 12. Rapport et archivage
 
 **Rapport / Impression** ouvre la boîte d'impression du navigateur. Choisir
 « Enregistrer au format PDF » pour obtenir le procès-verbal du chantier :
@@ -610,7 +676,7 @@ contrôle annuel ou d'une contestation.
 
 ---
 
-## 12. Mettre l'outil en ligne sur le site
+## 13. Mettre l'outil en ligne sur le site
 
 Utile pour y accéder depuis une tablette sans rien installer.
 
@@ -669,7 +735,7 @@ restreint, deux solutions côté hébergeur :
 
 ---
 
-## 13. Ce que l'outil ne fait pas
+## 14. Ce que l'outil ne fait pas
 
 - Il ne corrige pas la **distorsion** des objectifs très grand-angle. Les
   écarts restent justes au centre et se dégradent vers les bords de l'image.
@@ -678,17 +744,23 @@ restreint, deux solutions côté hébergeur :
 - Il ne juge pas la qualité d'image (netteté, bruit, exposition) : uniquement le
   cadrage.
 - Il lit le texte des PDF ; les études scannées passent par la reconnaissance
-  de caractères (§ 6), plus faillible, d'où l'avertissement qui les accompagne.
+  de caractères (§ 7), plus faillible, d'où l'avertissement qui les accompagne.
 - Le relevé reconnaît les formulations courantes des études d'implantation et
   des fiches constructeur — « focale 3,6 mm », « f = 4 mm », « H : 102° »,
   « 1/2,8 pouce », « 1 920 x 1 080 », « 1080p », valeurs en colonnes sous leur
   en-tête. Une mise en page inhabituelle peut malgré tout lui échapper : chaque
   valeur est donc affichée avec sa page et son extrait, et le texte lu reste
-  consultable pour comprendre ce qui manque (§ 6).
+  consultable pour comprendre ce qui manque (§ 7).
 - Il ne vérifie pas les points non chiffrés d'un cahier des charges (indice de
   protection, alimentation, chemin de câbles, conformité RGPD de l'affichage).
+- Il ne fait pas d'étude d'alimentation. Le synoptique mesure le câble et
+  vérifie les 90 m ; il ne calcule ni le budget PoE d'un switch, ni la section
+  des alimentations, ni l'autonomie d'un onduleur.
+- Il ne connaît pas le cheminement réel des câbles : il mesure celui que vous
+  tracez. Fourreaux existants, passages de cloison et réservations restent à
+  relever sur site — d'où la réserve appliquée par défaut.
 - Il ne tient pas à jour les catalogues constructeurs. Les références livrées
-  viennent de documents datés (§ 4) ; les tarifs, les disponibilités et les fins
+  viennent de documents datés (§ 5) ; les tarifs, les disponibilités et les fins
   de série ne sont pas de son ressort.
 - Il ne connaît pas le **format de capteur** des modèles du commerce : aucune
   brochure ne le publie. Les entrées concernées le disent (« ~ »), et la

@@ -1207,6 +1207,199 @@ console.log('\nÉtude depuis une photo de repérage');
   await page.close();
 }
 
+/* ------------------------------------------- 8. synoptique de câblage */
+
+console.log('\nSynoptique de câblage');
+{
+  const page = await contexte.newPage();
+  const erreurs = surveiller(page);
+  await page.goto(`${BASE}/index.html`, { waitUntil: 'networkidle' });
+
+  // Vue aérienne type : un bâtiment, une cour.
+  const vue = await page.evaluate(() => {
+    const c = document.createElement('canvas');
+    c.width = 1400; c.height = 1000;
+    const g = c.getContext('2d');
+    g.fillStyle = '#9aa08f'; g.fillRect(0, 0, 1400, 1000);
+    g.fillStyle = '#c9c4bb'; g.fillRect(120, 90, 700, 320);
+    g.fillStyle = '#8c9384'; g.fillRect(120, 470, 1120, 430);
+    return c.toDataURL('image/png');
+  });
+
+  const toileReseau = async () => {
+    const l = page.locator('#toile-reseau');
+    await l.scrollIntoViewIfNeeded();
+    return l.boundingBox();
+  };
+  const clic = async (u, v) => {
+    const b = await toileReseau();
+    await page.mouse.click(b.x + b.width * u, b.y + b.height * v);
+    await page.waitForTimeout(90);
+  };
+  const lignes = () => page.evaluate(() => [...document.querySelectorAll('#reseau-tableau tbody tr')]
+    .map((t) => t.textContent.replace(/\s+/g, ' ').trim()));
+  const alertes = () => page.evaluate(() => [...document.querySelectorAll('#reseau-alertes li')]
+    .map((t) => t.textContent.replace(/\s+/g, ' ').trim()));
+
+  await cas('le plan du site bascule sur le synoptique', async () => {
+    await page.setInputFiles('#fichier-reseau', {
+      name: 'site.png', mimeType: 'image/png', buffer: enBuffer(vue),
+    });
+    await page.waitForSelector('#reseau-vue:not([hidden])', { timeout: 10000 });
+    const mode = await page.evaluate(() => document.querySelector('.mode.actif').dataset.mode);
+    affirmer(mode === 'reseau', `mode : ${mode}`);
+    affirmer(/[Cc]alibrer/.test(await page.evaluate(
+      () => document.querySelector('#reseau-consigne').textContent,
+    )), 'la consigne devrait demander le calibrage');
+  });
+
+  await cas('le matériel se pose avant le calibrage, sans longueur chiffrée', async () => {
+    await page.click('[data-reseau-outil="poser"]');
+    await page.selectOption('#reseau-type', 'camera');
+    await clic(0.2, 0.3);
+    await page.selectOption('#reseau-type', 'switch');
+    await clic(0.4, 0.2);
+    await page.click('[data-reseau-outil="relier"]');
+    await clic(0.2, 0.3);
+    await clic(0.4, 0.2);
+
+    affirmer((await lignes()).length === 0, 'rien ne peut être chiffré sans échelle');
+    const a = await alertes();
+    affirmer(a.some((x) => /non calibré/i.test(x)), `l'outil doit le dire : ${a.join(' | ')}`);
+    // Le câblage tracé doit rester visible même sans échelle : c'est le dessin
+    // qui porte le travail, pas le tableau. On le vérifie sur les pixels de la
+    // toile, en cherchant le violet des liaisons entre les deux matériels.
+    const violet = await page.evaluate(() => {
+      const t = document.querySelector('#toile-reseau');
+      const d = t.getContext('2d').getImageData(0, 0, t.width, t.height).data;
+      let n = 0;
+      for (let i = 0; i < d.length; i += 4) {
+        if (d[i] > 90 && d[i] < 140 && d[i + 1] < 110 && d[i + 2] > 180) n += 1;
+      }
+      return n;
+    });
+    affirmer(violet > 50, `la liaison doit être dessinée même sans échelle : ${violet} pixels`);
+  });
+
+  await cas('une fois le plan calibré, les longueurs apparaissent', async () => {
+    await page.fill('#reseau-etalon', '40');
+    await page.click('[data-reseau-outil="calage"]');
+    await clic(0.1, 0.06);
+    await clic(0.6, 0.06);   // 0,5 unité = 40 m, soit 80 m par unité
+
+    const l = await lignes();
+    affirmer(l.length === 1, `une liaison attendue : ${JSON.stringify(l)}`);
+    // Trajet 0,2/0,3 → 0,4/0,2 : 0,2236 unité, soit 17,9 m ; plus 3,5 m de
+    // descente caméra, plus 10 % de réserve, soit 23,5 m.
+    affirmer(/2[23],\d m/.test(l[0]), `longueur de câble inattendue : ${l[0]}`);
+  });
+
+  await cas('corriger la distance connue recalcule tout', async () => {
+    // L'invariant qui compte n'est pas une longueur particulière mais le
+    // rapport : tripler la distance de référence triple l'échelle, donc le
+    // trajet au plan — les descentes, elles, ne bougent pas.
+    const auPlan = () => page.evaluate(() => parseFloat(
+      document.querySelector('#reseau-tableau tbody tr td:nth-child(2)')
+        .textContent.replace(',', '.'),
+    ));
+    const avant = await auPlan();
+    await page.fill('#reseau-etalon', '120');
+    await page.dispatchEvent('#reseau-etalon', 'change');
+    await page.waitForTimeout(200);
+    const apres = await auPlan();
+    affirmer(Math.abs(apres / avant - 3) < 0.02,
+      `l'échelle triplée devrait tripler le trajet : ${avant} → ${apres}`);
+  });
+
+  await cas('au-delà de 90 m, la liaison est signalée', async () => {
+    await page.click('[data-reseau-outil="poser"]');
+    await page.selectOption('#reseau-type', 'camera');
+    await clic(0.9, 0.85);
+    await page.click('[data-reseau-outil="relier"]');
+    await clic(0.9, 0.85);
+    await clic(0.4, 0.2);
+    await page.waitForTimeout(150);
+
+    const a = await alertes();
+    affirmer(a.some((x) => /90 m/.test(x) && /fibre|switch/i.test(x)),
+      `le dépassement doit être expliqué : ${a.join(' | ')}`);
+    const l = await lignes();
+    affirmer(l.length === 2, `deux liaisons attendues : ${JSON.stringify(l)}`);
+  });
+
+  await cas('un matériel au bout d\'aucun câble est signalé', async () => {
+    await page.click('[data-reseau-outil="poser"]');
+    await page.selectOption('#reseau-type', 'nvr');
+    await clic(0.55, 0.5);
+    await page.waitForTimeout(150);
+    const a = await alertes();
+    affirmer(a.some((x) => /aucun câble/i.test(x)), `matériel isolé : ${a.join(' | ')}`);
+    affirmer(a.some((x) => /aucun enregistreur/i.test(x)),
+      `les caméras ne remontent à rien : ${a.join(' | ')}`);
+  });
+
+  await cas('le récapitulatif compte le matériel et le câble', async () => {
+    const m = await page.evaluate(() => Object.fromEntries(
+      [...document.querySelectorAll('#reseau-mesures .mesure')].map((t) => [
+        t.querySelector('.cle').textContent.trim(),
+        t.querySelector('.val').textContent.trim(),
+      ]),
+    ));
+    affirmer(m['Caméra'] === '2', `caméras comptées : ${m['Caméra']}`);
+    affirmer(m['Switch PoE'] === '1', `switches : ${m['Switch PoE']}`);
+    affirmer(parseFloat((m['Câble total'] || '').replace(',', '.')) > 100,
+      `câble total : ${m['Câble total']}`);
+  });
+
+  await cas('le déplacement d\'un matériel rallonge la liaison', async () => {
+    const avant = (await lignes())[0];
+    await page.click('[data-reseau-outil="deplacer"]');
+    const b = await toileReseau();
+    await page.mouse.move(b.x + b.width * 0.2, b.y + b.height * 0.3);
+    await page.mouse.down();
+    await page.mouse.move(b.x + b.width * 0.05, b.y + b.height * 0.8, { steps: 8 });
+    await page.mouse.up();
+    await page.waitForTimeout(200);
+    const apres = (await lignes())[0];
+    affirmer(apres !== avant, `la longueur devrait changer : ${avant} → ${apres}`);
+  });
+
+  await cas('supprimer un matériel supprime ses liaisons', async () => {
+    const avant = (await lignes()).length;
+    await page.click('[data-reseau-outil="supprimer"]');
+    await clic(0.4, 0.2);   // le switch, qui portait les deux liaisons
+    await page.waitForTimeout(200);
+    const apres = (await lignes()).length;
+    affirmer(apres === 0, `${avant} liaisons devaient disparaître avec le switch, reste ${apres}`);
+    const pendants = await page.evaluate(
+      () => document.querySelectorAll('#reseau-tableau tbody tr').length,
+    );
+    affirmer(pendants === 0, 'aucune liaison pendante ne doit subsister');
+  });
+
+  await cas('le synoptique figure au procès-verbal', async () => {
+    // On reconstitue un câblage complet, puis on regarde le document produit.
+    await page.click('[data-reseau-outil="poser"]');
+    await page.selectOption('#reseau-type', 'switch');
+    await clic(0.4, 0.25);
+    await page.click('[data-reseau-outil="relier"]');
+    await clic(0.9, 0.85);
+    await clic(0.4, 0.25);
+    await page.waitForTimeout(200);
+
+    await page.click('#btn-rapport');
+    await page.waitForTimeout(600);
+    const rapport = await page.evaluate(() => document.querySelector('#rapport').innerHTML);
+    affirmer(/Synoptique de câblage/.test(rapport), 'la section doit figurer au procès-verbal');
+    affirmer(/Longueurs de câble/.test(rapport), 'avec le tableau des longueurs');
+    affirmer((rapport.match(/<img[^>]+src="data:image\/png/g) || []).length >= 2,
+      'le plan câblé et l\'arborescence doivent y être');
+  });
+
+  await cas('aucune erreur de console', () => affirmer(!erreurs.length, erreurs.join(' | ')));
+  await page.close();
+}
+
 await navigateur.close();
 serveur.close();
 

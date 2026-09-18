@@ -102,6 +102,16 @@ function completer(f) {
     chantier: f.chantier || {},
     tolerances: f.tolerances || {},
     etude: f.etude || null,
+    // Le synoptique décrit le site entier, pas une caméra : il vit donc à la
+    // racine de la fiche, à côté des caméras et non dans l'une d'elles.
+    synoptique: {
+      image: null,
+      etalon: null,
+      reserve: 0.1,
+      ...(f.synoptique || {}),
+      noeuds: Array.isArray(f.synoptique?.noeuds) ? f.synoptique.noeuds : [],
+      liens: Array.isArray(f.synoptique?.liens) ? f.synoptique.liens : [],
+    },
     cameras: cameras.length ? cameras : [nouvelleCamera()],
   };
 }

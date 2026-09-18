@@ -20,9 +20,33 @@ const lire = (...p) => readFileSync(join(ici, ...p), 'utf8');
 /** Modules de l'application, dans l'ordre des dépendances. */
 const MODULES = [
   'dom.js', 'format.js', 'optique.js', 'alignement.js',
-  'diagnostic.js', 'lecture-etude.js', 'plan.js', 'photo.js', 'catalogue.js', 'fiche.js',
-  'ocr.js', 'etude-pdf.js', 'app.js',
+  'diagnostic.js', 'lecture-etude.js', 'plan.js', 'photo.js', 'catalogue.js', 'reseau.js',
+  'fiche.js', 'ocr.js', 'etude-pdf.js', 'app.js',
 ];
+
+/**
+ * Aucun module ne doit manquer à la liste.
+ *
+ * Un module oublié ici se concatène quand même… en étant absent : la page se
+ * charge, puis lâche au premier appel avec un « X is not defined ». Le fichier
+ * livré paraît bon et ne l'est pas. Mieux vaut un build qui refuse.
+ */
+function verifierListe() {
+  const declares = new Set(MODULES);
+  const manquants = new Set();
+  for (const nom of MODULES) {
+    const source = lire('js', nom);
+    for (const m of source.matchAll(/from\s*['"]\.\/([\w-]+\.js)['"]/g)) {
+      if (!declares.has(m[1])) manquants.add(`${m[1]} (importé par ${nom})`);
+    }
+  }
+  if (manquants.size) {
+    throw new Error(`Modules absents de MODULES : ${[...manquants].join(', ')}. `
+      + 'Les ajouter dans l\'ordre des dépendances, sinon le fichier unique '
+      + 'se chargera puis plantera à l\'usage.');
+  }
+}
+verifierListe();
 
 /** Neutralise toute fin de balise qui casserait le script ou le style l'accueillant. */
 const inerte = (code) => code.replace(/<\/(script|style)/gi, '<\\/$1');

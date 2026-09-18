@@ -247,6 +247,79 @@
       </details>
     </section>
 
+    <section class="bloc" id="bloc-reseau">
+      <h2>C · Synoptique de câblage <small>— longueurs réelles</small></h2>
+      <p class="note">
+        Le matériel se pose sur une vue aérienne calibrée, les liaisons se
+        tirent entre eux, et l'outil <b>mesure le câble</b> : longueur au plan,
+        descentes, réserve. Il signale les liens qui dépassent la limite de
+        90 m et le matériel oublié au bout d'aucun câble.
+      </p>
+
+      <div class="depot" id="depot-reseau" tabindex="0" role="button"
+           aria-label="Charger le plan du site">
+        <input type="file" id="fichier-reseau" accept="image/*" hidden>
+        <div class="depot-etiquette">Vue aérienne du site</div>
+        <div class="depot-corps">
+          <span class="depot-texte">Glisser le plan, cliquer, ou coller (Ctrl+V)</span>
+          <img class="depot-vignette" id="vignette-reseau" alt="" hidden>
+        </div>
+        <div class="depot-info" id="info-reseau"></div>
+      </div>
+      <button type="button" id="reseau-depuis-plan" class="btn btn-fantome btn-petit">
+        Reprendre le plan du bloc B
+      </button>
+
+      <div id="reseau-reglages" hidden>
+        <p class="consigne" id="reseau-consigne"></p>
+
+        <div class="grille2">
+          <label>Distance connue (m)
+            <input type="number" id="reseau-etalon" value="20" min="1" max="500" step="1">
+          </label>
+          <label>Réserve de câble (%)
+            <input type="number" id="reseau-reserve" value="10" min="0" max="50" step="1">
+          </label>
+        </div>
+
+        <div class="etapes">
+          <button type="button" class="btn btn-fantome btn-petit" data-reseau-outil="calage">
+            1 · Calibrer
+          </button>
+          <button type="button" class="btn btn-fantome btn-petit" data-reseau-outil="poser">
+            2 · Poser
+          </button>
+          <button type="button" class="btn btn-fantome btn-petit" data-reseau-outil="relier">
+            3 · Relier
+          </button>
+          <button type="button" class="btn btn-fantome btn-petit" data-reseau-outil="deplacer">
+            Déplacer
+          </button>
+          <button type="button" class="btn btn-fantome btn-petit" data-reseau-outil="supprimer">
+            Supprimer
+          </button>
+        </div>
+
+        <label>Matériel à poser
+          <select id="reseau-type"></select>
+        </label>
+
+        <div id="reseau-selection"></div>
+
+        <div class="etude-actions">
+          <button type="button" id="reseau-cameras" class="btn btn-fantome btn-petit">
+            Poser les caméras de la fiche
+          </button>
+          <button type="button" id="reseau-exporter" class="btn btn-fantome btn-petit">
+            Exporter le synoptique
+          </button>
+          <button type="button" id="reseau-effacer" class="btn btn-fantome btn-petit">
+            Tout effacer
+          </button>
+        </div>
+      </div>
+    </section>
+
     <section class="bloc" id="bloc-etude" hidden>
       <h2>2 bis · Relevé de l'étude</h2>
       <label id="etude-choix-camera" hidden>Caméra de l'étude
@@ -395,6 +468,7 @@
         <button type="button" class="mode" data-mode="difference">Différence</button>
         <button type="button" class="mode" data-mode="photo">Photo</button>
         <button type="button" class="mode" data-mode="plan">Plan</button>
+        <button type="button" class="mode" data-mode="reseau">Synoptique</button>
       </div>
       <label class="curseur en-ligne" id="ctrl-opacite">Opacité <output id="out-opacite">50 %</output>
         <input type="range" id="opacite" min="0" max="100" value="50">
@@ -454,6 +528,24 @@
         <canvas id="toile-photo"></canvas>
         <canvas id="toile-schema" hidden></canvas>
       </div>
+
+      <div class="plan-vue avec-schema" id="reseau-vue" hidden>
+        <canvas id="toile-reseau"></canvas>
+        <canvas id="toile-arbre"></canvas>
+      </div>
+    </div>
+
+    <!-- Récapitulatif du câblage, sous le synoptique. -->
+    <div class="resultats" id="reseau-resultats" hidden>
+      <p class="attente" id="reseau-attente">
+        Calibrez le plan sur une distance connue, posez le matériel, puis tirez
+        les liaisons : les longueurs de câble s'afficheront ici.
+      </p>
+      <div id="reseau-alertes"></div>
+      <h3>Liaisons</h3>
+      <div id="reseau-tableau"></div>
+      <h3>Récapitulatif</h3>
+      <div class="mesures" id="reseau-mesures"></div>
     </div>
 
     <!-- Résultats de l'étude : sous la photo, là où se porte le regard. -->

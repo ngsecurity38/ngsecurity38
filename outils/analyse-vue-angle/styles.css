@@ -272,6 +272,8 @@ canvas { max-width: 100%; display: block; border-radius: 6px; background: #000; 
   .rapport .signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; margin-top: 8mm; }
   .rapport .signatures div { border: 1px solid #999; height: 26mm; padding: 2mm; font-size: 9pt; }
   .rapport ul { margin: 0; padding-left: 5mm; font-size: 10pt; }
+  .rapport h3 { font-size: 10pt; margin: 3mm 0 1mm; }
+  .rapport .note { font-size: 8.5pt; color: #555 !important; }
 }
 
 /* ------------------------------------------------------------ responsive */
@@ -477,10 +479,12 @@ table.catalogue td[title] { text-align: center; cursor: help; }
 
 /* Photo et tracé d'angle côte à côte dès que la place le permet : empilés, les
    deux dépassent l'écran et obligent à faire défiler pour comparer. */
-#photo-vue { display: grid; gap: 12px; align-items: start; width: 100%; }
-#photo-vue canvas { max-height: calc(100vh - 220px); width: 100%; height: auto; }
+#photo-vue, #reseau-vue { display: grid; gap: 12px; align-items: start; width: 100%; }
+#photo-vue canvas, #reseau-vue canvas {
+  max-height: calc(100vh - 220px); width: 100%; height: auto;
+}
 @media (min-width: 1250px) {
-  #photo-vue.avec-schema { grid-template-columns: 1fr 1fr; }
+  #photo-vue.avec-schema, #reseau-vue.avec-schema { grid-template-columns: 1fr 1fr; }
 }
 
 /* Le bloc d'étude est le point de départ : il se distingue des étapes de
@@ -526,3 +530,17 @@ table.catalogue td[title] { text-align: center; cursor: help; }
 }
 /* La place du tracé d'angle reste tenue même vide : voir rendrePhoto(). */
 #photo-vue.avec-schema #toile-schema[hidden] { display: block !important; visibility: hidden; }
+
+/* ------------------------------------------------------------ synoptique */
+
+.etapes .btn.actif { border-color: var(--rouge); color: var(--rouge-clair); }
+
+table.liaisons tr.depasse td { color: var(--rouge-clair); }
+
+.alertes { margin: 0 0 14px; padding-left: 18px; }
+.alertes li {
+  color: var(--ambre); font-size: 12px; line-height: 1.5; margin-bottom: 6px;
+}
+
+#reseau-vue canvas { background: #fff; }
+#reseau-selection { margin: 12px 0; }
