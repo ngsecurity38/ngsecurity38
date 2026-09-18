@@ -1037,6 +1037,36 @@ console.log('\nÉtude depuis une photo de repérage');
     affirmer(m['Niveau garanti'], 'un niveau d\'exploitation est annoncé');
   });
 
+  await cas('la photo ne bouge pas pendant qu\'on trace', async () => {
+    // Le panneau de résultats se remplit sous la photo au fur et à mesure du
+    // tracé. Si la visionneuse lui cède de la hauteur et recentre son contenu,
+    // la photo remonte sous le curseur et le rectangle obtenu n'est pas celui
+    // qu'on dessine — le défaut se voit à l'usage, jamais dans une capture.
+    await page.evaluate(() => {
+      window.__rects = [];
+      const t = document.querySelector('#toile-photo');
+      for (const ev of ['pointerdown', 'pointermove', 'pointerup']) {
+        t.addEventListener(ev, () => {
+          const r = t.getBoundingClientRect();
+          window.__rects.push([r.top, r.left, r.width, r.height]);
+        }, true);
+      }
+    });
+
+    await page.click('[data-photo-etape="zone"]');
+    await glisser(0.25, 0.4, 0.75, 0.88);
+
+    const rects = await page.evaluate(() => window.__rects);
+    affirmer(rects.length >= 3, `le tracé devrait produire des événements : ${rects.length}`);
+    const [t0, g0, l0, h0] = rects[0];
+    for (const [t, g, l, h] of rects) {
+      affirmer(
+        Math.abs(t - t0) < 2 && Math.abs(g - g0) < 2 && Math.abs(l - l0) < 2 && Math.abs(h - h0) < 2,
+        `la toile a bougé pendant le tracé : ${[t0, g0, l0, h0]} → ${[t, g, l, h]}`,
+      );
+    }
+  });
+
   await cas('resserrer la zone allonge la focale', async () => {
     const avant = parseFloat((await tuiles())['Focale à poser'].replace(',', '.'));
     await page.click('[data-photo-etape="zone"]');

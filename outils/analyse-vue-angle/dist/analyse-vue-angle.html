@@ -492,6 +492,50 @@ table.catalogue td[title] { text-align: center; cursor: help; }
 @media (min-width: 1250px) {
   #photo-vue.avec-schema { grid-template-columns: 1fr 1fr; }
 }
+
+/* Le bloc d'étude est le point de départ : il se distingue des étapes de
+   réception, qui ne servent qu'une fois l'installation posée. */
+.bloc.primaire { border-color: var(--rouge); }
+.bloc.primaire h2 { color: var(--rouge-clair); }
+
+/* Deux chemins offerts à l'accueil, au lieu d'une seule consigne de recalage. */
+.chemins { display: grid; gap: 18px; margin-top: 18px; text-align: left; }
+@media (min-width: 860px) { .chemins { grid-template-columns: 1fr 1fr; } }
+.chemin {
+  border: 1px solid var(--bord); border-radius: 10px; padding: 16px 18px;
+  background: var(--fond-3);
+}
+.chemin h4 { margin: 0 0 8px; font-size: 14px; }
+.chemin p { margin: 0 0 12px; }
+
+/* Résultats de l'étude, sous la photo : c'est là que se porte le regard. */
+.resultats {
+  margin-top: 14px; padding: 16px 18px;
+  border: 1px solid var(--bord); border-radius: 10px; background: var(--fond-3);
+}
+.resultats h3 {
+  margin: 18px 0 8px; font-size: 11px; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--texte-doux);
+}
+.resultats h3:first-child { margin-top: 0; }
+.resultats .attente { margin: 0; color: var(--texte-doux); }
+
+/*
+ * En mode photo, la scène défile d'un bloc et la visionneuse se règle sur son
+ * contenu.
+ *
+ * Par défaut la visionneuse prend toute la hauteur restante et centre son
+ * contenu : quand le panneau de résultats se remplit sous elle, elle rétrécit
+ * et recentre — la photo remonte de 200 px sous le curseur, en plein tracé, et
+ * le rectangle obtenu n'est pas celui qu'on dessine. Ici, rien ne doit bouger
+ * tant que la main est sur la photo.
+ */
+.scene.avec-resultats { overflow: auto; }
+.scene.avec-resultats .visionneuse {
+  flex: none; align-items: flex-start; overflow: visible;
+}
+/* La place du tracé d'angle reste tenue même vide : voir rendrePhoto(). */
+#photo-vue.avec-schema #toile-schema[hidden] { display: block !important; visibility: hidden; }
 </style>
 </head>
 <body>
@@ -536,6 +580,70 @@ table.catalogue td[title] { text-align: center; cursor: help; }
         <label>Technicien <input type="text" id="ch-technicien" placeholder="Nom"></label>
         <label>Date <input type="date" id="ch-date"></label>
         <label>N° d'affaire <input type="text" id="ch-affaire" placeholder="Ex. 2026-118"></label>
+      </div>
+    </section>
+
+    <section class="bloc primaire" id="bloc-photo">
+      <h2>A · Étude depuis la photo <small>— proposition client</small></h2>
+      <p class="note">
+        Le point de départ : une photo prise depuis l'emplacement prévu, deux
+        repères, la zone à couvrir. L'outil en tire l'angle de vue, la focale et
+        le matériel. Les blocs numérotés 1 à 6 servent, eux, à la
+        <b>réception</b> d'une installation déjà posée.
+      </p>
+
+      <div class="depot" id="depot-photo" tabindex="0" role="button"
+           aria-label="Charger la photo de repérage">
+        <input type="file" id="fichier-photo" accept="image/*" hidden>
+        <div class="depot-etiquette">Photo prise depuis l'emplacement de la caméra</div>
+        <div class="depot-corps">
+          <span class="depot-texte">Glisser la photo de repérage,<br>cliquer, ou coller (Ctrl+V)</span>
+          <img class="depot-vignette" id="vignette-photo" alt="" hidden>
+        </div>
+        <div class="depot-info" id="info-photo"></div>
+      </div>
+      <button type="button" id="photo-depuis-reglee" class="btn btn-fantome btn-petit">
+        Utiliser l'image réglée du bloc 3
+      </button>
+
+      <div id="photo-reglages" hidden>
+        <p class="consigne" id="photo-consigne"></p>
+
+        <div class="grille2">
+          <label>Hauteur de prise de vue (m)
+            <input type="number" id="photo-hauteur" value="4.5" min="0.5" max="40" step="0.1">
+          </label>
+          <label>Repère proche (m)
+            <input type="number" id="photo-distance" value="10" min="1" max="500" step="1">
+          </label>
+          <label>Repère lointain (m)
+            <input type="number" id="photo-distance2" value="30" min="1" max="500" step="1">
+          </label>
+          <label>Appareil <small>si un seul repère</small>
+            <select id="photo-appareil"></select>
+          </label>
+        </div>
+
+        <div class="etapes">
+          <button type="button" class="btn btn-fantome btn-petit" data-photo-etape="calage">1 · Repère proche</button>
+          <button type="button" class="btn btn-fantome btn-petit" data-photo-etape="calage2">2 · Repère lointain</button>
+          <button type="button" class="btn btn-fantome btn-petit" data-photo-etape="zone">3 · Entourer la zone</button>
+        </div>
+        <label class="case">
+          <input type="checkbox" id="photo-distances" checked> Afficher les lignes de distance
+        </label>
+
+        <div class="etude-actions">
+          <button type="button" id="photo-reprendre" class="btn btn-fantome btn-petit">
+            Appliquer au bloc 2
+          </button>
+          <button type="button" id="photo-exporter" class="btn btn-fantome btn-petit">
+            Exporter la photo annotée
+          </button>
+          <button type="button" id="photo-effacer" class="btn btn-fantome btn-petit">
+            Effacer
+          </button>
+        </div>
       </div>
     </section>
 
@@ -595,71 +703,12 @@ table.catalogue td[title] { text-align: center; cursor: help; }
       </details>
     </section>
 
-    <section class="bloc" id="bloc-photo">
-      <h2>Étude depuis la photo <small>— conception</small></h2>
-
-      <div class="depot" id="depot-photo" tabindex="0" role="button"
-           aria-label="Charger la photo de repérage">
-        <input type="file" id="fichier-photo" accept="image/*" hidden>
-        <div class="depot-etiquette">Photo prise depuis l'emplacement de la caméra</div>
-        <div class="depot-corps">
-          <span class="depot-texte">Glisser la photo de repérage,<br>cliquer, ou coller (Ctrl+V)</span>
-          <img class="depot-vignette" id="vignette-photo" alt="" hidden>
-        </div>
-        <div class="depot-info" id="info-photo"></div>
-      </div>
-      <button type="button" id="photo-depuis-reglee" class="btn btn-fantome btn-petit">
-        Utiliser l'image réglée du bloc 3
-      </button>
-
-      <div id="photo-reglages" hidden>
-        <p class="consigne" id="photo-consigne"></p>
-
-        <div class="grille2">
-          <label>Hauteur de prise de vue (m)
-            <input type="number" id="photo-hauteur" value="4.5" min="0.5" max="40" step="0.1">
-          </label>
-          <label>Repère proche (m)
-            <input type="number" id="photo-distance" value="10" min="1" max="500" step="1">
-          </label>
-          <label>Repère lointain (m)
-            <input type="number" id="photo-distance2" value="30" min="1" max="500" step="1">
-          </label>
-          <label>Appareil <small>si un seul repère</small>
-            <select id="photo-appareil"></select>
-          </label>
-        </div>
-
-        <div class="etapes">
-          <button type="button" class="btn btn-fantome btn-petit" data-photo-etape="calage">1 · Repère proche</button>
-          <button type="button" class="btn btn-fantome btn-petit" data-photo-etape="calage2">2 · Repère lointain</button>
-          <button type="button" class="btn btn-fantome btn-petit" data-photo-etape="zone">3 · Entourer la zone</button>
-        </div>
-        <label class="case">
-          <input type="checkbox" id="photo-distances" checked> Afficher les lignes de distance
-        </label>
-
-        <div class="mesures" id="photo-mesures"></div>
-        <p class="conseil" id="photo-conseil"></p>
-        <div id="photo-propositions"></div>
-        <div id="photo-portees"></div>
-
-        <div class="etude-actions">
-          <button type="button" id="photo-reprendre" class="btn btn-fantome btn-petit">
-            Appliquer au bloc 2
-          </button>
-          <button type="button" id="photo-exporter" class="btn btn-fantome btn-petit">
-            Exporter la photo annotée
-          </button>
-          <button type="button" id="photo-effacer" class="btn btn-fantome btn-petit">
-            Effacer
-          </button>
-        </div>
-      </div>
-    </section>
-
     <section class="bloc" id="bloc-plan">
-      <h2>Champ sur plan <small>— conception</small></h2>
+      <h2>B · Champ sur plan <small>— vue aérienne</small></h2>
+      <p class="note">
+        À n'utiliser qu'avec une <b>vue du dessus</b> — plan, photo aérienne. Une
+        photo prise depuis le sol se charge dans le bloc A, au-dessus.
+      </p>
 
       <div class="depot" id="depot-plan" tabindex="0" role="button"
            aria-label="Charger le plan d'implantation">
@@ -892,11 +941,29 @@ table.catalogue td[title] { text-align: center; cursor: help; }
 
     <div class="visionneuse" id="visionneuse">
       <div class="vide" id="message-vide">
-        <h3>Charger les deux vues pour démarrer</h3>
-        <p>
-          À gauche : la <strong>vue demandée</strong> par le client.<br>
-          À droite : l'<strong>image réglée</strong> relevée sur la caméra.
-        </p>
+        <h3>Deux façons de travailler</h3>
+        <div class="chemins">
+          <div class="chemin">
+            <h4>Proposer une installation</h4>
+            <p>
+              Une <strong>photo de repérage</strong> prise depuis l'emplacement
+              prévu suffit : l'outil mesure l'angle de vue, en déduit la focale,
+              propose le matériel et trace le champ.
+            </p>
+            <button type="button" id="demarrer-photo" class="btn">
+              Charger une photo de repérage
+            </button>
+          </div>
+          <div class="chemin">
+            <h4>Réceptionner une installation</h4>
+            <p>
+              Charger la <strong>vue demandée</strong> par le client et
+              l'<strong>image réglée</strong> relevée sur la caméra : l'outil
+              compare les deux cadrages et chiffre l'écart de pointage.
+            </p>
+            <span class="note">Blocs 1 à 6, colonne de gauche.</span>
+          </div>
+        </div>
       </div>
 
       <div class="paire" id="paire" hidden>
@@ -918,6 +985,21 @@ table.catalogue td[title] { text-align: center; cursor: help; }
         <canvas id="toile-photo"></canvas>
         <canvas id="toile-schema" hidden></canvas>
       </div>
+    </div>
+
+    <!-- Résultats de l'étude : sous la photo, là où se porte le regard. -->
+    <div class="resultats" id="photo-resultats" hidden>
+      <p class="attente" id="photo-attente">
+        Posez les deux repères, puis <b>entourez la zone à couvrir</b> : l'angle
+        de vue, la focale, le matériel et les portées s'afficheront ici.
+      </p>
+      <h3>Ce que demande cette zone</h3>
+      <div class="mesures" id="photo-mesures"></div>
+      <h3>Matériel proposé</h3>
+      <p class="conseil" id="photo-conseil"></p>
+      <div id="photo-propositions"></div>
+      <h3>Ce que permettra l'image</h3>
+      <div id="photo-portees"></div>
     </div>
 
     <div class="verdict" id="verdict" hidden></div>
@@ -4278,12 +4360,12 @@ function majPhoto() {
   const propositions = proposer(etat.catalogue, m.focale, { type });
   $('#photo-conseil').textContent = conseil(m.focale, propositions).texte;
   $('#photo-propositions').innerHTML = propositions.length
-    ? `<ul class="propositions">${propositions.map((p) => {
+    ? `<ul class="propositions">${propositions.slice(0, MAX_PROPOSITIONS).map((p) => {
       const reglage = estFixe(p.entree) ? `fixe ${fmt(p.entree.focaleMin, 1)} mm` : `zoom ${fmt(p.reglage, 1)} mm`;
       return `<li><span>${ech(nomComplet(p.entree))}`
-        + `${aConfirmer(p.entree).length ? ` <em>(${ech(aConfirmer(p.entree).join(' et '))} à confirmer)</em>` : ''}</span>`
+        + `${reserveCourte(p.entree)}</span>`
         + `<span class="reglage">${reglage}</span></li>`;
-    }).join('')}</ul>`
+    }).join('')}</ul>${resteProposition(propositions)}`
     : '';
 
   $('#photo-portees').innerHTML = `<table class="dori">
@@ -4452,11 +4534,30 @@ function rendrePhoto() {
 
   const m = mesurePhoto();
   const schema = $('#toile-schema');
+
+  /*
+   * La place du tracé d'angle et celle des résultats sont réservées dès que la
+   * photo est chargée, pas à l'apparition de la mesure.
+   *
+   * Les faire surgir plus tard paraissait plus propre, mais les faisait surgir
+   * **pendant** que l'utilisateur trace : la colonne passait de une à deux, la
+   * photo rétrécissait sous le curseur, et le rectangle obtenu n'était plus
+   * celui qu'on croyait dessiner. Une géométrie qui bouge en cours de geste est
+   * pire qu'un panneau vide.
+   */
+  $('#photo-vue').classList.add('avec-schema');
+  $('#photo-resultats').hidden = false;
+  $('.scene').classList.add('avec-resultats');
   schema.hidden = !m;
-  $('#photo-vue').classList.toggle('avec-schema', !!m);
+  $('#photo-attente').hidden = !!m;
+
+  // La toile du tracé prend ses dimensions tout de suite, mesure ou pas : les
+  // lui donner plus tard changeait la hauteur de la rangée en cours de tracé,
+  // et la visionneuse, qui centre son contenu, remontait la photo sous le
+  // curseur.
+  schema.width = l;
+  schema.height = Math.round(l * 0.62);
   if (m) {
-    schema.width = l;
-    schema.height = Math.round(l * 0.62);
     dessinerSchemaAngle(schema.getContext('2d'), schema.width, schema.height,
       m, configCamera(), cameraCourante()?.nom, etude.hauteur);
   }
@@ -4920,14 +5021,14 @@ function majPlan() {
   const propositions = proposer(etat.catalogue, m.focale, { type });
   $('#plan-conseil').textContent = conseil(m.focale, propositions).texte;
   $('#plan-propositions').innerHTML = propositions.length
-    ? `<ul class="propositions">${propositions.map((p) => {
+    ? `<ul class="propositions">${propositions.slice(0, MAX_PROPOSITIONS).map((p) => {
       const reglage = estFixe(p.entree)
         ? `fixe ${fmt(p.entree.focaleMin, 1)} mm`
         : `zoom ${fmt(p.reglage, 1)} mm`;
       return `<li><span>${ech(nomComplet(p.entree))}`
-        + `${aConfirmer(p.entree).length ? ` <em>(${ech(aConfirmer(p.entree).join(' et '))} à confirmer)</em>` : ''}</span>`
+        + `${reserveCourte(p.entree)}</span>`
         + `<span class="reglage">${reglage}</span></li>`;
-    }).join('')}</ul>`
+    }).join('')}</ul>${resteProposition(propositions)}`
     : '';
 
   majConsigne();
@@ -5110,6 +5211,29 @@ function exporterPlan() {
 }
 
 /* -------------------------------------------------------------- catalogue */
+
+/**
+ * Au-delà de quatre, la liste de matériel cesse d'aider : les varifocaux d'une
+ * même plage donnent tous le même réglage, et le choix se fait alors sur le
+ * boîtier, le prix ou l'habitude — pas sur l'optique.
+ */
+const MAX_PROPOSITIONS = 4;
+
+/** Réserve en quelques mots, pour tenir sur la ligne d'une proposition. */
+function reserveCourte(entree) {
+  const restes = aConfirmer(entree)
+    .map((r) => (r === 'le format de capteur' ? 'capteur' : 'référence'));
+  return restes.length ? ` <em>(${restes.join(' et ')} à confirmer)</em>` : '';
+}
+
+/** Ce que la liste tronquée ne montre pas. */
+function resteProposition(propositions) {
+  const reste = propositions.length - MAX_PROPOSITIONS;
+  return reste > 0
+    ? `<p class="note">${reste} autre${reste > 1 ? 's' : ''} référence${reste > 1 ? 's' : ''}
+       du catalogue couvre${reste > 1 ? 'nt' : ''} aussi cette focale.</p>`
+    : '';
+}
 
 /** Pastille de provenance d'une entrée : ce qui est sourcé, ce qui ne l'est pas. */
 function pastilleProvenance(e) {
@@ -5530,6 +5654,12 @@ function brancherDepotPhoto() {
     await definirPhoto(await lireFichier(fichier), fichier.name);
   };
   zone.addEventListener('click', () => { etat.dernierDepot = 'photo'; entree.click(); });
+  // Le même geste depuis l'écran d'accueil, où l'on cherche par quoi commencer.
+  $('#demarrer-photo').addEventListener('click', () => {
+    etat.dernierDepot = 'photo';
+    zone.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    entree.click();
+  });
   zone.addEventListener('focus', () => { etat.dernierDepot = 'photo'; });
   zone.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); entree.click(); }
@@ -5803,6 +5933,10 @@ function majVisionneuse() {
   $('#fusion').hidden = surPlan || surPhoto || etat.mode === 'cote' || !pret;
   $('#plan-vue').hidden = !(surPlan && plan?.image?.img);
   $('#photo-vue').hidden = !(surPhoto && etudePhoto?.image?.img);
+  if (!surPhoto || !etudePhoto?.image?.img) {
+    $('#photo-resultats').hidden = true;
+    $('.scene').classList.remove('avec-resultats');
+  }
   if (surPhoto) {
     if (etudePhoto?.image?.img) rendrePhoto();
     else {

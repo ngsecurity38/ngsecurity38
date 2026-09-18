@@ -52,6 +52,70 @@
       </div>
     </section>
 
+    <section class="bloc primaire" id="bloc-photo">
+      <h2>A · Étude depuis la photo <small>— proposition client</small></h2>
+      <p class="note">
+        Le point de départ : une photo prise depuis l'emplacement prévu, deux
+        repères, la zone à couvrir. L'outil en tire l'angle de vue, la focale et
+        le matériel. Les blocs numérotés 1 à 6 servent, eux, à la
+        <b>réception</b> d'une installation déjà posée.
+      </p>
+
+      <div class="depot" id="depot-photo" tabindex="0" role="button"
+           aria-label="Charger la photo de repérage">
+        <input type="file" id="fichier-photo" accept="image/*" hidden>
+        <div class="depot-etiquette">Photo prise depuis l'emplacement de la caméra</div>
+        <div class="depot-corps">
+          <span class="depot-texte">Glisser la photo de repérage,<br>cliquer, ou coller (Ctrl+V)</span>
+          <img class="depot-vignette" id="vignette-photo" alt="" hidden>
+        </div>
+        <div class="depot-info" id="info-photo"></div>
+      </div>
+      <button type="button" id="photo-depuis-reglee" class="btn btn-fantome btn-petit">
+        Utiliser l'image réglée du bloc 3
+      </button>
+
+      <div id="photo-reglages" hidden>
+        <p class="consigne" id="photo-consigne"></p>
+
+        <div class="grille2">
+          <label>Hauteur de prise de vue (m)
+            <input type="number" id="photo-hauteur" value="4.5" min="0.5" max="40" step="0.1">
+          </label>
+          <label>Repère proche (m)
+            <input type="number" id="photo-distance" value="10" min="1" max="500" step="1">
+          </label>
+          <label>Repère lointain (m)
+            <input type="number" id="photo-distance2" value="30" min="1" max="500" step="1">
+          </label>
+          <label>Appareil <small>si un seul repère</small>
+            <select id="photo-appareil"></select>
+          </label>
+        </div>
+
+        <div class="etapes">
+          <button type="button" class="btn btn-fantome btn-petit" data-photo-etape="calage">1 · Repère proche</button>
+          <button type="button" class="btn btn-fantome btn-petit" data-photo-etape="calage2">2 · Repère lointain</button>
+          <button type="button" class="btn btn-fantome btn-petit" data-photo-etape="zone">3 · Entourer la zone</button>
+        </div>
+        <label class="case">
+          <input type="checkbox" id="photo-distances" checked> Afficher les lignes de distance
+        </label>
+
+        <div class="etude-actions">
+          <button type="button" id="photo-reprendre" class="btn btn-fantome btn-petit">
+            Appliquer au bloc 2
+          </button>
+          <button type="button" id="photo-exporter" class="btn btn-fantome btn-petit">
+            Exporter la photo annotée
+          </button>
+          <button type="button" id="photo-effacer" class="btn btn-fantome btn-petit">
+            Effacer
+          </button>
+        </div>
+      </div>
+    </section>
+
     <section class="bloc">
       <h2>2 · Caméra et optique</h2>
       <label class="pleine-largeur">Repère de la caméra
@@ -108,71 +172,12 @@
       </details>
     </section>
 
-    <section class="bloc" id="bloc-photo">
-      <h2>Étude depuis la photo <small>— conception</small></h2>
-
-      <div class="depot" id="depot-photo" tabindex="0" role="button"
-           aria-label="Charger la photo de repérage">
-        <input type="file" id="fichier-photo" accept="image/*" hidden>
-        <div class="depot-etiquette">Photo prise depuis l'emplacement de la caméra</div>
-        <div class="depot-corps">
-          <span class="depot-texte">Glisser la photo de repérage,<br>cliquer, ou coller (Ctrl+V)</span>
-          <img class="depot-vignette" id="vignette-photo" alt="" hidden>
-        </div>
-        <div class="depot-info" id="info-photo"></div>
-      </div>
-      <button type="button" id="photo-depuis-reglee" class="btn btn-fantome btn-petit">
-        Utiliser l'image réglée du bloc 3
-      </button>
-
-      <div id="photo-reglages" hidden>
-        <p class="consigne" id="photo-consigne"></p>
-
-        <div class="grille2">
-          <label>Hauteur de prise de vue (m)
-            <input type="number" id="photo-hauteur" value="4.5" min="0.5" max="40" step="0.1">
-          </label>
-          <label>Repère proche (m)
-            <input type="number" id="photo-distance" value="10" min="1" max="500" step="1">
-          </label>
-          <label>Repère lointain (m)
-            <input type="number" id="photo-distance2" value="30" min="1" max="500" step="1">
-          </label>
-          <label>Appareil <small>si un seul repère</small>
-            <select id="photo-appareil"></select>
-          </label>
-        </div>
-
-        <div class="etapes">
-          <button type="button" class="btn btn-fantome btn-petit" data-photo-etape="calage">1 · Repère proche</button>
-          <button type="button" class="btn btn-fantome btn-petit" data-photo-etape="calage2">2 · Repère lointain</button>
-          <button type="button" class="btn btn-fantome btn-petit" data-photo-etape="zone">3 · Entourer la zone</button>
-        </div>
-        <label class="case">
-          <input type="checkbox" id="photo-distances" checked> Afficher les lignes de distance
-        </label>
-
-        <div class="mesures" id="photo-mesures"></div>
-        <p class="conseil" id="photo-conseil"></p>
-        <div id="photo-propositions"></div>
-        <div id="photo-portees"></div>
-
-        <div class="etude-actions">
-          <button type="button" id="photo-reprendre" class="btn btn-fantome btn-petit">
-            Appliquer au bloc 2
-          </button>
-          <button type="button" id="photo-exporter" class="btn btn-fantome btn-petit">
-            Exporter la photo annotée
-          </button>
-          <button type="button" id="photo-effacer" class="btn btn-fantome btn-petit">
-            Effacer
-          </button>
-        </div>
-      </div>
-    </section>
-
     <section class="bloc" id="bloc-plan">
-      <h2>Champ sur plan <small>— conception</small></h2>
+      <h2>B · Champ sur plan <small>— vue aérienne</small></h2>
+      <p class="note">
+        À n'utiliser qu'avec une <b>vue du dessus</b> — plan, photo aérienne. Une
+        photo prise depuis le sol se charge dans le bloc A, au-dessus.
+      </p>
 
       <div class="depot" id="depot-plan" tabindex="0" role="button"
            aria-label="Charger le plan d'implantation">
@@ -405,11 +410,29 @@
 
     <div class="visionneuse" id="visionneuse">
       <div class="vide" id="message-vide">
-        <h3>Charger les deux vues pour démarrer</h3>
-        <p>
-          À gauche : la <strong>vue demandée</strong> par le client.<br>
-          À droite : l'<strong>image réglée</strong> relevée sur la caméra.
-        </p>
+        <h3>Deux façons de travailler</h3>
+        <div class="chemins">
+          <div class="chemin">
+            <h4>Proposer une installation</h4>
+            <p>
+              Une <strong>photo de repérage</strong> prise depuis l'emplacement
+              prévu suffit : l'outil mesure l'angle de vue, en déduit la focale,
+              propose le matériel et trace le champ.
+            </p>
+            <button type="button" id="demarrer-photo" class="btn">
+              Charger une photo de repérage
+            </button>
+          </div>
+          <div class="chemin">
+            <h4>Réceptionner une installation</h4>
+            <p>
+              Charger la <strong>vue demandée</strong> par le client et
+              l'<strong>image réglée</strong> relevée sur la caméra : l'outil
+              compare les deux cadrages et chiffre l'écart de pointage.
+            </p>
+            <span class="note">Blocs 1 à 6, colonne de gauche.</span>
+          </div>
+        </div>
       </div>
 
       <div class="paire" id="paire" hidden>
@@ -431,6 +454,21 @@
         <canvas id="toile-photo"></canvas>
         <canvas id="toile-schema" hidden></canvas>
       </div>
+    </div>
+
+    <!-- Résultats de l'étude : sous la photo, là où se porte le regard. -->
+    <div class="resultats" id="photo-resultats" hidden>
+      <p class="attente" id="photo-attente">
+        Posez les deux repères, puis <b>entourez la zone à couvrir</b> : l'angle
+        de vue, la focale, le matériel et les portées s'afficheront ici.
+      </p>
+      <h3>Ce que demande cette zone</h3>
+      <div class="mesures" id="photo-mesures"></div>
+      <h3>Matériel proposé</h3>
+      <p class="conseil" id="photo-conseil"></p>
+      <div id="photo-propositions"></div>
+      <h3>Ce que permettra l'image</h3>
+      <div id="photo-portees"></div>
     </div>
 
     <div class="verdict" id="verdict" hidden></div>

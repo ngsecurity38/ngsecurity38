@@ -85,8 +85,14 @@ tout le chantier (§ 11).
 
 ## 3. Étude depuis la photo — le point de départ
 
-C'est le chemin principal. On revient du repérage avec des photos prises depuis
-l'emplacement prévu de chaque caméra ; l'outil en tire tout le reste.
+C'est le chemin principal, et l'outil l'annonce dès l'ouverture : l'écran
+d'accueil propose **deux façons de travailler** — *proposer une installation*
+depuis une photo, ou *réceptionner une installation* en comparant deux vues. Le
+bloc d'étude est le premier de la colonne de gauche, encadré en rouge ; les
+blocs numérotés 1 à 6 sont ceux de la réception et ne servent qu'après la pose.
+
+On revient du repérage avec des photos prises depuis l'emplacement prévu de
+chaque caméra ; l'outil en tire tout le reste.
 
 1. **Charger la photo** dans le bloc *Étude depuis la photo*. Ou, si la caméra
    est déjà en place, reprendre son image d'un bouton.
@@ -117,7 +123,8 @@ l'emplacement prévu de chaque caméra ; l'outil en tire tout le reste.
    orientée pour redimensionner, main pour un repère. Le bouton **Entourer la
    zone** force, lui, un nouveau tracé depuis zéro.
 
-L'analyse se fait alors seule :
+L'analyse se fait alors seule, **sous la photo** — pas dans la colonne de
+saisie, où elle passait inaperçue :
 
 | | |
 | --- | --- |
@@ -128,9 +135,14 @@ L'analyse se fait alors seule :
 | Définition au fond | pixels par mètre à cette distance |
 | **Niveau garanti** | détection, observation, reconnaissance ou identification |
 
-Puis le matériel : la caméra du catalogue qui donne cette focale, et le zoom à y
-régler. Et un tableau des portées — jusqu'où on détecte, observe, reconnaît,
-identifie.
+Puis, dans le même panneau, **le matériel proposé** : la caméra du catalogue qui
+donne cette focale et le zoom à y régler, suivie des autres qui conviennent — au
+plus quatre, parce qu'au-delà les varifocaux d'une même plage donnent tous le
+même réglage et que le choix se fait alors sur le boîtier ou le prix. Et un
+tableau des portées — jusqu'où on détecte, observe, reconnaît, identifie.
+
+Quand aucun modèle du catalogue ne convient, l'outil le dit et donne la focale
+du commerce la plus proche, plutôt que de proposer la moins mauvaise.
 
 ### Le tracé d'angle
 

@@ -34,6 +34,10 @@ Pour le mode d'emploi complet et la mise en ligne sur WordPress, voir
 
 ## Ce que fait l'outil
 
+0. **Deux chemins annoncés à l'ouverture** — « proposer une installation » à
+   partir d'une photo, ou « réceptionner une installation » en comparant deux
+   vues. Le bloc d'étude est le premier de la colonne, encadré ; les blocs
+   numérotés 1 à 6 sont ceux de la réception.
 1. **Étude depuis la photo de repérage** — le chemin principal. Deux points du
    sol dont la distance est connue suffisent à **mesurer** l'angle de vue de la
    photo et son inclinaison — rien n'est supposé. L'ordonnée de n'importe quel
@@ -43,7 +47,8 @@ Pour le mode d'emploi complet et la mise en ligne sur WordPress, voir
    d'iso-distance rendent l'échelle vérifiable d'un coup d'œil, et un **tracé
    d'angle vu de dessus** est dessiné automatiquement, avec les portées de
    chaque niveau d'exploitation — placé à côté de la photo dès que l'écran le
-   permet.
+   permet. **Les résultats s'affichent sous la photo** — angle, focale, matériel
+   proposé, portées — et non dans la colonne de saisie où ils passaient inaperçus.
    La zone reste **maniable** : on la déplace en la saisissant, on la
    redimensionne par ses huit poignées, on replace les repères de calage. Chaque
    relâchement recalcule tout — focale, portées, matériel, tracé. Ajuster un
@@ -199,7 +204,7 @@ techniciens reste en retard sur le dépôt.
 ```bash
 npm test                 # 129 tests unitaires, sans navigateur
 npm run build
-npm run test:navigateur  # 66 tests de bout en bout (Playwright)
+npm run test:navigateur  # 67 tests de bout en bout (Playwright)
 ```
 
 Les tests unitaires couvrent les calculs d'optique, la récupération de
@@ -221,7 +226,10 @@ retrouver le même écart angulaire que la géométrie prédit, et à relever da
 texte de cette étude les caractéristiques annoncées. Un bloc entier couvre le
 dossier multi-caméras : cloisonnement des caméras entre elles, onglets de
 verdict, synthèse du procès-verbal, aller-retour d'enregistrement et ouverture
-d'une fiche de l'ancienne version. Un dernier bloc fabrique une étude
+d'une fiche de l'ancienne version. Un test vérifie qu'en plein tracé la photo **ne bouge pas d'un pixel** : la
+mise en page qui se réorganise sous le curseur donne un rectangle qui n'est pas
+celui qu'on dessine, et cela ne se voit sur aucune capture. Un dernier bloc
+fabrique une étude
 **scannée** — le texte dessiné dans une image, sans couche texte — et vérifie
 que la reconnaissance de caractères la relit correctement, que l'avertissement
 de provenance apparaît, et que la version légère annonce honnêtement qu'elle ne

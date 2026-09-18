@@ -622,12 +622,12 @@ function majPhoto() {
   const propositions = proposer(etat.catalogue, m.focale, { type });
   $('#photo-conseil').textContent = conseil(m.focale, propositions).texte;
   $('#photo-propositions').innerHTML = propositions.length
-    ? `<ul class="propositions">${propositions.map((p) => {
+    ? `<ul class="propositions">${propositions.slice(0, MAX_PROPOSITIONS).map((p) => {
       const reglage = estFixe(p.entree) ? `fixe ${fmt(p.entree.focaleMin, 1)} mm` : `zoom ${fmt(p.reglage, 1)} mm`;
       return `<li><span>${ech(nomComplet(p.entree))}`
-        + `${aConfirmer(p.entree).length ? ` <em>(${ech(aConfirmer(p.entree).join(' et '))} à confirmer)</em>` : ''}</span>`
+        + `${reserveCourte(p.entree)}</span>`
         + `<span class="reglage">${reglage}</span></li>`;
-    }).join('')}</ul>`
+    }).join('')}</ul>${resteProposition(propositions)}`
     : '';
 
   $('#photo-portees').innerHTML = `<table class="dori">
@@ -796,11 +796,30 @@ function rendrePhoto() {
 
   const m = mesurePhoto();
   const schema = $('#toile-schema');
+
+  /*
+   * La place du tracé d'angle et celle des résultats sont réservées dès que la
+   * photo est chargée, pas à l'apparition de la mesure.
+   *
+   * Les faire surgir plus tard paraissait plus propre, mais les faisait surgir
+   * **pendant** que l'utilisateur trace : la colonne passait de une à deux, la
+   * photo rétrécissait sous le curseur, et le rectangle obtenu n'était plus
+   * celui qu'on croyait dessiner. Une géométrie qui bouge en cours de geste est
+   * pire qu'un panneau vide.
+   */
+  $('#photo-vue').classList.add('avec-schema');
+  $('#photo-resultats').hidden = false;
+  $('.scene').classList.add('avec-resultats');
   schema.hidden = !m;
-  $('#photo-vue').classList.toggle('avec-schema', !!m);
+  $('#photo-attente').hidden = !!m;
+
+  // La toile du tracé prend ses dimensions tout de suite, mesure ou pas : les
+  // lui donner plus tard changeait la hauteur de la rangée en cours de tracé,
+  // et la visionneuse, qui centre son contenu, remontait la photo sous le
+  // curseur.
+  schema.width = l;
+  schema.height = Math.round(l * 0.62);
   if (m) {
-    schema.width = l;
-    schema.height = Math.round(l * 0.62);
     dessinerSchemaAngle(schema.getContext('2d'), schema.width, schema.height,
       m, configCamera(), cameraCourante()?.nom, etude.hauteur);
   }
@@ -1264,14 +1283,14 @@ function majPlan() {
   const propositions = proposer(etat.catalogue, m.focale, { type });
   $('#plan-conseil').textContent = conseil(m.focale, propositions).texte;
   $('#plan-propositions').innerHTML = propositions.length
-    ? `<ul class="propositions">${propositions.map((p) => {
+    ? `<ul class="propositions">${propositions.slice(0, MAX_PROPOSITIONS).map((p) => {
       const reglage = estFixe(p.entree)
         ? `fixe ${fmt(p.entree.focaleMin, 1)} mm`
         : `zoom ${fmt(p.reglage, 1)} mm`;
       return `<li><span>${ech(nomComplet(p.entree))}`
-        + `${aConfirmer(p.entree).length ? ` <em>(${ech(aConfirmer(p.entree).join(' et '))} à confirmer)</em>` : ''}</span>`
+        + `${reserveCourte(p.entree)}</span>`
         + `<span class="reglage">${reglage}</span></li>`;
-    }).join('')}</ul>`
+    }).join('')}</ul>${resteProposition(propositions)}`
     : '';
 
   majConsigne();
@@ -1454,6 +1473,29 @@ function exporterPlan() {
 }
 
 /* -------------------------------------------------------------- catalogue */
+
+/**
+ * Au-delà de quatre, la liste de matériel cesse d'aider : les varifocaux d'une
+ * même plage donnent tous le même réglage, et le choix se fait alors sur le
+ * boîtier, le prix ou l'habitude — pas sur l'optique.
+ */
+const MAX_PROPOSITIONS = 4;
+
+/** Réserve en quelques mots, pour tenir sur la ligne d'une proposition. */
+function reserveCourte(entree) {
+  const restes = aConfirmer(entree)
+    .map((r) => (r === 'le format de capteur' ? 'capteur' : 'référence'));
+  return restes.length ? ` <em>(${restes.join(' et ')} à confirmer)</em>` : '';
+}
+
+/** Ce que la liste tronquée ne montre pas. */
+function resteProposition(propositions) {
+  const reste = propositions.length - MAX_PROPOSITIONS;
+  return reste > 0
+    ? `<p class="note">${reste} autre${reste > 1 ? 's' : ''} référence${reste > 1 ? 's' : ''}
+       du catalogue couvre${reste > 1 ? 'nt' : ''} aussi cette focale.</p>`
+    : '';
+}
 
 /** Pastille de provenance d'une entrée : ce qui est sourcé, ce qui ne l'est pas. */
 function pastilleProvenance(e) {
@@ -1874,6 +1916,12 @@ function brancherDepotPhoto() {
     await definirPhoto(await lireFichier(fichier), fichier.name);
   };
   zone.addEventListener('click', () => { etat.dernierDepot = 'photo'; entree.click(); });
+  // Le même geste depuis l'écran d'accueil, où l'on cherche par quoi commencer.
+  $('#demarrer-photo').addEventListener('click', () => {
+    etat.dernierDepot = 'photo';
+    zone.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    entree.click();
+  });
   zone.addEventListener('focus', () => { etat.dernierDepot = 'photo'; });
   zone.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); entree.click(); }
@@ -2147,6 +2195,10 @@ function majVisionneuse() {
   $('#fusion').hidden = surPlan || surPhoto || etat.mode === 'cote' || !pret;
   $('#plan-vue').hidden = !(surPlan && plan?.image?.img);
   $('#photo-vue').hidden = !(surPhoto && etudePhoto?.image?.img);
+  if (!surPhoto || !etudePhoto?.image?.img) {
+    $('#photo-resultats').hidden = true;
+    $('.scene').classList.remove('avec-resultats');
+  }
   if (surPhoto) {
     if (etudePhoto?.image?.img) rendrePhoto();
     else {

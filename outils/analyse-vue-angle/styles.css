@@ -482,3 +482,47 @@ table.catalogue td[title] { text-align: center; cursor: help; }
 @media (min-width: 1250px) {
   #photo-vue.avec-schema { grid-template-columns: 1fr 1fr; }
 }
+
+/* Le bloc d'étude est le point de départ : il se distingue des étapes de
+   réception, qui ne servent qu'une fois l'installation posée. */
+.bloc.primaire { border-color: var(--rouge); }
+.bloc.primaire h2 { color: var(--rouge-clair); }
+
+/* Deux chemins offerts à l'accueil, au lieu d'une seule consigne de recalage. */
+.chemins { display: grid; gap: 18px; margin-top: 18px; text-align: left; }
+@media (min-width: 860px) { .chemins { grid-template-columns: 1fr 1fr; } }
+.chemin {
+  border: 1px solid var(--bord); border-radius: 10px; padding: 16px 18px;
+  background: var(--fond-3);
+}
+.chemin h4 { margin: 0 0 8px; font-size: 14px; }
+.chemin p { margin: 0 0 12px; }
+
+/* Résultats de l'étude, sous la photo : c'est là que se porte le regard. */
+.resultats {
+  margin-top: 14px; padding: 16px 18px;
+  border: 1px solid var(--bord); border-radius: 10px; background: var(--fond-3);
+}
+.resultats h3 {
+  margin: 18px 0 8px; font-size: 11px; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--texte-doux);
+}
+.resultats h3:first-child { margin-top: 0; }
+.resultats .attente { margin: 0; color: var(--texte-doux); }
+
+/*
+ * En mode photo, la scène défile d'un bloc et la visionneuse se règle sur son
+ * contenu.
+ *
+ * Par défaut la visionneuse prend toute la hauteur restante et centre son
+ * contenu : quand le panneau de résultats se remplit sous elle, elle rétrécit
+ * et recentre — la photo remonte de 200 px sous le curseur, en plein tracé, et
+ * le rectangle obtenu n'est pas celui qu'on dessine. Ici, rien ne doit bouger
+ * tant que la main est sur la photo.
+ */
+.scene.avec-resultats { overflow: auto; }
+.scene.avec-resultats .visionneuse {
+  flex: none; align-items: flex-start; overflow: visible;
+}
+/* La place du tracé d'angle reste tenue même vide : voir rendrePhoto(). */
+#photo-vue.avec-schema #toile-schema[hidden] { display: block !important; visibility: hidden; }
