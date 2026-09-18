@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <!-- Analyse de vue d'angle — NG Security 38.
-     Fichier unique produit par build.mjs le 2026-09-17.
+     Fichier unique produit par build.mjs le 2026-09-18.
      Ne pas modifier ici : éditer les sources puis relancer « npm run build ». -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -474,7 +474,22 @@ table.catalogue col.ref { width: 34%; }
 table.catalogue col.foc { width: 17%; }
 table.catalogue col.sup { width: 16%; }
 
-#toile-schema { margin-top: 12px; cursor: default; background: #fff; }
+#toile-schema { cursor: default; background: #fff; }
+
+.defilant { overflow-x: auto; }
+table.catalogue { table-layout: auto; min-width: 470px; }
+table.catalogue input { min-width: 54px; }
+table.catalogue tr.a-confirmer td { color: var(--texte-doux); }
+table.catalogue td[title] { text-align: center; cursor: help; }
+.propositions em { color: var(--texte-doux); font-style: normal; font-size: 11px; }
+
+/* Photo et tracé d'angle côte à côte dès que la place le permet : empilés, les
+   deux dépassent l'écran et obligent à faire défiler pour comparer. */
+#photo-vue { display: grid; gap: 12px; align-items: start; width: 100%; }
+#photo-vue canvas { max-height: calc(100vh - 220px); width: 100%; height: auto; }
+@media (min-width: 1250px) {
+  #photo-vue.avec-schema { grid-template-columns: 1fr 1fr; }
+}
 </style>
 <script>/* Tesseract.js 5.1.1 — Apache 2.0 — voir vendor/ocr/LICENSE-tesseractjs.txt */</script>
 <script>/*! For license information please see tesseract.min.js.LICENSE.txt */
@@ -698,14 +713,19 @@ table.catalogue col.sup { width: 16%; }
       <details class="repli">
         <summary>Catalogue du matériel</summary>
         <div id="catalogue-liste"></div>
-        <button type="button" id="catalogue-ajouter" class="btn btn-fantome btn-petit">
-          Ajouter une caméra
-        </button>
+        <div class="etude-actions">
+          <button type="button" id="catalogue-ajouter" class="btn btn-fantome btn-petit">Ajouter</button>
+          <button type="button" id="catalogue-importer" class="btn btn-fantome btn-petit">Importer un CSV</button>
+          <button type="button" id="catalogue-exporter" class="btn btn-fantome btn-petit">Exporter</button>
+          <input type="file" id="fichier-catalogue" accept=".csv,text/csv" hidden>
+        </div>
         <p class="note">
-          Le catalogue ne contient que le matériel que vous y mettez. Il part de
-          la caméra figurant dans l'étude fournie ; complétez-le avec ce que vous
-          posez réellement — une référence inventée serait pire que pas de
-          référence. Il est conservé sur ce poste et voyage avec la fiche.
+          Les gammes marquées « ? » sont des familles courantes, fournies pour
+          que l'outil propose quelque chose dès la première ouverture : leurs
+          références exactes n'ont pas été confrontées aux fiches constructeur.
+          Les confirmer une fois auprès du distributeur — ou importer son
+          catalogue en CSV — et elles passent en « ✓ ». Le catalogue est
+          conservé sur ce poste et voyage avec la fiche.
         </p>
       </details>
     </section>
@@ -2534,26 +2554,72 @@ const FOCALES_COURANTES = [2.1, 2.8, 3.6, 4, 6, 8, 12, 16, 25];
  * par le client, objectif par objectif. À compléter par l'agence.
  */
 const CATALOGUE_INITIAL = [
+  // Seules entrées certaines : elles proviennent de l'étude fournie par le
+  // client, référence et focales lues sur la fiche.
   {
-    id: 'tpc-bf1241-thermique',
-    reference: 'DAHUA DHI-TPC-BF1241',
+    id: 'dahua-tpc-bf1241-thermique',
+    marque: 'Dahua',
+    reference: 'DHI-TPC-BF1241',
     voie: 'thermique',
     type: 'thermique',
     capteur: 'Thermique 256×192 — 12 µm',
     focaleMin: 3.5,
     focaleMax: 3.5,
     resolution: { h: 256, v: 192 },
+    verifie: true,
   },
   {
-    id: 'tpc-bf1241-contexte',
-    reference: 'DAHUA DHI-TPC-BF1241',
+    id: 'dahua-tpc-bf1241-contexte',
+    marque: 'Dahua',
+    reference: 'DHI-TPC-BF1241',
     voie: 'contexte',
     type: 'visible',
     capteur: '1/2.8"',
     focaleMin: 4,
     focaleMax: 4,
     resolution: { h: 1920, v: 1080 },
+    verifie: true,
   },
+
+  /*
+   * Gammes courantes, couvrant toute la plage de focales utile. Elles donnent
+   * un catalogue exploitable dès la première ouverture, mais leurs références
+   * exactes n'ont pas été confrontées aux fiches constructeur : elles portent
+   * `verifie: false`, l'outil le signale, et la proposition client ne les
+   * annonce jamais comme certaines. Une vérification auprès du distributeur,
+   * une seule fois, et le catalogue devient le vôtre.
+   */
+  ...[
+    ['Dahua', 'IPC-HFW2xxx — bullet', 2.8, 2.8, '1/2.7"', 2688, 1520],
+    ['Dahua', 'IPC-HFW2xxx — bullet', 3.6, 3.6, '1/2.7"', 2688, 1520],
+    ['Dahua', 'IPC-HFW2xxx — bullet', 6, 6, '1/2.7"', 2688, 1520],
+    ['Dahua', 'IPC-HDW2xxx — dôme', 2.8, 2.8, '1/2.7"', 2688, 1520],
+    ['Dahua', 'IPC-HDW2xxx — dôme', 3.6, 3.6, '1/2.7"', 2688, 1520],
+    ['Dahua', 'IPC-HFW3xxx-ZAS — varifocal motorisé', 2.7, 13.5, '1/2.8"', 3840, 2160],
+    ['Dahua', 'IPC-HFW5xxx-ZE — varifocal longue portée', 7, 35, '1/2.7"', 2592, 1944],
+    ['Hikvision', 'DS-2CD20xx — bullet', 2.8, 2.8, '1/3"', 2688, 1520],
+    ['Hikvision', 'DS-2CD20xx — bullet', 4, 4, '1/3"', 2688, 1520],
+    ['Hikvision', 'DS-2CD20xx — bullet', 6, 6, '1/3"', 2688, 1520],
+    ['Hikvision', 'DS-2CD21xx — turret', 2.8, 2.8, '1/3"', 2688, 1520],
+    ['Hikvision', 'DS-2CD21xx — turret', 4, 4, '1/3"', 2688, 1520],
+    ['Hikvision', 'DS-2CD2xx6 — 8 MP', 2.8, 2.8, '1/2.8"', 3840, 2160],
+    ['Hikvision', 'DS-2CD2xxG2-IZS — varifocal motorisé', 2.8, 12, '1/2.8"', 2688, 1520],
+    ['Hikvision', 'DS-2CD7A2xx-IZ — varifocal longue portée', 8, 32, '1/1.8"', 1920, 1080],
+    ['Axis', 'série P14 — varifocal', 3, 10.5, '1/2.8"', 1920, 1080],
+    ['Uniview', 'IPC2xxx — bullet', 2.8, 2.8, '1/2.7"', 2688, 1520],
+    ['Uniview', 'IPC2xxx-Z — varifocal motorisé', 2.8, 12, '1/2.7"', 2688, 1520],
+  ].map(([marque, reference, focaleMin, focaleMax, capteur, h, v], i) => ({
+    id: `gamme-${i}`,
+    marque,
+    reference,
+    voie: '',
+    type: 'visible',
+    capteur,
+    focaleMin,
+    focaleMax,
+    resolution: { h, v },
+    verifie: false,
+  })),
 ];
 
 /** Un objectif est fixe quand sa plage se réduit à une valeur. */
@@ -2571,6 +2637,7 @@ function normaliserEntree(brut, index = 0) {
   const max = nombreSaisi(brut.focaleMax) || min;
   return {
     id: brut.id || `entree-${index}-${Math.random().toString(36).slice(2, 7)}`,
+    marque: String(brut.marque || '').trim(),
     reference: String(brut.reference || '').trim(),
     voie: String(brut.voie || '').trim(),
     type: brut.type === 'thermique' ? 'thermique' : 'visible',
@@ -2581,6 +2648,9 @@ function normaliserEntree(brut, index = 0) {
       h: nombreSaisi(brut.resolution?.h) || 1920,
       v: nombreSaisi(brut.resolution?.v) || 1080,
     },
+    // Une entrée modifiée à la main est tenue pour vérifiée : c'est l'agence
+    // qui l'a saisie.
+    verifie: brut.verifie !== false,
   };
 }
 
@@ -2627,6 +2697,10 @@ function proposer(catalogue, focale, options = {}) {
     .sort((a, b) => a.rang - b.rang);
 }
 
+/** Désignation complète d'une entrée : marque, référence, voie. */
+const nomComplet = (e) => [e.marque, e.reference, e.voie]
+  .map((x) => (x || '').trim()).filter(Boolean).join(' ');
+
 /**
  * Conseil de réglage en clair, catalogue vide compris.
  * @returns {{focale:number, texte:string}}
@@ -2635,15 +2709,20 @@ function conseil(focale, propositions) {
   const arrondie = fr(focale, 1);
   if (propositions.length) {
     const p = propositions[0];
-    const nom = [p.entree.reference, p.entree.voie].filter(Boolean).join(' — ');
+    const nom = nomComplet(p.entree);
     if (p.dans && estFixe(p.entree)) {
-      return { focale: p.reglage, texte: `${nom} : focale fixe ${fr(p.reglage, 1)} mm, rien à régler.` };
+      return {
+        focale: p.reglage,
+        texte: `${nom} : focale fixe ${fr(p.reglage, 1)} mm, rien à régler.`
+          + (p.entree.verifie ? '' : ' Référence à confirmer auprès du distributeur.'),
+      };
     }
     if (p.dans) {
       return {
         focale: p.reglage,
         texte: `${nom} : varifocal ${fr(p.entree.focaleMin, 1)}–${fr(p.entree.focaleMax, 1)} mm, `
-          + `régler le zoom sur ${arrondie} mm.`,
+          + `régler le zoom sur ${arrondie} mm.`
+          + (p.entree.verifie ? '' : ' Référence à confirmer auprès du distributeur.'),
       };
     }
     const sens = p.reglage > focale ? 'plus serré' : 'plus large';
@@ -2659,6 +2738,59 @@ function conseil(focale, propositions) {
     texte: `Aucun matériel du catalogue ne couvre ${arrondie} mm. `
       + `Focale du commerce la plus proche : ${fr(courante, 1)} mm — ou un varifocal englobant cette valeur.`,
   };
+}
+
+/* ------------------------------------------------- échange avec le tableur */
+
+const COLONNES = ['marque', 'reference', 'voie', 'type', 'capteur', 'focaleMin', 'focaleMax', 'resH', 'resV'];
+
+/** Catalogue au format CSV point-virgule, celui qu'attend un tableur français. */
+function versCsv(catalogue) {
+  const lignes = [COLONNES.join(';')];
+  for (const e of catalogue) {
+    lignes.push([
+      e.marque, e.reference, e.voie, e.type, e.capteur,
+      String(e.focaleMin).replace('.', ','), String(e.focaleMax).replace('.', ','),
+      e.resolution.h, e.resolution.v,
+    ].map((c) => String(c ?? '').replace(/;/g, ',')).join(';'));
+  }
+  return lignes.join('\r\n');
+}
+
+/**
+ * Catalogue lu depuis un CSV, quel que soit l'ordre des colonnes.
+ * Une entrée importée est tenue pour vérifiée : elle vient du distributeur.
+ * @returns {object[]} entrées valides ; les lignes inexploitables sont ignorées
+ */
+function depuisCsv(texte) {
+  const lignes = String(texte || '').split(/\r?\n/).filter((l) => l.trim());
+  if (lignes.length < 2) return [];
+  const separateur = lignes[0].includes(';') ? ';' : ',';
+  const entetes = lignes[0].split(separateur).map((c) => c.trim().toLowerCase());
+  const indice = (nom) => entetes.findIndex((c) => c === nom.toLowerCase());
+
+  const sortie = [];
+  for (let i = 1; i < lignes.length; i += 1) {
+    const cases = lignes[i].split(separateur);
+    const lire = (nom) => {
+      const k = indice(nom);
+      return k >= 0 ? (cases[k] || '').trim() : '';
+    };
+    const entree = normaliserEntree({
+      marque: lire('marque'),
+      reference: lire('reference'),
+      voie: lire('voie'),
+      type: lire('type'),
+      capteur: lire('capteur') || '1/2.8"',
+      focaleMin: lire('focaleMin'),
+      focaleMax: lire('focaleMax'),
+      resolution: { h: lire('resH'), v: lire('resV') },
+      verifie: true,
+    }, i);
+    // Sans référence ni focale, la ligne n'apprend rien.
+    if (entree.reference && entree.focaleMin > 0) sortie.push(entree);
+  }
+  return sortie;
 }
 
 /* ===== fiche.js ===== */
@@ -3664,6 +3796,35 @@ function majSyntheseCourte() {
     + (reste ? ` — ${plur(reste, 'caméra')} à analyser` : '');
 }
 
+/** Exporte le catalogue en CSV, pour le compléter au tableur. */
+function exporterCatalogue() {
+  const blob = new Blob([`\ufeff${versCsv(etat.catalogue)}`], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'catalogue-cameras.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/** Remplace le catalogue par celui du distributeur. */
+async function importerCatalogue(fichier) {
+  const entrees = depuisCsv(await fichier.text());
+  if (!entrees.length) {
+    $('#etat-analyse').textContent = 'Aucune ligne exploitable : il faut au moins les '
+      + 'colonnes reference, focaleMin et focaleMax.';
+    $('#etat-analyse').classList.add('erreur');
+    return;
+  }
+  etat.catalogue = entrees;
+  enregistrerCatalogue();
+  majCatalogue();
+  majPlan();
+  majPhoto();
+  $('#etat-analyse').textContent = `Catalogue remplacé — ${plur(entrees.length, 'référence')}.`;
+  $('#etat-analyse').classList.remove('erreur');
+}
+
 /* ============================================ étude depuis la photo */
 
 /** Distances jalonnées sur la photo, en mètres. */
@@ -3821,9 +3982,10 @@ function majPhoto() {
   $('#photo-conseil').textContent = conseil(m.focale, propositions).texte;
   $('#photo-propositions').innerHTML = propositions.length
     ? `<ul class="propositions">${propositions.map((p) => {
-      const nom = [p.entree.reference, p.entree.voie].filter(Boolean).join(' — ');
       const reglage = estFixe(p.entree) ? `fixe ${fmt(p.entree.focaleMin, 1)} mm` : `zoom ${fmt(p.reglage, 1)} mm`;
-      return `<li><span>${ech(nom)}</span><span class="reglage">${reglage}</span></li>`;
+      return `<li><span>${ech(nomComplet(p.entree))}`
+        + `${p.entree.verifie ? '' : ' <em>(à confirmer)</em>'}</span>`
+        + `<span class="reglage">${reglage}</span></li>`;
     }).join('')}</ul>`
     : '';
 
@@ -3994,6 +4156,7 @@ function rendrePhoto() {
   const m = mesurePhoto();
   const schema = $('#toile-schema');
   schema.hidden = !m;
+  $('#photo-vue').classList.toggle('avec-schema', !!m);
   if (m) {
     schema.width = l;
     schema.height = Math.round(l * 0.62);
@@ -4053,6 +4216,23 @@ function dessinerAnnotationsPhoto(ctx, l, h, etude, m) {
     ctx.strokeStyle = '#e85614';
     ctx.lineWidth = trait * 1.6;
     ctx.strokeRect(x, y, larg, haut);
+
+    // Poignées : la zone se déplace et se retaille après coup, sans retracer.
+    const r = Math.max(5, trait * 3.2);
+    [[x, y], [x + larg, y], [x, y + haut], [x + larg, y + haut],
+      [x + larg / 2, y], [x + larg / 2, y + haut],
+      [x, y + haut / 2], [x + larg, y + haut / 2]].forEach(([px, py]) => {
+      ctx.beginPath();
+      ctx.rect(px - r, py - r, r * 2, r * 2);
+      ctx.fillStyle = '#fff';
+      ctx.fill();
+      ctx.strokeStyle = '#e85614';
+      ctx.lineWidth = trait;
+      ctx.stroke();
+    });
+    ctx.strokeStyle = '#e85614';
+    ctx.lineWidth = trait * 1.6;
+
     if (m) {
       etiquette(ctx, `${fmt(m.angleRequis)}° · ${fmt(m.focale, 1)} mm · ${fmt(m.densite, 0)} px/m`,
         x + 6, Math.max(0, y - trait * 14), l);
@@ -4063,6 +4243,68 @@ function dessinerAnnotationsPhoto(ctx, l, h, etude, m) {
 
 /* ------------------------------------------------------ interactions photo */
 
+/** Rayon d'accroche des poignées, en pixels de la toile. */
+const ACCROCHE = 14;
+
+/** Nouvelle zone après déplacement d'un coin ou d'un bord. */
+function redimensionnerZone(depart, prise, p) {
+  let g = Math.min(depart.u1, depart.u2);
+  let d = Math.max(depart.u1, depart.u2);
+  let h = Math.min(depart.v1, depart.v2);
+  let b = Math.max(depart.v1, depart.v2);
+  const coin = prise.coin || '';
+  const bord = prise.bord || '';
+  if (coin.includes('o') || bord === 'gauche') g = p.u;
+  if (coin.includes('e') || bord === 'droite') d = p.u;
+  if (coin.startsWith('n') || bord === 'haut') h = p.v;
+  if (coin.startsWith('s') || bord === 'bas') b = p.v;
+  return { u1: Math.min(g, d), v1: Math.min(h, b), u2: Math.max(g, d), v2: Math.max(h, b) };
+}
+
+/**
+ * Élément saisi sous le pointeur : poignée de zone, zone entière, ou repère.
+ *
+ * Tout se teste en pixels de la toile plutôt qu'en coordonnées normalisées :
+ * une poignée doit s'attraper aussi facilement en haut qu'en bas de l'image,
+ * quel que soit le format de la photo.
+ */
+function priseSousPointeur(px, etude, L, H) {
+  const pres = (x, y) => Math.hypot(px.x - x, px.y - y) <= ACCROCHE;
+
+  const reperes = etude.reperes || [];
+  for (let i = reperes.length - 1; i >= 0; i -= 1) {
+    if (pres(reperes[i].u * L, reperes[i].v * H)) return { type: 'repere', index: i };
+  }
+
+  const z = etude.zone;
+  if (!z) return null;
+  const g = Math.min(z.u1, z.u2) * L;
+  const d = Math.max(z.u1, z.u2) * L;
+  const h = Math.min(z.v1, z.v2) * H;
+  const b = Math.max(z.v1, z.v2) * H;
+
+  for (const [nom, x, y] of [['no', g, h], ['ne', d, h], ['so', g, b], ['se', d, b]]) {
+    if (pres(x, y)) return { type: 'coin', coin: nom };
+  }
+  for (const [nom, x, y] of [
+    ['gauche', g, (h + b) / 2], ['droite', d, (h + b) / 2],
+    ['haut', (g + d) / 2, h], ['bas', (g + d) / 2, b],
+  ]) {
+    if (pres(x, y)) return { type: 'bord', bord: nom };
+  }
+  if (px.x >= g && px.x <= d && px.y >= h && px.y <= b) return { type: 'deplacer' };
+  return null;
+}
+
+/** Curseur annonçant ce qui est manipulable sous le pointeur. */
+function curseurPour(prise) {
+  if (!prise) return 'crosshair';
+  if (prise.type === 'repere') return 'grab';
+  if (prise.type === 'deplacer') return 'move';
+  if (prise.type === 'coin') return (prise.coin === 'no' || prise.coin === 'se') ? 'nwse-resize' : 'nesw-resize';
+  return (prise.bord === 'gauche' || prise.bord === 'droite') ? 'ew-resize' : 'ns-resize';
+}
+
 function brancherPhoto() {
   const toile = $('#toile-photo');
   const position = (e) => {
@@ -4070,35 +4312,76 @@ function brancherPhoto() {
     return {
       u: Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)),
       v: Math.min(1, Math.max(0, (e.clientY - r.top) / r.height)),
+      x: ((e.clientX - r.left) / r.width) * toile.width,
+      y: ((e.clientY - r.top) / r.height) * toile.height,
     };
   };
-  let depart = null;
+  const enCalage = () => etat.photoEtape === 'calage' || etat.photoEtape === 'calage2';
+
+  let saisie = null;
 
   toile.addEventListener('pointerdown', (e) => {
     const etude = photoCourante();
-    if (!etude?.image || etat.photoEtape !== 'zone') return;
-    depart = position(e);
+    if (!etude?.image || enCalage()) return;
+    const p = position(e);
+    // Le bouton « Entourer la zone » demande explicitement un nouveau tracé :
+    // partir du milieu de l'ancienne zone ne doit pas la déplacer à la place.
+    const prise = etat.photoEtape === 'zone'
+      ? null
+      : priseSousPointeur(p, etude, toile.width, toile.height);
+    if (prise) {
+      saisie = { prise, depart: p, zoneDepart: etude.zone ? { ...etude.zone } : null };
+    } else {
+      saisie = { prise: { type: 'tracer' }, depart: p, zoneDepart: null };
+      etude.zone = { u1: p.u, v1: p.v, u2: p.u, v2: p.v };
+    }
     toile.setPointerCapture(e.pointerId);
   });
+
   toile.addEventListener('pointermove', (e) => {
-    if (!depart) return;
-    const p = position(e);
-    photoCourante().zone = { u1: depart.u, v1: depart.v, u2: p.u, v2: p.v };
-    rendrePhoto();
-  });
-  toile.addEventListener('pointerup', (e) => {
-    if (!depart) return;
-    const p = position(e);
     const etude = photoCourante();
-    if (Math.abs(p.u - depart.u) > 0.03 && Math.abs(p.v - depart.v) > 0.03) {
-      etude.zone = { u1: depart.u, v1: depart.v, u2: p.u, v2: p.v };
-      etat.photoEtape = null;
-    } else {
-      etude.zone = null;
+    if (!etude?.image) return;
+    const p = position(e);
+
+    if (!saisie) {
+      toile.style.cursor = enCalage()
+        ? 'crosshair'
+        : curseurPour(priseSousPointeur(p, etude, toile.width, toile.height));
+      return;
     }
-    depart = null;
+
+    const { prise, depart, zoneDepart } = saisie;
+    if (prise.type === 'repere') {
+      etude.reperes[prise.index] = { ...etude.reperes[prise.index], u: p.u, v: p.v };
+      recalerPhoto(etude);
+    } else if (prise.type === 'tracer') {
+      etude.zone = { u1: depart.u, v1: depart.v, u2: p.u, v2: p.v };
+    } else if (prise.type === 'deplacer') {
+      const du = p.u - depart.u;
+      const dv = p.v - depart.v;
+      etude.zone = {
+        u1: zoneDepart.u1 + du, v1: zoneDepart.v1 + dv,
+        u2: zoneDepart.u2 + du, v2: zoneDepart.v2 + dv,
+      };
+    } else {
+      etude.zone = redimensionnerZone(zoneDepart, prise, p);
+    }
     majPhoto();
   });
+
+  const relacher = () => {
+    if (!saisie) return;
+    const etude = photoCourante();
+    const z = etude.zone;
+    // Un rectangle dégénéré ne veut rien dire : mieux vaut l'écarter que de
+    // calculer un angle sur rien.
+    if (z && (Math.abs(z.u2 - z.u1) < 0.02 || Math.abs(z.v2 - z.v1) < 0.02)) etude.zone = null;
+    else if (saisie.prise.type === 'tracer') etat.photoEtape = null;
+    saisie = null;
+    majPhoto();
+  };
+  toile.addEventListener('pointerup', relacher);
+  toile.addEventListener('pointercancel', relacher);
 
   toile.addEventListener('click', (e) => {
     const etude = photoCourante();
@@ -4341,11 +4624,12 @@ function majPlan() {
   $('#plan-conseil').textContent = conseil(m.focale, propositions).texte;
   $('#plan-propositions').innerHTML = propositions.length
     ? `<ul class="propositions">${propositions.map((p) => {
-      const nom = [p.entree.reference, p.entree.voie].filter(Boolean).join(' — ');
       const reglage = estFixe(p.entree)
         ? `fixe ${fmt(p.entree.focaleMin, 1)} mm`
         : `zoom ${fmt(p.reglage, 1)} mm`;
-      return `<li><span>${ech(nom)}</span><span class="reglage">${reglage}</span></li>`;
+      return `<li><span>${ech(nomComplet(p.entree))}`
+        + `${p.entree.verifie ? '' : ' <em>(à confirmer)</em>'}</span>`
+        + `<span class="reglage">${reglage}</span></li>`;
     }).join('')}</ul>`
     : '';
 
@@ -4531,7 +4815,8 @@ function exporterPlan() {
 /* -------------------------------------------------------------- catalogue */
 
 function majCatalogue() {
-  const lignes = etat.catalogue.map((e, i) => `<tr>
+  const lignes = etat.catalogue.map((e, i) => `<tr class="${e.verifie ? '' : 'a-confirmer'}">
+      <td><input type="text" data-cat="${i}" data-champ="marque" value="${ech(e.marque || '')}" placeholder="Marque"></td>
       <td><input type="text" data-cat="${i}" data-champ="reference" value="${ech(e.reference)}" placeholder="Référence"></td>
       <td><input type="text" data-cat="${i}" data-champ="voie" value="${ech(e.voie)}" placeholder="voie"></td>
       <td><input type="text" data-cat="${i}" data-champ="focaleMin" value="${fmt(e.focaleMin, 1)}"></td>
@@ -4540,27 +4825,34 @@ function majCatalogue() {
         <option value="visible"${e.type === 'visible' ? ' selected' : ''}>visible</option>
         <option value="thermique"${e.type === 'thermique' ? ' selected' : ''}>thermique</option>
       </select></td>
+      <td title="${e.verifie ? 'Référence vérifiée' : 'Référence à confirmer auprès du distributeur'}">${e.verifie ? '✓' : '?'}</td>
       <td><button type="button" class="btn btn-fantome btn-petit" data-cat-suppr="${i}">×</button></td>
     </tr>`).join('');
 
-  $('#catalogue-liste').innerHTML = `<table class="catalogue">
-      <colgroup><col class="ref"><col class="sup"><col class="foc"><col class="foc"><col class="sup"><col></colgroup>
-      <thead><tr><th>Référence</th><th>Voie</th><th>f min</th><th>f max</th><th>Type</th><th></th></tr></thead>
-      <tbody>${lignes}</tbody></table>`;
+  const aConfirmer = etat.catalogue.filter((e) => !e.verifie).length;
+  $('#catalogue-liste').innerHTML = `<div class="defilant"><table class="catalogue">
+      <thead><tr><th>Marque</th><th>Référence</th><th>Voie</th><th>f min</th><th>f max</th>
+        <th>Type</th><th>✓</th><th></th></tr></thead>
+      <tbody>${lignes}</tbody></table></div>
+    ${aConfirmer ? `<p class="note">${plur(aConfirmer, 'référence')} marquée${aConfirmer > 1 ? 's' : ''}
+      « ? » : gammes de départ, à confirmer auprès du distributeur. Corriger une ligne la passe en « ✓ ».</p>` : ''}`;
 
   $$('#catalogue-liste [data-cat]').forEach((el) => el.addEventListener('change', () => {
     const i = Number(el.dataset.cat);
     etat.catalogue[i] = normaliserEntree(
-      { ...etat.catalogue[i], [el.dataset.champ]: el.value }, i,
+      { ...etat.catalogue[i], verifie: true, [el.dataset.champ]: el.value }, i,
     );
     enregistrerCatalogue();
+    majCatalogue();
     majPlan();
+    majPhoto();
   }));
   $$('#catalogue-liste [data-cat-suppr]').forEach((el) => el.addEventListener('click', () => {
     etat.catalogue.splice(Number(el.dataset.catSuppr), 1);
     enregistrerCatalogue();
     majCatalogue();
     majPlan();
+    majPhoto();
   }));
 }
 
@@ -5839,7 +6131,8 @@ function construireProposition() {
   const retenues = etudes.filter((e) => e.m);
 
   const materiel = (e) => (e.propositions.length
-    ? ech([e.propositions[0].entree.reference, e.propositions[0].entree.voie].filter(Boolean).join(' — '))
+    ? ech(nomComplet(e.propositions[0].entree))
+      + (e.propositions[0].entree.verifie ? '' : ' — référence à confirmer')
     : `objectif ${fmt(e.avis.focale, 1)} mm — référence à arrêter`);
 
   $('#rapport').innerHTML = `
@@ -6043,6 +6336,12 @@ function brancher() {
   brancherPlan();
   brancherPhoto();
   brancherTracageZones();
+  $('#catalogue-exporter').addEventListener('click', exporterCatalogue);
+  $('#catalogue-importer').addEventListener('click', () => $('#fichier-catalogue').click());
+  $('#fichier-catalogue').addEventListener('change', (e) => {
+    if (e.target.files[0]) importerCatalogue(e.target.files[0]);
+    e.target.value = '';
+  });
   $('#catalogue-ajouter').addEventListener('click', () => {
     etat.catalogue.push(normaliserEntree({ reference: '', focaleMin: 4, focaleMax: 4 }, etat.catalogue.length));
     enregistrerCatalogue();

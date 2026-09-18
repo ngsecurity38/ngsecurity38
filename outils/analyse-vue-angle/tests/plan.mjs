@@ -11,6 +11,7 @@ import {
 import { CAPTEURS, anglesDeChamp, niveauDori } from '../js/optique.js';
 import {
   CATALOGUE_INITIAL, proposer, conseil, focaleCourante, normaliserEntree, estFixe,
+  nomComplet, versCsv, depuisCsv,
 } from '../js/catalogue.js';
 
 const proche = (a, b, tol, m) => assert.ok(
@@ -93,16 +94,29 @@ test('un champ dégénéré ne produit pas de focale absurde', () => {
 
 /* -------------------------------------------------------------- catalogue */
 
-test('catalogue de départ : le matériel de l\'étude, voie par voie', () => {
-  assert.equal(CATALOGUE_INITIAL.length, 2);
-  assert.ok(CATALOGUE_INITIAL.every((e) => estFixe(e)), 'les deux objectifs sont fixes');
-  assert.equal(CATALOGUE_INITIAL.find((e) => e.type === 'thermique').focaleMin, 3.5);
+test('catalogue de départ : le matériel de l\'étude est le seul vérifié', () => {
+  const verifiees = CATALOGUE_INITIAL.filter((e) => e.verifie);
+  assert.equal(verifiees.length, 2, 'seules les deux voies lues sur l\'étude sont certaines');
+  assert.ok(verifiees.every((e) => estFixe(e)), 'les deux objectifs sont fixes');
+  assert.equal(verifiees.find((e) => e.type === 'thermique').focaleMin, 3.5);
+  assert.ok(CATALOGUE_INITIAL.some((e) => !e.verifie), 'les gammes de départ restent à confirmer');
+  assert.ok(CATALOGUE_INITIAL.some((e) => /hikvision/i.test(e.marque)), 'Hikvision présent');
+  assert.ok(CATALOGUE_INITIAL.some((e) => /dahua/i.test(e.marque)), 'Dahua présent');
 });
 
-test('proposition : une focale fixe proche est retenue, une trop éloignée non', () => {
-  assert.equal(proposer(CATALOGUE_INITIAL, 4).length, 2, '4 mm : les deux entrées restent plausibles');
-  assert.equal(proposer(CATALOGUE_INITIAL, 4)[0].entree.voie, 'contexte', 'le 4 mm exact en tête');
-  assert.equal(proposer(CATALOGUE_INITIAL, 12).length, 0, '12 mm : aucun matériel ne convient');
+test('catalogue de départ : toute la plage utile est couverte', () => {
+  // Une agence doit obtenir une proposition quelle que soit la focale calculée.
+  for (const focale of [2.8, 4, 5.5, 8, 12, 20, 30]) {
+    assert.ok(proposer(CATALOGUE_INITIAL, focale).length > 0, `rien ne couvre ${focale} mm`);
+  }
+});
+
+test('proposition : le matériel vérifié de l\'étude sort en tête à sa focale', () => {
+  const p = proposer(CATALOGUE_INITIAL, 4, { type: 'thermique' });
+  assert.equal(p.length, 1, 'une seule voie thermique au catalogue');
+  const visible = proposer(CATALOGUE_INITIAL, 4, { type: 'visible' });
+  assert.ok(visible.length > 1, '4 mm : plusieurs objectifs conviennent');
+  assert.ok(visible.some((x) => x.entree.reference === 'DHI-TPC-BF1241'), 'le 4 mm exact figure parmi eux');
 });
 
 test('proposition : restriction à une technologie', () => {
@@ -148,4 +162,69 @@ test('une entrée saisie à la main est assainie', () => {
   assert.equal(e.focaleMax, 13.5);
   assert.equal(e.type, 'visible');
   assert.ok(e.id, 'un identifiant est attribué');
+});
+
+
+/* ------------------------------------- désignation et échange du catalogue */
+
+test('désignation complète : marque, référence et voie', () => {
+  assert.equal(nomComplet({ marque: 'Dahua', reference: 'IPC-HFW', voie: 'contexte' }),
+    'Dahua IPC-HFW contexte');
+  assert.equal(nomComplet({ marque: '', reference: 'X-1', voie: '' }), 'X-1');
+  assert.equal(nomComplet({}), '');
+});
+
+test('une entrée corrigée à la main passe pour vérifiée', () => {
+  const brute = { reference: 'Test', focaleMin: 4, focaleMax: 4, verifie: false };
+  assert.equal(normaliserEntree(brute).verifie, false, 'le drapeau est respecté');
+  assert.equal(normaliserEntree({ ...brute, verifie: true }).verifie, true);
+  assert.equal(normaliserEntree({ reference: 'Test', focaleMin: 4 }).verifie, true,
+    'sans mention, une saisie est tenue pour vérifiée');
+});
+
+test('export CSV : en-têtes, point-virgule et virgule décimale', () => {
+  const csv = versCsv([normaliserEntree({
+    marque: 'Dahua', reference: 'IPC-1', voie: 'contexte',
+    focaleMin: 2.7, focaleMax: 13.5, resolution: { h: 2688, v: 1520 },
+  })]);
+  const [entete, ligne] = csv.split('\r\n');
+  assert.match(entete, /^marque;reference;voie;type;capteur;focaleMin;focaleMax;resH;resV$/);
+  assert.match(ligne, /^Dahua;IPC-1;contexte;visible;/);
+  assert.match(ligne, /2,7;13,5;2688;1520$/, 'focales à la française');
+});
+
+test('import CSV : colonnes dans n\'importe quel ordre, lignes vides ignorées', () => {
+  const csv = [
+    'reference;marque;focaleMax;focaleMin;type;resH;resV',
+    'IPC-A;Dahua;13,5;2,7;visible;2688;1520',
+    ';;;;;;',
+    'DS-B;Hikvision;12;2.8;visible;3840;2160',
+    'sans focale;Marque;;;visible;;',
+  ].join('\n');
+  const entrees = depuisCsv(csv);
+  assert.equal(entrees.length, 2, 'les lignes inexploitables sont écartées');
+  assert.equal(entrees[0].reference, 'IPC-A');
+  assert.equal(entrees[0].focaleMin, 2.7);
+  assert.equal(entrees[1].marque, 'Hikvision');
+  assert.equal(entrees[1].focaleMax, 12);
+  assert.ok(entrees.every((e) => e.verifie), 'ce qui vient du distributeur est vérifié');
+});
+
+test('import CSV : un fichier vide ou sans en-tête ne casse rien', () => {
+  assert.deepEqual(depuisCsv(''), []);
+  assert.deepEqual(depuisCsv('reference;focaleMin'), []);
+  assert.deepEqual(depuisCsv(null), []);
+});
+
+test('aller-retour CSV : le catalogue se retrouve intact', () => {
+  const depart = CATALOGUE_INITIAL.map((e, i) => normaliserEntree(e, i));
+  const retour = depuisCsv(versCsv(depart));
+  assert.equal(retour.length, depart.length);
+  retour.forEach((e, i) => {
+    assert.equal(e.reference, depart[i].reference);
+    assert.equal(e.marque, depart[i].marque);
+    assert.equal(e.focaleMin, depart[i].focaleMin);
+    assert.equal(e.focaleMax, depart[i].focaleMax);
+    assert.equal(e.type, depart[i].type);
+  });
 });

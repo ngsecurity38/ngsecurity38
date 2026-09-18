@@ -464,4 +464,19 @@ table.catalogue col.ref { width: 34%; }
 table.catalogue col.foc { width: 17%; }
 table.catalogue col.sup { width: 16%; }
 
-#toile-schema { margin-top: 12px; cursor: default; background: #fff; }
+#toile-schema { cursor: default; background: #fff; }
+
+.defilant { overflow-x: auto; }
+table.catalogue { table-layout: auto; min-width: 470px; }
+table.catalogue input { min-width: 54px; }
+table.catalogue tr.a-confirmer td { color: var(--texte-doux); }
+table.catalogue td[title] { text-align: center; cursor: help; }
+.propositions em { color: var(--texte-doux); font-style: normal; font-size: 11px; }
+
+/* Photo et tracé d'angle côte à côte dès que la place le permet : empilés, les
+   deux dépassent l'écran et obligent à faire défiler pour comparer. */
+#photo-vue { display: grid; gap: 12px; align-items: start; width: 100%; }
+#photo-vue canvas { max-height: calc(100vh - 220px); width: 100%; height: auto; }
+@media (min-width: 1250px) {
+  #photo-vue.avec-schema { grid-template-columns: 1fr 1fr; }
+}

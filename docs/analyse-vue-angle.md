@@ -106,6 +106,17 @@ l'emplacement prévu de chaque caméra ; l'outil en tire tout le reste.
    30 m… posées à l'endroit exact où elles tombent.
 4. **Entourer la zone** que le client veut voir couverte, au cliquer-glisser.
 
+   La zone reste **maniable** : la saisir en son milieu pour la **déplacer**,
+   tirer un de ses huit **coins ou bords** pour la **redimensionner**, attraper
+   un **repère** pour le replacer. Tout se recalcule à chaque relâchement —
+   focale, portées, matériel, tracé d'angle. On ajuste le cadrage devant le
+   client jusqu'à ce qu'il couvre exactement ce qu'il veut voir, au lieu de
+   recommencer le tracé à chaque essai.
+
+   Le curseur dit ce que fera le geste : croix pour déplacer, double flèche
+   orientée pour redimensionner, main pour un repère. Le bouton **Entourer la
+   zone** force, lui, un nouveau tracé depuis zéro.
+
 L'analyse se fait alors seule :
 
 | | |
@@ -128,6 +139,10 @@ l'angle calculé, et des arcs marquant la distance au-delà de laquelle chaque
 niveau d'exploitation décroche. C'est le tracé qui figure sur les études
 d'implantation, produit sans plan ni vue aérienne, à partir des seules mesures
 faites sur la photo.
+
+Sur un écran large, la photo et le tracé se placent **côte à côte** : on voit du
+même coup d'œil la zone entourée et la portée qu'elle demande. Sur tablette ou
+écran étroit, ils s'empilent, chacun limité à la hauteur de la fenêtre.
 
 **Exporter la photo annotée** enregistre les deux images : la photo avec sa zone
 et ses distances, et le tracé d'angle. Les deux figurent aussi dans la
@@ -214,10 +229,36 @@ L'outil y cherche ce qui donne la focale calculée, et dit quoi faire :
 sur 5,2 mm ». Si rien ne convient, il le dit et propose la focale du commerce la
 plus proche.
 
-> **Le catalogue ne contient que ce que vous y mettez.** Il démarre avec la
-> seule caméra figurant dans l'étude qui a servi à régler l'outil. Complétez-le
-> avec votre matériel réel : une référence inventée serait pire que pas de
-> référence. Il reste sur le poste et voyage avec la fiche.
+Le catalogue est livré **pré-rempli** : les gammes courantes de Dahua,
+Hikvision, Axis et Uniview — bullets et dômes à focale fixe de 2,8 à 6 mm,
+varifocaux motorisés 2,7–13,5 et 2,8–12 mm, longues portées 7–35 et 8–32 mm —
+couvrent toute la plage de focales utile. La proposition trouve donc du matériel
+dès la première ouverture, sans rien saisir.
+
+**Deux marqueurs, et toute la différence :**
+
+| | |
+| --- | --- |
+| **✓** | référence vérifiée — lue dans une étude, ou saisie / importée par vous |
+| **?** | famille courante, référence exacte **non confrontée** à la fiche constructeur |
+
+Les entrées « ? » ne sont jamais annoncées comme certaines : la proposition
+client porte la mention « Référence à confirmer auprès du distributeur ». Un
+appel au distributeur, la référence corrigée dans le tableau, et l'entrée passe
+en « ✓ ».
+
+**Importer un CSV** remplace le catalogue par le vôtre — celui du distributeur,
+ou votre tarif. Colonnes attendues : marque, référence, voie, type, capteur,
+focale min, focale max, résolution horizontale, résolution verticale ; séparateur
+point-virgule, décimales à la française. L'ordre des colonnes n'a pas
+d'importance, les en-têtes sont reconnus. Tout ce qui est importé est marqué
+« ✓ » : c'est vous qui l'avez fourni. **Exporter** produit le même format, pour
+passer le catalogue d'un poste à l'autre.
+
+> **Une référence inventée serait pire que pas de référence.** C'est pourquoi
+> l'outil distingue ce qu'il sait de ce qu'il suppose, à l'écran comme dans le
+> document remis au client. Le catalogue reste sur le poste et voyage avec la
+> fiche.
 
 ### Ce que ça produit
 
@@ -600,3 +641,7 @@ restreint, deux solutions côté hébergeur :
   consultable pour comprendre ce qui manque (§ 6).
 - Il ne vérifie pas les points non chiffrés d'un cahier des charges (indice de
   protection, alimentation, chemin de câbles, conformité RGPD de l'affichage).
+- Il ne tient pas à jour les catalogues constructeurs. Les gammes livrées avec
+  l'outil sont marquées « ? » tant qu'elles n'ont pas été confrontées aux fiches
+  du distributeur (§ 4) ; les tarifs, les disponibilités et les fins de série ne
+  sont pas de son ressort.

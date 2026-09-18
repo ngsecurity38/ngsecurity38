@@ -223,14 +223,19 @@
       <details class="repli">
         <summary>Catalogue du matériel</summary>
         <div id="catalogue-liste"></div>
-        <button type="button" id="catalogue-ajouter" class="btn btn-fantome btn-petit">
-          Ajouter une caméra
-        </button>
+        <div class="etude-actions">
+          <button type="button" id="catalogue-ajouter" class="btn btn-fantome btn-petit">Ajouter</button>
+          <button type="button" id="catalogue-importer" class="btn btn-fantome btn-petit">Importer un CSV</button>
+          <button type="button" id="catalogue-exporter" class="btn btn-fantome btn-petit">Exporter</button>
+          <input type="file" id="fichier-catalogue" accept=".csv,text/csv" hidden>
+        </div>
         <p class="note">
-          Le catalogue ne contient que le matériel que vous y mettez. Il part de
-          la caméra figurant dans l'étude fournie ; complétez-le avec ce que vous
-          posez réellement — une référence inventée serait pire que pas de
-          référence. Il est conservé sur ce poste et voyage avec la fiche.
+          Les gammes marquées « ? » sont des familles courantes, fournies pour
+          que l'outil propose quelque chose dès la première ouverture : leurs
+          références exactes n'ont pas été confrontées aux fiches constructeur.
+          Les confirmer une fois auprès du distributeur — ou importer son
+          catalogue en CSV — et elles passent en « ✓ ». Le catalogue est
+          conservé sur ce poste et voyage avec la fiche.
         </p>
       </details>
     </section>

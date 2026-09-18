@@ -809,7 +809,7 @@ console.log('\nChamp tracé sur un plan');
       conseil: document.querySelector('#plan-conseil').textContent,
       propositions: [...document.querySelectorAll('.propositions li')].map((l) => l.textContent),
     }));
-    affirmer(/DAHUA/.test(r.conseil), `conseil : ${r.conseil}`);
+    affirmer(/dahua/i.test(r.conseil), `conseil : ${r.conseil}`);
     affirmer(/4 mm/.test(r.conseil), `la focale conseillée devrait être 4 mm : ${r.conseil}`);
     affirmer(r.propositions.length >= 1, 'au moins une proposition');
   });
@@ -900,8 +900,14 @@ console.log('\nÉtude depuis une photo de repérage');
     return c.toDataURL('image/png');
   });
 
+  /** La souris travaille en coordonnées d'écran : la toile doit être visible. */
+  const toilePhoto = async () => {
+    const l = page.locator('#toile-photo');
+    await l.scrollIntoViewIfNeeded();
+    return l.boundingBox();
+  };
   const glisser = async (u1, v1, u2, v2) => {
-    const b = await page.locator('#toile-photo').boundingBox();
+    const b = await toilePhoto();
     await page.mouse.move(b.x + b.width * u1, b.y + b.height * v1);
     await page.mouse.down();
     await page.mouse.move(b.x + b.width * u2, b.y + b.height * v2, { steps: 8 });
@@ -909,7 +915,7 @@ console.log('\nÉtude depuis une photo de repérage');
     await page.waitForTimeout(120);
   };
   const cliquerPhoto = async (u, v) => {
-    const b = await page.locator('#toile-photo').boundingBox();
+    const b = await toilePhoto();
     await page.mouse.click(b.x + b.width * u, b.y + b.height * v);
     await page.waitForTimeout(120);
   };
@@ -1019,6 +1025,59 @@ console.log('\nÉtude depuis une photo de repérage');
     affirmer(/tracé d'angle/i.test(r.texte), 'le tracé d\'angle doit figurer dans la proposition');
     affirmer(/mesuré sur deux repères/.test(r.texte), 'la provenance du champ doit être dite');
     affirmer(r.images >= 2, `photo annotée et tracé d'angle attendus : ${r.images} image(s)`);
+  });
+
+  await cas('la zone se déplace après coup', async () => {
+    // Zone connue, pour saisir son centre à coup sûr.
+    await page.click('[data-photo-etape="zone"]');
+    await glisser(0.25, 0.50, 0.75, 0.90);
+    const avant = await tuiles();
+    const b = await toilePhoto();
+    // Remonter la zone dans l'image : elle vise alors plus loin.
+    await page.mouse.move(b.x + b.width * 0.5, b.y + b.height * 0.70);
+    await page.mouse.down();
+    await page.mouse.move(b.x + b.width * 0.5, b.y + b.height * 0.63, { steps: 6 });
+    await page.mouse.up();
+    await page.waitForTimeout(220);
+    const apres = await tuiles();
+    const d = (m) => parseFloat((m['Zone la plus éloignée'] || '').replace(',', '.'));
+    affirmer(Number.isFinite(d(avant)) && Number.isFinite(d(apres)),
+      `mesures absentes — avant ${JSON.stringify(avant)} / après ${JSON.stringify(apres)}`);
+    affirmer(d(apres) > d(avant),
+      `la zone remontée devrait viser plus loin : ${avant['Zone la plus éloignée']} → ${apres['Zone la plus éloignée']}`);
+  });
+
+  await cas('une poignée retaille la zone sans la retracer', async () => {
+    await page.click('[data-photo-etape="zone"]');
+    await glisser(0.30, 0.50, 0.70, 0.90);
+    const avant = await tuiles();
+    const b = await toilePhoto();
+    // Poignée du bord droit, au milieu de la hauteur de la zone.
+    await page.mouse.move(b.x + b.width * 0.70, b.y + b.height * 0.70);
+    await page.mouse.down();
+    await page.mouse.move(b.x + b.width * 0.92, b.y + b.height * 0.70, { steps: 6 });
+    await page.mouse.up();
+    await page.waitForTimeout(220);
+    const apres = await tuiles();
+    const a = (m) => parseFloat((m['Angle de vue nécessaire'] || '').replace(',', '.'));
+    affirmer(Number.isFinite(a(avant)) && Number.isFinite(a(apres)),
+      `mesures absentes — ${JSON.stringify(apres)}`);
+    affirmer(a(apres) > a(avant),
+      `élargir la zone devrait élargir l'angle : ${avant['Angle de vue nécessaire']} → ${apres['Angle de vue nécessaire']}`);
+  });
+
+  await cas('un repère se déplace et le calage suit', async () => {
+    const avant = await tuiles();
+    const b = await toilePhoto();
+    // Le second repère est posé à (0,5 ; 0,52) : on le descend légèrement.
+    await page.mouse.move(b.x + b.width * 0.5, b.y + b.height * 0.52);
+    await page.mouse.down();
+    await page.mouse.move(b.x + b.width * 0.5, b.y + b.height * 0.57, { steps: 5 });
+    await page.mouse.up();
+    await page.waitForTimeout(250);
+    const apres = await tuiles();
+    affirmer(apres['Champ de la photo (mesuré)'] !== avant['Champ de la photo (mesuré)'],
+      `déplacer un repère devrait changer le champ mesuré : ${avant['Champ de la photo (mesuré)']} → ${apres['Champ de la photo (mesuré)']}`);
   });
 
   await cas('le tracé d\'angle est dessiné sous la photo', async () => {

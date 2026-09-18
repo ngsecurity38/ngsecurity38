@@ -29,6 +29,7 @@ import {
 } from './photo.js';
 import {
   CATALOGUE_INITIAL, normaliserEntree, proposer, conseil, estFixe,
+  nomComplet, versCsv, depuisCsv,
 } from './catalogue.js';
 
 const nb = (el, defaut = 0) => {
@@ -408,6 +409,35 @@ function majSyntheseCourte() {
     + (reste ? ` — ${plur(reste, 'caméra')} à analyser` : '');
 }
 
+/** Exporte le catalogue en CSV, pour le compléter au tableur. */
+function exporterCatalogue() {
+  const blob = new Blob([`\ufeff${versCsv(etat.catalogue)}`], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'catalogue-cameras.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/** Remplace le catalogue par celui du distributeur. */
+async function importerCatalogue(fichier) {
+  const entrees = depuisCsv(await fichier.text());
+  if (!entrees.length) {
+    $('#etat-analyse').textContent = 'Aucune ligne exploitable : il faut au moins les '
+      + 'colonnes reference, focaleMin et focaleMax.';
+    $('#etat-analyse').classList.add('erreur');
+    return;
+  }
+  etat.catalogue = entrees;
+  enregistrerCatalogue();
+  majCatalogue();
+  majPlan();
+  majPhoto();
+  $('#etat-analyse').textContent = `Catalogue remplacé — ${plur(entrees.length, 'référence')}.`;
+  $('#etat-analyse').classList.remove('erreur');
+}
+
 /* ============================================ étude depuis la photo */
 
 /** Distances jalonnées sur la photo, en mètres. */
@@ -565,9 +595,10 @@ function majPhoto() {
   $('#photo-conseil').textContent = conseil(m.focale, propositions).texte;
   $('#photo-propositions').innerHTML = propositions.length
     ? `<ul class="propositions">${propositions.map((p) => {
-      const nom = [p.entree.reference, p.entree.voie].filter(Boolean).join(' — ');
       const reglage = estFixe(p.entree) ? `fixe ${fmt(p.entree.focaleMin, 1)} mm` : `zoom ${fmt(p.reglage, 1)} mm`;
-      return `<li><span>${ech(nom)}</span><span class="reglage">${reglage}</span></li>`;
+      return `<li><span>${ech(nomComplet(p.entree))}`
+        + `${p.entree.verifie ? '' : ' <em>(à confirmer)</em>'}</span>`
+        + `<span class="reglage">${reglage}</span></li>`;
     }).join('')}</ul>`
     : '';
 
@@ -738,6 +769,7 @@ function rendrePhoto() {
   const m = mesurePhoto();
   const schema = $('#toile-schema');
   schema.hidden = !m;
+  $('#photo-vue').classList.toggle('avec-schema', !!m);
   if (m) {
     schema.width = l;
     schema.height = Math.round(l * 0.62);
@@ -797,6 +829,23 @@ function dessinerAnnotationsPhoto(ctx, l, h, etude, m) {
     ctx.strokeStyle = '#e85614';
     ctx.lineWidth = trait * 1.6;
     ctx.strokeRect(x, y, larg, haut);
+
+    // Poignées : la zone se déplace et se retaille après coup, sans retracer.
+    const r = Math.max(5, trait * 3.2);
+    [[x, y], [x + larg, y], [x, y + haut], [x + larg, y + haut],
+      [x + larg / 2, y], [x + larg / 2, y + haut],
+      [x, y + haut / 2], [x + larg, y + haut / 2]].forEach(([px, py]) => {
+      ctx.beginPath();
+      ctx.rect(px - r, py - r, r * 2, r * 2);
+      ctx.fillStyle = '#fff';
+      ctx.fill();
+      ctx.strokeStyle = '#e85614';
+      ctx.lineWidth = trait;
+      ctx.stroke();
+    });
+    ctx.strokeStyle = '#e85614';
+    ctx.lineWidth = trait * 1.6;
+
     if (m) {
       etiquette(ctx, `${fmt(m.angleRequis)}° · ${fmt(m.focale, 1)} mm · ${fmt(m.densite, 0)} px/m`,
         x + 6, Math.max(0, y - trait * 14), l);
@@ -807,6 +856,68 @@ function dessinerAnnotationsPhoto(ctx, l, h, etude, m) {
 
 /* ------------------------------------------------------ interactions photo */
 
+/** Rayon d'accroche des poignées, en pixels de la toile. */
+const ACCROCHE = 14;
+
+/** Nouvelle zone après déplacement d'un coin ou d'un bord. */
+function redimensionnerZone(depart, prise, p) {
+  let g = Math.min(depart.u1, depart.u2);
+  let d = Math.max(depart.u1, depart.u2);
+  let h = Math.min(depart.v1, depart.v2);
+  let b = Math.max(depart.v1, depart.v2);
+  const coin = prise.coin || '';
+  const bord = prise.bord || '';
+  if (coin.includes('o') || bord === 'gauche') g = p.u;
+  if (coin.includes('e') || bord === 'droite') d = p.u;
+  if (coin.startsWith('n') || bord === 'haut') h = p.v;
+  if (coin.startsWith('s') || bord === 'bas') b = p.v;
+  return { u1: Math.min(g, d), v1: Math.min(h, b), u2: Math.max(g, d), v2: Math.max(h, b) };
+}
+
+/**
+ * Élément saisi sous le pointeur : poignée de zone, zone entière, ou repère.
+ *
+ * Tout se teste en pixels de la toile plutôt qu'en coordonnées normalisées :
+ * une poignée doit s'attraper aussi facilement en haut qu'en bas de l'image,
+ * quel que soit le format de la photo.
+ */
+function priseSousPointeur(px, etude, L, H) {
+  const pres = (x, y) => Math.hypot(px.x - x, px.y - y) <= ACCROCHE;
+
+  const reperes = etude.reperes || [];
+  for (let i = reperes.length - 1; i >= 0; i -= 1) {
+    if (pres(reperes[i].u * L, reperes[i].v * H)) return { type: 'repere', index: i };
+  }
+
+  const z = etude.zone;
+  if (!z) return null;
+  const g = Math.min(z.u1, z.u2) * L;
+  const d = Math.max(z.u1, z.u2) * L;
+  const h = Math.min(z.v1, z.v2) * H;
+  const b = Math.max(z.v1, z.v2) * H;
+
+  for (const [nom, x, y] of [['no', g, h], ['ne', d, h], ['so', g, b], ['se', d, b]]) {
+    if (pres(x, y)) return { type: 'coin', coin: nom };
+  }
+  for (const [nom, x, y] of [
+    ['gauche', g, (h + b) / 2], ['droite', d, (h + b) / 2],
+    ['haut', (g + d) / 2, h], ['bas', (g + d) / 2, b],
+  ]) {
+    if (pres(x, y)) return { type: 'bord', bord: nom };
+  }
+  if (px.x >= g && px.x <= d && px.y >= h && px.y <= b) return { type: 'deplacer' };
+  return null;
+}
+
+/** Curseur annonçant ce qui est manipulable sous le pointeur. */
+function curseurPour(prise) {
+  if (!prise) return 'crosshair';
+  if (prise.type === 'repere') return 'grab';
+  if (prise.type === 'deplacer') return 'move';
+  if (prise.type === 'coin') return (prise.coin === 'no' || prise.coin === 'se') ? 'nwse-resize' : 'nesw-resize';
+  return (prise.bord === 'gauche' || prise.bord === 'droite') ? 'ew-resize' : 'ns-resize';
+}
+
 function brancherPhoto() {
   const toile = $('#toile-photo');
   const position = (e) => {
@@ -814,35 +925,76 @@ function brancherPhoto() {
     return {
       u: Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)),
       v: Math.min(1, Math.max(0, (e.clientY - r.top) / r.height)),
+      x: ((e.clientX - r.left) / r.width) * toile.width,
+      y: ((e.clientY - r.top) / r.height) * toile.height,
     };
   };
-  let depart = null;
+  const enCalage = () => etat.photoEtape === 'calage' || etat.photoEtape === 'calage2';
+
+  let saisie = null;
 
   toile.addEventListener('pointerdown', (e) => {
     const etude = photoCourante();
-    if (!etude?.image || etat.photoEtape !== 'zone') return;
-    depart = position(e);
+    if (!etude?.image || enCalage()) return;
+    const p = position(e);
+    // Le bouton « Entourer la zone » demande explicitement un nouveau tracé :
+    // partir du milieu de l'ancienne zone ne doit pas la déplacer à la place.
+    const prise = etat.photoEtape === 'zone'
+      ? null
+      : priseSousPointeur(p, etude, toile.width, toile.height);
+    if (prise) {
+      saisie = { prise, depart: p, zoneDepart: etude.zone ? { ...etude.zone } : null };
+    } else {
+      saisie = { prise: { type: 'tracer' }, depart: p, zoneDepart: null };
+      etude.zone = { u1: p.u, v1: p.v, u2: p.u, v2: p.v };
+    }
     toile.setPointerCapture(e.pointerId);
   });
+
   toile.addEventListener('pointermove', (e) => {
-    if (!depart) return;
-    const p = position(e);
-    photoCourante().zone = { u1: depart.u, v1: depart.v, u2: p.u, v2: p.v };
-    rendrePhoto();
-  });
-  toile.addEventListener('pointerup', (e) => {
-    if (!depart) return;
-    const p = position(e);
     const etude = photoCourante();
-    if (Math.abs(p.u - depart.u) > 0.03 && Math.abs(p.v - depart.v) > 0.03) {
-      etude.zone = { u1: depart.u, v1: depart.v, u2: p.u, v2: p.v };
-      etat.photoEtape = null;
-    } else {
-      etude.zone = null;
+    if (!etude?.image) return;
+    const p = position(e);
+
+    if (!saisie) {
+      toile.style.cursor = enCalage()
+        ? 'crosshair'
+        : curseurPour(priseSousPointeur(p, etude, toile.width, toile.height));
+      return;
     }
-    depart = null;
+
+    const { prise, depart, zoneDepart } = saisie;
+    if (prise.type === 'repere') {
+      etude.reperes[prise.index] = { ...etude.reperes[prise.index], u: p.u, v: p.v };
+      recalerPhoto(etude);
+    } else if (prise.type === 'tracer') {
+      etude.zone = { u1: depart.u, v1: depart.v, u2: p.u, v2: p.v };
+    } else if (prise.type === 'deplacer') {
+      const du = p.u - depart.u;
+      const dv = p.v - depart.v;
+      etude.zone = {
+        u1: zoneDepart.u1 + du, v1: zoneDepart.v1 + dv,
+        u2: zoneDepart.u2 + du, v2: zoneDepart.v2 + dv,
+      };
+    } else {
+      etude.zone = redimensionnerZone(zoneDepart, prise, p);
+    }
     majPhoto();
   });
+
+  const relacher = () => {
+    if (!saisie) return;
+    const etude = photoCourante();
+    const z = etude.zone;
+    // Un rectangle dégénéré ne veut rien dire : mieux vaut l'écarter que de
+    // calculer un angle sur rien.
+    if (z && (Math.abs(z.u2 - z.u1) < 0.02 || Math.abs(z.v2 - z.v1) < 0.02)) etude.zone = null;
+    else if (saisie.prise.type === 'tracer') etat.photoEtape = null;
+    saisie = null;
+    majPhoto();
+  };
+  toile.addEventListener('pointerup', relacher);
+  toile.addEventListener('pointercancel', relacher);
 
   toile.addEventListener('click', (e) => {
     const etude = photoCourante();
@@ -1085,11 +1237,12 @@ function majPlan() {
   $('#plan-conseil').textContent = conseil(m.focale, propositions).texte;
   $('#plan-propositions').innerHTML = propositions.length
     ? `<ul class="propositions">${propositions.map((p) => {
-      const nom = [p.entree.reference, p.entree.voie].filter(Boolean).join(' — ');
       const reglage = estFixe(p.entree)
         ? `fixe ${fmt(p.entree.focaleMin, 1)} mm`
         : `zoom ${fmt(p.reglage, 1)} mm`;
-      return `<li><span>${ech(nom)}</span><span class="reglage">${reglage}</span></li>`;
+      return `<li><span>${ech(nomComplet(p.entree))}`
+        + `${p.entree.verifie ? '' : ' <em>(à confirmer)</em>'}</span>`
+        + `<span class="reglage">${reglage}</span></li>`;
     }).join('')}</ul>`
     : '';
 
@@ -1275,7 +1428,8 @@ function exporterPlan() {
 /* -------------------------------------------------------------- catalogue */
 
 function majCatalogue() {
-  const lignes = etat.catalogue.map((e, i) => `<tr>
+  const lignes = etat.catalogue.map((e, i) => `<tr class="${e.verifie ? '' : 'a-confirmer'}">
+      <td><input type="text" data-cat="${i}" data-champ="marque" value="${ech(e.marque || '')}" placeholder="Marque"></td>
       <td><input type="text" data-cat="${i}" data-champ="reference" value="${ech(e.reference)}" placeholder="Référence"></td>
       <td><input type="text" data-cat="${i}" data-champ="voie" value="${ech(e.voie)}" placeholder="voie"></td>
       <td><input type="text" data-cat="${i}" data-champ="focaleMin" value="${fmt(e.focaleMin, 1)}"></td>
@@ -1284,27 +1438,34 @@ function majCatalogue() {
         <option value="visible"${e.type === 'visible' ? ' selected' : ''}>visible</option>
         <option value="thermique"${e.type === 'thermique' ? ' selected' : ''}>thermique</option>
       </select></td>
+      <td title="${e.verifie ? 'Référence vérifiée' : 'Référence à confirmer auprès du distributeur'}">${e.verifie ? '✓' : '?'}</td>
       <td><button type="button" class="btn btn-fantome btn-petit" data-cat-suppr="${i}">×</button></td>
     </tr>`).join('');
 
-  $('#catalogue-liste').innerHTML = `<table class="catalogue">
-      <colgroup><col class="ref"><col class="sup"><col class="foc"><col class="foc"><col class="sup"><col></colgroup>
-      <thead><tr><th>Référence</th><th>Voie</th><th>f min</th><th>f max</th><th>Type</th><th></th></tr></thead>
-      <tbody>${lignes}</tbody></table>`;
+  const aConfirmer = etat.catalogue.filter((e) => !e.verifie).length;
+  $('#catalogue-liste').innerHTML = `<div class="defilant"><table class="catalogue">
+      <thead><tr><th>Marque</th><th>Référence</th><th>Voie</th><th>f min</th><th>f max</th>
+        <th>Type</th><th>✓</th><th></th></tr></thead>
+      <tbody>${lignes}</tbody></table></div>
+    ${aConfirmer ? `<p class="note">${plur(aConfirmer, 'référence')} marquée${aConfirmer > 1 ? 's' : ''}
+      « ? » : gammes de départ, à confirmer auprès du distributeur. Corriger une ligne la passe en « ✓ ».</p>` : ''}`;
 
   $$('#catalogue-liste [data-cat]').forEach((el) => el.addEventListener('change', () => {
     const i = Number(el.dataset.cat);
     etat.catalogue[i] = normaliserEntree(
-      { ...etat.catalogue[i], [el.dataset.champ]: el.value }, i,
+      { ...etat.catalogue[i], verifie: true, [el.dataset.champ]: el.value }, i,
     );
     enregistrerCatalogue();
+    majCatalogue();
     majPlan();
+    majPhoto();
   }));
   $$('#catalogue-liste [data-cat-suppr]').forEach((el) => el.addEventListener('click', () => {
     etat.catalogue.splice(Number(el.dataset.catSuppr), 1);
     enregistrerCatalogue();
     majCatalogue();
     majPlan();
+    majPhoto();
   }));
 }
 
@@ -2583,7 +2744,8 @@ function construireProposition() {
   const retenues = etudes.filter((e) => e.m);
 
   const materiel = (e) => (e.propositions.length
-    ? ech([e.propositions[0].entree.reference, e.propositions[0].entree.voie].filter(Boolean).join(' — '))
+    ? ech(nomComplet(e.propositions[0].entree))
+      + (e.propositions[0].entree.verifie ? '' : ' — référence à confirmer')
     : `objectif ${fmt(e.avis.focale, 1)} mm — référence à arrêter`);
 
   $('#rapport').innerHTML = `
@@ -2787,6 +2949,12 @@ function brancher() {
   brancherPlan();
   brancherPhoto();
   brancherTracageZones();
+  $('#catalogue-exporter').addEventListener('click', exporterCatalogue);
+  $('#catalogue-importer').addEventListener('click', () => $('#fichier-catalogue').click());
+  $('#fichier-catalogue').addEventListener('change', (e) => {
+    if (e.target.files[0]) importerCatalogue(e.target.files[0]);
+    e.target.value = '';
+  });
   $('#catalogue-ajouter').addEventListener('click', () => {
     etat.catalogue.push(normaliserEntree({ reference: '', focaleMin: 4, focaleMax: 4 }, etat.catalogue.length));
     enregistrerCatalogue();

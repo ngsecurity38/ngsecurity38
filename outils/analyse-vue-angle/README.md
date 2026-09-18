@@ -42,30 +42,42 @@ Pour le mode d'emploi complet et la mise en ligne sur WordPress, voir
    niveau d'exploitation garanti, puis propose le matériel. Des lignes
    d'iso-distance rendent l'échelle vérifiable d'un coup d'œil, et un **tracé
    d'angle vu de dessus** est dessiné automatiquement, avec les portées de
-   chaque niveau d'exploitation.
+   chaque niveau d'exploitation — placé à côté de la photo dès que l'écran le
+   permet.
+   La zone reste **maniable** : on la déplace en la saisissant, on la
+   redimensionne par ses huit poignées, on replace les repères de calage. Chaque
+   relâchement recalcule tout — focale, portées, matériel, tracé. Ajuster un
+   cadrage devant le client ne demande plus de recommencer le tracé.
 2. **Proposition client** — document commercial distinct du procès-verbal :
    synthèse de couverture, photo annotée, tracé d'angle, matériel préconisé,
    tableau « ce que permettra l'image » en français courant, méthode et
    hypothèses.
-3. **Conception d'un champ sur plan** — tracer sur une vue aérienne la zone à
+3. **Catalogue de matériel** — livré pré-rempli des gammes courantes Dahua,
+   Hikvision, Axis et Uniview, de la focale fixe 2,8 mm au varifocal 8–32 mm :
+   la proposition trouve du matériel dès la première ouverture. Chaque entrée
+   porte sa provenance — **✓** vérifiée, **?** famille courante dont la
+   référence exacte reste à confronter à la fiche constructeur, jamais annoncée
+   comme certaine au client. Le catalogue de l'agence s'importe et s'exporte en
+   CSV.
+4. **Conception d'un champ sur plan** — tracer sur une vue aérienne la zone à
    couvrir, et en déduire portée, ouverture, largeur couverte, **focale
    nécessaire**, densité en pixels par mètre et niveau DORI atteint. Un
    catalogue du matériel, tenu par l'agence, désigne alors la caméra à poser et
    le zoom à régler. Le plan annoté s'exporte, et le procès-verbal porte une
    fiche d'implantation au format des études.
-4. **Dossier de chantier** — une fiche porte autant de caméras que le site en
+5. **Dossier de chantier** — une fiche porte autant de caméras que le site en
    compte. Onglets avec pastille de verdict, synthèse d'avancement, un seul
    fichier `.json` pour tout le dossier et un procès-verbal unique. Les fiches
    de la version 1, à caméra unique, s'ouvrent toujours.
-5. **Import de l'étude au format PDF** — les pages du PDF remis par le client
+6. **Import de l'étude au format PDF** — les pages du PDF remis par le client
    sont affichées, on choisit celle qui porte la vue attendue et on recadre
    dessus pour n'en garder que l'image utile. Le procès-verbal cite ensuite le
    fichier et le numéro de page servis de référence.
-6. **Lecture des études scannées** — un PDF sans texte est reconnu comme tel et
+7. **Lecture des études scannées** — un PDF sans texte est reconnu comme tel et
    peut être passé en reconnaissance de caractères, hors ligne. Les valeurs
    ainsi obtenues sont signalées comme telles, à l'écran et au procès-verbal :
    un chiffre mal reconnu fausserait la mesure d'angle.
-7. **Relevé du texte de l'étude** — focale, angle de vue, capteur, résolution,
+8. **Relevé du texte de l'étude** — focale, angle de vue, capteur, résolution,
    distance et hauteur annoncés sont lus dans le texte du PDF, caméra par
    caméra, puis confrontés au matériel réellement posé. Chaque valeur est
    présentée avec sa page d'origine et son extrait : l'outil propose, le
@@ -75,18 +87,18 @@ Pour le mode d'emploi complet et la mise en ligne sur WordPress, voir
    **Texte lu** montre ce qui a été extrait,
    passages retenus surlignés, et se copie d'un clic : une formulation non
    reconnue se diagnostique sans sortir l'étude du dossier client.
-8. **Calculs optiques** — angles de champ horizontal / vertical / diagonal à
+9. **Calculs optiques** — angles de champ horizontal / vertical / diagonal à
    partir du capteur et de la focale, largeur de scène couverte, densité en
    pixels par mètre, portées DORI (EN 62676-4), zone morte au pied du mât,
    focale nécessaire pour couvrir une largeur donnée.
-9. **Recalage des deux vues** — estimation automatique du décalage, du zoom et
+10. **Recalage des deux vues** — estimation automatique du décalage, du zoom et
    du roulis entre l'image de référence et l'image réglée.
-10. **Diagnostic** — traduction de ce recalage en écarts de réglage réels
+11. **Diagnostic** — traduction de ce recalage en écarts de réglage réels
    (degrés de panoramique, de site, de roulis ; pourcentage de cadrage), note
    de conformité sur 100 et consignes d'intervention en clair.
-11. **Zones d'intérêt** — rectangles tracés sur la vue demandée, dont l'outil
+12. **Zones d'intérêt** — rectangles tracés sur la vue demandée, dont l'outil
    vérifie qu'ils restent couverts par le champ réellement réglé.
-12. **Fiche et rapport** — la fiche complète (paramètres + images) s'enregistre
+13. **Fiche et rapport** — la fiche complète (paramètres + images) s'enregistre
    en un fichier `.json` réouvrable ; le rapport s'imprime ou s'exporte en PDF.
 
 ## Organisation
@@ -183,9 +195,9 @@ techniciens reste en retard sur le dépôt.
 ## Tests
 
 ```bash
-npm test                 # 109 tests unitaires, sans navigateur
+npm test                 # 116 tests unitaires, sans navigateur
 npm run build
-npm run test:navigateur  # 61 tests de bout en bout (Playwright)
+npm run test:navigateur  # 64 tests de bout en bout (Playwright)
 ```
 
 Les tests unitaires couvrent les calculs d'optique, la récupération de
@@ -194,7 +206,8 @@ fort changement d'exposition), le rejet d'images sans rapport, la traduction des
 écarts en consignes, la lecture d'une étude (repérage des caméras, relevé des
 caractéristiques, rejet des faux positifs numériques, confrontation au matériel
 posé, densité exigée), la géométrie du tracé sur plan avec son choix
-d'objectif, la mesure des distances sur photo (sol plan, sténopé) avec le
+d'objectif, le catalogue de matériel (provenance des références, aller-retour
+CSV, en-têtes dans le désordre), la mesure des distances sur photo (sol plan, sténopé) avec le
 calage automatique du champ de vision sur deux repères, et le format de dossier (conversion des fiches de la version 1, fichier
 tronqué, nom de fichier proposé).
 
