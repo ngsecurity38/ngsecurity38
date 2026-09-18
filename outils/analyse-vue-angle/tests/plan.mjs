@@ -11,7 +11,9 @@ import {
 import { CAPTEURS, anglesDeChamp, niveauDori } from '../js/optique.js';
 import {
   CATALOGUE_INITIAL, proposer, conseil, focaleCourante, normaliserEntree, estFixe,
-  nomComplet, versCsv, depuisCsv,
+  nomComplet, versCsv, depuisCsv, estComplete, aConfirmer, reserve,
+  depuisReleveCommercial, focaleDepuisIntitule, definitionDepuisIntitule,
+  referenceDepuisIntitule, marqueDepuisReference, decouperCsv,
 } from '../js/catalogue.js';
 
 const proche = (a, b, tol, m) => assert.ok(
@@ -94,20 +96,42 @@ test('un champ dégénéré ne produit pas de focale absurde', () => {
 
 /* -------------------------------------------------------------- catalogue */
 
-test('catalogue de départ : le matériel de l\'étude est le seul vérifié', () => {
-  const verifiees = CATALOGUE_INITIAL.filter((e) => e.verifie);
-  assert.equal(verifiees.length, 2, 'seules les deux voies lues sur l\'étude sont certaines');
-  assert.ok(verifiees.every((e) => estFixe(e)), 'les deux objectifs sont fixes');
-  assert.equal(verifiees.find((e) => e.type === 'thermique').focaleMin, 3.5);
-  assert.ok(CATALOGUE_INITIAL.some((e) => !e.verifie), 'les gammes de départ restent à confirmer');
+test('catalogue de départ : chaque entrée nomme sa source', () => {
+  assert.ok(CATALOGUE_INITIAL.length >= 20, 'le catalogue de départ est fourni');
+  for (const e of CATALOGUE_INITIAL) {
+    assert.ok(e.source, `${e.reference} sans source`);
+    assert.ok(e.verifie, `${e.reference} : la référence vient d'un document`);
+    assert.ok(estComplete(e), `${e.reference} : focale et définition connues`);
+  }
   assert.ok(CATALOGUE_INITIAL.some((e) => /hikvision/i.test(e.marque)), 'Hikvision présent');
   assert.ok(CATALOGUE_INITIAL.some((e) => /dahua/i.test(e.marque)), 'Dahua présent');
 });
 
-test('catalogue de départ : toute la plage utile est couverte', () => {
-  // Une agence doit obtenir une proposition quelle que soit la focale calculée.
-  for (const focale of [2.8, 4, 5.5, 8, 12, 20, 30]) {
+test('catalogue de départ : le capteur reste supposé partout sauf sur l\'étude', () => {
+  // L'étude du client donne le capteur ; les brochures commerciales, jamais.
+  const sures = CATALOGUE_INITIAL.filter((e) => !e.capteurSuppose);
+  assert.equal(sures.length, 2, 'seules les deux voies lues sur l\'étude sont complètes');
+  assert.ok(sures.every((e) => estFixe(e)), 'les deux objectifs sont fixes');
+  assert.equal(sures.find((e) => e.type === 'thermique').focaleMin, 3.5);
+  assert.ok(sures.every((e) => aConfirmer(e).length === 0), 'rien à confirmer sur celles-là');
+
+  const supposees = CATALOGUE_INITIAL.filter((e) => e.capteurSuppose);
+  assert.ok(supposees.length > 15, 'les références de brochure sont nombreuses');
+  for (const e of supposees) {
+    assert.deepEqual(aConfirmer(e), ['le format de capteur']);
+    assert.match(reserve(e), /capteur reste à confirmer/);
+  }
+});
+
+test('catalogue de départ : la plage réellement couverte, et rien de plus', () => {
+  // Ce que les documents attestent : de 2,8 à 13,5 mm.
+  for (const focale of [2.8, 4, 5.5, 8, 12, 13]) {
     assert.ok(proposer(CATALOGUE_INITIAL, focale).length > 0, `rien ne couvre ${focale} mm`);
+  }
+  // Au-delà, l'outil dit qu'il ne sait pas plutôt que d'inventer une longue portée.
+  for (const focale of [20, 30]) {
+    assert.equal(proposer(CATALOGUE_INITIAL, focale).length, 0, `${focale} mm ne doit rien donner`);
+    assert.match(conseil(focale, []).texte, /Aucun matériel du catalogue/);
   }
 });
 
@@ -188,9 +212,9 @@ test('export CSV : en-têtes, point-virgule et virgule décimale', () => {
     focaleMin: 2.7, focaleMax: 13.5, resolution: { h: 2688, v: 1520 },
   })]);
   const [entete, ligne] = csv.split('\r\n');
-  assert.match(entete, /^marque;reference;voie;type;capteur;focaleMin;focaleMax;resH;resV$/);
+  assert.match(entete, /^marque;reference;voie;type;capteur;focaleMin;focaleMax;resH;resV;source$/);
   assert.match(ligne, /^Dahua;IPC-1;contexte;visible;/);
-  assert.match(ligne, /2,7;13,5;2688;1520$/, 'focales à la française');
+  assert.match(ligne, /2,7;13,5;2688;1520;/, 'focales à la française');
 });
 
 test('import CSV : colonnes dans n\'importe quel ordre, lignes vides ignorées', () => {
@@ -227,4 +251,116 @@ test('aller-retour CSV : le catalogue se retrouve intact', () => {
     assert.equal(e.focaleMax, depart[i].focaleMax);
     assert.equal(e.type, depart[i].type);
   });
+});
+
+/* ---------------------------------------- relevé d'un catalogue commercial */
+
+test('intitulé : focale fixe, plage, et suffixe Dahua', () => {
+  assert.deepEqual(focaleDepuisIntitule('Hikvision 4K AcuSense Bullet DS-2CD2T86G2-4I F4'), { min: 4, max: 4 });
+  assert.deepEqual(focaleDepuisIntitule('DS-2CD2T87G2H-LI - ColorVu Bullet 2.8mm'), { min: 2.8, max: 2.8 });
+  assert.deepEqual(
+    focaleDepuisIntitule('Hikvision DS-2CD3786G2T-IZS (2,7-13,5 mm) AcuSense 8MP'),
+    { min: 2.7, max: 13.5 }, 'décimale à la française',
+  );
+  assert.deepEqual(
+    focaleDepuisIntitule('Dahua DH-IPC-HDW5842TMP-ASE-0280B-S3 Wizmind'),
+    { min: 2.8, max: 2.8 }, 'les quatre chiffres du suffixe Dahua donnent la focale',
+  );
+});
+
+test('intitulé : « (F1) » est une révision de matériel, pas une focale', () => {
+  // Sans cette réserve, la speed dome DS-2DE3A400BW-DE se verrait poser un
+  // objectif de 1 mm — et l'angle annoncé au client serait absurde.
+  assert.equal(focaleDepuisIntitule('Hikvision 4 MP ColorVu Speed Dome DS-2DE3A400BW-DE(F1)(T5)'), null);
+});
+
+test('intitulé : un intitulé qui se contredit ne donne pas de focale', () => {
+  // Celui-ci annonce « F2.8 » et « 2.8-12 mm » : la fiche technique tranchera.
+  assert.equal(
+    focaleDepuisIntitule('Hikvision IP Dome DS-2CD2186G2-ISU F2.8/8MP/2.8-12 mm/111°/H.265+'),
+    null,
+  );
+});
+
+test('intitulé : aucune focale plutôt qu\'une focale devinée', () => {
+  assert.equal(focaleDepuisIntitule('DAHUA Caméra IP Poe 5MP WizSense IPC-HFW3549T1-AS-PV-S4'), null);
+  assert.equal(focaleDepuisIntitule('Axis P3265-LVE High-Perf Fixed Dome CAM W/DLPU'), null);
+});
+
+test('intitulé : définition annoncée en pixels, en 4K ou en mégapixels', () => {
+  assert.deepEqual(definitionDepuisIntitule('Axis Q3517-LVE Dôme 3072 x 1728 Pixels'), { h: 3072, v: 1728 });
+  assert.deepEqual(definitionDepuisIntitule('Axis Q6078-E PTZ UHD 4K 50 Hz'), { h: 3840, v: 2160 });
+  assert.deepEqual(definitionDepuisIntitule('Hikvision DS-2CE56D0T-IRPF dôme 1080p 2MP'), { h: 1920, v: 1080 });
+  assert.deepEqual(definitionDepuisIntitule('Hikvision 8 MP AcuSense Fixed Bullet'), { h: 3840, v: 2160 });
+  assert.equal(definitionDepuisIntitule('Hikvision DS-2CD2786G2-IZS(C) (Noir)'), null);
+});
+
+test('intitulé : la référence se distingue du bruit', () => {
+  assert.equal(referenceDepuisIntitule('Hikvision Dome DS-2CD1353G0-I F2.8'), 'DS-2CD1353G0-I');
+  assert.equal(
+    referenceDepuisIntitule('AXIS Q6075-E 50 Hz - Caméra réseau - extérieur - 1920 x 1080-1080p'),
+    'Q6075-E', 'un morceau de définition n\'est pas une référence',
+  );
+});
+
+test('marque déduite du préfixe quand l\'intitulé la tait', () => {
+  assert.equal(marqueDepuisReference('DS-2CD2T87G2H-LI'), 'Hikvision');
+  assert.equal(marqueDepuisReference('iDS-2CD75C5G0-IZHSY'), 'Hikvision');
+  assert.equal(marqueDepuisReference('DH-IPC-HDW5842TMP'), 'Dahua');
+  assert.equal(marqueDepuisReference('PNO-A9081R'), 'Hanwha');
+  assert.equal(marqueDepuisReference('RG-EG210G-P'), '', 'un routeur ne se voit pas attribuer de marque');
+});
+
+test('découpage CSV : les virgules d\'un intitulé restent dans l\'intitulé', () => {
+  const lignes = decouperCsv('ASIN,Titre,Ventes\nB01,"Caméra 8 MP, IP67, blanc",12\n');
+  assert.equal(lignes.length, 2);
+  assert.deepEqual(lignes[1], ['B01', 'Caméra 8 MP, IP67, blanc', '12']);
+});
+
+test('relevé commercial : seules les caméras, sans doublon', () => {
+  const csv = [
+    'ASIN (parent),Titre,Sessions',
+    'B01,"Hikvision 4K AcuSense Bullet Camera DS-2CD2T86G2-4I F4",112',
+    'B02,"Hikvision 4K AcuSense Bullet Camera DS-2CD2T86G2-4I F4",9',
+    'B03,"Ruijie Reyee 24-Port Gigabit Layer 2 Managed Switch RG-NBS3200-24GT4XS",1',
+    'B04,"Axis P3265-LVE High-Perf Fixed Dome CAM W/DLPU",17',
+  ].join('\n');
+  const e = depuisReleveCommercial(csv, { source: 'Relevé de mars' });
+
+  assert.equal(e.length, 2, 'le switch est écarté, le doublon aussi');
+  assert.equal(e[0].reference, 'DS-2CD2T86G2-4I');
+  assert.equal(e[0].source, 'Relevé de mars');
+  assert.ok(estComplete(e[0]), 'focale et définition lues dans l\'intitulé');
+
+  // La seconde n'annonce ni focale ni définition : elle est rendue quand même,
+  // marquée incomplète, plutôt que de disparaître sans que personne le sache.
+  assert.equal(e[1].reference, 'P3265-LVE');
+  assert.ok(!estComplete(e[1]), 'sans focale, elle n\'est pas exploitable');
+});
+
+test('relevé commercial : une entrée incomplète n\'est jamais proposée', () => {
+  const catalogue = depuisReleveCommercial([
+    'Titre',
+    '"Axis P3265-LVE High-Perf Fixed Dome CAM W/DLPU"',
+    '"Hikvision 8 MP AcuSense Fixed Bullet Camera DS-2CD2T86G2-4I F2.8"',
+  ].join('\n'));
+  assert.equal(catalogue.length, 2);
+  const p = proposer(catalogue, 2.8);
+  assert.equal(p.length, 1, 'seule la référence complète est proposable');
+  assert.equal(p[0].entree.reference, 'DS-2CD2T86G2-4I');
+});
+
+test('relevé commercial : sans colonne d\'intitulés, rien n\'est inventé', () => {
+  assert.deepEqual(depuisReleveCommercial('ASIN,Ventes\nB01,12\n'), []);
+  assert.deepEqual(depuisReleveCommercial(''), []);
+});
+
+test('réserve : le capteur supposé se dit dans le conseil au client', () => {
+  const entree = normaliserEntree({
+    marque: 'Hikvision', reference: 'DS-2CD2083G2-I', focaleMin: 4, focaleMax: 4,
+    resolution: { h: 3840, v: 2160 }, capteurSuppose: true, source: 'Brochure',
+  });
+  const texte = conseil(4, proposer([entree], 4)).texte;
+  assert.match(texte, /DS-2CD2083G2-I/);
+  assert.match(texte, /capteur reste à confirmer sur la fiche technique/);
 });

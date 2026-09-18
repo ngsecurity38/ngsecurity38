@@ -52,13 +52,15 @@ Pour le mode d'emploi complet et la mise en ligne sur WordPress, voir
    synthèse de couverture, photo annotée, tracé d'angle, matériel préconisé,
    tableau « ce que permettra l'image » en français courant, méthode et
    hypothèses.
-3. **Catalogue de matériel** — livré pré-rempli des gammes courantes Dahua,
-   Hikvision, Axis et Uniview, de la focale fixe 2,8 mm au varifocal 8–32 mm :
-   la proposition trouve du matériel dès la première ouverture. Chaque entrée
-   porte sa provenance — **✓** vérifiée, **?** famille courante dont la
-   référence exacte reste à confronter à la fiche constructeur, jamais annoncée
-   comme certaine au client. Le catalogue de l'agence s'importe et s'exporte en
-   CSV.
+3. **Catalogue de matériel** — 28 références livrées, **toutes tirées d'un
+   document** : la brochure Hikvision AcuSense (page citée), le catalogue de
+   l'agence, l'étude du client. Chaque entrée porte sa `source`, et sa pastille
+   dit ce qui reste à confirmer — **✓** tout est sourcé, **~** référence et
+   focale sourcées mais format de capteur absent du document, **⋯** focale ou
+   définition manquante, jamais proposée au client. Le bouton **Importer**
+   accepte deux formats : un catalogue au format de l'outil, qu'il remplace, et
+   un **relevé commercial** — l'export d'une place de marché, un tarif
+   distributeur — dont il extrait les références des intitulés.
 4. **Conception d'un champ sur plan** — tracer sur une vue aérienne la zone à
    couvrir, et en déduire portée, ouverture, largeur couverte, **focale
    nécessaire**, densité en pixels par mètre et niveau DORI atteint. Un
@@ -195,9 +197,9 @@ techniciens reste en retard sur le dépôt.
 ## Tests
 
 ```bash
-npm test                 # 116 tests unitaires, sans navigateur
+npm test                 # 129 tests unitaires, sans navigateur
 npm run build
-npm run test:navigateur  # 64 tests de bout en bout (Playwright)
+npm run test:navigateur  # 66 tests de bout en bout (Playwright)
 ```
 
 Les tests unitaires couvrent les calculs d'optique, la récupération de
@@ -207,7 +209,8 @@ fort changement d'exposition), le rejet d'images sans rapport, la traduction des
 caractéristiques, rejet des faux positifs numériques, confrontation au matériel
 posé, densité exigée), la géométrie du tracé sur plan avec son choix
 d'objectif, le catalogue de matériel (provenance des références, aller-retour
-CSV, en-têtes dans le désordre), la mesure des distances sur photo (sol plan, sténopé) avec le
+CSV, en-têtes dans le désordre, lecture d'un relevé commercial — focale, marque
+et définition tirées des intitulés, intitulés contradictoires écartés), la mesure des distances sur photo (sol plan, sténopé) avec le
 calage automatique du champ de vision sur deux repères, et le format de dossier (conversion des fiches de la version 1, fichier
 tronqué, nom de fichier proposé).
 

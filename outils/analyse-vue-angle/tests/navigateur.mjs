@@ -814,6 +814,70 @@ console.log('\nChamp tracé sur un plan');
     affirmer(r.propositions.length >= 1, 'au moins une proposition');
   });
 
+  await cas('le catalogue montre la provenance de chaque référence', async () => {
+    const r = await page.evaluate(() => {
+      document.querySelector('#catalogue-liste').closest('details').open = true;
+      const lignes = [...document.querySelectorAll('#catalogue-liste tbody tr')];
+      return lignes.map((tr) => {
+        const cases = tr.querySelectorAll('td');
+        const pastille = cases[cases.length - 2];
+        return {
+          reference: tr.querySelector('[data-champ="reference"]').value,
+          marque: pastille.textContent.trim(),
+          titre: pastille.getAttribute('title') || '',
+        };
+      });
+    });
+    affirmer(r.length >= 20, `catalogue fourni : ${r.length} lignes`);
+
+    const etude = r.find((l) => l.reference === 'DHI-TPC-BF1241');
+    affirmer(etude && etude.marque === '✓', 'la caméra lue sur l\'étude est marquée vérifiée');
+
+    const brochure = r.find((l) => l.reference === 'DS-2CD2083G2-I');
+    affirmer(!!brochure, 'les références de la brochure Hikvision sont là');
+    affirmer(brochure.marque === '~', `capteur supposé attendu, obtenu « ${brochure.marque} »`);
+    affirmer(/AcuSense/.test(brochure.titre) && /p\. 11/.test(brochure.titre),
+      `la source doit être citée : ${brochure.titre}`);
+  });
+
+  await cas('un relevé commercial ajoute ses références sans écraser le catalogue', async () => {
+    const avant = await page.evaluate(
+      () => document.querySelectorAll('#catalogue-liste tbody tr').length,
+    );
+
+    // Trois intitulés tels qu'ils sortent d'un export de place de marché : le
+    // premier complet, le deuxième sans focale, le troisième n'est pas une caméra.
+    await page.setInputFiles('#fichier-catalogue', {
+      name: 'releve-mars.csv',
+      mimeType: 'text/csv',
+      buffer: Buffer.from([
+        'ASIN (parent),Titre,Sessions',
+        'B01,"Hikvision DS-2CD3786G2T-IZS (2,7-13,5 mm) AcuSense 8MP Varifocal 4K Caméra dôme",9',
+        'B02,"Axis P3265-LVE High-Perf Fixed Dome CAM W/DLPU",17',
+        'B03,"Ruijie Reyee 24-Port Gigabit Layer 2 Managed Switch RG-NBS3200-24GT4XS",1',
+      ].join('\n'), 'utf8'),
+    });
+    await page.waitForTimeout(300);
+
+    const r = await page.evaluate(() => {
+      const lignes = [...document.querySelectorAll('#catalogue-liste tbody tr')];
+      return {
+        total: lignes.length,
+        references: lignes.map((tr) => tr.querySelector('[data-champ="reference"]').value),
+        incompletes: lignes.filter((tr) => tr.classList.contains('a-completer'))
+          .map((tr) => tr.querySelector('[data-champ="reference"]').value),
+        etat: document.querySelector('#etat-analyse').textContent,
+      };
+    });
+
+    affirmer(r.references.includes('DHI-TPC-BF1241'), 'le catalogue en place n\'est pas écrasé');
+    affirmer(r.references.includes('P3265-LVE'), 'la référence sans focale est quand même relevée');
+    affirmer(!r.references.includes('RG-NBS3200-24GT4XS'), 'le switch ne doit pas entrer au catalogue');
+    affirmer(r.incompletes.includes('P3265-LVE'), 'elle doit être marquée à compléter');
+    affirmer(r.total > avant, `le catalogue s'est étoffé : ${avant} → ${r.total}`);
+    affirmer(/compl[ée]ter/i.test(r.etat), `le message doit le dire : ${r.etat}`);
+  });
+
   await cas('lier l\'ouverture à la focale saisie redessine le champ réel', async () => {
     await page.check('#plan-lier');
     await page.evaluate(() => {

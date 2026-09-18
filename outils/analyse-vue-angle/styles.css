@@ -470,6 +470,8 @@ table.catalogue col.sup { width: 16%; }
 table.catalogue { table-layout: auto; min-width: 470px; }
 table.catalogue input { min-width: 54px; }
 table.catalogue tr.a-confirmer td { color: var(--texte-doux); }
+table.catalogue tr.a-completer td { color: var(--texte-doux); opacity: .75; }
+table.catalogue tr.a-completer input { border-style: dashed; }
 table.catalogue td[title] { text-align: center; cursor: help; }
 .propositions em { color: var(--texte-doux); font-style: normal; font-size: 11px; }
 

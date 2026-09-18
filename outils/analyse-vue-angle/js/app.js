@@ -29,7 +29,7 @@ import {
 } from './photo.js';
 import {
   CATALOGUE_INITIAL, normaliserEntree, proposer, conseil, estFixe,
-  nomComplet, versCsv, depuisCsv,
+  nomComplet, versCsv, depuisCsv, depuisReleveCommercial, estComplete, aConfirmer,
 } from './catalogue.js';
 
 const nb = (el, defaut = 0) => {
@@ -420,21 +420,49 @@ function exporterCatalogue() {
   URL.revokeObjectURL(url);
 }
 
-/** Remplace le catalogue par celui du distributeur. */
+/**
+ * Charge un CSV, qu'il soit un catalogue ou un relevé commercial.
+ *
+ * Les deux ne se chargent pas de la même façon, et c'est voulu. Un catalogue
+ * porte les colonnes de l'outil : il **remplace** le catalogue en place, c'est
+ * un fichier complet. Un relevé commercial — export d'une place de marché,
+ * tarif distributeur — ne porte que des intitulés : ses références s'**ajoutent**
+ * à ce qui existe, sans écraser un travail de saisie.
+ */
 async function importerCatalogue(fichier) {
-  const entrees = depuisCsv(await fichier.text());
-  if (!entrees.length) {
-    $('#etat-analyse').textContent = 'Aucune ligne exploitable : il faut au moins les '
-      + 'colonnes reference, focaleMin et focaleMax.';
-    $('#etat-analyse').classList.add('erreur');
+  const texte = await fichier.text();
+
+  const catalogue = depuisCsv(texte);
+  if (catalogue.length) {
+    etat.catalogue = catalogue;
+    appliquerCatalogue(`Catalogue remplacé — ${plur(catalogue.length, 'référence')}.`);
     return;
   }
-  etat.catalogue = entrees;
+
+  const releve = depuisReleveCommercial(texte, { source: `Relevé ${fichier.name}` });
+  if (releve.length) {
+    const connues = new Set(etat.catalogue.map((e) => e.reference.toLowerCase()));
+    const ajouts = releve.filter((e) => !connues.has(e.reference.toLowerCase()));
+    etat.catalogue = etat.catalogue.concat(ajouts);
+    const incompletes = ajouts.filter((e) => !estComplete(e)).length;
+    appliquerCatalogue(`${plur(ajouts.length, 'référence')} relevée${ajouts.length > 1 ? 's' : ''} `
+      + `dans ${fichier.name}`
+      + (incompletes ? ` — ${incompletes} sans focale ni définition, à compléter.` : '.'));
+    return;
+  }
+
+  $('#etat-analyse').textContent = 'Aucune ligne exploitable : il faut soit les colonnes '
+    + 'reference / focaleMin / focaleMax, soit une colonne d\'intitulés nommée « Titre ».';
+  $('#etat-analyse').classList.add('erreur');
+}
+
+/** Enregistre le catalogue, rafraîchit ce qui en dépend et le dit. */
+function appliquerCatalogue(message) {
   enregistrerCatalogue();
   majCatalogue();
   majPlan();
   majPhoto();
-  $('#etat-analyse').textContent = `Catalogue remplacé — ${plur(entrees.length, 'référence')}.`;
+  $('#etat-analyse').textContent = message;
   $('#etat-analyse').classList.remove('erreur');
 }
 
@@ -597,7 +625,7 @@ function majPhoto() {
     ? `<ul class="propositions">${propositions.map((p) => {
       const reglage = estFixe(p.entree) ? `fixe ${fmt(p.entree.focaleMin, 1)} mm` : `zoom ${fmt(p.reglage, 1)} mm`;
       return `<li><span>${ech(nomComplet(p.entree))}`
-        + `${p.entree.verifie ? '' : ' <em>(à confirmer)</em>'}</span>`
+        + `${aConfirmer(p.entree).length ? ` <em>(${ech(aConfirmer(p.entree).join(' et '))} à confirmer)</em>` : ''}</span>`
         + `<span class="reglage">${reglage}</span></li>`;
     }).join('')}</ul>`
     : '';
@@ -1241,7 +1269,7 @@ function majPlan() {
         ? `fixe ${fmt(p.entree.focaleMin, 1)} mm`
         : `zoom ${fmt(p.reglage, 1)} mm`;
       return `<li><span>${ech(nomComplet(p.entree))}`
-        + `${p.entree.verifie ? '' : ' <em>(à confirmer)</em>'}</span>`
+        + `${aConfirmer(p.entree).length ? ` <em>(${ech(aConfirmer(p.entree).join(' et '))} à confirmer)</em>` : ''}</span>`
         + `<span class="reglage">${reglage}</span></li>`;
     }).join('')}</ul>`
     : '';
@@ -1427,8 +1455,26 @@ function exporterPlan() {
 
 /* -------------------------------------------------------------- catalogue */
 
+/** Pastille de provenance d'une entrée : ce qui est sourcé, ce qui ne l'est pas. */
+function pastilleProvenance(e) {
+  if (!estComplete(e)) {
+    return {
+      marque: '⋯',
+      titre: 'Focale ou définition manquante — cette référence ne sera pas proposée '
+        + 'tant qu\'elle n\'est pas complétée.',
+    };
+  }
+  const restes = aConfirmer(e);
+  const origine = e.source ? ` Source : ${e.source}.` : '';
+  if (!restes.length) return { marque: '✓', titre: `Référence et optique vérifiées.${origine}` };
+  return {
+    marque: restes.includes('la référence') ? '?' : '~',
+    titre: `${restes.join(' et ')} à confirmer sur la fiche technique du modèle.${origine}`,
+  };
+}
+
 function majCatalogue() {
-  const lignes = etat.catalogue.map((e, i) => `<tr class="${e.verifie ? '' : 'a-confirmer'}">
+  const lignes = etat.catalogue.map((e, i) => `<tr class="${estComplete(e) ? (aConfirmer(e).length ? 'a-confirmer' : '') : 'a-completer'}">
       <td><input type="text" data-cat="${i}" data-champ="marque" value="${ech(e.marque || '')}" placeholder="Marque"></td>
       <td><input type="text" data-cat="${i}" data-champ="reference" value="${ech(e.reference)}" placeholder="Référence"></td>
       <td><input type="text" data-cat="${i}" data-champ="voie" value="${ech(e.voie)}" placeholder="voie"></td>
@@ -1438,17 +1484,22 @@ function majCatalogue() {
         <option value="visible"${e.type === 'visible' ? ' selected' : ''}>visible</option>
         <option value="thermique"${e.type === 'thermique' ? ' selected' : ''}>thermique</option>
       </select></td>
-      <td title="${e.verifie ? 'Référence vérifiée' : 'Référence à confirmer auprès du distributeur'}">${e.verifie ? '✓' : '?'}</td>
+      <td title="${ech(pastilleProvenance(e).titre)}">${pastilleProvenance(e).marque}</td>
       <td><button type="button" class="btn btn-fantome btn-petit" data-cat-suppr="${i}">×</button></td>
     </tr>`).join('');
 
-  const aConfirmer = etat.catalogue.filter((e) => !e.verifie).length;
+  const incompletes = etat.catalogue.filter((e) => !estComplete(e)).length;
+  const supposees = etat.catalogue.filter((e) => estComplete(e) && aConfirmer(e).length).length;
   $('#catalogue-liste').innerHTML = `<div class="defilant"><table class="catalogue">
       <thead><tr><th>Marque</th><th>Référence</th><th>Voie</th><th>f min</th><th>f max</th>
         <th>Type</th><th>✓</th><th></th></tr></thead>
       <tbody>${lignes}</tbody></table></div>
-    ${aConfirmer ? `<p class="note">${plur(aConfirmer, 'référence')} marquée${aConfirmer > 1 ? 's' : ''}
-      « ? » : gammes de départ, à confirmer auprès du distributeur. Corriger une ligne la passe en « ✓ ».</p>` : ''}`;
+    ${supposees ? `<p class="note">${plur(supposees, 'référence')} marquée${supposees > 1 ? 's' : ''}
+      « ~ » : la référence et la focale viennent d'un document, mais le format de capteur n'y
+      figure pas — il ne se lit que sur la fiche technique. Corriger la ligne la passe en « ✓ ».</p>` : ''}
+    ${incompletes ? `<p class="note">${plur(incompletes, 'référence')} marquée${incompletes > 1 ? 's' : ''}
+      « ⋯ » : focale ou définition manquante. Elles restent listées pour mémoire mais ne sont
+      jamais proposées au client.</p>` : ''}`;
 
   $$('#catalogue-liste [data-cat]').forEach((el) => el.addEventListener('change', () => {
     const i = Number(el.dataset.cat);
@@ -2745,7 +2796,9 @@ function construireProposition() {
 
   const materiel = (e) => (e.propositions.length
     ? ech(nomComplet(e.propositions[0].entree))
-      + (e.propositions[0].entree.verifie ? '' : ' — référence à confirmer')
+      + (aConfirmer(e.propositions[0].entree).length
+        ? ` — ${ech(aConfirmer(e.propositions[0].entree).join(' et '))} à confirmer`
+        : '')
     : `objectif ${fmt(e.avis.focale, 1)} mm — référence à arrêter`);
 
   $('#rapport').innerHTML = `

@@ -229,31 +229,65 @@ L'outil y cherche ce qui donne la focale calculée, et dit quoi faire :
 sur 5,2 mm ». Si rien ne convient, il le dit et propose la focale du commerce la
 plus proche.
 
-Le catalogue est livré **pré-rempli** : les gammes courantes de Dahua,
-Hikvision, Axis et Uniview — bullets et dômes à focale fixe de 2,8 à 6 mm,
-varifocaux motorisés 2,7–13,5 et 2,8–12 mm, longues portées 7–35 et 8–32 mm —
-couvrent toute la plage de focales utile. La proposition trouve donc du matériel
-dès la première ouverture, sans rien saisir.
+Le catalogue est livré **pré-rempli de 28 références, toutes tirées d'un
+document** — aucune n'a été composée de mémoire :
 
-**Deux marqueurs, et toute la différence :**
+| Origine | Ce qu'elle apporte |
+| --- | --- |
+| Brochure **Hikvision AcuSense** (éd. française, juil. 2021) | 20 références EasyIP 2.0+, EasyIP 4.0 et ColorVu, pages 9 à 11 — fixes 2,8 / 4 / 6 mm et varifocaux 2,8–12 et 3,6–9 mm |
+| **Catalogue de l'agence** (relevé du 15/03/2025) | 6 références réellement au tarif, dont le varifocal 2,7–13,5 mm et le turret 8 MP Dahua |
+| **Étude du client** | les deux voies de la bispectrale Dahua DHI-TPC-BF1241 |
+
+Chaque ligne porte sa source : **survolez la pastille** de la colonne de droite
+pour la lire — « Brochure Hikvision AcuSense, p. 11 ».
+
+**Trois pastilles, et toute la différence :**
 
 | | |
 | --- | --- |
-| **✓** | référence vérifiée — lue dans une étude, ou saisie / importée par vous |
-| **?** | famille courante, référence exacte **non confrontée** à la fiche constructeur |
+| **✓** | tout est sourcé — référence, focale, définition et format de capteur |
+| **~** | référence et focale sourcées, mais **le format de capteur n'est dans aucun document** : il ne se lit que sur la fiche technique du modèle |
+| **⋯** | focale ou définition manquante — la ligne reste listée pour mémoire, mais **n'est jamais proposée** |
 
-Les entrées « ? » ne sont jamais annoncées comme certaines : la proposition
-client porte la mention « Référence à confirmer auprès du distributeur ». Un
-appel au distributeur, la référence corrigée dans le tableau, et l'entrée passe
-en « ✓ ».
+Pourquoi ce « ~ » : ni les brochures commerciales ni les intitulés de catalogue
+n'indiquent la taille du capteur. Elle n'entre pas dans le **choix** de
+l'objectif — qui se fait sur la focale — mais dans l'**angle annoncé**. Un
+capteur supposé de travers déplace cet angle ; la proposition client le dit
+donc en toutes lettres : « le format de capteur reste à confirmer sur la fiche
+technique du modèle ». Renseignez-le une fois, la ligne passe en « ✓ ».
 
-**Importer un CSV** remplace le catalogue par le vôtre — celui du distributeur,
-ou votre tarif. Colonnes attendues : marque, référence, voie, type, capteur,
-focale min, focale max, résolution horizontale, résolution verticale ; séparateur
-point-virgule, décimales à la française. L'ordre des colonnes n'a pas
-d'importance, les en-têtes sont reconnus. Tout ce qui est importé est marqué
-« ✓ » : c'est vous qui l'avez fourni. **Exporter** produit le même format, pour
-passer le catalogue d'un poste à l'autre.
+### Importer son catalogue
+
+Le bouton **Importer** reconnaît deux fichiers, et ne les traite pas pareil :
+
+| Fichier | Ce qu'il fait |
+| --- | --- |
+| **Catalogue au format de l'outil** — colonnes marque, référence, voie, type, capteur, focale min/max, résolution, source | **remplace** le catalogue : c'est un fichier complet |
+| **Relevé commercial** — n'importe quel tableau portant une colonne « Titre » : export de place de marché, tarif distributeur | **ajoute** ses références à celles déjà là, sans écraser votre saisie |
+
+Le relevé commercial est lu prudemment. Il retient les lignes qui parlent d'une
+caméra, écarte les doublons, déduit la marque de l'intitulé ou du préfixe de la
+référence, et lit dans le texte la focale et la définition **quand elles y
+sont écrites** :
+
+- « DS-2CD2T86G2-4I **F4** » → focale fixe 4 mm ;
+- « (**2,7-13,5 mm**) … **8MP** » → varifocal 2,7–13,5 mm, 3840 × 2160 ;
+- « DH-IPC-HDW5842TMP-ASE-**0280B**-S3 » → 2,8 mm, les quatre chiffres du
+  suffixe Dahua.
+
+Et il s'abstient dès que l'intitulé n'est pas net :
+
+- « DS-2DE3A400BW-DE**(F1)**(T5) » : ce F1 est un indice de révision, pas une
+  focale de 1 mm ;
+- « DS-2CD2186G2-ISU **F2.8**/8MP/**2.8-12 mm** » : l'intitulé se contredit,
+  la fiche technique tranchera ;
+- « Axis P3265-LVE » : aucune focale écrite.
+
+Ces lignes-là arrivent en « ⋯ » : elles sont dans le tableau, prêtes à être
+complétées, et ne partiront jamais chez un client en l'état.
+
+**Exporter** produit le format de l'outil, source comprise, pour passer le
+catalogue d'un poste à l'autre.
 
 > **Une référence inventée serait pire que pas de référence.** C'est pourquoi
 > l'outil distingue ce qu'il sait de ce qu'il suppose, à l'écran comme dans le
@@ -641,7 +675,13 @@ restreint, deux solutions côté hébergeur :
   consultable pour comprendre ce qui manque (§ 6).
 - Il ne vérifie pas les points non chiffrés d'un cahier des charges (indice de
   protection, alimentation, chemin de câbles, conformité RGPD de l'affichage).
-- Il ne tient pas à jour les catalogues constructeurs. Les gammes livrées avec
-  l'outil sont marquées « ? » tant qu'elles n'ont pas été confrontées aux fiches
-  du distributeur (§ 4) ; les tarifs, les disponibilités et les fins de série ne
-  sont pas de son ressort.
+- Il ne tient pas à jour les catalogues constructeurs. Les références livrées
+  viennent de documents datés (§ 4) ; les tarifs, les disponibilités et les fins
+  de série ne sont pas de son ressort.
+- Il ne connaît pas le **format de capteur** des modèles du commerce : aucune
+  brochure ne le publie. Les entrées concernées le disent (« ~ »), et la
+  proposition client le répète. C'est la seule caractéristique du catalogue que
+  l'outil vous demande d'aller chercher.
+- Le catalogue livré couvre **2,8 à 13,5 mm**. Au-delà, il annonce qu'aucun de
+  ses modèles ne convient et donne la focale du commerce la plus proche, plutôt
+  que de proposer une longue portée dont il ne tient la référence de nulle part.
