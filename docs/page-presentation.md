@@ -1,11 +1,17 @@
-# La page de présentation sur ngsecurity38.com
+# La page de présentation
 
-Objectif : que vos visiteurs de la boutique comprennent **ce dont ils ont
-besoin** avant d'acheter, et qu'ils arrivent sur vos fiches produits en
-sachant ce qu'ils cherchent.
+Objectif : que vos visiteurs comprennent **ce dont ils ont besoin** avant
+d'acheter, et qu'ils arrivent sur vos fiches produits en sachant ce qu'ils
+cherchent.
 
-La page ne chiffre aucune installation — c'est le rôle de l'outil sur
-l'espace professionnel. Elle explique, elle montre, et elle renvoie.
+La page ne chiffre aucune installation — c'est le rôle de la page d'étude.
+Elle explique, elle montre, et elle renvoie.
+
+> **Un site ou deux, au choix.** Telle qu'elle est livrée, la page reste sur
+> le site qui la sert : « Lancer l'étude » mène à `/outils/devis/` du même
+> domaine, « Voir nos caméras » à sa racine. C'est ce qu'il faut si tout est
+> sur **ngsecurity38.fr**. Pour renvoyer vers l'autre site, il suffit de
+> mettre les adresses complètes dans `catalogue.json` (§3).
 
 ---
 
@@ -37,9 +43,10 @@ Le dossier `dist/site/etude/` est prêt à être déposé tel quel :
 | `index.html` | la page |
 | `catalogue.json` | vos produits et vos deux adresses |
 
-Par FTP, dans `public_html/` de **ngsecurity38.com**, créer `outils` et y
-glisser le dossier `etude`. La page est alors à
-`https://ngsecurity38.com/outils/etude/`.
+Par FTP, dans `public_html/`, créer `outils` et y glisser le dossier
+`etude` — à côté du dossier `devis`. Sur **ngsecurity38.fr**, la page est
+alors à `https://ngsecurity38.fr/outils/etude/`, et son bouton « Lancer
+l'étude » tombe juste sans rien éditer.
 
 > Comme pour le `.fr`, cette étape vous revient : personne d'autre n'a accès
 > à votre hébergement.
@@ -50,10 +57,14 @@ glisser le dossier `etude`. La page est alors à
 
 C'est le seul fichier à modifier. La page le relit à chaque ouverture.
 
+Les deux premières lignes disent où mènent les boutons. Laissées telles
+quelles, elles restent sur le site qui sert la page. Mettez des adresses
+complètes (`https://…`) seulement si les deux pages sont sur deux domaines.
+
 ```json
 {
-  "outil": "https://ngsecurity38.fr/outils/devis/",
-  "boutique": "https://ngsecurity38.com/",
+  "outil": "/outils/devis/",
+  "boutique": "/",
   "produits": [
     {
       "reference": "Hikvision DS-2CD2T86G2-4I — bullet 8 MP, 4 mm",
@@ -90,9 +101,9 @@ peut pas cliquer ne sert personne, et la page vous dit combien elle en a
 
 ## 4. Le lien dans le menu
 
-Admin WordPress du `.com` → **Apparence > Menus** → **Liens personnalisés** :
+Admin WordPress → **Apparence > Menus** → **Liens personnalisés** :
 
-- URL : `https://ngsecurity38.com/outils/etude/`
+- URL : `https://ngsecurity38.fr/outils/etude/`
 - Texte : `Quelle caméra me faut-il ?`
 
 Pour l'intégrer dans une page existante plutôt que seule :
@@ -104,15 +115,16 @@ Pour l'intégrer dans une page existante plutôt que seule :
 
 ---
 
-## 5. Les deux sites, et ce qui les relie
+## 5. Les deux pages, et ce qui les relie
 
-| | `ngsecurity38.com` | `ngsecurity38.fr` |
+| | `outils/etude/` | `outils/devis/` |
 | --- | --- | --- |
-| Public | particuliers, acheteurs | professionnels |
-| Page | présentation + catalogue | étude chiffrée |
-| Dossier | `dist/site/etude/` | `dist/site/devis/` |
+| Rôle | comprendre, choisir | chiffrer |
+| Public | qui hésite encore | qui sait ce qu'il veut |
 | Fichier à tenir à jour | `catalogue.json` | `tarif.json` |
 
-Le bouton « Lancer l'étude » du `.com` mène à l'outil du `.fr`. Le pied de la
-page d'étude ramène à la boutique. Les deux adresses se règlent dans
-`catalogue.json` — pas besoin de reconstruire pour les changer.
+« Lancer l'étude » mène de la première à la seconde ; le pied de page ramène
+aux caméras. **Sur un seul site, rien à régler.** Si un jour la boutique
+passe sur `ngsecurity38.com` et l'étude reste sur le `.fr`, il suffit de
+mettre les deux adresses complètes dans `catalogue.json` : pas de
+reconstruction, pas de renvoi de la page.

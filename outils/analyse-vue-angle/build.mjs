@@ -181,12 +181,12 @@ client = injecter(client, '<head>', `<head>\n<!-- Devis client — NG Security 3
 ecrire('devis-client.html', client);
 
 /*
- * Page de présentation, pour la boutique.
+ * Page de présentation.
  *
  * Elle ne chiffre rien : elle explique, montre ce qu'une caméra permet de
- * voir, et renvoie vers l'étude sur l'espace professionnel et vers les
- * produits. Elle partage les mêmes fonctions optiques — une vitrine qui
- * annoncerait d'autres portées que l'étude mentirait à moitié.
+ * voir, et renvoie vers l'étude et vers les caméras. Elle partage les mêmes
+ * fonctions optiques — une vitrine qui annoncerait d'autres portées que
+ * l'étude mentirait à moitié.
  */
 const MODULES_PRESENTATION = ['dom.js', 'format.js', 'optique.js', 'prix.js',
   'boutique.js', 'presentation.js'];
@@ -226,7 +226,7 @@ const aDeposer = (nom, page, donnees, fichierDonnees) => {
   console.log(`${dossier} — dossier à déposer tel quel sur le site`);
 };
 
-// L'étude chiffrée, pour l'espace professionnel (ngsecurity38.fr).
+// Les deux se déposent côte à côte, sous /outils/ : la présentation renvoie
+// alors à l'étude sans qu'aucune adresse ait à être écrite.
 aDeposer('devis', client, lire('tarif.json'), 'tarif.json');
-// La présentation, pour la boutique (ngsecurity38.com).
 aDeposer('etude', presentation, lire('catalogue.json'), 'catalogue.json');

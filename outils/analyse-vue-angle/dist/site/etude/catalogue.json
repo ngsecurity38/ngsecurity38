@@ -1,11 +1,17 @@
 {
   "_lisez_moi": [
-    "Catalogue de la page de présentation (presentation.html), pour la",
-    "boutique ngsecurity38.com.",
+    "Catalogue de la page de présentation (presentation.html).",
     "",
     "C'est le SEUL fichier à modifier : la page le relit à chaque ouverture",
     "quand elle est servie depuis un site web. Ni reconstruction, ni renvoi",
     "de la page.",
+    "",
+    "outil    : où mène « Lancer l'étude »",
+    "boutique : où mène « Voir nos caméras »",
+    "Telles quelles, ces deux adresses restent sur le site qui sert la page :",
+    "c'est ce qu'il faut quand tout est sur un seul domaine. Pour renvoyer",
+    "vers l'autre site, mettez l'adresse complète, par exemple",
+    "\"https://ngsecurity38.com/\".",
     "",
     "Champs par produit :",
     "  reference  ce que lira le client — obligatoire",
@@ -24,7 +30,7 @@
     "Sans focale ni resH, le produit est affiché SANS portée annoncée : la",
     "page ne calcule rien qu'elle ne puisse justifier."
   ],
-  "outil": "https://ngsecurity38.fr/outils/devis/",
-  "boutique": "https://ngsecurity38.com/",
+  "outil": "/outils/devis/",
+  "boutique": "/",
   "produits": []
 }

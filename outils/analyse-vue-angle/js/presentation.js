@@ -1,10 +1,13 @@
 /**
- * Page de présentation, pour la boutique (ngsecurity38.com).
+ * Page de présentation : comprendre avant de chiffrer.
  *
- * Elle ne calcule pas d'installation : c'est le rôle de l'outil d'étude, sur
- * l'espace professionnel. Elle explique ce que l'outil fait, montre ce qu'une
- * caméra permet vraiment de voir, et renvoie vers les deux — l'étude et les
- * produits.
+ * Elle ne calcule pas d'installation — c'est le rôle de la page d'étude. Elle
+ * explique ce que l'outil fait, montre ce qu'une caméra permet vraiment de
+ * voir, et renvoie vers les deux : l'étude et les caméras.
+ *
+ * Les deux destinations sont réglables dans `catalogue.json`. Par défaut elles
+ * restent sur le site qui sert la page : rien à éditer quand tout tient sur un
+ * seul domaine.
  *
  * Les chiffres de l'échelle et des fiches produits sortent des mêmes fonctions
  * optiques que l'outil d'étude. Une vitrine qui annonce d'autres portées que
@@ -22,14 +25,15 @@ import {
 } from './boutique.js';
 
 /**
- * Adresses à régler avant mise en ligne.
+ * Adresses par défaut, relatives à la racine du site.
  *
- * Elles sont ici, en clair et en tête de fichier, pour être trouvées sans
- * fouiller. `catalogue.json`, posé à côté de la page, peut les redéfinir : la
- * page se met alors à jour sans reconstruction.
+ * Ainsi la page fonctionne telle quelle sur un site unique, sans rien
+ * éditer. Quand la boutique et l'espace professionnel sont sur deux domaines
+ * distincts, `catalogue.json` — posé à côté de la page et relu à chaque
+ * ouverture — porte les adresses complètes.
  */
-const OUTIL = 'https://ngsecurity38.fr/outils/devis/';
-const BOUTIQUE = 'https://ngsecurity38.com/';
+const OUTIL = '/outils/devis/';
+const BOUTIQUE = '/';
 
 /** Catalogue de secours, embarqué à la fabrication. */
 const CATALOGUE_EMBARQUE = globalThis.__catalogue || null;
@@ -149,8 +153,10 @@ function afficherProduits(catalogue) {
     .map((r) => `<li>${ech(r)}</li>`).join('');
 
   for (const id of ['#lien-boutique']) $(id).href = boutique;
-  $('#pied-liens').innerHTML = `<a href="${ech(boutique)}">Retour à la boutique</a>
-    · <a href="${ech(catalogue?.outil || OUTIL)}">Espace professionnels</a>`;
+  // Libellés neutres : ils conviennent que les deux pages soient sur un seul
+  // site ou sur deux domaines.
+  $('#pied-liens').innerHTML = `<a href="${ech(boutique)}">Nos caméras</a>
+    · <a href="${ech(catalogue?.outil || OUTIL)}">Estimer mon installation</a>`;
 }
 
 /* ------------------------------------------------------------ démarrage */

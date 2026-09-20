@@ -2084,6 +2084,26 @@ console.log('\nPage de présentation (boutique)');
       `la légende doit dire de quelle caméra il s'agit : ${r.legende}`);
   });
 
+  await cas('sans réglage, les liens restent sur le site qui sert la page', async () => {
+    /*
+     * Les deux pages peuvent vivre sur un seul domaine. Des adresses en dur
+     * vers l'autre site enverraient alors le visiteur sur une page qui
+     * n'existe pas — et personne ne s'en apercevrait avant lui.
+     */
+    const liens = await page.evaluate(() => ({
+      outil: document.querySelector('#lien-outil').getAttribute('href'),
+      bas: document.querySelector('#lien-outil-bas').getAttribute('href'),
+      boutique: document.querySelector('#lien-boutique').getAttribute('href'),
+      pied: [...document.querySelectorAll('#pied-liens a')]
+        .map((a) => [a.textContent.trim(), a.getAttribute('href')]),
+    }));
+    affirmer(liens.outil === '/outils/devis/', `étude : ${liens.outil}`);
+    affirmer(liens.bas === liens.outil, 'les deux boutons mènent au même endroit');
+    affirmer(liens.boutique === '/', `boutique : ${liens.boutique}`);
+    affirmer(liens.pied.length === 2 && liens.pied.every(([, h]) => h.startsWith('/')),
+      `le pied reste relatif : ${JSON.stringify(liens.pied)}`);
+  });
+
   await cas('un catalogue vide le dit, au lieu d\'une grille vide', async () => {
     const r = await page.evaluate(() => ({
       produits: document.querySelectorAll('.produit').length,
