@@ -44,6 +44,7 @@ const TYPES = {
   '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8',
   '.json': 'application/json',
+  '.png': 'image/png', '.webp': 'image/webp', '.svg': 'image/svg+xml',
 };
 const serveur = createServer(async (req, res) => {
   try {
@@ -2084,6 +2085,34 @@ console.log('\nPage de présentation (boutique)');
   await page.goto(`${BASE}/presentation.html`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(300);
 
+  await cas('le logo ouvre la page, sur un fond qui le laisse lisible', async () => {
+    /*
+     * Le logo porte des ailes gris ardoise et une baseline sombre. Sur
+     * l'en-tête noir de la page, le contraste tombe à 3,3:1 et la baseline
+     * s'efface. D'où son bandeau blanc — et ce test, pour qu'un remaniement
+     * du style ne le fasse pas glisser sur le fond sombre sans qu'on le voie.
+     */
+    const r = await page.evaluate(() => {
+      const img = document.querySelector('.marque img');
+      if (!img) return null;
+      const bande = img.closest('.marque');
+      return {
+        charge: img.naturalWidth > 0,
+        hauteur: img.getBoundingClientRect().height,
+        alt: img.getAttribute('alt') || '',
+        fond: getComputedStyle(bande).backgroundColor,
+        avantEntete: !!(bande.compareDocumentPosition(document.querySelector('.entete'))
+          & Node.DOCUMENT_POSITION_FOLLOWING),
+      };
+    });
+    affirmer(r, 'le bandeau de marque doit exister');
+    affirmer(r.charge, 'le logo doit se décoder — une image cassée vaut pire que pas de logo');
+    affirmer(r.hauteur > 80, `assez grand pour être lu : ${r.hauteur} px`);
+    affirmer(/NG Security 38/.test(r.alt), `alternative textuelle : ${r.alt}`);
+    affirmer(r.fond === 'rgb(255, 255, 255)', `sur fond blanc, pas sombre : ${r.fond}`);
+    affirmer(r.avantEntete, 'il ouvre la page');
+  });
+
   await cas('l\'échelle des paliers est dessinée, et dit sur quoi elle porte', async () => {
     const r = await page.evaluate(() => ({
       barres: document.querySelectorAll('#schema-dori rect').length,
@@ -2309,6 +2338,8 @@ console.log('\nBlocs à coller (WordPress)');
         titre: o.querySelector('h1').textContent.trim(),
         produits: o.querySelectorAll('.produit').length,
         barres: o.querySelectorAll('#schema-dori rect').length,
+        logo: (o.querySelector('.marque img') || {}).src,
+        logoCharge: (o.querySelector('.marque img') || {}).naturalWidth > 0,
         // Le thème masque .produit : si nos fiches se voient, l'isolation tient.
         visible: o.querySelector('.produit').getBoundingClientRect().height > 20,
         couleur: getComputedStyle(o.querySelector('.entete h1')).color,
@@ -2316,6 +2347,9 @@ console.log('\nBlocs à coller (WordPress)');
       };
     });
     affirmer(r.ombre, 'le bloc doit monter une racine d\'ombre');
+    affirmer(r.logo && r.logo.startsWith('data:image/'),
+      'collé dans un site, le bloc n\'a aucun fichier voisin : le logo doit y être embarqué');
+    affirmer(r.logoCharge, 'et se décoder');
     affirmer(/Quelle caméra/.test(r.titre), `titre : ${r.titre}`);
     affirmer(r.produits >= 12, `les douze fiches : ${r.produits}`);
     affirmer(r.barres === 4, `l'échelle : ${r.barres} paliers`);

@@ -110,11 +110,22 @@ const scripts = [
  */
 const injecter = (texte, motif, contenu) => texte.replace(motif, () => contenu);
 
+/**
+ * Le logo, embarqué dans la page.
+ *
+ * Une image posée à côté ferait un fichier de plus à déposer, et la version
+ * collée dans WordPress ne pourrait pas l'emporter du tout. En palette de
+ * 128 couleurs il pèse 14 Ko — 19 en base64 — pour un écart à l'original
+ * invisible à l'œil : 0,3 % des pixels changent de plus d'un cran.
+ */
+const logo = `data:image/png;base64,${readFileSync(join(ici, 'img', 'logo.png')).toString('base64')}`;
+const marque = (page) => injecter(page, 'src="img/logo.png"', `src="${logo}"`);
+
 const entete = `<head>\n<!-- Analyse de vue d'angle — NG Security 38.\n`
   + `     Fichier unique produit par build.mjs le ${new Date().toISOString().slice(0, 10)}.\n`
   + '     Ne pas modifier ici : éditer les sources puis relancer « npm run build ». -->';
 
-let html = lire('index.html');
+let html = marque(lire('index.html'));
 html = injecter(html, '<link rel="stylesheet" href="styles.css">', `<style>${inerte(lire('styles.css'))}</style>`);
 html = injecter(html, '<script type="module" src="js/app.js"></script>', scripts);
 html = injecter(html, '<head>', entete);
@@ -168,7 +179,7 @@ const paquetClient = `(function () {\n'use strict';\n\n`
   + `${MODULES_CLIENT.map((nom) => `/* ===== ${nom} ===== */\n`
     + deModuliser(lire('js', nom)).trim()).join('\n\n')}\n\n}());`;
 
-let client = lire('devis-client.html');
+let client = marque(lire('devis-client.html'));
 client = injecter(client, '<link rel="stylesheet" href="devis-client.css">',
   `<style>${inerte(lire('devis-client.css'))}</style>`);
 client = injecter(client, '<script type="module" src="js/devis-client.js"></script>',
@@ -196,7 +207,7 @@ const paquetPresentation = `(function () {\n'use strict';\n\n`
   + `${MODULES_PRESENTATION.map((nom) => `/* ===== ${nom} ===== */\n`
     + deModuliser(lire('js', nom)).trim()).join('\n\n')}\n\n}());`;
 
-let presentation = lire('presentation.html');
+let presentation = marque(lire('presentation.html'));
 presentation = injecter(presentation, '<link rel="stylesheet" href="presentation.css">',
   `<style>${inerte(lire('presentation.css'))}</style>`);
 presentation = injecter(presentation, '<script type="module" src="js/presentation.js"></script>',

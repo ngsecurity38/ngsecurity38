@@ -130,3 +130,17 @@ main { padding-bottom: 40px; }
   .carte { padding: 18px; }
   .actions .btn { flex: 1 1 auto; text-align: center; }
 }
+
+/* ----------------------------------------------------------- la marque
+
+   Le logo porte des ailes gris ardoise et une baseline sombre : sur
+   l'en-tête noir, le contraste tombe à 3,3:1 et la baseline s'efface. Il lui
+   faut donc son propre bandeau, blanc, au-dessus. */
+.marque { background: #fff; border-bottom: 1px solid var(--bord); }
+.marque .dedans { padding-top: 18px; padding-bottom: 18px; }
+.marque img { display: block; height: 150px; width: auto; }
+
+@media (max-width: 560px) {
+  .marque .dedans { padding-top: 14px; padding-bottom: 14px; }
+  .marque img { height: 104px; margin: 0 auto; }
+}

@@ -116,6 +116,9 @@ tfoot tr.fort td { font-size: 19px; font-weight: 700; border-top: 2px solid var(
    plus, et l'encre non plus. */
 @media print {
   body { background: #fff; font-size: 12pt; }
+  .marque { border-bottom: 0; }
+  .marque .dedans { padding: 0; }
+  .marque img { height: 22mm; }
   .entete { background: #fff; color: #000; border-bottom: 2px solid #000; padding: 0 0 8pt; }
   .entete p { color: #444; }
   .carte { border: 0; padding: 0; margin: 12pt 0; }
@@ -206,4 +209,18 @@ tfoot tr.fort td { font-size: 19px; font-weight: 700; border-top: 2px solid var(
      porte toutes, pas seulement celle qui était ouverte. */
   #toile-photo, #photo-resultat { display: none; }
   .zone-recap img { width: 46mm; }
+}
+
+/* ----------------------------------------------------------- la marque
+
+   Le logo porte des ailes gris ardoise et une baseline sombre : sur
+   l'en-tête noir, le contraste tombe à 3,3:1 et la baseline s'efface. Il lui
+   faut donc son propre bandeau, blanc, au-dessus. */
+.marque { background: #fff; border-bottom: 1px solid var(--bord); }
+.marque .dedans { padding-top: 18px; padding-bottom: 18px; }
+.marque img { display: block; height: 150px; width: auto; }
+
+@media (max-width: 560px) {
+  .marque .dedans { padding-top: 14px; padding-bottom: 14px; }
+  .marque img { height: 104px; margin: 0 auto; }
 }
