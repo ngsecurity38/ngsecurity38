@@ -2113,6 +2113,25 @@ console.log('\nPage de présentation (boutique)');
     affirmer(r.avantEntete, 'il ouvre la page');
   });
 
+  await cas('le logo ramène au site', async () => {
+    /*
+     * Servie sous /outils/, la page est sur le site sans en porter le menu.
+     * Sans porte de sortie, le visiteur arrivé là est dans une impasse.
+     */
+    const r = await page.evaluate(() => {
+      const a = document.querySelector('.marque .retour');
+      return a && {
+        href: a.getAttribute('href'),
+        texte: a.textContent.replace(/\s+/g, ' ').trim(),
+        contientLogo: !!a.querySelector('img'),
+      };
+    });
+    affirmer(r, 'le logo doit être cliquable');
+    affirmer(r.href === '/', `vers la racine du site : ${r.href}`);
+    affirmer(/Retour au site/.test(r.texte), `et le dire : ${r.texte}`);
+    affirmer(r.contientLogo, 'le logo fait partie du lien');
+  });
+
   await cas('l\'échelle des paliers est dessinée, et dit sur quoi elle porte', async () => {
     const r = await page.evaluate(() => ({
       barres: document.querySelectorAll('#schema-dori rect').length,

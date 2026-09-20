@@ -144,3 +144,18 @@ main { padding-bottom: 40px; }
   .marque .dedans { padding-top: 14px; padding-bottom: 14px; }
   .marque img { height: 104px; margin: 0 auto; }
 }
+
+/* Le logo ramène au site.
+   Servie sous /outils/, la page est bien SUR le site — mais elle n'en porte
+   ni le menu ni le pied. Sans porte de sortie, le visiteur arrivé là se
+   retrouve dans une impasse et ferme l'onglet. */
+.marque .retour {
+  display: inline-flex; align-items: center; gap: 16px;
+  text-decoration: none; color: var(--doux);
+}
+.marque .retour span { font-size: 14px; white-space: nowrap; }
+.marque .retour:hover span { color: var(--rouge); }
+
+@media (max-width: 560px) {
+  .marque .retour { flex-direction: column; gap: 6px; }
+}
