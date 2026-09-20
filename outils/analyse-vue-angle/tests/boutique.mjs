@@ -156,3 +156,50 @@ test('les réserves disent ce qui manque, plutôt que de laisser une grille vide
   assert.deepEqual(reservesCatalogue({ produits: [FIXE] }), [],
     'un catalogue complet ne porte aucune réserve');
 });
+
+/* ------------------------------------------- bibliothèque d'optiques */
+
+/*
+ * `references-optiques.json` est le carnet des modèles du catalogue NG
+ * Security 38, avec les caractéristiques annoncées par les constructeurs.
+ * Une faute de frappe y passerait inaperçue et se retrouverait sur la page.
+ */
+test('chaque modèle de la bibliothèque tient debout', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { CAPTEURS, anglesDeChamp } = await import('../js/optique.js');
+  const lib = JSON.parse(readFileSync(
+    new URL('../references-optiques.json', import.meta.url), 'utf8',
+  ));
+  assert.ok(lib.modeles.length >= 10, `${lib.modeles.length} modèles`);
+
+  for (const m of lib.modeles) {
+    const ou = `${m.marque} ${m.reference}`;
+    assert.ok(m.marque && m.reference && m.designation, `${ou} : identité incomplète`);
+    assert.ok(m.source, `${ou} : un relevé sans source ne vaut rien`);
+
+    const c = capacites(m);
+    assert.ok(c, `${ou} : optique inexploitable`);
+    assert.equal(c.angleCalcule, false,
+      `${ou} : l'angle doit venir du constructeur, pas d'un calcul`);
+    assert.ok(c.angleLarge > 20 && c.angleLarge < 180, `${ou} : champ ${c.angleLarge}°`);
+
+    if (m.angleHTele) {
+      assert.ok(m.angleHTele < m.angleH,
+        `${ou} : le téléobjectif doit resserrer (${m.angleHTele}° vs ${m.angleH}°)`);
+      assert.ok(m.focaleMax > m.focaleMin, `${ou} : un zoom a deux focales`);
+    }
+
+    /*
+     * Un grand-angle est distordu : il embrasse TOUJOURS plus que le calcul
+     * rectiligne. Un angle annoncé inférieur au calcul trahirait une erreur
+     * de saisie — capteur ou focale interverti, virgule égarée.
+     */
+    if (m.capteur && CAPTEURS[m.capteur]) {
+      const calc = anglesDeChamp(CAPTEURS[m.capteur], m.focale || m.focaleMin).horizontal;
+      assert.ok(c.angleLarge >= calc - 2,
+        `${ou} : ${c.angleLarge}° annoncés sous les ${calc.toFixed(1)}° du calcul`);
+      assert.ok(c.angleLarge <= calc * 1.6,
+        `${ou} : ${c.angleLarge}° annoncés, très au-delà des ${calc.toFixed(1)}° calculés`);
+    }
+  }
+});
