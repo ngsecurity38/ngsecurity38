@@ -10,7 +10,7 @@
  * Exécution : npm run build
  */
 
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, copyFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
@@ -256,6 +256,57 @@ alarme = injecter(alarme, '<head>', `<head>\n<!-- Étude alarme — NG Security 
 
 ecrire('alarme-client.html', alarme);
 
+
+/* ---------------------------------------------------------- référencement
+
+   Trois choses pour que Google trouve ces pages, les comprenne, et n'indexe
+   pas une copie à notre place :
+
+   - une page d'accueil à /outils/, qui les relie entre elles. Sans elle,
+     l'adresse répond 404 et les trois pages sont orphelines : rien n'y mène,
+     donc rien ne les fait découvrir ;
+   - un sitemap, à donner une fois à la Search Console ;
+   - les vignettes de partage, produites à part par `node og.mjs`.
+
+   L'adresse canonique de chaque page, elle, est inscrite dans son HTML : ces
+   pages existent aussi sur GitHub Pages, et sans elle Google choisirait
+   lui-même laquelle des deux copies indexer. */
+
+const ADRESSE = 'https://ngsecurity38.fr';
+const PAGES_PUBLIEES = ['', 'etude/', 'devis/', 'alarme/'];
+
+/** Le sitemap : quatre adresses, et la date du jour. */
+const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${PAGES_PUBLIEES.map((p) => `  <url>
+    <loc>${ADRESSE}/outils/${p}</loc>
+    <lastmod>${new Date().toISOString().slice(0, 10)}</lastmod>
+  </url>`).join('\n')}
+</urlset>
+`;
+
+/*
+ * La page d'accueil des outils.
+ *
+ * Elle garde son logo en fichier séparé, là où les trois autres l'embarquent
+ * en base64 : celles-là doivent pouvoir être ouvertes d'un double-clic depuis
+ * une clé USB, pas elle. Une image à part se met en cache, et le HTML reste
+ * petit — ce qui compte pour une page dont le rôle est d'être explorée.
+ */
+const accueilOutils = lire('index-outils.html');
+
+const VIGNETTES = ['og-etude.png', 'og-devis.png', 'og-alarme.png'];
+
+/** Pose l'accueil, le sitemap et les vignettes à la racine d'un dossier servi. */
+function referencer(dossier) {
+  mkdirSync(dossier, { recursive: true });
+  writeFileSync(join(dossier, 'index.html'), accueilOutils);
+  writeFileSync(join(dossier, 'sitemap.xml'), sitemap);
+  for (const v of VIGNETTES) copyFileSync(join(ici, 'img', 'og', v), join(dossier, v));
+  copyFileSync(join(ici, 'img', 'logo.png'), join(dossier, 'logo.png'));
+}
+
+
 /*
  * Dossier prêt à déposer sur le site, tel quel.
  *
@@ -288,6 +339,7 @@ aDeposer('alarme', alarme, lire('tarif-alarme.json'), 'tarif-alarme.json');
  * apercevrait avant un visiteur.
  */
 writeFileSync(join(ici, 'dist', 'site', 'menu.json'), lire('menu.json'));
+referencer(join(ici, 'dist', 'site'));
 
 /*
  * Version à coller dans une page existante, sans rien téléverser.
@@ -372,6 +424,7 @@ for (const [nom, page, donnees, fichier] of [
   writeFileSync(join(d, fichier), donnees);
 }
 writeFileSync(join(dossierPages, 'menu.json'), lire('menu.json'));
+referencer(dossierPages);
 writeFileSync(join(ici, '..', '..', 'docs', '.nojekyll'), '');
 console.log(`${dossierPages} — servi par GitHub Pages`);
 

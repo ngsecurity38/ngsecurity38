@@ -46,12 +46,30 @@ const TYPES = {
   '.json': 'application/json',
   '.png': 'image/png', '.webp': 'image/webp', '.svg': 'image/svg+xml',
 };
+/*
+ * `/servi/` donne le dossier tel que le site le publie — docs/outils/, avec
+ * ses fichiers à côté les uns des autres. Les sources ne s'y substituent pas :
+ * la page d'accueil des outils y voisine son logo, ce qui n'est vrai qu'une
+ * fois le dossier fabriqué.
+ */
+const PUBLIE = join(racine, '..', '..', 'docs', 'outils');
+
 const serveur = createServer(async (req, res) => {
   try {
-    const chemin = join(racine, decodeURIComponent(req.url.split('?')[0]).replace(/^\/+/, '') || 'index.html');
-    if (!chemin.startsWith(racine)) throw new Error('hors racine');
+    const demande = decodeURIComponent(req.url.split('?')[0]).replace(/^\/+/, '');
+    const sousPublie = demande.startsWith('servi/');
+    const base = sousPublie ? PUBLIE : racine;
+    const chemin = join(base, (sousPublie ? demande.slice(6) : demande) || 'index.html');
+    if (!chemin.startsWith(base)) throw new Error('hors racine');
+    /*
+     * Lire AVANT d'écrire l'en-tête : autrement un fichier absent répond 200,
+     * puis le rattrapage tente un 404 sur une réponse déjà commencée et fait
+     * tomber tout le serveur — un test qui devait échouer emporte alors les
+     * suivants, et l'on cherche la panne ailleurs.
+     */
+    const contenu = await readFile(chemin);
     res.writeHead(200, { 'Content-Type': TYPES[extname(chemin)] || 'application/octet-stream' });
-    res.end(await readFile(chemin));
+    res.end(contenu);
   } catch {
     res.writeHead(404).end('non trouvé');
   }
@@ -2735,7 +2753,62 @@ console.log('\nPage d\'étude alarme');
   await page.close();
 }
 
-/* ------------------------------ 12. blocs collés dans une page existante */
+/* ---------------------------- 12. l'accueil des outils, porte d'entrée */
+
+console.log('\nAccueil des outils');
+{
+  const page = await contexte.newPage();
+  const erreurs = surveiller(page);
+  await page.goto(`${BASE}/servi/`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(200);
+
+  await cas('les trois outils sont présentés et atteignables', async () => {
+    /*
+     * C'est ce qui fait la différence entre trois pages orphelines et un
+     * ensemble : un moteur de recherche découvre une page parce qu'un lien y
+     * mène. Sans cette page, /outils/ répondait 404.
+     */
+    const r = await page.evaluate(() => ({
+      titre: document.querySelector('h1').textContent.trim(),
+      outils: [...document.querySelectorAll('a.outil')].map((a) => ({
+        href: a.getAttribute('href'),
+        titre: a.querySelector('h2').textContent.trim(),
+        mots: a.textContent.trim().split(/\s+/).length,
+      })),
+      logo: (() => {
+        const i = document.querySelector('img');
+        return { charge: i.naturalWidth > 0, src: i.getAttribute('src') };
+      })(),
+    }));
+    affirmer(/outils/i.test(r.titre), `titre : ${r.titre}`);
+    affirmer(r.outils.length === 3, `trois outils : ${JSON.stringify(r.outils)}`);
+
+    const vers = r.outils.map((o) => o.href);
+    for (const chemin of ['/outils/etude/', '/outils/devis/', '/outils/alarme/']) {
+      affirmer(vers.includes(chemin), `lien manquant vers ${chemin} : ${JSON.stringify(vers)}`);
+    }
+    // Du texte, pas des liens nus : une page de liens ne se classe pas.
+    affirmer(r.outils.every((o) => o.mots > 50),
+      `chaque outil doit être décrit : ${JSON.stringify(r.outils.map((o) => o.mots))}`);
+
+    affirmer(r.logo.charge, 'le logo doit se décoder');
+    affirmer(!/^data:/.test(r.logo.src), `le logo reste un fichier : ${r.logo.src.slice(0, 40)}`);
+  });
+
+  await cas('la page se tient sur un téléphone, sans débordement latéral', async () => {
+    await page.setViewportSize({ width: 360, height: 780 });
+    await page.waitForTimeout(150);
+    const deborde = await page.evaluate(
+      () => document.documentElement.scrollWidth > window.innerWidth + 1,
+    );
+    affirmer(!deborde, 'aucun défilement horizontal ne doit apparaître');
+  });
+
+  await cas('aucune erreur de console', () => affirmer(!erreurs.length, erreurs.join(' | ')));
+  await page.close();
+}
+
+/* ------------------------------ 13. blocs collés dans une page existante */
 
 console.log('\nBlocs à coller (WordPress)');
 {
