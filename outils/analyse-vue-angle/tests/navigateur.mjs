@@ -2263,6 +2263,136 @@ console.log('\nPage de présentation (boutique)');
   await page.close();
 }
 
+/* ------------------------------ 11. blocs collés dans une page existante */
+
+console.log('\nBlocs à coller (WordPress)');
+{
+  const page = await contexte.newPage();
+  const erreurs = surveiller(page);
+
+  /*
+   * Page hôte volontairement hostile : un thème qui impose ses couleurs, sa
+   * police, et qui nomme ses classes comme les nôtres. Sans isolation, le
+   * bloc collé serait défiguré — et il défigurerait le site en retour.
+   */
+  const theme = `<!doctype html><html lang="fr"><head><meta charset="utf-8">
+    <style>
+      body { background: #0b3d0b; color: #ff0; font-family: cursive; margin: 0; }
+      h1, h2 { color: #ff00ff !important; font-size: 9px; }
+      .carte { border: 8px dashed lime; background: #300; padding: 0; }
+      .btn { background: lime !important; color: #000 !important; }
+      .produit { display: none; }
+      img, canvas { filter: invert(1); }
+    </style></head><body>
+    <h1>Mon site</h1><div class="carte">Une carte du thème</div>
+    __BLOC__
+    <p class="fin">pied du thème</p></body></html>`;
+
+  const servir = async (nom) => {
+    const bloc = await readFile(join(racine, 'dist', 'site', 'wordpress', nom), 'utf8');
+    await page.route('https://exemple.test/page', (r) => r.fulfill({
+      status: 200, contentType: 'text/html; charset=utf-8',
+      // Remplacement par fonction : dans une chaîne, `$&` et `$'` ont un sens
+      // particulier et recopieraient des morceaux de la page dans le bloc.
+      body: theme.replace('__BLOC__', () => bloc),
+    }));
+    await page.goto('https://exemple.test/page', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(400);
+  };
+
+  await cas('la présentation se monte dans la page du thème', async () => {
+    await servir('etude.html');
+    const r = await page.evaluate(() => {
+      const o = document.getElementById('ngs-etude').shadowRoot;
+      return {
+        ombre: !!o,
+        titre: o.querySelector('h1').textContent.trim(),
+        produits: o.querySelectorAll('.produit').length,
+        barres: o.querySelectorAll('#schema-dori rect').length,
+        // Le thème masque .produit : si nos fiches se voient, l'isolation tient.
+        visible: o.querySelector('.produit').getBoundingClientRect().height > 20,
+        couleur: getComputedStyle(o.querySelector('.entete h1')).color,
+        police: getComputedStyle(o.querySelector('.produit .nom')).fontFamily,
+      };
+    });
+    affirmer(r.ombre, 'le bloc doit monter une racine d\'ombre');
+    affirmer(/Quelle caméra/.test(r.titre), `titre : ${r.titre}`);
+    affirmer(r.produits >= 12, `les douze fiches : ${r.produits}`);
+    affirmer(r.barres === 4, `l'échelle : ${r.barres} paliers`);
+    affirmer(r.visible, 'le « display:none » du thème ne doit pas nous atteindre');
+    affirmer(r.couleur === 'rgb(255, 255, 255)',
+      `le rose fluo du thème ne doit pas passer : ${r.couleur}`);
+    affirmer(!/cursive/.test(r.police), `ni sa police : ${r.police}`);
+  });
+
+  await cas('le site hôte n\'est pas abîmé en retour', async () => {
+    const hote = await page.evaluate(() => ({
+      carte: getComputedStyle(document.querySelector('.carte')).borderStyle,
+      fond: getComputedStyle(document.body).backgroundColor,
+      titre: getComputedStyle(document.querySelector('h1')).fontSize,
+    }));
+    // La page collée définit .carte, h1, body : aucun ne doit déborder.
+    affirmer(hote.carte === 'dashed', `le thème garde sa carte : ${hote.carte}`);
+    affirmer(hote.fond === 'rgb(11, 61, 11)', `et son fond : ${hote.fond}`);
+    affirmer(hote.titre === '9px', `et son titre : ${hote.titre}`);
+  });
+
+  await cas('l\'étude collée mesure une photo et chiffre', async () => {
+    await servir('devis.html');
+    // Playwright traverse les racines d'ombre ouvertes : un sélecteur ordinaire
+    // suffit, et c'est bien ce qu'on veut vérifier.
+    const ombre = '';
+    const total = async () => page.evaluate(() => {
+      const o = document.getElementById('ngs-devis').shadowRoot;
+      const t = o.querySelector('#totaux tr.fort');
+      return t ? t.textContent.replace(/\s+/g, ' ').trim() : '';
+    });
+    affirmer(/€/.test(await total()), `la page chiffre dès l'ouverture : ${await total()}`);
+
+    const photo = await page.evaluate(() => {
+      const c = document.createElement('canvas');
+      c.width = 1600; c.height = 900;
+      const g = c.getContext('2d');
+      g.fillStyle = '#8fb6e0'; g.fillRect(0, 0, 1600, 380);
+      g.fillStyle = '#6a6f63'; g.fillRect(0, 380, 1600, 520);
+      return c.toDataURL('image/png');
+    });
+    await page.locator('#fichier-photo').setInputFiles({
+      name: 'cour.png', mimeType: 'image/png', buffer: enBuffer(photo),
+    });
+    await page.waitForTimeout(600);
+
+    const toile = page.locator('#toile-photo');
+    await toile.scrollIntoViewIfNeeded();
+    const b = await toile.boundingBox();
+    await page.mouse.click(b.x + b.width * 0.5, b.y + b.height * 0.8);
+    await page.waitForTimeout(150);
+    await page.locator('[data-etape="zone"]').click();
+    await page.mouse.move(b.x + b.width * 0.25, b.y + b.height * 0.5);
+    await page.mouse.down();
+    await page.mouse.move(b.x + b.width * 0.75, b.y + b.height * 0.9, { steps: 8 });
+    await page.mouse.up();
+    await page.waitForTimeout(500);
+
+    const r = await page.evaluate(() => {
+      const o = document.getElementById('ngs-devis').shadowRoot;
+      return {
+        tuiles: [...o.querySelectorAll('#photo-resultat .tuile')]
+          .map((t) => t.querySelector('.cle').textContent.trim()),
+        conseil: (o.querySelector('.conseil-client') || {}).textContent || '',
+        recap: o.querySelectorAll('#recap-photos .zone-recap').length,
+      };
+    });
+    affirmer(r.tuiles.includes('Angle de vue nécessaire'),
+      `la mesure doit aboutir : ${JSON.stringify(r.tuiles)}`);
+    affirmer(/DS-2CD2T86G2/.test(r.conseil), `une caméra nommée : ${r.conseil.slice(0, 120)}`);
+    affirmer(r.recap === 1, `la zone figure au récapitulatif : ${r.recap}`);
+  });
+
+  await cas('aucune erreur de console', () => affirmer(!erreurs.length, erreurs.join(' | ')));
+  await page.close();
+}
+
 await navigateur.close();
 serveur.close();
 

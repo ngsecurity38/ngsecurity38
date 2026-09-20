@@ -177,6 +177,54 @@ l'appelle — un 2,8–12 mm est un ×4, pas un ×4,3 — et `porteeMax`.
 
 ---
 
+## 3 quater. Sans FTP : coller la page dans WordPress
+
+Si le téléversement vous rebute, il existe un chemin qui ne demande **aucun
+fichier à envoyer**. La fabrication produit deux blocs :
+
+| Fichier | À coller dans |
+| --- | --- |
+| `dist/site/wordpress/etude.html` | une page « Quelle caméra me faut-il ? » |
+| `dist/site/wordpress/devis.html` | une page « Estimer mon installation » |
+
+1. Admin WordPress → **Pages** → **Ajouter**
+2. Titre de la page, puis bloc **HTML personnalisé** (le `+`, chercher « HTML »)
+3. Ouvrir le fichier dans un éditeur de texte, **tout copier**, **tout coller**
+   dans le bloc
+4. **Publier**
+
+C'est tout. Pas de FTP, pas de gestionnaire de fichiers.
+
+### Pourquoi ça ne casse pas votre thème
+
+Le bloc monte la page dans une **racine d'ombre** : une bulle que le style du
+site n'atteint pas, et d'où le nôtre ne sort pas. Sans elle, nos classes
+`.carte`, `.btn`, `.produit` — des noms trop courants pour être uniques —
+écraseraient celles de votre thème, et les siennes nous défigureraient.
+
+Un test le vérifie à chaque construction, sur une page hôte volontairement
+hostile : fond vert, titres magenta, police cursive, et un `display:none` sur
+`.produit`. La page collée en sort intacte, et le thème aussi.
+
+### Changer les produits, ensuite
+
+Le bloc porte ses données avec lui. La ligne `window.__catalogue={…}`, visible
+dans le bloc, se modifie directement dans l'éditeur WordPress — c'est le même
+contenu que `catalogue.json`.
+
+### Ce que cette méthode coûte
+
+- Le bloc pèse 48 Ko (présentation) et 102 Ko (étude). C'est du texte, il se
+  charge vite, mais il alourdit la page WordPress.
+- Les deux pages doivent se pointer l'une l'autre par leur **adresse
+  WordPress** : une fois publiées, relevez les deux URL et corrigez `outil` et
+  `boutique` dans le bloc de la présentation.
+- Le déposer en fichiers, comme au §2, reste plus propre : mises à jour
+  séparées, page plus légère. La méthode WordPress est là pour commencer sans
+  attendre.
+
+---
+
 ## 4. Le lien dans le menu
 
 Admin WordPress → **Apparence > Menus** → **Liens personnalisés** :

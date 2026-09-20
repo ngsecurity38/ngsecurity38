@@ -230,3 +230,63 @@ const aDeposer = (nom, page, donnees, fichierDonnees) => {
 // alors à l'étude sans qu'aucune adresse ait à être écrite.
 aDeposer('devis', client, lire('tarif.json'), 'tarif.json');
 aDeposer('etude', presentation, lire('catalogue.json'), 'catalogue.json');
+
+/*
+ * Version à coller dans une page existante, sans rien téléverser.
+ *
+ * Tout le monde n'a pas de FTP sous la main, et un gestionnaire de fichiers
+ * d'hébergeur reste un détour. Un bloc « HTML personnalisé » dans l'éditeur
+ * WordPress suffit alors — à condition que la page collée ne se batte pas
+ * avec le thème.
+ *
+ * D'où la racine d'ombre : le style du site n'entre pas, celui de la page ne
+ * sort pas. Sans elle, le `h1` du thème et le nôtre se disputeraient, et nos
+ * `.carte` ou `.btn` écraseraient ceux du site — deux noms si courants que la
+ * collision est certaine.
+ */
+function pourWordpress(page, feuille, paquet, donnees, id) {
+  const corps = page.slice(page.indexOf('<body>') + 6, page.indexOf('</body>'))
+    .replace(/<script[\s\S]*?<\/script>/g, '')
+    .trim();
+
+  /*
+   * Dans une racine d'ombre, `body` ne désigne plus rien et `:root` désigne
+   * le document hôte. On les ramène sur l'hôte du composant et sur son
+   * enveloppe, faute de quoi la page perdrait ses couleurs et ses marges.
+   */
+  const style = feuille
+    .replace(/:root\b/g, ':host')
+    .replace(/(^|[},;]\s*|@media[^{]*\{\s*)body\b/g, '$1.ngs-page');
+
+  return `<!-- ${id} — NG Security 38. Bloc « HTML personnalisé ».
+     Produit par build.mjs le ${new Date().toISOString().slice(0, 10)}.
+     Pour changer les données : la ligne __ngsDonnees ci-dessous se modifie
+     ici même, dans l'éditeur. -->
+<div id="${id}"></div>
+<script>
+(function () {
+  var hote = document.getElementById(${JSON.stringify(id)});
+  if (!hote || hote.shadowRoot) return;
+  var ombre = hote.attachShadow({ mode: 'open' });
+  ombre.innerHTML = ${JSON.stringify(`<style>${style}</style><div class="ngs-page">${corps}</div>`)};
+  window.__ngsRacine = ombre;
+  window.__ngsIntegre = true;
+  ${donnees};
+}());
+</script>
+<script>${paquet}</script>`;
+}
+
+const dossierWp = join(ici, 'dist', 'site', 'wordpress');
+mkdirSync(dossierWp, { recursive: true });
+for (const [nom, page, feuille, paquet, donnees, id] of [
+  ['etude', presentation, lire('presentation.css'), paquetPresentation,
+    `window.__catalogue=${inerte(lire('catalogue.json'))}`, 'ngs-etude'],
+  ['devis', client, lire('devis-client.css'), paquetClient,
+    `window.__tarif=${inerte(lire('tarif.json'))}`, 'ngs-devis'],
+]) {
+  const bloc = pourWordpress(page, feuille, paquet, donnees, id);
+  writeFileSync(join(dossierWp, `${nom}.html`), bloc);
+  console.log(`${join(dossierWp, `${nom}.html`)} — ${(bloc.length / 1024).toFixed(0)} Ko `
+    + 'à coller dans un bloc HTML personnalisé');
+}

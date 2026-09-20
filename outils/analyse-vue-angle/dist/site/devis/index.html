@@ -464,8 +464,25 @@ tfoot tr.fort td { font-size: 19px; font-weight: 700; border-top: 2px solid var(
 /* ===== dom.js ===== */
 /** Raccourcis de sélection, partagés par les modules d'interface. */
 
-const $ = (sel) => document.querySelector(sel);
-const $$ = (sel) => [...document.querySelectorAll(sel)];
+/**
+ * Racine de recherche des éléments.
+ *
+ * `document` sur une page servie telle quelle. Collées dans un site existant
+ * — une page WordPress, par exemple — les pages vivent dans une racine
+ * d'ombre : le style du thème ne les atteint pas, et le leur ne déborde pas
+ * sur le site. Les sélecteurs doivent alors chercher là, et non dans le
+ * document entier où ils ne trouveraient rien.
+ *
+ * Le bloc collé pose `__ngsRacine` avant de charger le code ; d'où la lecture
+ * au chargement plutôt qu'un appel que l'ordre des modules rendrait fragile.
+ */
+let racine = globalThis.__ngsRacine || document;
+
+/** Change la racine — utile aux tests, et à qui monte la page à la main. */
+const dansRacine = (r) => { racine = r || document; };
+
+const $ = (sel) => racine.querySelector(sel);
+const $$ = (sel) => [...racine.querySelectorAll(sel)];
 
 /** Charge un script à la demande : les gros moteurs ne sont montés qu'au besoin. */
 function chargerScript(src) {
@@ -2043,7 +2060,10 @@ async function chargerTarif() {
    * la console quoi qu'on l'attrape. Sur une page publique, une erreur rouge
    * inquiète sans rien apprendre : mieux vaut aller droit au tarif embarqué.
    */
-  if (window.location.protocol !== 'file:') {
+  // Collée dans une page existante, la page porte ses données avec elle :
+  // aller les chercher à côté d'elle réclamerait un fichier qui n'y est pas,
+  // et laisserait une erreur rouge dans la console du visiteur.
+  if (!globalThis.__ngsIntegre && window.location.protocol !== 'file:') {
     try {
       const reponse = await fetch('tarif.json', { cache: 'no-store' });
       if (reponse.ok) return await reponse.json();

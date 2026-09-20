@@ -42,7 +42,10 @@ async function chargerTarif() {
    * la console quoi qu'on l'attrape. Sur une page publique, une erreur rouge
    * inquiète sans rien apprendre : mieux vaut aller droit au tarif embarqué.
    */
-  if (window.location.protocol !== 'file:') {
+  // Collée dans une page existante, la page porte ses données avec elle :
+  // aller les chercher à côté d'elle réclamerait un fichier qui n'y est pas,
+  // et laisserait une erreur rouge dans la console du visiteur.
+  if (!globalThis.__ngsIntegre && window.location.protocol !== 'file:') {
     try {
       const reponse = await fetch('tarif.json', { cache: 'no-store' });
       if (reponse.ok) return await reponse.json();

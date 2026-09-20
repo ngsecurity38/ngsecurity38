@@ -60,7 +60,10 @@ const ech = (t) => String(t ?? '').replace(/[&<>"']/g, (c) => ({
 async function chargerCatalogue() {
   // Depuis le disque, `fetch` est refusé et le refus s'inscrit dans la console
   // quoi qu'on l'attrape : sur une page publique, autant aller droit au but.
-  if (window.location.protocol !== 'file:') {
+  // Collée dans une page existante, la page porte ses données avec elle :
+  // aller les chercher à côté d'elle réclamerait un fichier qui n'y est pas,
+  // et laisserait une erreur rouge dans la console du visiteur.
+  if (!globalThis.__ngsIntegre && window.location.protocol !== 'file:') {
     try {
       const r = await fetch('catalogue.json', { cache: 'no-store' });
       if (r.ok) return await r.json();

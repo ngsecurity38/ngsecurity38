@@ -1,235 +1,17 @@
-<!doctype html>
-<html lang="fr">
-<head>
-<!-- Présentation — NG Security 38.
-     Fichier unique produit par build.mjs le 2026-09-20.
-     Pour changer les produits : éditer catalogue.json, à côté de la page. -->
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Quelle caméra vous faut-il ? — NG Security 38</title>
-<meta name="description" content="Photographiez ce que vous voulez surveiller : vous saurez quelle caméra il vous faut, quel objectif, et jusqu'où elle verra. Outil gratuit NG Security 38.">
-<style>/* Page de présentation pour la boutique — NG Security 38.
-   Téléphone d'abord : c'est là que se lit une page de boutique. */
-
-:root {
-  --rouge: #c8102e;
-  --rouge-sombre: #9d0c24;
-  --encre: #1a1d23;
-  --doux: #5b6472;
-  --bord: #dde1e7;
-  --fond: #f6f7f9;
-  --police: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-}
-
-* { box-sizing: border-box; }
-[hidden] { display: none !important; }
-
-body {
-  margin: 0;
-  font-family: var(--police);
-  font-size: 16px;
-  line-height: 1.55;
-  color: var(--encre);
-  background: var(--fond);
-}
-
-.dedans { max-width: 820px; margin: 0 auto; padding: 0 20px; }
-
-.entete {
-  background: var(--encre);
-  color: #fff;
-  padding: 40px 0 34px;
-  border-bottom: 4px solid var(--rouge);
-}
-.entete .surtitre {
-  margin: 0 0 8px; font-size: 12px; font-weight: 700; letter-spacing: .09em;
-  text-transform: uppercase; color: var(--rouge);
-}
-.entete h1 { margin: 0 0 12px; font-size: 30px; line-height: 1.2; }
-.entete .chapeau { margin: 0 0 22px; color: #c3c9d3; max-width: 34em; }
-.entete .mention { margin: 14px 0 0; font-size: 13px; color: #9aa2ae; }
-
-main { padding-bottom: 40px; }
-
-.carte {
-  background: #fff;
-  border: 1px solid var(--bord);
-  border-radius: 12px;
-  padding: 24px;
-  margin: 22px 0;
-}
-.carte h2 { margin: 0 0 16px; font-size: 19px; }
-
-.aide { color: var(--doux); font-size: 15px; margin: 0 0 16px; }
-.aide:last-child { margin-bottom: 0; }
-
-.actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 22px 0 0; }
-.btn {
-  display: inline-block;
-  font: inherit;
-  font-weight: 600;
-  padding: 13px 22px;
-  border-radius: 8px;
-  border: 1px solid var(--bord);
-  background: #fff;
-  color: var(--encre);
-  text-decoration: none;
-  cursor: pointer;
-}
-.btn-plein { background: var(--rouge); border-color: var(--rouge); color: #fff; }
-.btn-plein:hover { background: var(--rouge-sombre); border-color: var(--rouge-sombre); }
-.entete .btn:not(.btn-plein) { background: transparent; border-color: #4a515c; color: #fff; }
-.entete .btn:not(.btn-plein):hover { border-color: #fff; }
-
-/* Trois étapes numérotées : le compteur se lit mieux qu'une puce. */
-.etapes-num { margin: 0; padding: 0; list-style: none; counter-reset: etape; }
-.etapes-num li {
-  counter-increment: etape;
-  position: relative;
-  padding: 0 0 20px 52px;
-}
-.etapes-num li:last-child { padding-bottom: 0; }
-.etapes-num li::before {
-  content: counter(etape);
-  position: absolute; left: 0; top: 0;
-  width: 34px; height: 34px; border-radius: 50%;
-  background: var(--rouge); color: #fff;
-  font-weight: 700; font-size: 16px;
-  display: flex; align-items: center; justify-content: center;
-}
-.etapes-num h3 { margin: 4px 0 4px; font-size: 16px; }
-.etapes-num p { margin: 0; color: var(--doux); font-size: 15px; }
-
-.echelle { margin: 0 0 18px; padding: 0; }
-.echelle svg { width: 100%; height: auto; display: block; }
-.echelle figcaption {
-  margin-top: 12px; font-size: 13px; color: var(--doux); line-height: 1.5;
-}
-
-.produits { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; }
-.produit {
-  display: flex; flex-direction: column; gap: 6px;
-  border: 1px solid var(--bord); border-radius: 10px; padding: 14px;
-  text-decoration: none; color: inherit; background: #fff;
-}
-.produit:hover { border-color: var(--rouge); }
-/* Sans fiche produit derrière, la carte informe sans appeler le clic. */
-.produit.sans-lien:hover { border-color: var(--bord); }
-.produit img {
-  display: block; width: 100%; height: 130px; object-fit: contain;
-  background: var(--fond); border-radius: 8px; margin-bottom: 4px;
-}
-.produit .nom { font-weight: 700; font-size: 15px; line-height: 1.35; }
-.produit .optique { font-size: 13px; color: var(--doux); }
-.produit .portee { font-size: 13px; color: var(--encre); }
-.produit .note-fiche { font-size: 12px; color: var(--doux); font-style: italic; }
-.produit .prix { font-size: 17px; font-weight: 700; color: var(--rouge); margin-top: 4px; }
-
-.manques { margin: 16px 0 0; padding-left: 20px; }
-.manques li { color: #8a5a00; font-size: 13px; }
-.manques:empty { display: none; }
-
-.sobre { margin: 0; padding-left: 20px; color: var(--doux); font-size: 15px; }
-.sobre li { margin-bottom: 8px; }
-
-.pied { color: var(--doux); font-size: 13px; padding-bottom: 32px; }
-.pied a { color: var(--doux); }
-
-@media (max-width: 560px) {
-  .entete h1 { font-size: 25px; }
-  .carte { padding: 18px; }
-  .actions .btn { flex: 1 1 auto; text-align: center; }
-}
-</style>
-</head>
-<body>
-
-<header class="entete">
-  <div class="dedans">
-    <p class="surtitre">Outil gratuit</p>
-    <h1>Quelle caméra vous faut-il&nbsp;?</h1>
-    <p class="chapeau">Prenez une photo depuis l'endroit où vous voulez poser
-      votre caméra, entourez ce que vous voulez surveiller. Vous saurez le
-      modèle, l'objectif, et jusqu'où l'image restera exploitable.</p>
-    <p class="actions">
-      <a class="btn btn-plein" id="lien-outil" href="#">Lancer l'étude</a>
-      <a class="btn" id="lien-boutique" href="#">Voir nos caméras</a>
-    </p>
-    <p class="mention">Sans inscription. Vos photos restent sur votre appareil.</p>
-  </div>
-</header>
-
-<main class="dedans">
-
-  <section class="carte">
-    <h2>Comment ça marche</h2>
-    <ol class="etapes-num">
-      <li>
-        <h3>Photographiez</h3>
-        <p>Depuis l'emplacement prévu de la caméra, et dans la direction que
-          vous voulez surveiller. Un téléphone suffit.</p>
-      </li>
-      <li>
-        <h3>Donnez deux distances</h3>
-        <p>Cliquez deux points dont vous connaissez la distance — le bas d'un
-          portail, un angle de mur, une place de parking. C'est ce qui permet
-          de <b>mesurer</b> l'angle de votre photo au lieu de le supposer.</p>
-      </li>
-      <li>
-        <h3>Entourez la zone</h3>
-        <p>Au doigt ou à la souris. L'angle de vue nécessaire, la distance à
-          couvrir et la caméra qui y répond s'affichent aussitôt.</p>
-      </li>
-    </ol>
-  </section>
-
-  <section class="carte">
-    <h2>Ce que « voir » veut dire</h2>
-    <p class="aide">Une caméra ne « voit » pas&nbsp;: elle pose un certain
-      nombre de pixels sur chaque mètre de terrain. C'est ce nombre qui décide
-      de ce que vous pourrez en faire — et il diminue avec la distance. La
-      norme européenne EN&nbsp;62676-4 fixe quatre paliers.</p>
-
-    <figure class="echelle">
-      <div id="schema-dori"></div>
-      <figcaption id="legende-dori"></figcaption>
-    </figure>
-
-    <p class="aide">C'est pourquoi « caméra 4K » ne dit rien à soi seul&nbsp;:
-      la même caméra identifie un inconnu à quelques mètres et ne fait que
-      repérer une silhouette au fond du terrain. L'outil vous donne ces
-      distances pour <b>votre</b> terrain.</p>
-  </section>
-
-  <section class="carte">
-    <h2>Nos caméras</h2>
-    <p class="aide" id="intro-produits"></p>
-    <div id="produits" class="produits"></div>
-    <ul class="manques" id="reserves-produits"></ul>
-  </section>
-
-  <section class="carte">
-    <h2>Ce que cet outil ne fait pas</h2>
-    <ul class="sobre">
-      <li>Il ne reconnaît pas ce qu'il y a sur vos photos&nbsp;: c'est vous qui
-        posez les repères et entourez la zone. Il mesure, il ne devine pas.</li>
-      <li>Il suppose le sol plan et la caméra sans roulis. Un terrain en pente
-        déplace les distances.</li>
-      <li>Il ne remplace pas une visite&nbsp;: seul un relevé sur place permet
-        d'arrêter les emplacements et le cheminement des câbles.</li>
-    </ul>
-    <p class="actions">
-      <a class="btn btn-plein" id="lien-outil-bas" href="#">Lancer l'étude</a>
-    </p>
-  </section>
-
-</main>
-
-<footer class="pied dedans">
-  <p id="pied-liens"></p>
-</footer>
-
-<script>window.__catalogue={
+<!-- ngs-etude — NG Security 38. Bloc « HTML personnalisé ».
+     Produit par build.mjs le 2026-09-20.
+     Pour changer les données : la ligne __ngsDonnees ci-dessous se modifie
+     ici même, dans l'éditeur. -->
+<div id="ngs-etude"></div>
+<script>
+(function () {
+  var hote = document.getElementById("ngs-etude");
+  if (!hote || hote.shadowRoot) return;
+  var ombre = hote.attachShadow({ mode: 'open' });
+  ombre.innerHTML = "<style>/* Page de présentation pour la boutique — NG Security 38.\n   Téléphone d'abord : c'est là que se lit une page de boutique. */\n\n:host {\n  --rouge: #c8102e;\n  --rouge-sombre: #9d0c24;\n  --encre: #1a1d23;\n  --doux: #5b6472;\n  --bord: #dde1e7;\n  --fond: #f6f7f9;\n  --police: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif;\n}\n\n* { box-sizing: border-box; }\n[hidden] { display: none !important; }\n\n.ngs-page {\n  margin: 0;\n  font-family: var(--police);\n  font-size: 16px;\n  line-height: 1.55;\n  color: var(--encre);\n  background: var(--fond);\n}\n\n.dedans { max-width: 820px; margin: 0 auto; padding: 0 20px; }\n\n.entete {\n  background: var(--encre);\n  color: #fff;\n  padding: 40px 0 34px;\n  border-bottom: 4px solid var(--rouge);\n}\n.entete .surtitre {\n  margin: 0 0 8px; font-size: 12px; font-weight: 700; letter-spacing: .09em;\n  text-transform: uppercase; color: var(--rouge);\n}\n.entete h1 { margin: 0 0 12px; font-size: 30px; line-height: 1.2; }\n.entete .chapeau { margin: 0 0 22px; color: #c3c9d3; max-width: 34em; }\n.entete .mention { margin: 14px 0 0; font-size: 13px; color: #9aa2ae; }\n\nmain { padding-bottom: 40px; }\n\n.carte {\n  background: #fff;\n  border: 1px solid var(--bord);\n  border-radius: 12px;\n  padding: 24px;\n  margin: 22px 0;\n}\n.carte h2 { margin: 0 0 16px; font-size: 19px; }\n\n.aide { color: var(--doux); font-size: 15px; margin: 0 0 16px; }\n.aide:last-child { margin-bottom: 0; }\n\n.actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 22px 0 0; }\n.btn {\n  display: inline-block;\n  font: inherit;\n  font-weight: 600;\n  padding: 13px 22px;\n  border-radius: 8px;\n  border: 1px solid var(--bord);\n  background: #fff;\n  color: var(--encre);\n  text-decoration: none;\n  cursor: pointer;\n}\n.btn-plein { background: var(--rouge); border-color: var(--rouge); color: #fff; }\n.btn-plein:hover { background: var(--rouge-sombre); border-color: var(--rouge-sombre); }\n.entete .btn:not(.btn-plein) { background: transparent; border-color: #4a515c; color: #fff; }\n.entete .btn:not(.btn-plein):hover { border-color: #fff; }\n\n/* Trois étapes numérotées : le compteur se lit mieux qu'une puce. */\n.etapes-num { margin: 0; padding: 0; list-style: none; counter-reset: etape; }\n.etapes-num li {\n  counter-increment: etape;\n  position: relative;\n  padding: 0 0 20px 52px;\n}\n.etapes-num li:last-child { padding-bottom: 0; }\n.etapes-num li::before {\n  content: counter(etape);\n  position: absolute; left: 0; top: 0;\n  width: 34px; height: 34px; border-radius: 50%;\n  background: var(--rouge); color: #fff;\n  font-weight: 700; font-size: 16px;\n  display: flex; align-items: center; justify-content: center;\n}\n.etapes-num h3 { margin: 4px 0 4px; font-size: 16px; }\n.etapes-num p { margin: 0; color: var(--doux); font-size: 15px; }\n\n.echelle { margin: 0 0 18px; padding: 0; }\n.echelle svg { width: 100%; height: auto; display: block; }\n.echelle figcaption {\n  margin-top: 12px; font-size: 13px; color: var(--doux); line-height: 1.5;\n}\n\n.produits { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; }\n.produit {\n  display: flex; flex-direction: column; gap: 6px;\n  border: 1px solid var(--bord); border-radius: 10px; padding: 14px;\n  text-decoration: none; color: inherit; background: #fff;\n}\n.produit:hover { border-color: var(--rouge); }\n/* Sans fiche produit derrière, la carte informe sans appeler le clic. */\n.produit.sans-lien:hover { border-color: var(--bord); }\n.produit img {\n  display: block; width: 100%; height: 130px; object-fit: contain;\n  background: var(--fond); border-radius: 8px; margin-bottom: 4px;\n}\n.produit .nom { font-weight: 700; font-size: 15px; line-height: 1.35; }\n.produit .optique { font-size: 13px; color: var(--doux); }\n.produit .portee { font-size: 13px; color: var(--encre); }\n.produit .note-fiche { font-size: 12px; color: var(--doux); font-style: italic; }\n.produit .prix { font-size: 17px; font-weight: 700; color: var(--rouge); margin-top: 4px; }\n\n.manques { margin: 16px 0 0; padding-left: 20px; }\n.manques li { color: #8a5a00; font-size: 13px; }\n.manques:empty { display: none; }\n\n.sobre { margin: 0; padding-left: 20px; color: var(--doux); font-size: 15px; }\n.sobre li { margin-bottom: 8px; }\n\n.pied { color: var(--doux); font-size: 13px; padding-bottom: 32px; }\n.pied a { color: var(--doux); }\n\n@media (max-width: 560px) {\n  .entete h1 { font-size: 25px; }\n  .carte { padding: 18px; }\n  .actions .btn { flex: 1 1 auto; text-align: center; }\n}\n</style><div class=\"ngs-page\"><header class=\"entete\">\n  <div class=\"dedans\">\n    <p class=\"surtitre\">Outil gratuit</p>\n    <h1>Quelle caméra vous faut-il&nbsp;?</h1>\n    <p class=\"chapeau\">Prenez une photo depuis l'endroit où vous voulez poser\n      votre caméra, entourez ce que vous voulez surveiller. Vous saurez le\n      modèle, l'objectif, et jusqu'où l'image restera exploitable.</p>\n    <p class=\"actions\">\n      <a class=\"btn btn-plein\" id=\"lien-outil\" href=\"#\">Lancer l'étude</a>\n      <a class=\"btn\" id=\"lien-boutique\" href=\"#\">Voir nos caméras</a>\n    </p>\n    <p class=\"mention\">Sans inscription. Vos photos restent sur votre appareil.</p>\n  </div>\n</header>\n\n<main class=\"dedans\">\n\n  <section class=\"carte\">\n    <h2>Comment ça marche</h2>\n    <ol class=\"etapes-num\">\n      <li>\n        <h3>Photographiez</h3>\n        <p>Depuis l'emplacement prévu de la caméra, et dans la direction que\n          vous voulez surveiller. Un téléphone suffit.</p>\n      </li>\n      <li>\n        <h3>Donnez deux distances</h3>\n        <p>Cliquez deux points dont vous connaissez la distance — le bas d'un\n          portail, un angle de mur, une place de parking. C'est ce qui permet\n          de <b>mesurer</b> l'angle de votre photo au lieu de le supposer.</p>\n      </li>\n      <li>\n        <h3>Entourez la zone</h3>\n        <p>Au doigt ou à la souris. L'angle de vue nécessaire, la distance à\n          couvrir et la caméra qui y répond s'affichent aussitôt.</p>\n      </li>\n    </ol>\n  </section>\n\n  <section class=\"carte\">\n    <h2>Ce que « voir » veut dire</h2>\n    <p class=\"aide\">Une caméra ne « voit » pas&nbsp;: elle pose un certain\n      nombre de pixels sur chaque mètre de terrain. C'est ce nombre qui décide\n      de ce que vous pourrez en faire — et il diminue avec la distance. La\n      norme européenne EN&nbsp;62676-4 fixe quatre paliers.</p>\n\n    <figure class=\"echelle\">\n      <div id=\"schema-dori\"></div>\n      <figcaption id=\"legende-dori\"></figcaption>\n    </figure>\n\n    <p class=\"aide\">C'est pourquoi « caméra 4K » ne dit rien à soi seul&nbsp;:\n      la même caméra identifie un inconnu à quelques mètres et ne fait que\n      repérer une silhouette au fond du terrain. L'outil vous donne ces\n      distances pour <b>votre</b> terrain.</p>\n  </section>\n\n  <section class=\"carte\">\n    <h2>Nos caméras</h2>\n    <p class=\"aide\" id=\"intro-produits\"></p>\n    <div id=\"produits\" class=\"produits\"></div>\n    <ul class=\"manques\" id=\"reserves-produits\"></ul>\n  </section>\n\n  <section class=\"carte\">\n    <h2>Ce que cet outil ne fait pas</h2>\n    <ul class=\"sobre\">\n      <li>Il ne reconnaît pas ce qu'il y a sur vos photos&nbsp;: c'est vous qui\n        posez les repères et entourez la zone. Il mesure, il ne devine pas.</li>\n      <li>Il suppose le sol plan et la caméra sans roulis. Un terrain en pente\n        déplace les distances.</li>\n      <li>Il ne remplace pas une visite&nbsp;: seul un relevé sur place permet\n        d'arrêter les emplacements et le cheminement des câbles.</li>\n    </ul>\n    <p class=\"actions\">\n      <a class=\"btn btn-plein\" id=\"lien-outil-bas\" href=\"#\">Lancer l'étude</a>\n    </p>\n  </section>\n\n</main>\n\n<footer class=\"pied dedans\">\n  <p id=\"pied-liens\"></p>\n</footer></div>";
+  window.__ngsRacine = ombre;
+  window.__ngsIntegre = true;
+  window.__catalogue={
   "_lisez_moi": [
     "Catalogue de la page de présentation (presentation.html).",
     "",
@@ -413,7 +195,9 @@ main { padding-bottom: 40px; }
     }
   ]
 }
-;</script>
+;
+}());
+</script>
 <script>(function () {
 'use strict';
 
@@ -1316,5 +1100,3 @@ async function demarrer() {
 demarrer();
 
 }());</script>
-</body>
-</html>
