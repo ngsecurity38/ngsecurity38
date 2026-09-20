@@ -17,6 +17,7 @@
 import { $, $$ } from './dom.js';
 import { fr } from './format.js';
 import { SEUILS_DORI } from './optique.js';
+import { chargerMenu, poserMenu } from './menu.js';
 // Le même formatage de montant que le devis : « 289,90 € », jamais « 289,9 € ».
 import { euros } from './prix.js';
 import {
@@ -207,6 +208,11 @@ const destination = (cle, depuisCatalogue, defaut) => (
 );
 
 async function demarrer() {
+  // Le menu d'abord, et sans l'attendre : il ne dépend pas du catalogue, et
+  // une page qui n'afficherait ses portes de sortie qu'une fois les produits
+  // chargés laisserait le visiteur devant un mur le temps du chargement.
+  chargerMenu().then((m) => poserMenu($('#site-menu'), m, globalThis.location?.pathname));
+
   const catalogue = await chargerCatalogue();
   const outil = destination('__ngsOutil', catalogue?.outil, OUTIL);
   $$('#lien-outil, #lien-outil-bas').forEach((a) => { a.href = outil; });

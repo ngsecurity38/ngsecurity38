@@ -219,7 +219,7 @@ tfoot tr.fort td { font-size: 19px; font-weight: 700; border-top: 2px solid var(
    faut donc son propre bandeau, blanc, au-dessus. */
 .marque { background: #fff; border-bottom: 1px solid var(--bord); }
 .marque .dedans { padding-top: 18px; padding-bottom: 18px; }
-.marque img { display: block; height: 150px; width: auto; }
+.marque img { display: block; height: 110px; width: auto; }
 
 @media (max-width: 560px) {
   .marque .dedans { padding-top: 14px; padding-bottom: 14px; }

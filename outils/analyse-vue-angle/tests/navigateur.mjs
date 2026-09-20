@@ -2063,6 +2063,90 @@ console.log('\nDevis client');
     affirmer(vers['https://ngsecurity38.com/'], `la boutique : ${JSON.stringify(liens)}`);
   });
 
+  await cas('la page porte le menu du site, la sienne signalée sans être cliquable', async () => {
+    /*
+     * Servies sous /outils/ par un conteneur distinct, les deux pages ne
+     * traversent pas l'application qui construit le menu des autres pages :
+     * sans ce bandeau, le visiteur arrivé là n'a plus aucun moyen d'aller
+     * ailleurs. Il ouvre la page, avant même la marque.
+     *
+     * Et l'entrée de la page ouverte n'est PAS un lien : un clic distrait sur
+     * son propre nom rechargerait la page et effacerait les réponses et les
+     * photos déjà saisies.
+     */
+    const r = await page.evaluate(() => {
+      const nav = document.querySelector('#site-menu');
+      if (!nav) return null;
+      const st = getComputedStyle(nav);
+      return {
+        cache: nav.hidden || st.display === 'none',
+        fond: st.backgroundColor,
+        haut: nav.getBoundingClientRect().top,
+        hautMarque: document.querySelector('.marque').getBoundingClientRect().top,
+        marque: (nav.querySelector('.mot') || {}).textContent || '',
+        entrees: [...nav.querySelectorAll('.pages li')].map((li) => {
+          const a = li.querySelector('a');
+          return {
+            texte: li.textContent.replace(/\s+/g, ' ').trim(),
+            href: a ? a.getAttribute('href') : null,
+            courant: !!li.querySelector('[aria-current="page"]'),
+          };
+        }),
+        ailleurs: (() => {
+          const a = nav.querySelector('.ailleurs');
+          return a && { texte: a.textContent.trim(), href: a.getAttribute('href') };
+        })(),
+      };
+    });
+    affirmer(r, 'le bandeau de menu doit exister');
+    affirmer(!r.cache, 'et être visible une fois monté');
+    affirmer(r.haut < r.hautMarque, 'il ouvre la page, au-dessus de la marque');
+    affirmer(/NGS38/.test(r.marque), `le mot-marque : ${r.marque}`);
+    affirmer(r.entrees.length >= 3, `les rubriques : ${JSON.stringify(r.entrees)}`);
+
+    const parHref = Object.fromEntries(r.entrees.filter((e) => e.href).map((e) => [e.href, e]));
+    affirmer(parHref['/'], `l'accueil : ${JSON.stringify(r.entrees)}`);
+    affirmer(parHref['/outils/etude/'], `l'autre outil : ${JSON.stringify(r.entrees)}`);
+    affirmer(r.entrees.every((e) => e.href === null || /^(\/|https:\/\/)/.test(e.href)),
+      `adresses absolues, la page n'étant pas servie d'où on croit : ${JSON.stringify(r.entrees)}`);
+
+    /*
+     * Servie ici sous /devis-client.html et non sous /outils/devis/, la page
+     * ne reconnaît aucune rubrique comme sienne : c'est le comportement
+     * voulu — mieux vaut aucune marque qu'une fausse.
+     */
+    affirmer(r.entrees.filter((e) => e.courant).length <= 1,
+      `au plus une rubrique marquée : ${JSON.stringify(r.entrees)}`);
+    affirmer(r.entrees.every((e) => !e.courant || e.href === null),
+      'la rubrique de la page ouverte ne se relie pas à elle-même');
+
+    affirmer(r.ailleurs && /^https:\/\/ngsecurity38\.com\//.test(r.ailleurs.href),
+      `le départ vers l'autre domaine : ${JSON.stringify(r.ailleurs)}`);
+  });
+
+  await cas('le menu reste lisible : texte clair sur bandeau sombre', async () => {
+    /*
+     * Le bandeau emprunte ses couleurs à la feuille de la page. Un remaniement
+     * du style qui éclaircirait le fond rendrait les rubriques illisibles sans
+     * que rien ne le signale à la lecture du code.
+     */
+    const lum = (c) => {
+      const [r, v, b] = c.match(/\d+/g).slice(0, 3).map((x) => {
+        const s = Number(x) / 255;
+        return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+      });
+      return 0.2126 * r + 0.7152 * v + 0.0722 * b;
+    };
+    const c = await page.evaluate(() => {
+      const nav = document.querySelector('#site-menu');
+      const a = nav.querySelector('.pages a');
+      return { fond: getComputedStyle(nav).backgroundColor, texte: getComputedStyle(a).color };
+    });
+    const [a, b] = [lum(c.fond), lum(c.texte)].sort((x, y) => y - x);
+    const contraste = (a + 0.05) / (b + 0.05);
+    affirmer(contraste >= 4.5, `contraste ${contraste.toFixed(1)}:1 — ${JSON.stringify(c)}`);
+  });
+
   await cas('la demande d\'étude part vers l\'agence, dossier compris', async () => {
     const lien = await page.evaluate(() => {
       const b = document.querySelector('#btn-contact');
@@ -2145,6 +2229,32 @@ console.log('\nPage de présentation (boutique)');
     affirmer(r.href === '/', `vers la racine du site : ${r.href}`);
     affirmer(/Retour au site/.test(r.texte), `et le dire : ${r.texte}`);
     affirmer(r.contientLogo, 'le logo fait partie du lien');
+  });
+
+  await cas('la page de présentation porte le même menu, et le même départ', async () => {
+    /*
+     * Les deux outils vivent côte à côte sous /outils/. Un menu qui
+     * différerait de l'un à l'autre — une rubrique en plus ici, une adresse
+     * en moins là — donnerait l'impression de deux sites accolés.
+     */
+    const r = await page.evaluate(() => {
+      const nav = document.querySelector('#site-menu');
+      if (!nav) return null;
+      return {
+        cache: nav.hidden || getComputedStyle(nav).display === 'none',
+        haut: nav.getBoundingClientRect().top,
+        hautMarque: document.querySelector('.marque').getBoundingClientRect().top,
+        href: [...nav.querySelectorAll('.pages a')].map((a) => a.getAttribute('href')),
+        ailleurs: (nav.querySelector('.ailleurs') || {}).href || '',
+      };
+    });
+    affirmer(r, 'le bandeau de menu doit exister ici aussi');
+    affirmer(!r.cache, 'et être visible');
+    affirmer(r.haut < r.hautMarque, 'il ouvre la page');
+    affirmer(r.href.includes('/outils/etude/') && r.href.includes('/outils/devis/'),
+      `les deux outils au menu : ${JSON.stringify(r.href)}`);
+    affirmer(/^https:\/\/ngsecurity38\.com\//.test(r.ailleurs),
+      `le départ vers l'autre domaine : ${r.ailleurs}`);
   });
 
   await cas('l\'échelle des paliers est dessinée, et dit sur quoi elle porte', async () => {
@@ -2381,6 +2491,7 @@ console.log('\nBlocs à coller (WordPress)');
         produits: o.querySelectorAll('.produit').length,
         barres: o.querySelectorAll('#schema-dori rect').length,
         logo: (o.querySelector('.marque img') || {}).src,
+        menu: !!o.querySelector('#site-menu'),
         // Le thème masque .produit : si nos fiches se voient, l'isolation tient.
         visible: o.querySelector('.produit').getBoundingClientRect().height > 20,
         couleur: getComputedStyle(o.querySelector('.entete h1')).color,
@@ -2394,6 +2505,12 @@ console.log('\nBlocs à coller (WordPress)');
      * too large ». Le site qui accueille le bloc porte déjà sa marque.
      */
     affirmer(!r.logo, 'le bloc ne doit pas porter le logo');
+    /*
+     * Ni le bandeau de navigation : le site qui accueille le bloc porte déjà
+     * son menu, et deux menus l'un au-dessus de l'autre désorientent au lieu
+     * d'aider.
+     */
+    affirmer(!r.menu, 'le bloc ne doit pas porter de second menu');
     affirmer(/Quelle caméra/.test(r.titre), `titre : ${r.titre}`);
     affirmer(r.produits >= 12, `les douze fiches : ${r.produits}`);
     affirmer(r.barres === 4, `l'échelle : ${r.barres} paliers`);

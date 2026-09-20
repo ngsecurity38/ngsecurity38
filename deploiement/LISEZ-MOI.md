@@ -197,9 +197,16 @@ cd ngsecurity38 && git pull
 docker compose -f deploiement/docker-compose.yml restart
 ```
 
-Les prix et le catalogue se changent **sans redémarrer** : ils sont dans
-`docs/outils/devis/tarif.json` et `docs/outils/etude/catalogue.json`, servis
-sans cache. Un `git pull` suffit, ou une édition directe du fichier.
+Les prix, le catalogue et le menu se changent **sans redémarrer** : ils sont
+dans `docs/outils/devis/tarif.json`, `docs/outils/etude/catalogue.json` et
+`docs/outils/menu.json`, servis sans cache. Un `git pull` suffit, ou une
+édition directe du fichier.
+
+Le menu est **commun aux deux pages** — un seul fichier, un cran au-dessus
+d'elles. Pour y ajouter une rubrique du site (Alarme Ajax, Mon compte,
+Contact…), relevez son adresse exacte dans la barre du navigateur depuis le
+site, et ajoutez-la à la liste `liens`. Rien n'y a été inventé : une adresse
+devinée ferait un lien mort dans un menu.
 
 ---
 

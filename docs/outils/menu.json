@@ -1,0 +1,34 @@
+{
+  "_lisez_moi": [
+    "Le menu porté par les deux pages d'outil — NG Security 38.",
+    "",
+    "Ce fichier se pose UNE SEULE FOIS dans /outils/, à côté des dossiers",
+    "etude/ et devis/. Les deux pages le relisent à chaque ouverture : ajouter",
+    "une rubrique ne demande ni reconstruction, ni renvoi des pages.",
+    "",
+    "  marque.court   le mot-marque, à gauche",
+    "  marque.long    la baseline, en petites capitales",
+    "  marque.href    où mène le mot-marque",
+    "  liens          les rubriques, dans l'ordre. texte + href.",
+    "                 Celle qui correspond à la page ouverte se signale toute",
+    "                 seule et cesse d'être cliquable.",
+    "  ailleurs       le départ vers l'autre domaine, encadré de rouge, à",
+    "                 droite. Mettre null pour ne rien afficher.",
+    "",
+    "Seules figurent ici des adresses vérifiées. Pour ajouter vos rubriques",
+    "(Alarme Ajax, Mon compte, Contact…), relevez leur adresse exacte dans la",
+    "barre du navigateur, depuis le site : un lien de menu qui tombe à côté",
+    "coûte plus cher que son absence."
+  ],
+  "marque": {
+    "court": "NGS38",
+    "long": "Sécurité & vidéosurveillance",
+    "href": "/"
+  },
+  "liens": [
+    { "texte": "Nos produits", "href": "/" },
+    { "texte": "Quelle caméra vous faut-il ?", "href": "/outils/etude/" },
+    { "texte": "Estimer mon installation", "href": "/outils/devis/" }
+  ],
+  "ailleurs": { "texte": "La boutique .com", "href": "https://ngsecurity38.com/" }
+}

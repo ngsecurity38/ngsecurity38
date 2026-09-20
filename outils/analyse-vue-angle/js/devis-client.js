@@ -12,6 +12,7 @@
 import { $, $$ } from './dom.js';
 import { fr, elider } from './format.js';
 import { SEUILS_DORI } from './optique.js';
+import { chargerMenu, poserMenu } from './menu.js';
 import { TYPES_SITE, RESERVES, composer } from './offre.js';
 import { ligne, devis, euros, TVA_DEFAUT, MARGE_COMMERCIALE } from './prix.js';
 import {
@@ -730,6 +731,16 @@ function brancherProjet() {
   }
 }
 
+/**
+ * Le menu du site, posé dès l'ouverture.
+ *
+ * Avant le tarif et avant les calculs : le visiteur doit pouvoir repartir
+ * ailleurs même si le reste de la page renonce.
+ */
+async function poserLeMenu() {
+  poserMenu($('#site-menu'), await chargerMenu(), globalThis.location?.pathname);
+}
+
 async function demarrer() {
   $('#q-type').innerHTML = Object.entries(TYPES_SITE)
     .map(([cle, t]) => `<option value="${cle}">${ech(t.label)}</option>`).join('');
@@ -750,6 +761,8 @@ async function demarrer() {
       $(id).addEventListener('change', calculer);
       $(id).addEventListener('input', calculer);
     });
+
+  poserLeMenu();
 
   $('#btn-imprimer').addEventListener('click', () => window.print());
   brancherPhotos();

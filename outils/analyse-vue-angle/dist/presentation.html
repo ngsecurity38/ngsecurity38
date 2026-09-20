@@ -148,7 +148,7 @@ main { padding-bottom: 40px; }
    faut donc son propre bandeau, blanc, au-dessus. */
 .marque { background: #fff; border-bottom: 1px solid var(--bord); }
 .marque .dedans { padding-top: 18px; padding-bottom: 18px; }
-.marque img { display: block; height: 150px; width: auto; }
+.marque img { display: block; height: 110px; width: auto; }
 
 @media (max-width: 560px) {
   .marque .dedans { padding-top: 14px; padding-bottom: 14px; }
@@ -170,8 +170,98 @@ main { padding-bottom: 40px; }
   .marque .retour { flex-direction: column; gap: 6px; }
 }
 </style>
+<style>/* Le bandeau de navigation du site, porté par les deux pages d'outil.
+
+   Feuille à part : les deux pages ont chacune la leur, et un menu recopié
+   dans les deux finirait par diverger. Elle ne définit aucune couleur de
+   base — elle emprunte les variables de la page qui l'accueille. */
+
+.site-menu {
+  background: #14171c;
+  border-bottom: 1px solid #262b33;
+}
+.site-menu[hidden] { display: none; }
+
+.site-menu .dedans {
+  /* Plus large que le contenu des pages (760 et 820 px) : au-dessous, la
+     dernière rubrique passe sous le bord et se retrouve tronquée sur un
+     grand écran — un menu qu'il faut faire défiler à la souris. */
+  max-width: 1160px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding-top: 9px;
+  padding-bottom: 9px;
+}
+
+/* Le mot-marque : « NGS38 », le point rouge, la baseline. Il reprend l'en-tête
+   sombre du site, que ces pages ne traversent pas. */
+.site-menu .mot {
+  display: flex; align-items: baseline; gap: 7px;
+  text-decoration: none; color: #fff;
+}
+.site-menu .mot b { font-size: 17px; font-weight: 800; letter-spacing: .01em; }
+.site-menu .mot i {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--rouge); flex: none;
+}
+.site-menu .mot span {
+  font-size: 10px; font-weight: 700; letter-spacing: .1em;
+  text-transform: uppercase; color: #8d95a3; white-space: nowrap;
+}
+
+.site-menu .pages {
+  display: flex; gap: 2px; flex: 1 1 auto;
+  margin: 0; padding: 0; list-style: none;
+  overflow-x: auto; scrollbar-width: none;
+}
+.site-menu .pages::-webkit-scrollbar { display: none; }
+.site-menu .pages a,
+.site-menu .pages .courant {
+  display: block; padding: 7px 12px; border-radius: 999px;
+  font-size: 14px; white-space: nowrap; text-decoration: none;
+  color: #c3c9d3;
+}
+.site-menu .pages a:hover { background: #232830; color: #fff; }
+/* La page ouverte : signalée, et non cliquable — voir poserMenu(). */
+.site-menu .pages .courant { background: #232830; color: #fff; font-weight: 600; }
+
+/* Le passage vers l'autre domaine. Encadré de rouge : c'est un départ du
+   site, pas une page de plus. */
+.site-menu .ailleurs {
+  flex: none;
+  padding: 7px 14px; border-radius: 999px;
+  border: 1px solid var(--rouge);
+  background: rgba(200, 16, 46, .16);
+  color: #fff; font-size: 13px; font-weight: 600;
+  white-space: nowrap; text-decoration: none;
+}
+.site-menu .ailleurs:hover { background: var(--rouge); }
+
+/* Au téléphone, le mot-marque et le départ tiennent la première ligne ; les
+   pages passent dessous et défilent latéralement, comme les rubriques du
+   site. */
+@media (max-width: 720px) {
+  .site-menu .dedans { flex-wrap: wrap; gap: 10px; }
+  .site-menu .mot { flex: 1 1 auto; }
+  .site-menu .pages { order: 3; flex-basis: 100%; margin: 0 -20px; padding: 0 20px; }
+}
+
+/* Sur un téléphone, la baseline s'efface : sans elle, le mot-marque et le
+   départ vers la boutique tiennent la même ligne, et les rubriques gardent
+   la leur. Avec elle, le départ tombait sur une troisième ligne. */
+@media (max-width: 600px) {
+  .site-menu .mot span { display: none; }
+  .site-menu .ailleurs { margin-left: auto; }
+}
+
+/* Une estimation imprimée n'a que faire d'un menu. */
+@media print { .site-menu { display: none; } }
+</style>
 </head>
 <body>
+
+<nav class="site-menu" id="site-menu" aria-label="Menu du site" hidden></nav>
 
 <div class="marque">
   <div class="dedans">
@@ -526,6 +616,163 @@ const frGroupe = (v, n = 0) => fr(v, n).replace(
 const elider = (mot) => (
   /^[aeiouyàâäéèêëîïôöùûü]/i.test(mot) ? `d'${mot}` : `de ${mot}`
 );
+
+/* ===== menu.js ===== */
+/**
+ * Le menu du site, porté par les pages d'outil.
+ *
+ * Les deux pages sont servies sous /outils/ par un conteneur séparé du site :
+ * elles sont bien SUR le domaine, mais elles ne traversent pas l'application
+ * qui construit le menu et le pied des autres pages. Sans rien, le visiteur
+ * qui arrive ici se retrouve sur une page orpheline — même adresse, même
+ * marque, et pourtant plus aucun moyen d'aller ailleurs qu'en revenant en
+ * arrière. C'est ce que le bandeau ci-dessous répare.
+ *
+ * Il ne cherche pas à recopier le menu du site au lien près : il ne peut pas
+ * deviner les adresses internes de l'application. Il porte donc ce dont on
+ * est sûr — l'accueil, les deux outils, la boutique — et se laisse remplacer
+ * par `menu.json`, posé une seule fois dans /outils/ et relu à chaque
+ * ouverture. Ajouter une entrée ne demande alors ni reconstruction ni renvoi
+ * des pages.
+ */
+
+/**
+ * Le menu par défaut.
+ *
+ * Seules y figurent des adresses vérifiées. Inventer « /alarme-ajax/ » parce
+ * que le site parle d'Ajax produirait un lien mort, et un lien mort dans un
+ * menu coûte plus cher que son absence.
+ */
+const MENU_DEFAUT = {
+  marque: { court: 'NGS38', long: 'Sécurité & vidéosurveillance', href: '/' },
+  liens: [
+    { texte: 'Nos produits', href: '/' },
+    { texte: 'Quelle caméra vous faut-il ?', href: '/outils/etude/' },
+    { texte: 'Estimer mon installation', href: '/outils/devis/' },
+  ],
+  ailleurs: { texte: 'La boutique .com', href: 'https://ngsecurity38.com/' },
+};
+
+/**
+ * Ramène un chemin à une forme comparable.
+ *
+ * « /outils/etude », « /outils/etude/ » et « /outils/etude/index.html »
+ * désignent la même page : sans cette mise à plat, l'entrée du menu
+ * correspondant à la page ouverte ne se reconnaîtrait pas elle-même une fois
+ * sur deux, selon la façon dont le serveur a résolu l'adresse.
+ */
+function memePage(a, b) {
+  const plat = (href) => {
+    if (!href) return '';
+    const sans = String(href).split(/[?#]/)[0].replace(/index\.html?$/i, '');
+    return (sans.endsWith('/') ? sans : `${sans}/`).toLowerCase();
+  };
+  const x = plat(a);
+  return !!x && x === plat(b);
+}
+
+/**
+ * Les entrées à afficher, celle de la page ouverte signalée.
+ *
+ * Séparée de l'affichage pour être vérifiable sans navigateur : c'est la
+ * partie où l'on se trompe.
+ */
+function entreesMenu(menu, chemin) {
+  const m = menu && Array.isArray(menu.liens) && menu.liens.length ? menu : MENU_DEFAUT;
+  return m.liens
+    .filter((l) => l && l.texte && l.href)
+    .map((l) => ({ texte: l.texte, href: l.href, courant: memePage(l.href, chemin) }));
+}
+
+/** Le lien vers l'autre domaine, s'il y en a un. */
+const lienAilleurs = (menu) => {
+  const a = (menu && 'ailleurs' in menu ? menu.ailleurs : MENU_DEFAUT.ailleurs);
+  return a && a.texte && a.href ? a : null;
+};
+
+/* ------------------------------------------------------------- affichage */
+
+const el = (balise, classe, texte) => {
+  const n = document.createElement(balise);
+  if (classe) n.className = classe;
+  if (texte !== undefined) n.textContent = texte;
+  return n;
+};
+
+/**
+ * Monte le bandeau dans l'élément qui l'attend.
+ *
+ * Construit pièce par pièce plutôt qu'en assemblant du HTML : les libellés
+ * viennent d'un fichier que l'on édite à la main, et une apostrophe typée de
+ * travers ne doit pas pouvoir devenir du balisage.
+ */
+function poserMenu(hote, menu, chemin) {
+  if (!hote) return null;
+  const m = menu && Array.isArray(menu.liens) && menu.liens.length ? menu : MENU_DEFAUT;
+  const entrees = entreesMenu(m, chemin);
+  const marque = m.marque || MENU_DEFAUT.marque;
+
+  const dedans = el('div', 'dedans');
+
+  const mot = el('a', 'mot');
+  mot.href = marque.href || '/';
+  mot.append(el('b', null, marque.court || ''), el('i'), el('span', null, marque.long || ''));
+  dedans.append(mot);
+
+  const pages = el('ul', 'pages');
+  for (const e of entrees) {
+    const li = el('li');
+    if (e.courant) {
+      /*
+       * La page ouverte ne se relie pas à elle-même. Sur la page d'estimation,
+       * un clic distrait sur son propre nom rechargerait la page et effacerait
+       * les réponses et les photos déjà saisies.
+       */
+      const ici = el('span', 'courant', e.texte);
+      ici.setAttribute('aria-current', 'page');
+      li.append(ici);
+    } else {
+      const a = el('a', null, e.texte);
+      a.href = e.href;
+      li.append(a);
+    }
+    pages.append(li);
+  }
+  dedans.append(pages);
+
+  const ailleurs = lienAilleurs(m);
+  if (ailleurs) {
+    const a = el('a', 'ailleurs', ailleurs.texte);
+    a.href = ailleurs.href;
+    a.rel = 'noopener';
+    dedans.append(a);
+  }
+
+  hote.replaceChildren(dedans);
+  hote.hidden = false;
+  return entrees;
+}
+
+/**
+ * Va chercher `menu.json`, un cran au-dessus des deux pages.
+ *
+ * Un seul fichier pour /outils/etude/ et /outils/devis/ : un menu que l'on
+ * modifierait à deux endroits finirait par différer d'une page à l'autre.
+ *
+ * Collée dans une page existante, la page n'en veut pas : le site qui
+ * l'accueille porte déjà son propre menu.
+ */
+async function chargerMenu() {
+  if (globalThis.__ngsMenu) return globalThis.__ngsMenu;
+  if (globalThis.__ngsIntegre || globalThis.location?.protocol === 'file:') return null;
+  try {
+    const r = await fetch('../menu.json', { cache: 'no-store' });
+    if (r.ok) return await r.json();
+  } catch {
+    // Absent : le menu par défaut fait l'affaire.
+  }
+  return null;
+}
 
 /* ===== optique.js ===== */
 /**
@@ -1171,6 +1418,7 @@ function reservesCatalogue(catalogue) {
 
 
 
+
 // Le même formatage de montant que le devis : « 289,90 € », jamais « 289,9 € ».
 
 
@@ -1357,6 +1605,11 @@ const destination = (cle, depuisCatalogue, defaut) => (
 );
 
 async function demarrer() {
+  // Le menu d'abord, et sans l'attendre : il ne dépend pas du catalogue, et
+  // une page qui n'afficherait ses portes de sortie qu'une fois les produits
+  // chargés laisserait le visiteur devant un mur le temps du chargement.
+  chargerMenu().then((m) => poserMenu($('#site-menu'), m, globalThis.location?.pathname));
+
   const catalogue = await chargerCatalogue();
   const outil = destination('__ngsOutil', catalogue?.outil, OUTIL);
   $$('#lien-outil, #lien-outil-bas').forEach((a) => { a.href = outil; });

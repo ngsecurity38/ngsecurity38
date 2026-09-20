@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "build": "node build.mjs",
-    "test": "node --test tests/run.mjs tests/boutique.mjs tests/etude.mjs tests/fiche.mjs tests/plan.mjs tests/photo.mjs tests/reseau.mjs tests/stockage.mjs tests/murs.mjs tests/prix.mjs tests/offre.mjs tests/photo-client.mjs",
+    "test": "node --test tests/run.mjs tests/boutique.mjs tests/etude.mjs tests/fiche.mjs tests/plan.mjs tests/photo.mjs tests/reseau.mjs tests/stockage.mjs tests/murs.mjs tests/prix.mjs tests/offre.mjs tests/photo-client.mjs tests/menu.mjs",
     "test:navigateur": "node tests/navigateur.mjs",
     "start": "npx --yes http-server -p 8080 ."
   }

@@ -94,6 +94,9 @@ const paquet = `(function () {\n'use strict';\n\n${morceaux.join('\n\n')}\n\n}()
 
 const base64 = (...p) => readFileSync(join(ici, ...p)).toString('base64');
 
+/** Le bandeau de navigation : une seule feuille pour les deux pages. */
+const feuilleMenu = lire('menu.css');
+
 const scripts = [
   '<script>/* PDF.js 3.11.174 — Mozilla, Apache 2.0 — voir vendor/LICENSE-pdfjs.txt */</script>',
   `<script>${inerte(lire('vendor', 'pdf.min.js'))}</script>`,
@@ -171,7 +174,7 @@ ecrire('analyse-vue-angle-ocr.html', injecter(html, '</head>', `${ocr}\n</head>`
  * `tarif.json` posé à côté d'elle : mettre un prix à jour ne demande alors ni
  * outil ni reconstruction.
  */
-const MODULES_CLIENT = ['dom.js', 'format.js', 'optique.js', 'photo.js',
+const MODULES_CLIENT = ['dom.js', 'format.js', 'menu.js', 'optique.js', 'photo.js',
   'photo-client.js', 'stockage.js', 'prix.js', 'offre.js', 'devis-client.js'];
 verifierListe(MODULES_CLIENT);
 
@@ -182,6 +185,8 @@ const paquetClient = `(function () {\n'use strict';\n\n`
 let client = marque(lire('devis-client.html'));
 client = injecter(client, '<link rel="stylesheet" href="devis-client.css">',
   `<style>${inerte(lire('devis-client.css'))}</style>`);
+client = injecter(client, '<link rel="stylesheet" href="menu.css">',
+  `<style>${inerte(feuilleMenu)}</style>`);
 client = injecter(client, '<script type="module" src="js/devis-client.js"></script>',
   `<script>window.__tarif=${inerte(lire('tarif.json'))};</script>\n`
   + `<script>${inerte(paquetClient)}</script>`);
@@ -199,7 +204,7 @@ ecrire('devis-client.html', client);
  * fonctions optiques — une vitrine qui annoncerait d'autres portées que
  * l'étude mentirait à moitié.
  */
-const MODULES_PRESENTATION = ['dom.js', 'format.js', 'optique.js', 'prix.js',
+const MODULES_PRESENTATION = ['dom.js', 'format.js', 'menu.js', 'optique.js', 'prix.js',
   'boutique.js', 'presentation.js'];
 verifierListe(MODULES_PRESENTATION);
 
@@ -210,6 +215,8 @@ const paquetPresentation = `(function () {\n'use strict';\n\n`
 let presentation = marque(lire('presentation.html'));
 presentation = injecter(presentation, '<link rel="stylesheet" href="presentation.css">',
   `<style>${inerte(lire('presentation.css'))}</style>`);
+presentation = injecter(presentation, '<link rel="stylesheet" href="menu.css">',
+  `<style>${inerte(feuilleMenu)}</style>`);
 presentation = injecter(presentation, '<script type="module" src="js/presentation.js"></script>',
   `<script>window.__catalogue=${inerte(lire('catalogue.json'))};</script>\n`
   + `<script>${inerte(paquetPresentation)}</script>`);
@@ -243,6 +250,15 @@ aDeposer('devis', client, lire('tarif.json'), 'tarif.json');
 aDeposer('etude', presentation, lire('catalogue.json'), 'catalogue.json');
 
 /*
+ * Le menu, un cran au-dessus des deux dossiers.
+ *
+ * Un seul fichier pour les deux pages : recopié dans chaque dossier, il
+ * finirait par différer d'une page à l'autre — et personne ne s'en
+ * apercevrait avant un visiteur.
+ */
+writeFileSync(join(ici, 'dist', 'site', 'menu.json'), lire('menu.json'));
+
+/*
  * Version à coller dans une page existante, sans rien téléverser.
  *
  * Tout le monde n'a pas de FTP sous la main, et un gestionnaire de fichiers
@@ -267,6 +283,12 @@ function pourWordpress(page, feuille, paquet, donnees, id, adresses = '') {
      * déjà son en-tête et sa marque.
      */
     .replace(/<div class="marque">[\s\S]*?<\/div>\s*<\/div>/, '')
+    /*
+     * Le bandeau de navigation s'en va pour la même raison, en plus net : le
+     * site qui accueille le bloc porte déjà son propre menu, et deux menus
+     * l'un au-dessus de l'autre sur la même page désorientent au lieu d'aider.
+     */
+    .replace(/<nav class="site-menu"[\s\S]*?<\/nav>/, '')
     .trim();
 
   /*
@@ -317,6 +339,7 @@ for (const [nom, page, donnees, fichier] of [
   writeFileSync(join(d, 'index.html'), page);
   writeFileSync(join(d, fichier), donnees);
 }
+writeFileSync(join(dossierPages, 'menu.json'), lire('menu.json'));
 writeFileSync(join(ici, '..', '..', 'docs', '.nojekyll'), '');
 console.log(`${dossierPages} — servi par GitHub Pages`);
 

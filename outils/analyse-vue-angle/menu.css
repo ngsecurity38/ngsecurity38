@@ -1,0 +1,87 @@
+/* Le bandeau de navigation du site, porté par les deux pages d'outil.
+
+   Feuille à part : les deux pages ont chacune la leur, et un menu recopié
+   dans les deux finirait par diverger. Elle ne définit aucune couleur de
+   base — elle emprunte les variables de la page qui l'accueille. */
+
+.site-menu {
+  background: #14171c;
+  border-bottom: 1px solid #262b33;
+}
+.site-menu[hidden] { display: none; }
+
+.site-menu .dedans {
+  /* Plus large que le contenu des pages (760 et 820 px) : au-dessous, la
+     dernière rubrique passe sous le bord et se retrouve tronquée sur un
+     grand écran — un menu qu'il faut faire défiler à la souris. */
+  max-width: 1160px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding-top: 9px;
+  padding-bottom: 9px;
+}
+
+/* Le mot-marque : « NGS38 », le point rouge, la baseline. Il reprend l'en-tête
+   sombre du site, que ces pages ne traversent pas. */
+.site-menu .mot {
+  display: flex; align-items: baseline; gap: 7px;
+  text-decoration: none; color: #fff;
+}
+.site-menu .mot b { font-size: 17px; font-weight: 800; letter-spacing: .01em; }
+.site-menu .mot i {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--rouge); flex: none;
+}
+.site-menu .mot span {
+  font-size: 10px; font-weight: 700; letter-spacing: .1em;
+  text-transform: uppercase; color: #8d95a3; white-space: nowrap;
+}
+
+.site-menu .pages {
+  display: flex; gap: 2px; flex: 1 1 auto;
+  margin: 0; padding: 0; list-style: none;
+  overflow-x: auto; scrollbar-width: none;
+}
+.site-menu .pages::-webkit-scrollbar { display: none; }
+.site-menu .pages a,
+.site-menu .pages .courant {
+  display: block; padding: 7px 12px; border-radius: 999px;
+  font-size: 14px; white-space: nowrap; text-decoration: none;
+  color: #c3c9d3;
+}
+.site-menu .pages a:hover { background: #232830; color: #fff; }
+/* La page ouverte : signalée, et non cliquable — voir poserMenu(). */
+.site-menu .pages .courant { background: #232830; color: #fff; font-weight: 600; }
+
+/* Le passage vers l'autre domaine. Encadré de rouge : c'est un départ du
+   site, pas une page de plus. */
+.site-menu .ailleurs {
+  flex: none;
+  padding: 7px 14px; border-radius: 999px;
+  border: 1px solid var(--rouge);
+  background: rgba(200, 16, 46, .16);
+  color: #fff; font-size: 13px; font-weight: 600;
+  white-space: nowrap; text-decoration: none;
+}
+.site-menu .ailleurs:hover { background: var(--rouge); }
+
+/* Au téléphone, le mot-marque et le départ tiennent la première ligne ; les
+   pages passent dessous et défilent latéralement, comme les rubriques du
+   site. */
+@media (max-width: 720px) {
+  .site-menu .dedans { flex-wrap: wrap; gap: 10px; }
+  .site-menu .mot { flex: 1 1 auto; }
+  .site-menu .pages { order: 3; flex-basis: 100%; margin: 0 -20px; padding: 0 20px; }
+}
+
+/* Sur un téléphone, la baseline s'efface : sans elle, le mot-marque et le
+   départ vers la boutique tiennent la même ligne, et les rubriques gardent
+   la leur. Avec elle, le départ tombait sur une troisième ligne. */
+@media (max-width: 600px) {
+  .site-menu .mot span { display: none; }
+  .site-menu .ailleurs { margin-left: auto; }
+}
+
+/* Une estimation imprimée n'a que faire d'un menu. */
+@media print { .site-menu { display: none; } }
