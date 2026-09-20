@@ -74,32 +74,39 @@ Pour le mode d'emploi complet et la mise en ligne sur WordPress, voir
    **arborescence** est dessinée automatiquement à côté du plan, et les deux
    figurent au procès-verbal comme à la proposition client, avec le tableau des
    longueurs.
-5. **Enregistrement et alimentation** — capacité de l'enregistreur à partir du
+5. **Murs et angles morts** — les murs se tracent sur le plan du site, avec leur
+   longueur et leur hauteur. Les champs de vision en tiennent compte : un mur
+   plus haut que la caméra arrête la vue, **un mur plus bas se laisse survoler**
+   et ne cache qu'une bande de terrain, dont la longueur se déduit des deux
+   hauteurs. L'outil chiffre la part de champ réellement dégagée et le plus
+   grand angle mort de chaque caméra, et colorie la couverture par niveau
+   d'exploitation.
+6. **Enregistrement et alimentation** — capacité de l'enregistreur à partir du
    débit cumulé, de la durée de conservation, des heures par jour et d'une marge
    de sécurité ; disques à prévoir ; budget PoE par switch. Huit contrôles
    automatiques : adresse IP en double ou mal formée, ports et budget PoE
    dépassés, canaux de l'enregistreur, caméra sur un switch sans PoE,
    consommation hors norme PoE, capacité installée insuffisante, débit manquant.
    Les anomalies bloquantes passent devant les avertissements.
-6. **Conception d'un champ sur plan** — tracer sur une vue aérienne la zone à
+7. **Conception d'un champ sur plan** — tracer sur une vue aérienne la zone à
    couvrir, et en déduire portée, ouverture, largeur couverte, **focale
    nécessaire**, densité en pixels par mètre et niveau DORI atteint. Un
    catalogue du matériel, tenu par l'agence, désigne alors la caméra à poser et
    le zoom à régler. Le plan annoté s'exporte, et le procès-verbal porte une
    fiche d'implantation au format des études.
-7. **Dossier de chantier** — une fiche porte autant de caméras que le site en
+8. **Dossier de chantier** — une fiche porte autant de caméras que le site en
    compte. Onglets avec pastille de verdict, synthèse d'avancement, un seul
    fichier `.json` pour tout le dossier et un procès-verbal unique. Les fiches
    de la version 1, à caméra unique, s'ouvrent toujours.
-8. **Import de l'étude au format PDF** — les pages du PDF remis par le client
+9. **Import de l'étude au format PDF** — les pages du PDF remis par le client
    sont affichées, on choisit celle qui porte la vue attendue et on recadre
    dessus pour n'en garder que l'image utile. Le procès-verbal cite ensuite le
    fichier et le numéro de page servis de référence.
-9. **Lecture des études scannées** — un PDF sans texte est reconnu comme tel et
+10. **Lecture des études scannées** — un PDF sans texte est reconnu comme tel et
    peut être passé en reconnaissance de caractères, hors ligne. Les valeurs
    ainsi obtenues sont signalées comme telles, à l'écran et au procès-verbal :
    un chiffre mal reconnu fausserait la mesure d'angle.
-10. **Relevé du texte de l'étude** — focale, angle de vue, capteur, résolution,
+11. **Relevé du texte de l'étude** — focale, angle de vue, capteur, résolution,
    distance et hauteur annoncés sont lus dans le texte du PDF, caméra par
    caméra, puis confrontés au matériel réellement posé. Chaque valeur est
    présentée avec sa page d'origine et son extrait : l'outil propose, le
@@ -109,13 +116,13 @@ Pour le mode d'emploi complet et la mise en ligne sur WordPress, voir
    **Texte lu** montre ce qui a été extrait,
    passages retenus surlignés, et se copie d'un clic : une formulation non
    reconnue se diagnostique sans sortir l'étude du dossier client.
-11. **Calculs optiques** — angles de champ horizontal / vertical / diagonal à
+12. **Calculs optiques** — angles de champ horizontal / vertical / diagonal à
    partir du capteur et de la focale, largeur de scène couverte, densité en
    pixels par mètre, portées DORI (EN 62676-4), zone morte au pied du mât,
    focale nécessaire pour couvrir une largeur donnée.
-12. **Recalage des deux vues** — estimation automatique du décalage, du zoom et
+13. **Recalage des deux vues** — estimation automatique du décalage, du zoom et
    du roulis entre l'image de référence et l'image réglée.
-13. **Diagnostic** — traduction de ce recalage en écarts de réglage réels
+14. **Diagnostic** — traduction de ce recalage en écarts de réglage réels
    (degrés de panoramique, de site, de roulis ; pourcentage de cadrage), note
    de conformité sur 100 et consignes d'intervention en clair.
 14. **Zones d'intérêt** — rectangles tracés sur la vue demandée, dont l'outil
@@ -134,6 +141,7 @@ Pour le mode d'emploi complet et la mise en ligne sur WordPress, voir
 | `js/plan.js` | géométrie du champ tracé sur un plan — module pur, testé |
 | `js/reseau.js` | longueurs de câble et arborescence du synoptique — module pur, testé |
 | `js/stockage.js` | capacité d'enregistrement, budget PoE, contrôles — module pur, testé |
+| `js/murs.js` | occlusion des champs de vision et angles morts — module pur, testé |
 | `js/catalogue.js` | matériel de l'agence et choix d'objectif — module pur, testé |
 | `js/alignement.js` | recalage des deux images — module pur, testé |
 | `js/diagnostic.js` | écarts de réglage et consignes — module pur, testé |
@@ -154,6 +162,7 @@ Pour le mode d'emploi complet et la mise en ligne sur WordPress, voir
 | `tests/photo.mjs` | tests unitaires de l'analyse depuis photo |
 | `tests/reseau.mjs` | tests unitaires du synoptique de câblage |
 | `tests/stockage.mjs` | tests unitaires du stockage et des contrôles |
+| `tests/murs.mjs` | tests unitaires des murs et des angles morts |
 | `tests/navigateur.mjs` | tests de bout en bout dans un vrai navigateur |
 
 Les trois modules de calcul ne touchent jamais au DOM : ils reçoivent des
@@ -223,9 +232,9 @@ techniciens reste en retard sur le dépôt.
 ## Tests
 
 ```bash
-npm test                 # 180 tests unitaires, sans navigateur
+npm test                 # 201 tests unitaires, sans navigateur
 npm run build
-npm run test:navigateur  # 82 tests de bout en bout (Playwright)
+npm run test:navigateur  # 85 tests de bout en bout (Playwright)
 ```
 
 Les tests unitaires couvrent les calculs d'optique, la récupération de
@@ -240,7 +249,9 @@ et définition tirées des intitulés, intitulés contradictoires écartés), le
 longueurs du synoptique (trajet, descentes, réserve, dépassement des 90 m,
 matériel non raccordé, arborescence), le calcul de stockage (l'exemple de
 référence au gigaoctet près, plage horaire, calcul inverse, choix du disque) et
-les contrôles d'exploitation (adresses, ports, budget PoE, canaux, capacité), la mesure des distances sur photo (sol plan, sténopé) avec le
+les contrôles d'exploitation (adresses, ports, budget PoE, canaux, capacité), les
+angles morts (un mur survolé, un mur opaque, deux ombres qui se recouvrent, la
+part de champ dégagée mesurée en surface), la mesure des distances sur photo (sol plan, sténopé) avec le
 calage automatique du champ de vision sur deux repères, et le format de dossier (conversion des fiches de la version 1, fichier
 tronqué, nom de fichier proposé).
 

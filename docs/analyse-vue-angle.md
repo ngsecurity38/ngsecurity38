@@ -16,7 +16,7 @@ Un seul fichier à récupérer — deux versions au choix :
 | Version | Poids | Pour qui |
 | --- | --- | --- |
 | [`analyse-vue-angle.html`](../outils/analyse-vue-angle/dist/analyse-vue-angle.html) | 1,5 Mo | le cas courant : études reçues en PDF normal |
-| [`analyse-vue-angle-ocr.html`](../outils/analyse-vue-angle/dist/analyse-vue-angle-ocr.html) | 7,6 Mo | si vos études arrivent **scannées** (§ 8) |
+| [`analyse-vue-angle-ocr.html`](../outils/analyse-vue-angle/dist/analyse-vue-angle-ocr.html) | 7,6 Mo | si vos études arrivent **scannées** (§ 9) |
 
 Les deux sont le même outil. La seconde embarque en plus un moteur de
 reconnaissance de caractères, qui pèse à lui seul près de 5 Mo : inutile de le
@@ -76,7 +76,7 @@ caméra** : son repère, son optique, ses deux vues, ses zones, son analyse et s
 observations.
 
 Un seul fichier `.json` enregistre tout le dossier, et le procès-verbal couvre
-tout le chantier (§ 13).
+tout le chantier (§ 14).
 
 > Les fiches enregistrées avec la première version de l'outil s'ouvrent
 > toujours : elles deviennent un dossier d'une seule caméra, sans rien perdre.
@@ -180,7 +180,7 @@ Le bouton **Proposition client** produit le document à remettre :
    de jour, mise en œuvre soumise au relevé définitif ;
 5. les deux cadres de signature.
 
-C'est un document commercial, distinct du procès-verbal de réception (§ 13) :
+C'est un document commercial, distinct du procès-verbal de réception (§ 14) :
 l'un dit ce qui est proposé, l'autre constate ce qui a été posé.
 
 > Une proposition qui tait ses conditions de validité n'engage personne. Les
@@ -254,7 +254,73 @@ rien n'est chiffré.
 
 ---
 
-## 5. Enregistrement et alimentation
+## 5. Murs et angles morts
+
+Un cône tracé sur un plan suppose le champ dégagé. Sur un site réel il ne l'est
+jamais, et la caméra qui « couvre le parking » sur le plan n'en voit que la
+moitié.
+
+### Tracer les murs
+
+Dans le bloc **C**, le bouton **Murs** : saisissez la hauteur, cliquez le début
+puis la fin. Le mur porte alors sa **longueur et sa hauteur** sur le plan —
+« 12,17 m · 3,5 m de haut ». Cliquez un mur tracé pour corriger sa hauteur.
+
+### Orienter les caméras
+
+Sur la fiche d'une caméra du synoptique, trois champs commandent le champ de
+vision : **orientation** (0° vers le haut du plan, sens horaire), **angle de
+champ** et **portée utile**. Laissés à zéro, l'outil reprend ceux du bloc 2 pour
+la caméra du même repère.
+
+### Ce que le calcul fait vraiment
+
+Il ne se contente pas de couper le cône au mur — ce serait faux dès qu'une
+caméra domine un muret :
+
+| Cas | Ce qui se passe |
+| --- | --- |
+| **Mur plus haut que la caméra** | plus rien n'est vu derrière |
+| **Mur plus bas** | la caméra voit son pied, perd une bande, **revoit le sol plus loin** |
+
+La longueur de cette bande se calcule :
+
+```
+D = d × hc / (hc − hm)
+```
+
+où `d` est la distance au mur, `hm` sa hauteur, `hc` celle de la caméra. Un
+muret de 2 m à 10 m, sous une caméra à 4 m, cache le sol de 10 à 20 m. **Monter
+la caméra raccourcit l'angle mort** : la même à 8 m ne le cache que jusqu'à
+13,3 m. C'est exactement l'arbitrage qu'on fait sur le terrain, et l'outil le
+chiffre.
+
+### Ce qui s'affiche
+
+Le champ est colorié par niveau d'exploitation, selon la légende sous le plan :
+
+| Couleur | Signification |
+| --- | --- |
+| Rouge | identification (250 px/m) |
+| Orange | reconnaissance (125 px/m) |
+| Jaune | observation (62 px/m) |
+| Vert | détection (25 px/m) |
+| Non colorié | angle mort, ou au-delà de la portée utile |
+
+Et le panneau chiffre, par caméra, la **part de champ réellement dégagée** —
+mesurée en surface, parce qu'un angle mort lointain coûte plus de terrain qu'un
+angle mort proche.
+
+### Au dossier
+
+Dès qu'un mur figure au plan, les deux documents portent une section
+*Couverture réelle* : la part dégagée de chaque caméra gênée, et son angle mort
+le plus étendu. C'est une réserve, pas un argument de vente — mais une étude qui
+promet un champ que les murs ne laissent pas passer se retourne à la réception.
+
+---
+
+## 6. Enregistrement et alimentation
 
 Le repli **Enregistrement et alimentation**, sous le synoptique, répond à la
 question du devis : quelle capacité, quel switch.
@@ -349,7 +415,7 @@ premier levier sur le prix.
 
 ---
 
-## 6. Concevoir un champ sur plan
+## 7. Concevoir un champ sur plan
 
 L'outil sert dans les deux sens. Les sections suivantes vérifient qu'une caméra
 posée respecte l'étude ; celle-ci fait l'inverse : **tracer le champ voulu sur
@@ -481,7 +547,7 @@ pixels par mètre, hauteur — plus le plan annoté.
 
 ---
 
-## 7. Avant d'aller sur site
+## 8. Avant d'aller sur site
 
 Préparer la **vue demandée** : la référence contractuelle.
 
@@ -490,7 +556,7 @@ Préparer la **vue demandée** : la référence contractuelle.
 2. Renseigner le bloc **2 · Caméra et optique** : le repère de la caméra, puis
    capteur, focale, résolution, distance à la scène, hauteur de pose.
    Ajouter une caméra par poste prévu au chantier (§ 2).
-3. Charger la vue demandée dans le premier cadre du bloc **3** — voir le § 8
+3. Charger la vue demandée dans le premier cadre du bloc **3** — voir le § 9
    ci-dessous pour partir directement du PDF de l'étude.
 4. **Enregistrer la fiche** : un fichier `.json` est téléchargé. Il contient
    tout, images comprises. C'est ce fichier que le technicien emporte.
@@ -517,7 +583,7 @@ largeur à telle distance, il donne la focale à monter.
 
 ---
 
-## 8. Partir du PDF de l'étude
+## 9. Partir du PDF de l'étude
 
 C'est le cas le plus courant : le client a remis une étude au format PDF, avec
 le plan d'implantation et, caméra par caméra, la vue attendue.
@@ -574,7 +640,7 @@ tirée. L'outil ne devine pas : il montre sa source.
 Déplier **Texte lu par l'outil**, sous le tableau. On y voit, page par page, ce
 que l'outil a réellement extrait du PDF, les passages retenus surlignés en vert.
 Une ligne présente mais non surlignée, c'est une formulation qu'il ne sait pas
-encore lire ; une page vide, c'est un scan (§ 8).
+encore lire ; une page vide, c'est un scan (§ 9).
 
 Le bouton **Copier le texte** met ce contenu dans le presse-papiers. Le
 transmettre suffit à faire ajouter la formulation manquante — inutile de sortir
@@ -630,7 +696,7 @@ vérifications distinctes : le **matériel** correspond-il à l'étude, et le
 > visuel. Pour la comparaison de cadrage, il faut une **image** de la vue
 > attendue — capture validée ou photo de repérage. À défaut, le relevé du
 > matériel reste exploitable, et la partie cadrage se traite au recalage manuel
-> (§ 12) ou se réserve pour une visite ultérieure.
+> (§ 13) ou se réserve pour une visite ultérieure.
 
 ### Si l'étude est un scan
 
@@ -655,7 +721,7 @@ praticable, une étude ne comptant qu'une poignée de chiffres par caméra.
 
 ---
 
-## 9. Sur site, après la pose
+## 10. Sur site, après la pose
 
 1. Ouvrir la fiche (**Ouvrir une fiche…**).
 2. Prendre une capture de l'image de la caméra et la charger dans le second
@@ -669,7 +735,7 @@ Le verdict s'affiche en bas :
 - **Ajustement mineur** — reprise rapide, la consigne indique quoi faire.
 - **Non conforme** — le réglage est à refaire.
 - **Recalage non concluant** — l'outil n'a pas pu rapprocher les deux images
-  (voir le § 12).
+  (voir le § 13).
 
 Les consignes sont directement exploitables : « Pivoter la caméra de 6,4° vers
 la gauche », « Relever la caméra de 2,4° », « Élargir le champ de 12 % (focale
@@ -694,7 +760,7 @@ Trois cases complètent l'affichage :
 
 ---
 
-## 10. Zones d'intérêt
+## 11. Zones d'intérêt
 
 Pour vérifier qu'un point précis reste dans le champ (portail, caisse, quai de
 livraison, allée) :
@@ -708,7 +774,7 @@ couvert. Le seuil d'exigence se règle dans le bloc **4** (95 % par défaut).
 
 ---
 
-## 11. Tolérances de réception
+## 12. Tolérances de réception
 
 | Réglage | Défaut | Signification |
 | --- | --- | --- |
@@ -724,14 +790,14 @@ de parking. Ce sont elles qui décident du verdict : à fixer avec le client
 
 ---
 
-## 12. Quand le recalage automatique échoue
+## 13. Quand le recalage automatique échoue
 
 L'outil annonce « recalage non concluant » quand les deux images ne se
 ressemblent pas assez. Les causes habituelles :
 
 - la vue demandée est un **plan ou un croquis**, pas une photo ;
 - la page d'étude retenue porte du texte ou un cartouche : la recadrer sur la
-  seule image (§ 8) suffit souvent à débloquer la situation ;
+  seule image (§ 9) suffit souvent à débloquer la situation ;
 - les deux prises de vue ont été faites depuis **des emplacements différents** ;
 - la scène a **réellement changé** (chantier, saison, véhicules déplacés) ;
 - le décalage dépasse les trois quarts du champ : il ne reste presque plus rien
@@ -743,7 +809,7 @@ direct, et le rapport indique que le recalage a été fait à la main.
 
 ---
 
-## 13. Rapport et archivage
+## 14. Rapport et archivage
 
 **Rapport / Impression** ouvre la boîte d'impression du navigateur. Choisir
 « Enregistrer au format PDF » pour obtenir le procès-verbal du chantier :
@@ -771,7 +837,7 @@ contrôle annuel ou d'une contestation.
 
 ---
 
-## 14. Mettre l'outil en ligne sur le site
+## 15. Mettre l'outil en ligne sur le site
 
 Utile pour y accéder depuis une tablette sans rien installer.
 
@@ -830,7 +896,7 @@ restreint, deux solutions côté hébergeur :
 
 ---
 
-## 15. Ce que l'outil ne fait pas
+## 16. Ce que l'outil ne fait pas
 
 - Il ne corrige pas la **distorsion** des objectifs très grand-angle. Les
   écarts restent justes au centre et se dégradent vers les bords de l'image.
@@ -839,28 +905,29 @@ restreint, deux solutions côté hébergeur :
 - Il ne juge pas la qualité d'image (netteté, bruit, exposition) : uniquement le
   cadrage.
 - Il lit le texte des PDF ; les études scannées passent par la reconnaissance
-  de caractères (§ 8), plus faillible, d'où l'avertissement qui les accompagne.
+  de caractères (§ 9), plus faillible, d'où l'avertissement qui les accompagne.
 - Le relevé reconnaît les formulations courantes des études d'implantation et
   des fiches constructeur — « focale 3,6 mm », « f = 4 mm », « H : 102° »,
   « 1/2,8 pouce », « 1 920 x 1 080 », « 1080p », valeurs en colonnes sous leur
   en-tête. Une mise en page inhabituelle peut malgré tout lui échapper : chaque
   valeur est donc affichée avec sa page et son extrait, et le texte lu reste
-  consultable pour comprendre ce qui manque (§ 8).
+  consultable pour comprendre ce qui manque (§ 9).
 - Il ne vérifie pas les points non chiffrés d'un cahier des charges (indice de
   protection, alimentation, chemin de câbles, conformité RGPD de l'affichage).
 - Il calcule le **budget PoE** d'un switch et la **capacité** de l'enregistreur
-  (§ 5), mais ni la section des alimentations, ni l'autonomie d'un onduleur, ni
+  (§ 6), mais ni la section des alimentations, ni l'autonomie d'un onduleur, ni
   la bande passante du lien Internet pour la consultation à distance.
 - Le stockage est calculé à **débit constant**. Un enregistrement sur détection
   consomme moins, un site très passant davantage ; la marge de sécurité est là
   pour cela, pas pour compenser un débit mal renseigné.
-- Il ne **dessine pas les murs** et ne calcule donc pas les **angles morts**
-  qu'ils créent. Les cônes tracés supposent le champ dégagé.
+- Les angles morts calculés (§ 5) supposent des **murs pleins et verticaux** sur
+  un **sol plat**. Une haie, un grillage, un talus ou une pente ne sont pas
+  modélisés ; les cônes du bloc B, eux, ignorent toujours les murs.
 - Il ne connaît pas le cheminement réel des câbles : il mesure celui que vous
   tracez. Fourreaux existants, passages de cloison et réservations restent à
   relever sur site — d'où la réserve appliquée par défaut.
 - Il ne tient pas à jour les catalogues constructeurs. Les références livrées
-  viennent de documents datés (§ 6) ; les tarifs, les disponibilités et les fins
+  viennent de documents datés (§ 7) ; les tarifs, les disponibilités et les fins
   de série ne sont pas de son ressort.
 - Il ne connaît pas le **format de capteur** des modèles du commerce : aucune
   brochure ne le publie. Les entrées concernées le disent (« ~ »), et la

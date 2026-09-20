@@ -111,6 +111,7 @@ function completer(f) {
       ...(f.synoptique || {}),
       noeuds: Array.isArray(f.synoptique?.noeuds) ? f.synoptique.noeuds : [],
       liens: Array.isArray(f.synoptique?.liens) ? f.synoptique.liens : [],
+      murs: Array.isArray(f.synoptique?.murs) ? f.synoptique.murs : [],
     },
     cameras: cameras.length ? cameras : [nouvelleCamera()],
   };

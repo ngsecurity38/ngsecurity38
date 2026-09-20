@@ -52,7 +52,11 @@ const HAUTEUR_DEFAUT = { camera: 3.5, switch: 0, nvr: 0, ecran: 1.2, baie: 0 };
  * les contrôles se taisent sur ce qu'ils ignorent.
  */
 const CHAMPS_TYPE = {
-  camera: { debit: 0, conso: 0 },
+  camera: {
+    debit: 0, conso: 0,
+    // Orientation sur le plan : sans elle, pas de cône ni d'angle mort.
+    azimut: 0, ouverture: 0, portee: 0,
+  },
   switch: { ports: 0, portsPoe: 0, budgetPoe: 0 },
   nvr: { canaux: 0, capacite: 0 },
   ecran: {},
@@ -66,7 +70,7 @@ let compteur = 0;
 const identifiant = (prefixe) => `${prefixe}-${Date.now().toString(36)}-${(compteur += 1)}`;
 
 /** Synoptique vierge. */
-export const nouveauSynoptique = () => ({ noeuds: [], liens: [] });
+export const nouveauSynoptique = () => ({ noeuds: [], liens: [], murs: [] });
 
 /**
  * Nouveau matériel posé sur le plan.
@@ -99,6 +103,9 @@ export const champsDeType = (type) => Object.keys(CHAMPS_TYPE[type] || {});
 
 /** Étiquettes des champs de fiche matériel, en clair. */
 export const LIBELLES_MATERIEL = {
+  azimut: 'Orientation (°)',
+  ouverture: 'Angle de champ (°)',
+  portee: 'Portée utile (m)',
   debit: 'Débit (Mbit/s)',
   conso: 'Consommation PoE (W)',
   ports: 'Ports (total)',

@@ -1377,6 +1377,111 @@ console.log('\nSynoptique de câblage');
     affirmer(pendants === 0, 'aucune liaison pendante ne doit subsister');
   });
 
+  await cas('une caméra orientée trace son champ, un mur le découpe', async () => {
+    page.once('dialog', (d) => d.accept());
+    await page.click('#reseau-effacer');
+    // « Tout effacer » vide le matériel, pas le calibrage : un test précédent
+    // a porté la distance de référence à 120 m, et l'échelle avec elle.
+    await page.fill('#reseau-etalon', '40');
+    await page.dispatchEvent('#reseau-etalon', 'change');
+    await page.waitForTimeout(200);
+
+    await page.click('[data-reseau-outil="poser"]');
+    await page.selectOption('#reseau-type', 'camera');
+    await clic(0.3, 0.3);
+    await page.click('[data-reseau-outil="deplacer"]');
+    await clic(0.3, 0.3);
+
+    const saisir = async (champ, valeur) => {
+      const sel = `#reseau-selection [data-materiel="${champ}"]`;
+      await page.fill(sel, valeur);
+      await page.dispatchEvent(sel, 'change');
+    };
+    await saisir('hauteur', '4');
+    await saisir('azimut', '150');
+    await saisir('ouverture', '80');
+    await saisir('portee', '45');
+    await page.waitForTimeout(200);
+
+    // Les quatre valeurs doivent avoir été prises : le formulaire ne doit pas
+    // se reconstruire entre deux champs, sous peine d'en perdre un sur deux.
+    const lu = await page.evaluate(() => Object.fromEntries(
+      [...document.querySelectorAll('#reseau-selection [data-materiel]')]
+        .map((e) => [e.dataset.materiel, e.value]),
+    ));
+    affirmer(lu.azimut === '150' && lu.ouverture === '80' && lu.portee === '45',
+      `saisie perdue : ${JSON.stringify(lu)}`);
+
+    const part = () => page.evaluate(() => {
+      const t = [...document.querySelectorAll('#couverture-mesures .mesure')]
+        .find((x) => /Champ dégagé/.test(x.querySelector('.cle').textContent));
+      return t ? parseFloat(t.querySelector('.val').textContent.replace(',', '.')) : 100;
+    });
+    affirmer(await part() === 100, 'sans mur, le champ est entièrement dégagé');
+
+    // Un muret de 2 m : la caméra voit par-dessus, mais perd une bande.
+    await page.fill('#mur-hauteur', '2');
+    await page.click('[data-reseau-outil="mur"]');
+    await clic(0.15, 0.52);
+    await clic(0.75, 0.52);
+    await page.waitForTimeout(250);
+    const avecMuret = await part();
+    affirmer(avecMuret > 30 && avecMuret < 95,
+      `un muret entame le champ sans le supprimer : ${avecMuret} %`);
+
+    // Le même mur porté à 5 m : plus rien ne passe au-dessus.
+    await page.click('[data-reseau-outil="deplacer"]');
+    await clic(0.45, 0.52);
+    await page.fill('#reseau-selection [data-mur="hauteur"]', '5');
+    await page.dispatchEvent('#reseau-selection [data-mur="hauteur"]', 'change');
+    await page.waitForTimeout(250);
+    const avecMur = await part();
+    affirmer(avecMur < avecMuret,
+      `un mur haut doit cacher davantage qu'un muret : ${avecMur} % vs ${avecMuret} %`);
+  });
+
+  await cas('le mur porte sa longueur et sa hauteur', async () => {
+    const m = await page.evaluate(() => Object.fromEntries(
+      [...document.querySelectorAll('#couverture-mesures .mesure')].map((t) => [
+        t.querySelector('.cle').textContent.trim(),
+        t.querySelector('.val').textContent.trim(),
+      ]),
+    ));
+    affirmer(m['Murs tracés'] === '1', `murs comptés : ${m['Murs tracés']}`);
+    affirmer(/^4[78],\d/.test(m['Longueur de murs'] || ''),
+      `0,6 unité à 80 m/unité font 48 m : ${m['Longueur de murs']}`);
+
+    /*
+     * La longueur figure aussi sur le plan, dans un cartouche sombre à côté du
+     * trait — et ce cartouche doit rester modeste.
+     *
+     * Sa hauteur se déduisait de `ctx.font` : dès que la police a porté une
+     * graisse, « 600 16px … » a été lu 600, et chaque étiquette traînait un
+     * rectangle noir de six cents pixels. Mesuré ici : 0,5 % de la toile quand
+     * tout va bien, 11 % avec ce défaut.
+     */
+    const sombre = await page.evaluate(() => {
+      const t = document.querySelector('#toile-reseau');
+      const d = t.getContext('2d').getImageData(0, 0, t.width, t.height).data;
+      let n = 0;
+      for (let i = 0; i < d.length; i += 4) {
+        if (d[i] < 60 && d[i + 1] < 60 && d[i + 2] < 60) n += 1;
+      }
+      return { n, total: t.width * t.height };
+    });
+    affirmer(sombre.n > 200, `l'étiquette doit être dessinée : ${sombre.n} px`);
+    affirmer(sombre.n < sombre.total * 0.03,
+      `cartouche démesuré : ${sombre.n} px sur ${sombre.total}`);
+  });
+
+  await cas('la couverture réelle figure au procès-verbal', async () => {
+    await page.click('#btn-rapport');
+    await page.waitForTimeout(600);
+    const rapport = await page.evaluate(() => document.querySelector('#rapport').innerHTML);
+    affirmer(/Couverture réelle/.test(rapport), 'la section doit figurer');
+    affirmer(/Angle mort le plus étendu/.test(rapport), 'avec les angles morts chiffrés');
+  });
+
   await cas('le calcul de stockage reprend l\'exemple de référence', async () => {
     // Huit caméras à 5 Mbps, 30 jours, 20 % de marge : 15 552 Go, soit 16 To.
     // Le tout posé par le code : l\'interface a déjà été éprouvée plus haut.

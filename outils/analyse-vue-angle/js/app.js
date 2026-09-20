@@ -40,6 +40,9 @@ import {
 import {
   CODECS, MARGE_DEFAUT, debitEstime, bilan, classePour,
 } from './stockage.js';
+import {
+  nouveauMur, longueurMur, balayage, partVisible, anglesMorts,
+} from './murs.js';
 
 const nb = (el, defaut = 0) => {
   const v = parseFloat(el.value);
@@ -97,6 +100,9 @@ const etat = {
   reseauDepuis: null, // premier matériel d'une liaison en cours
   reseauPoints: [], // points de passage de la liaison en cours
   reseauChoisi: null, // matériel sélectionné
+  murDebut: null, // premier point d'un mur en cours de tracé
+  murChoisi: null, // mur sélectionné
+  ficheRendue: null, // ce que porte le formulaire de fiche affiché
   synoptique: null, // câblage du site, cf. js/reseau.js
   photoEtape: null, // étape en cours sur la photo de repérage
   document: 'pv', // 'pv' ou 'proposition' — ce que l'impression doit produire
@@ -2625,6 +2631,11 @@ function consigneReseau() {
       ? 'Cliquez le matériel d\'arrivée — ou un point de passage pour contourner.'
       : 'Cliquez le matériel de départ.';
   }
+  if (etat.reseauOutil === 'mur') {
+    return etat.murDebut
+      ? 'Cliquez la fin du mur.'
+      : 'Cliquez le début d\'un mur — sa hauteur est celle saisie ci-dessous.';
+  }
   if (etat.reseauOutil === 'deplacer') return 'Faites glisser un matériel pour le replacer.';
   if (etat.reseauOutil === 'supprimer') return 'Cliquez un matériel ou une liaison à supprimer.';
   return 'Plan calibré. Posez le matériel, puis tirez les liaisons.';
@@ -2641,6 +2652,7 @@ function majReseau() {
   const recap = recapReseau();
   majTableauReseau(recap);
   majSelectionReseau();
+  majCouverture();
   const b = majEnregistrement();
   // Les alertes des deux familles — câblage et exploitation — sont rendues
   // ensemble : sur le chantier elles se traitent d'un même mouvement.
@@ -2729,6 +2741,10 @@ function rendreReseau() {
   toile.height = h;
   const ctx = toile.getContext('2d');
   ctx.drawImage(r.image.img, 0, 0, l, h);
+  // Du fond vers la surface : couverture, murs, câblage, matériel. Les champs
+  // de vision doivent passer sous les murs qui les découpent.
+  dessinerCouverture(ctx, l, bilanCouverture());
+  dessinerMurs(ctx, l, r, echelleReseau());
   dessinerReseau(ctx, l, r, recapReseau());
 
   const arbre = $('#toile-arbre');
@@ -2855,10 +2871,20 @@ function pointMedian(points) {
   return points[points.length - 1];
 }
 
-/** Étiquette lisible sur n'importe quel fond : un cartouche sombre, du texte clair. */
+/**
+ * Étiquette lisible sur n'importe quel fond : un cartouche sombre, du texte
+ * clair.
+ *
+ * La hauteur du cartouche se prend sur le texte lui-même, mesuré par le
+ * navigateur. Elle se déduisait auparavant de `ctx.font`, ce qui marchait tant
+ * que la police n'avait pas de graisse : avec « 600 16px … », `parseInt` lit
+ * 600 et non 16, et chaque étiquette traînait derrière elle un rectangle noir
+ * de six cents pixels de haut.
+ */
 function cartouche(ctx, texte, x, y, couleur) {
-  const large = ctx.measureText(texte).width;
-  const haut = Number.parseInt(ctx.font, 10) + 6;
+  const m = ctx.measureText(texte);
+  const large = m.width;
+  const haut = (m.actualBoundingBoxAscent || 8) + (m.actualBoundingBoxDescent || 3) + 6;
   ctx.save();
   ctx.fillStyle = 'rgba(16, 19, 23, .78)';
   ctx.fillRect(x - 3, y - haut / 2, large + 6, haut);
@@ -2949,6 +2975,13 @@ function lienSous(p, l) {
   return null;
 }
 
+/** Mur passant sous le pointeur, ou null. */
+function murSous(p, l) {
+  const r = synoptiqueCourant();
+  const seuil = Math.max(6, l / 120) / l;
+  return (r.murs || []).find((m) => distancePointSegment(p, m.a, m.b) <= seuil) || null;
+}
+
 /** Distance d'un point à un segment, en unités normalisées. */
 function distancePointSegment(p, a, b) {
   const dx = b.x - a.x;
@@ -3028,12 +3061,24 @@ function brancherReseau() {
       return;
     }
 
+    if (etat.reseauOutil === 'mur') {
+      if (!etat.murDebut) etat.murDebut = p;
+      else {
+        r.murs.push(nouveauMur(etat.murDebut, p, nb($('#mur-hauteur'), 2.5)));
+        etat.murDebut = null;
+      }
+      majReseau();
+      return;
+    }
+
     if (etat.reseauOutil === 'supprimer') {
       const n = noeudSous(p, l);
       if (n) supprimerNoeud(n.id);
       else {
         const lien = lienSous(p, l);
+        const mur = lien ? null : murSous(p, l);
         if (lien) r.liens = r.liens.filter((x) => x !== lien);
+        else if (mur) r.murs = r.murs.filter((x) => x !== mur);
       }
       majReseau();
       return;
@@ -3041,6 +3086,7 @@ function brancherReseau() {
 
     const n = noeudSous(p, l);
     etat.reseauChoisi = n ? n.id : null;
+    etat.murChoisi = n ? null : (murSous(p, l)?.id || null);
     if (n && etat.reseauOutil === 'deplacer') {
       glisse = { id: n.id, dx: n.x - p.x, dy: n.y - p.y };
       toile.setPointerCapture(e.pointerId);
@@ -3072,9 +3118,12 @@ function brancherReseau() {
 
 /** Le curseur dit ce que fera le clic. */
 function curseurReseau(p, l) {
-  if (etat.reseauOutil === 'calage' || etat.reseauOutil === 'poser') return 'crosshair';
+  if (etat.reseauOutil === 'calage' || etat.reseauOutil === 'poser'
+    || etat.reseauOutil === 'mur') return 'crosshair';
   const n = noeudSous(p, l);
-  if (etat.reseauOutil === 'supprimer') return n || lienSous(p, l) ? 'pointer' : 'default';
+  if (etat.reseauOutil === 'supprimer') {
+    return n || lienSous(p, l) || murSous(p, l) ? 'pointer' : 'default';
+  }
   if (etat.reseauOutil === 'relier') return n ? 'pointer' : 'crosshair';
   if (etat.reseauOutil === 'deplacer') return n ? 'grab' : 'default';
   return n ? 'pointer' : 'default';
@@ -3082,9 +3131,44 @@ function curseurReseau(p, l) {
 
 /** Fiche du matériel sélectionné : nom, hauteur, référence. */
 function majSelectionReseau() {
-  const n = noeudPar(synoptiqueCourant(), etat.reseauChoisi);
   const boite = $('#reseau-selection');
+
+  /*
+   * La fiche n'est reconstruite que lorsque la sélection change.
+   *
+   * La reconstruire à chaque rafraîchissement paraissait sans conséquence.
+   * Elle en avait une, vicieuse : en passant d'un champ au suivant, le
+   * navigateur envoie le `change` du champ quitté, ce qui rafraîchissait tout
+   * et **remplaçait le champ qu'on venait d'atteindre**. La saisie suivante
+   * partait alors dans un élément déjà détaché et se perdait — un champ sur
+   * deux, sans le moindre message.
+   *
+   * Les valeurs affichées sont de toute façon celles que l'utilisateur vient
+   * de saisir : il n'y a rien à redessiner tant qu'il reste sur la même fiche.
+   */
+  const cle = `${etat.reseauChoisi || ''}|${etat.murChoisi || ''}|${echelleReseau().toFixed(3)}`;
+  if (cle === etat.ficheRendue) return;
+  etat.ficheRendue = cle;
+  const mur = (synoptiqueCourant().murs || []).find((m) => m.id === etat.murChoisi);
+  if (mur && !etat.reseauChoisi) {
+    boite.innerHTML = `<div class="grille2">
+      <label>Hauteur du mur (m)
+        <input type="number" data-mur="hauteur" value="${mur.hauteur}" min="0.1" max="30" step="0.1">
+      </label>
+      <label>Longueur
+        <input type="text" value="${fmt(longueurMur(mur, echelleReseau()))} m" disabled>
+      </label>
+    </div>`;
+    $('[data-mur="hauteur"]').addEventListener('change', (e) => {
+      mur.hauteur = nb(e.target, 2.5);
+      majReseau();
+    });
+    return;
+  }
+
+  const n = noeudPar(synoptiqueCourant(), etat.reseauChoisi);
   if (!n) { boite.innerHTML = ''; return; }
+
   const champs = champsDeType(n.type)
     .map((c) => `<label>${ech(LIBELLES_MATERIEL[c] || c)}
       <input type="number" data-materiel="${c}" value="${n[c] || ''}" min="0" step="0.1">
@@ -3277,14 +3361,16 @@ function brancherCommandesReseau() {
     etat.reseauDepuis = null;
     etat.reseauPoints = [];
     etat.etalonReseauPartiel = null;
+    etat.murDebut = null;
     majReseau();
   }));
 
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape' || etat.mode !== 'reseau') return;
-    if (!etat.reseauOutil && !etat.reseauDepuis) return;
+    if (!etat.reseauOutil && !etat.reseauDepuis && !etat.murDebut) return;
     etat.reseauOutil = null;
     etat.reseauDepuis = null;
+    etat.murDebut = null;
     etat.reseauPoints = [];
     etat.etalonReseauPartiel = null;
     majReseau();
@@ -3321,6 +3407,8 @@ function brancherCommandesReseau() {
   ['#nvr-jours', '#nvr-heures', '#nvr-marge', '#nvr-codec', '#nvr-ips']
     .forEach((id) => $(id).addEventListener('change', majReseau));
   $('#nvr-estimer').addEventListener('click', estimerDebits);
+  $('#mur-hauteur').addEventListener('change', majReseau);
+  $('#opt-couverture').addEventListener('change', majReseau);
   $('#nvr-marge').value = Math.round(MARGE_DEFAUT * 100);
 
   $('#reseau-cameras').addEventListener('click', poserCamerasDeLaFiche);
@@ -3330,6 +3418,9 @@ function brancherCommandesReseau() {
     const r = synoptiqueCourant();
     r.noeuds = [];
     r.liens = [];
+    r.murs = [];
+    etat.murChoisi = null;
+    etat.murDebut = null;
     etat.reseauChoisi = null;
     etat.reseauDepuis = null;
     etat.reseauPoints = [];
@@ -3338,6 +3429,227 @@ function brancherCommandesReseau() {
 
   brancherReseau();
   brancherDepotReseau();
+}
+
+/* ------------------------------------------------------- murs et couverture */
+
+/**
+ * Couleurs de couverture, selon la légende du cahier des charges.
+ *
+ * Le dégradé suit la densité de pixels : plus on s'éloigne, moins l'image est
+ * exploitable. Le gris hachuré des angles morts n'est pas dessiné — c'est
+ * l'absence de couleur qui les montre, et un trou se voit mieux qu'un motif.
+ */
+const COULEURS_DORI = {
+  identification: 'rgba(200, 16, 46, .38)',
+  reconnaissance: 'rgba(232, 126, 24, .34)',
+  observation: 'rgba(217, 155, 31, .30)',
+  detection: 'rgba(46, 174, 106, .26)',
+};
+
+/** Portée utile d'une caméra du synoptique, sa saisie l'emportant sur le calcul. */
+function porteeNoeud(n) {
+  if (n.portee > 0) return n.portee;
+  // À défaut, la portée de détection du matériel configuré : mieux qu'un cône
+  // arbitraire, et cohérent avec le reste du dossier.
+  const cam = etat.cameras.find((c) => c.nom === n.nom);
+  const c = cam ? configDe(cam.optique) : configCamera();
+  return porteeUtile(c.resolution.h, c.angles.horizontal, SEUILS_DORI.detection.ppm);
+}
+
+/** Angle de champ d'une caméra du synoptique, sa saisie l'emportant. */
+function ouvertureNoeud(n) {
+  if (n.ouverture > 0) return n.ouverture;
+  const cam = etat.cameras.find((c) => c.nom === n.nom);
+  const c = cam ? configDe(cam.optique) : configCamera();
+  return c.angles.horizontal;
+}
+
+/** Caméras du synoptique orientées, prêtes à être balayées. */
+function camerasOrientees() {
+  const r = synoptiqueCourant();
+  return r.noeuds
+    .filter((n) => n.type === 'camera')
+    .map((n) => ({
+      noeud: n,
+      camera: {
+        x: n.x,
+        y: n.y,
+        hauteur: n.hauteur > 0 ? n.hauteur : 3.5,
+        azimut: n.azimut,
+        ouverture: ouvertureNoeud(n),
+      },
+      portee: porteeNoeud(n),
+    }))
+    .filter((c) => c.camera.ouverture > 0 && c.portee > 0);
+}
+
+/** Bilan de couverture : part visible, angles morts, caméras sans orientation. */
+function bilanCouverture() {
+  const r = synoptiqueCourant();
+  const echelle = echelleReseau();
+  if (!echelle) return null;
+
+  const cameras = camerasOrientees();
+  const parCamera = cameras.map((c) => {
+    const rayons = balayage(c.camera, r.murs, echelle, c.portee, { pas: 1.5 });
+    return {
+      ...c,
+      rayons,
+      part: partVisible(rayons, c.portee),
+      trous: anglesMorts(rayons, c.portee, 2),
+    };
+  });
+
+  const sansOrientation = r.noeuds.filter(
+    (n) => n.type === 'camera' && !(ouvertureNoeud(n) > 0 && porteeNoeud(n) > 0),
+  );
+
+  return {
+    parCamera,
+    sansOrientation,
+    murs: r.murs.length,
+    longueurMurs: r.murs.reduce((s, m) => s + longueurMur(m, echelle), 0),
+  };
+}
+
+/** Panneau « couverture et angles morts ». */
+function majCouverture() {
+  const b = bilanCouverture();
+  const boite = $('#couverture-mesures');
+  if (!b || (!b.parCamera.length && !b.murs)) {
+    boite.innerHTML = '';
+    $('#couverture-legende').innerHTML = '';
+    return b;
+  }
+
+  const genes = b.parCamera.filter((c) => c.part < 0.995);
+  boite.innerHTML = mesure('Murs tracés', String(b.murs), '')
+    + mesure('Longueur de murs', fmt(b.longueurMurs), 'm')
+    + (b.parCamera.length ? mesure('Caméras orientées', String(b.parCamera.length), '') : '')
+    + genes.map((c) => mesure(
+      `Champ dégagé — ${nomNoeud(c.noeud)}`,
+      fmt(c.part * 100, 0), '%',
+      c.part < 0.8,
+    )).join('');
+
+  $('#couverture-legende').innerHTML = b.parCamera.length
+    ? `<ul class="legende">
+        <li><span style="background:${COULEURS_DORI.identification}"></span>Identification</li>
+        <li><span style="background:${COULEURS_DORI.reconnaissance}"></span>Reconnaissance</li>
+        <li><span style="background:${COULEURS_DORI.observation}"></span>Observation</li>
+        <li><span style="background:${COULEURS_DORI.detection}"></span>Détection</li>
+        <li><span class="vide"></span>Angle mort</li>
+      </ul>`
+    : '';
+
+  return b;
+}
+
+/** Dessine les champs de vision, découpés par les murs. */
+function dessinerCouverture(ctx, l, bilanC) {
+  if (!bilanC || !$('#opt-couverture').checked) return;
+  const echelle = echelleReseau();
+  if (!echelle) return;
+
+  ctx.save();
+  for (const c of bilanC.parCamera) {
+    const sommet = { x: c.camera.x * l, y: c.camera.y * l };
+    const seuils = tableauPorteesNoeud(c.noeud);
+
+    /*
+     * Un quadrilatère par rayon et par bande : c'est ce qui permet de
+     * représenter un angle mort **au milieu** du cône. Un polygone unique ne
+     * saurait montrer qu'un cône tronqué, alors qu'un muret cache une bande et
+     * laisse voir au-delà.
+     */
+    for (let i = 1; i < c.rayons.length; i += 1) {
+      const a = c.rayons[i - 1];
+      const b = c.rayons[i];
+      for (const [d0, d1] of a.intervalles) {
+        // La bande du rayon voisin qui recouvre celle-ci, pour fermer le quad.
+        const jumelle = b.intervalles.find(([e0, e1]) => e1 > d0 && e0 < d1);
+        if (!jumelle) continue;
+        const debut = Math.max(d0, jumelle[0]);
+        const fin = Math.min(d1, jumelle[1]);
+        if (fin <= debut) continue;
+        bandesDori(ctx, sommet, a.direction, b.direction, debut, fin, seuils, echelle, l);
+      }
+    }
+  }
+  ctx.restore();
+}
+
+/** Portées d'exploitation d'une caméra du synoptique, du plus exigeant au moins. */
+function tableauPorteesNoeud(n) {
+  const cam = etat.cameras.find((c) => c.nom === n.nom);
+  const c = cam ? configDe(cam.optique) : configCamera();
+  return ['identification', 'reconnaissance', 'observation', 'detection'].map((cle) => ({
+    cle,
+    distance: porteeUtile(c.resolution.h, c.angles.horizontal, SEUILS_DORI[cle].ppm),
+  }));
+}
+
+/** Découpe un morceau de secteur selon les niveaux d'exploitation. */
+function bandesDori(ctx, sommet, dirA, dirB, debut, fin, seuils, echelle, l) {
+  const versPlan = (m) => m / echelle * l;
+  let curseur = debut;
+  for (const s of seuils) {
+    if (s.distance <= curseur) continue;
+    const borne = Math.min(s.distance, fin);
+    if (borne > curseur) {
+      quadrilatere(ctx, sommet, dirA, dirB, versPlan(curseur), versPlan(borne),
+        COULEURS_DORI[s.cle]);
+      curseur = borne;
+    }
+    if (curseur >= fin) return;
+  }
+  // Au-delà de la détection, l'image ne vaut plus rien : on ne colorie pas.
+}
+
+function quadrilatere(ctx, sommet, dirA, dirB, r0, r1, couleur) {
+  ctx.fillStyle = couleur;
+  ctx.beginPath();
+  ctx.moveTo(sommet.x + dirA.x * r0, sommet.y + dirA.y * r0);
+  ctx.lineTo(sommet.x + dirA.x * r1, sommet.y + dirA.y * r1);
+  ctx.lineTo(sommet.x + dirB.x * r1, sommet.y + dirB.y * r1);
+  ctx.lineTo(sommet.x + dirB.x * r0, sommet.y + dirB.y * r0);
+  ctx.closePath();
+  ctx.fill();
+}
+
+/** Dessine les murs, avec leur longueur et leur hauteur. */
+function dessinerMurs(ctx, l, r, echelle) {
+  const trait = Math.max(2, l / 320);
+  ctx.save();
+  ctx.lineWidth = trait;
+  ctx.lineCap = 'round';
+  ctx.font = `600 ${Math.max(10, Math.round(l / 78))}px ${policeToile()}`;
+  ctx.textBaseline = 'middle';
+
+  for (const mur of r.murs || []) {
+    const a = { x: mur.a.x * l, y: mur.a.y * l };
+    const b = { x: mur.b.x * l, y: mur.b.y * l };
+    ctx.strokeStyle = mur.id === etat.murChoisi ? '#fff' : '#101317';
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x, b.y);
+    ctx.stroke();
+
+    if (echelle > 0) {
+      cartouche(ctx, `${fmt(longueurMur(mur, echelle))} m · ${fmt(mur.hauteur)} m de haut`,
+        (a.x + b.x) / 2 + trait * 2, (a.y + b.y) / 2, '#fff');
+    }
+  }
+
+  if (etat.murDebut) {
+    const p = { x: etat.murDebut.x * l, y: etat.murDebut.y * l };
+    ctx.fillStyle = '#101317';
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, trait * 1.6, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
 }
 
 /* ================================================== fiche : enregistrer / ouvrir */
@@ -3793,6 +4105,36 @@ function construireProposition() {
 }
 
 /**
+ * Couverture réelle et angles morts, au dossier.
+ *
+ * Un cône tracé sans les murs promet plus que l'installation ne tiendra. Dès
+ * qu'un mur figure au plan, le document dit quelle part du champ reste
+ * réellement dégagée — c'est une réserve, pas un argument de vente, et elle a
+ * sa place dans les deux documents.
+ */
+function sectionCouverture() {
+  const b = bilanCouverture();
+  if (!b || !b.murs || !b.parCamera.length) return '';
+
+  const genes = b.parCamera.filter((c) => c.part < 0.995);
+  return `<h3>Couverture réelle</h3>
+    <p>${plur(b.murs, 'mur')} au plan, ${fmt(b.longueurMurs)} m au total. La part
+      dégagée tient compte des angles morts qu'ils créent : un mur plus bas que la
+      caméra se laisse survoler et ne cache qu'une bande de terrain, un mur plus
+      haut arrête la vue.</p>
+    ${genes.length ? `<table>
+      <thead><tr><th>Caméra</th><th>Champ dégagé</th><th>Angle mort le plus étendu</th></tr></thead>
+      <tbody>${genes.map((c) => `<tr>
+        <td>${ech(nomNoeud(c.noeud))}</td>
+        <td>${fmt(c.part * 100, 0)} %</td>
+        <td>${c.trous.length
+          ? `${fmt(c.trous[0].debut)} à ${fmt(c.trous[0].fin)} m`
+          : '—'}</td>
+      </tr>`).join('')}</tbody>
+    </table>` : '<p>Aucune caméra n\'est gênée par les murs relevés.</p>'}`;
+}
+
+/**
  * Enregistrement et alimentation, au dossier.
  *
  * Le calcul est écrit en toutes lettres plutôt que réduit à son résultat : un
@@ -3849,7 +4191,7 @@ function sectionEnregistrement() {
  */
 function sectionSynoptique(pourClient = false) {
   const r = etat.synoptique;
-  if (!r?.image?.img || !r.noeuds.length) return '';
+  if (!r?.image?.img || !(r.noeuds.length || r.murs?.length)) return '';
   const recap = recapReseau();
   const plan = $('#toile-reseau').toDataURL('image/png');
   const arbre = $('#toile-arbre').toDataURL('image/png');
@@ -3901,6 +4243,8 @@ function sectionSynoptique(pourClient = false) {
         elles servent au chiffrage et non à la commande au mètre près.</p>`
     : '<p>Le plan n\'ayant pas été calibré sur une distance connue, les longueurs '
       + 'de câble ne sont pas chiffrées.</p>'}
+
+      ${sectionCouverture()}
 
       ${sectionEnregistrement()}
 
