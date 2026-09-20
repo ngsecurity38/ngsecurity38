@@ -60,7 +60,65 @@ Un `200 OK` et c'est en ligne, à `http://72.62.24.92:8080/outils/etude/`.
 
 ---
 
-## Le mettre sur votre domaine
+## Derrière un proxy qui tourne déjà
+
+C'est le cas de ce VPS : un `caddy:2-alpine` tient 80 et 443, devant un
+backend et un Postgres.
+
+Dans cette configuration, **le conteneur des outils ne publie aucun port**.
+Il s'attache au réseau du proxy, qui le joint par son nom. Publier un port
+serait au mieux inutile, au pire une porte ouverte sans TLS.
+
+```bash
+# 1. Le nom du réseau de Caddy
+docker inspect deploy-caddy-1 \
+  --format '{{range $k, $v := .NetworkSettings.Networks}}{{$k}} {{end}}'
+
+# 2. Le reporter dans .env, ligne RESEAU_PROXY
+nano deploiement/.env
+
+# 3. Lancer la variante « derrière un proxy »
+docker compose -f deploiement/docker-compose.proxy.yml up -d
+
+# 4. Vérifier depuis le conteneur Caddy lui-même
+docker exec deploy-caddy-1 wget -qO- http://ngs-outils/outils/etude/ | head -3
+```
+
+Si la dernière commande affiche du HTML, le proxy voit les pages. Reste à
+lui dire de les servir.
+
+### La règle Caddy
+
+À ajouter dans le Caddyfile, **dans le bloc du domaine voulu** :
+
+```caddy
+handle_path /outils/* {
+    reverse_proxy ngs-outils:80
+}
+```
+
+Attention à `handle_path` plutôt que `handle` : il retire `/outils` avant de
+transmettre. Comme nos pages vivent déjà sous `/outils/` côté nginx, c'est
+`handle` qu'il faut ici — sans quoi le chemin serait retiré deux fois :
+
+```caddy
+handle /outils/* {
+    reverse_proxy ngs-outils:80
+}
+```
+
+Puis recharger sans interruption :
+
+```bash
+docker exec deploy-caddy-1 caddy reload --config /etc/caddy/Caddyfile
+```
+
+> **Avant de toucher au Caddyfile**, copiez-le : `cp Caddyfile Caddyfile.bak`.
+> C'est lui qui sert vos autres applications.
+
+---
+
+## En autonome, si aucun proxy n'est devant
 
 Deux façons, selon ce qui tourne déjà.
 

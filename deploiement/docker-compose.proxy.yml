@@ -1,0 +1,35 @@
+# Les deux pages d'outils, DERRIÈRE le Caddy qui tourne déjà — NG Security 38.
+#
+#   docker compose -f deploiement/docker-compose.proxy.yml up -d
+#
+# À utiliser quand un proxy occupe déjà 80 et 443, ce qui est le cas sur ce
+# VPS. Aucun port n'est publié : Caddy joint le conteneur par son nom, sur le
+# réseau qu'ils partagent. Publier un port ici serait au mieux inutile, au
+# pire une porte ouverte sur l'internet sans TLS.
+services:
+  outils:
+    image: nginx:alpine
+    container_name: ngs-outils
+    restart: unless-stopped
+    expose:
+      - "80"
+    environment:
+      DOMAINE: ${DOMAINE:-_}
+      NGINX_ENVSUBST_FILTER: DOMAINE
+    volumes:
+      - ../docs/outils:/usr/share/nginx/html/outils:ro
+      - ./templates:/etc/nginx/templates:ro
+    networks:
+      - proxy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/outils/etude/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+networks:
+  proxy:
+    # Le réseau de Caddy, déjà créé par l'autre pile : on s'y raccroche sans
+    # rien en créer. Son nom se lit dans .env (RESEAU_PROXY).
+    external: true
+    name: ${RESEAU_PROXY:?renseignez RESEAU_PROXY dans deploiement/.env}

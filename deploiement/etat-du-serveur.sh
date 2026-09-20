@@ -42,6 +42,17 @@ done
 echo "(rien d'affiché ci-dessus = aucun proxy détecté)"
 
 echo
+echo "===== se brancher derrière le proxy ====="
+# De quoi remplir RESEAU_PROXY, et retrouver la configuration du proxy.
+for c in $(docker ps --format '{{.Names}}' 2>/dev/null | grep -iE 'caddy|traefik|nginx|proxy'); do
+  echo "--- $c ---"
+  echo "réseaux : $(docker inspect "$c" --format '{{range $k, $v := .NetworkSettings.Networks}}{{$k}} {{end}}' 2>/dev/null)"
+  # Les points de montage disent où vit la configuration, sans la lire : un
+  # fichier de configuration peut contenir des identifiants.
+  docker inspect "$c" --format '{{range .Mounts}}monté  : {{.Source}} -> {{.Destination}}{{"\n"}}{{end}}' 2>/dev/null
+done
+
+echo
 echo "===== le port 8080 est-il libre ? ====="
 if (ss -tln 2>/dev/null || netstat -tln 2>/dev/null) | grep -q ':8080 '; then
   echo "NON — choisir un autre PORT dans deploiement/.env"
