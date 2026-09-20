@@ -9,10 +9,14 @@
  * C'est le seul fichier à modifier pour mettre un tarif à jour.
  */
 
-import { $ } from './dom.js';
+import { $, $$ } from './dom.js';
 import { fr } from './format.js';
 import { TYPES_SITE, RESERVES, composer } from './offre.js';
 import { ligne, devis, euros, TVA_DEFAUT, MARGE_COMMERCIALE } from './prix.js';
+import {
+  etatPhotos, zoneCourante, reduire, mesureZone, niveauAtteint, porteeNiveau,
+  position, dessiner, priseSous, transformer, appareilsClient,
+} from './photo-client.js';
 
 /**
  * Où la demande d'étude est envoyée.
@@ -77,7 +81,10 @@ function calculer() {
   if (!t) return;
 
   const r = reponses();
-  const offre = composer(r, t.articles || [], {});
+  // Une photo étudiée vaut mieux qu'un nombre déclaré : quand le visiteur en a
+  // posé, ce sont elles qui commandent le nombre de caméras.
+  const parPhotos = etatPhotos.zones.filter((z) => mesureZone(z)).length;
+  const offre = composer(parPhotos ? { ...r, zones: parPhotos } : r, t.articles || [], {});
   const marge = t.marge ?? MARGE_COMMERCIALE;
   const tva = t.tva ?? TVA_DEFAUT;
 
@@ -258,6 +265,353 @@ function majContact(offre, r, d) {
   bouton.hidden = false;
 }
 
+/* ===================================================== étude par photo */
+
+/** Une zone vierge, prête à recevoir ses repères. */
+const nouvelleZone = (nom, dataUrl, img) => ({
+  nom,
+  dataUrl,
+  img,
+  image: { largeur: img.naturalWidth, hauteur: img.naturalHeight },
+  hauteur: 3,
+  appareil: appareilsClient()[0],
+  d1: 10,
+  d2: 25,
+  r1: null,
+  r2: null,
+  zone: null,
+});
+
+/** Ajoute des photos, réduites, et ouvre la dernière. */
+async function ajouterPhotos(fichiers) {
+  for (const f of fichiers) {
+    if (!f.type.startsWith('image/')) continue;
+    const brut = await new Promise((ok) => {
+      const l = new FileReader();
+      l.onload = () => ok(l.result);
+      l.readAsDataURL(f);
+    });
+    const dataUrl = await reduire(brut);
+    const img = await new Promise((ok) => {
+      const i = new Image();
+      i.onload = () => ok(i);
+      i.src = dataUrl;
+    });
+    etatPhotos.zones.push(nouvelleZone(`Zone ${etatPhotos.zones.length + 1}`, dataUrl, img));
+  }
+  etatPhotos.courante = etatPhotos.zones.length - 1;
+  etatPhotos.etape = 'r1';
+  majPhotos();
+}
+
+/** Consigne du moment : dire quoi faire vaut mieux que laisser chercher. */
+function consignePhoto(z) {
+  if (!z.r1) return 'Cliquez sur la photo un point dont vous connaissez la distance — '
+    + 'le bas d\'un portail, un angle de mur, une place de parking.';
+  if (etatPhotos.etape === 'r2' && !z.r2) {
+    return 'Cliquez un second point, plus loin et plus haut dans la photo. '
+      + 'L\'angle de vue sera alors mesuré et non supposé.';
+  }
+  if (!z.zone) return 'Entourez maintenant la zone que vous voulez surveiller, '
+    + 'en faisant glisser votre doigt ou la souris.';
+  return 'Ajustez la zone en la déplaçant ou en tirant ses coins : tout se recalcule.';
+}
+
+/** Vignettes, toile, consigne et résultat de la zone ouverte. */
+function majPhotos() {
+  const z = zoneCourante();
+
+  $('#vignettes').innerHTML = etatPhotos.zones.map((x, i) => `
+    <button type="button" class="vignette${i === etatPhotos.courante ? ' actif' : ''}"
+      data-zone="${i}">
+      <img src="${x.dataUrl}" alt="">
+      <span>${ech(x.nom)}</span>
+    </button>`).join('');
+  $$('#vignettes [data-zone]').forEach((b) => b.addEventListener('click', () => {
+    etatPhotos.courante = Number(b.dataset.zone);
+    etatPhotos.etape = zoneCourante()?.zone ? null : 'r1';
+    majPhotos();
+  }));
+
+  $('#etude-photo').hidden = !z;
+  if (!z) { calculer(); return; }
+
+  $('#p-hauteur').value = z.hauteur;
+  $('#p-d1').value = z.d1;
+  $('#p-d2').value = z.d2;
+  $('#p-appareil').value = z.appareil;
+  $('#photo-consigne').textContent = consignePhoto(z);
+  $$('[data-etape]').forEach((b) => b.classList.toggle('actif', b.dataset.etape === etatPhotos.etape));
+
+  dessiner($('#toile-photo'), z);
+  majResultatPhoto(z);
+  calculer();
+}
+
+/** Ce que la zone entourée demande, et la caméra du tarif qui y répond. */
+function majResultatPhoto(z) {
+  const m = mesureZone(z);
+  if (!m) { $('#photo-resultat').innerHTML = ''; return; }
+
+  const camera = cameraPour(m);
+  const res = camera?.resH || 3840;
+  const niveau = niveauAtteint(m, res);
+
+  $('#photo-resultat').innerHTML = `<div class="mesures-client">
+      ${tuile('Angle de vue nécessaire', `${fr(m.angleRequis)} °`)}
+      ${tuile('Zone la plus éloignée', `${fr(m.distanceMax)} m`)}
+      ${tuile('Largeur à couvrir', `${fr(m.largeur)} m`)}
+      ${tuile('Champ de la photo', `${fr(m.prise.angleH)} °`,
+    m.prise.mesure ? 'mesuré sur vos deux repères' : 'supposé d\'après l\'appareil')}
+    </div>
+    ${camera ? `<p class="conseil-client">
+      <b>${ech(camera.reference)}</b> convient à cette zone.
+      ${niveau.verbe
+    ? `Elle permet d'y <b>${ech(niveau.verbe)}</b> jusqu'au fond, `
+      + `soit ${fr(niveau.densite, 0)} pixels par mètre.`
+    : `La zone est cependant trop large pour être exploitable `
+      + `(${fr(niveau.densite, 0)} pixels par mètre) : resserrez-la, `
+      + 'ou prévoyez deux caméras.'}
+      ${porteesLisibles(m, res)}
+    </p>` : `<p class="conseil-client">Aucune caméra du tarif ne porte ses
+      caractéristiques optiques : le modèle sera arrêté lors de l'étude.</p>`}`;
+}
+
+const tuile = (cle, valeur, note = '') => `<div class="tuile">
+  <span class="cle">${ech(cle)}</span><span class="val">${ech(valeur)}</span>
+  ${note ? `<span class="note-tuile">${ech(note)}</span>` : ''}</div>`;
+
+/** Jusqu'où l'image reste exploitable, en français courant. */
+function porteesLisibles(m, res) {
+  const lignes = [
+    ['reconnaître une personne déjà connue', 'reconnaissance'],
+    ['identifier un inconnu', 'identification'],
+  ].map(([texte, cle]) => {
+    const d = porteeNiveau(m, res, cle);
+    return d > 0 ? `${texte} jusqu'à ${fr(d)} m` : null;
+  }).filter(Boolean);
+  return lignes.length ? `Au-delà, elle permet encore de ${lignes.join(', et d\'')}.` : '';
+}
+
+/**
+ * La caméra du tarif qui couvre la focale demandée.
+ *
+ * Faute d'optique renseignée au tarif, on ne désigne personne : proposer un
+ * modèle au hasard parce qu'il est le moins cher tromperait le client sur le
+ * seul point qui compte ici.
+ */
+function cameraPour(m) {
+  const cameras = (etat.tarif?.articles || []).filter((a) => a.type === 'camera'
+    && (a.focaleMin > 0 || a.focaleMax > 0));
+  if (!cameras.length) return null;
+  const dans = cameras.filter((a) => m.focale >= (a.focaleMin || 0) - 0.05
+    && m.focale <= (a.focaleMax || a.focaleMin) + 0.05);
+  const choix = dans.length ? dans : cameras;
+  return choix.reduce((meilleur, a) => {
+    const ecart = (x) => Math.min(
+      Math.abs(m.focale - (x.focaleMin || 0)),
+      Math.abs(m.focale - (x.focaleMax || x.focaleMin || 0)),
+    );
+    return ecart(a) < ecart(meilleur) ? a : meilleur;
+  });
+}
+
+/* --------------------------------------------------------- interactions */
+
+function brancherPhotos() {
+  const zone = $('#depot-photo');
+  const entree = $('#fichier-photo');
+  zone.addEventListener('click', () => entree.click());
+  zone.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); entree.click(); }
+  });
+  entree.addEventListener('change', () => {
+    if (entree.files.length) ajouterPhotos([...entree.files]);
+    entree.value = '';
+  });
+  ['dragenter', 'dragover'].forEach((ev) => zone.addEventListener(ev, (e) => {
+    e.preventDefault(); zone.classList.add('survol');
+  }));
+  ['dragleave', 'drop'].forEach((ev) => zone.addEventListener(ev, () => zone.classList.remove('survol')));
+  zone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    if (e.dataTransfer.files.length) ajouterPhotos([...e.dataTransfer.files]);
+  });
+
+  $('#p-appareil').innerHTML = appareilsClient()
+    .map((a) => `<option value="${ech(a)}">${ech(a)}</option>`).join('');
+
+  for (const [id, champ] of [['#p-hauteur', 'hauteur'], ['#p-d1', 'd1'],
+    ['#p-d2', 'd2'], ['#p-appareil', 'appareil']]) {
+    $(id).addEventListener('change', () => {
+      const z = zoneCourante();
+      if (!z) return;
+      z[champ] = champ === 'appareil' ? $(id).value : parseFloat($(id).value) || 0;
+      majPhotos();
+    });
+  }
+
+  $$('[data-etape]').forEach((b) => b.addEventListener('click', () => {
+    etatPhotos.etape = b.dataset.etape;
+    if (b.dataset.etape === 'zone' && zoneCourante()) zoneCourante().zone = null;
+    majPhotos();
+  }));
+
+  $('#photo-supprimer').addEventListener('click', () => {
+    if (etatPhotos.courante < 0) return;
+    etatPhotos.zones.splice(etatPhotos.courante, 1);
+    etatPhotos.courante = Math.min(etatPhotos.courante, etatPhotos.zones.length - 1);
+    majPhotos();
+  });
+
+  brancherToile();
+}
+
+function brancherToile() {
+  const toile = $('#toile-photo');
+  let trace = null;
+
+  toile.addEventListener('pointerdown', (e) => {
+    const z = zoneCourante();
+    if (!z) return;
+    const p = position(e, toile);
+
+    if (etatPhotos.etape === 'r1' || (etatPhotos.etape === 'r2')) {
+      z[etatPhotos.etape === 'r1' ? 'r1' : 'r2'] = { u: p.u, v: p.v };
+      etatPhotos.etape = etatPhotos.etape === 'r1' ? 'r2' : (z.zone ? null : 'zone');
+      majPhotos();
+      return;
+    }
+
+    // Hors étape de repère, on trace ou l'on manipule la zone.
+    const prise = etatPhotos.etape === 'zone' ? null : priseSous(p, z, toile.width);
+    if (prise) {
+      etatPhotos.glisse = { prise, depart: p, origine: { ...z.zone } };
+    } else {
+      trace = p;
+      z.zone = { u1: p.u, v1: p.v, u2: p.u, v2: p.v };
+    }
+    toile.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  });
+
+  toile.addEventListener('pointermove', (e) => {
+    const z = zoneCourante();
+    if (!z) return;
+    const p = position(e, toile);
+    if (trace) {
+      z.zone = { u1: trace.u, v1: trace.v, u2: p.u, v2: p.v };
+      dessiner(toile, z);
+    } else if (etatPhotos.glisse) {
+      z.zone = transformer({ zone: etatPhotos.glisse.origine },
+        etatPhotos.glisse.prise, etatPhotos.glisse.depart, p);
+      dessiner(toile, z);
+    } else if (etatPhotos.etape !== 'r1' && etatPhotos.etape !== 'r2') {
+      toile.style.cursor = priseSous(p, z, toile.width) ? 'move' : 'crosshair';
+    }
+  });
+
+  const relacher = () => {
+    if (!trace && !etatPhotos.glisse) return;
+    trace = null;
+    etatPhotos.glisse = null;
+    etatPhotos.etape = null;
+    majPhotos();
+  };
+  toile.addEventListener('pointerup', relacher);
+  toile.addEventListener('pointercancel', relacher);
+}
+
+/* ------------------------------------------------- enregistrer / reprendre */
+
+const CLE_LOCALE = 'ngsecurity-devis-client';
+
+/** Le projet, sans les images décodées — elles se rechargent à l'ouverture. */
+function projet() {
+  return {
+    type: 'ng-devis-client',
+    version: 1,
+    enregistreLe: new Date().toISOString(),
+    reponses: reponses(),
+    zones: etatPhotos.zones.map((z) => ({ ...z, img: undefined })),
+  };
+}
+
+function enregistrerProjet() {
+  const contenu = projet();
+  const blob = new Blob([JSON.stringify(contenu)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'mon-projet-videosurveillance.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  memoriser();
+}
+
+/**
+ * Mémorise le projet sur l'appareil du visiteur.
+ *
+ * Rien ne part ailleurs : ni serveur, ni compte. Le rangement peut échouer —
+ * navigation privée, quota atteint, photos volumineuses — et ce n'est pas une
+ * raison de casser la page.
+ */
+function memoriser() {
+  try {
+    window.localStorage.setItem(CLE_LOCALE, JSON.stringify(projet()));
+  } catch {
+    // Tant pis : le visiteur garde son fichier enregistré.
+  }
+}
+
+async function restaurer(contenu) {
+  if (!contenu || contenu.type !== 'ng-devis-client') return false;
+  etatPhotos.zones = [];
+  for (const z of contenu.zones || []) {
+    if (!z.dataUrl) continue;
+    const img = await new Promise((ok) => {
+      const i = new Image();
+      i.onload = () => ok(i);
+      i.src = z.dataUrl;
+    });
+    etatPhotos.zones.push({ ...z, img });
+  }
+  etatPhotos.courante = etatPhotos.zones.length - 1;
+
+  const r = contenu.reponses || {};
+  for (const [id, cle] of [['#q-type', 'typeSite'], ['#q-zones', 'zones'],
+    ['#q-jours', 'jours'], ['#q-heures', 'heuresParJour'], ['#q-extension', 'extension']]) {
+    if (r[cle] !== undefined) $(id).value = r[cle];
+  }
+  for (const [id, cle] of [['#q-ecran', 'ecran'], ['#q-routeur', 'routeur'], ['#q-pose', 'pose']]) {
+    if (r[cle] !== undefined) $(id).checked = !!r[cle];
+  }
+  majPhotos();
+  return true;
+}
+
+function brancherProjet() {
+  $('#btn-enregistrer').addEventListener('click', enregistrerProjet);
+  $('#btn-reprendre').addEventListener('click', () => $('#fichier-projet').click());
+  $('#fichier-projet').addEventListener('change', async () => {
+    const f = $('#fichier-projet').files[0];
+    if (!f) return;
+    try {
+      const ok = await restaurer(JSON.parse(await f.text()));
+      if (!ok) window.alert('Ce fichier n\'est pas un projet enregistré ici.');
+    } catch {
+      window.alert('Fichier illisible.');
+    }
+    $('#fichier-projet').value = '';
+  });
+
+  try {
+    const garde = window.localStorage.getItem(CLE_LOCALE);
+    if (garde) restaurer(JSON.parse(garde));
+  } catch {
+    // Rien de mémorisé, ou rangement inaccessible : on démarre à vide.
+  }
+}
+
 async function demarrer() {
   $('#q-type').innerHTML = Object.entries(TYPES_SITE)
     .map(([cle, t]) => `<option value="${cle}">${ech(t.label)}</option>`).join('');
@@ -280,6 +634,12 @@ async function demarrer() {
     });
 
   $('#btn-imprimer').addEventListener('click', () => window.print());
+  brancherPhotos();
+  brancherProjet();
+
+  // Chaque réponse et chaque tracé sont mémorisés sur l'appareil du visiteur :
+  // revenir sur la page ne doit pas effacer un quart d'heure de travail.
+  document.addEventListener('change', memoriser);
 
   etat.tarif = await chargerTarif();
   if (!etat.tarif) {

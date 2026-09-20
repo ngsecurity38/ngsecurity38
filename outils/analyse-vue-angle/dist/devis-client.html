@@ -144,6 +144,56 @@ tfoot tr.fort td { font-size: 19px; font-weight: 700; border-top: 2px solid var(
   font-size: 12px; color: var(--doux); margin: 8px 0 0;
   text-transform: none; letter-spacing: 0; line-height: 1.45;
 }
+
+/* ------------------------------------------------------ étude par photo */
+
+.carte h2 small { font-weight: 400; color: var(--doux); font-size: 13px; }
+.aide { margin: 0 0 16px; color: var(--doux); font-size: 14px; }
+
+.depot {
+  border: 2px dashed var(--bord); border-radius: 12px; padding: 24px 16px;
+  text-align: center; cursor: pointer; background: var(--fond);
+}
+.depot:hover, .depot.survol { border-color: var(--rouge); background: #fff; }
+.depot span { display: block; font-weight: 600; }
+.depot small { color: var(--doux); font-size: 13px; }
+
+.vignettes { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+.vignette {
+  border: 2px solid var(--bord); border-radius: 10px; padding: 0; overflow: hidden;
+  background: #fff; cursor: pointer; width: 96px; font: inherit;
+}
+.vignette.actif { border-color: var(--rouge); }
+.vignette img { display: block; width: 100%; height: 62px; object-fit: cover; }
+.vignette span { display: block; font-size: 12px; padding: 4px; }
+
+#toile-photo {
+  display: block; width: 100%; height: auto; margin: 14px 0;
+  border-radius: 10px; touch-action: none; cursor: crosshair;
+}
+.consigne {
+  margin: 0; padding: 12px 14px; border-radius: 8px;
+  background: #eaf2ff; border: 1px solid #c3d9f7; font-size: 14px;
+}
+.questions.serre { gap: 12px; }
+.etapes { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
+.btn-petit { padding: 8px 14px; font-size: 14px; }
+.btn.actif { border-color: var(--rouge); color: var(--rouge); }
+
+.mesures-client { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 16px 0; }
+.tuile { background: var(--fond); border-radius: 10px; padding: 12px; }
+.tuile .cle { display: block; font-size: 11px; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--doux); }
+.tuile .val { display: block; font-size: 20px; font-weight: 700; }
+.tuile .note-tuile { display: block; font-size: 12px; color: var(--doux); }
+.conseil-client {
+  margin: 0; padding: 14px 16px; border-radius: 8px;
+  background: #fff; border-left: 3px solid var(--rouge); font-size: 15px;
+}
+
+@media print {
+  .depot, .vignettes, .etapes, .consigne { display: none; }
+}
 </style>
 </head>
 <body>
@@ -221,6 +271,53 @@ tfoot tr.fort td { font-size: 19px; font-weight: 700; border-top: 2px solid var(
     </div>
   </section>
 
+  <section class="carte">
+    <h2>Vos photos <small>facultatif, mais c'est ce qui change tout</small></h2>
+    <p class="aide">
+      Prenez une photo <b>depuis l'endroit où vous voulez poser la caméra</b>,
+      dans la direction à surveiller. Entourez ensuite la zone : nous en
+      déduisons l'angle de vue, la distance et la caméra qu'il faut.
+    </p>
+
+    <div class="depot" id="depot-photo" tabindex="0" role="button">
+      <input type="file" id="fichier-photo" accept="image/*" multiple hidden>
+      <span>Ajouter une photo</span>
+      <small>Une par zone à surveiller</small>
+    </div>
+
+    <div id="vignettes" class="vignettes"></div>
+
+    <div id="etude-photo" hidden>
+      <p class="consigne" id="photo-consigne"></p>
+      <canvas id="toile-photo"></canvas>
+
+      <div class="questions serre">
+        <label>Hauteur de pose prévue (m)
+          <input type="number" id="p-hauteur" value="3" min="1" max="15" step="0.1">
+          <small>À quelle hauteur la caméra sera fixée.</small>
+        </label>
+        <label>Distance du premier repère (m)
+          <input type="number" id="p-d1" value="10" min="1" max="200" step="1">
+        </label>
+        <label>Distance du second repère (m) <small>facultatif</small>
+          <input type="number" id="p-d2" value="25" min="1" max="300" step="1">
+        </label>
+        <label>Avec quoi la photo a-t-elle été prise ?
+          <select id="p-appareil"></select>
+        </label>
+      </div>
+
+      <div class="etapes">
+        <button type="button" class="btn btn-petit" data-etape="r1">1 · Repère proche</button>
+        <button type="button" class="btn btn-petit" data-etape="r2">2 · Repère lointain</button>
+        <button type="button" class="btn btn-petit" data-etape="zone">3 · Entourer la zone</button>
+        <button type="button" class="btn btn-petit" id="photo-supprimer">Supprimer la photo</button>
+      </div>
+
+      <div id="photo-resultat"></div>
+    </div>
+  </section>
+
   <section class="carte" id="resultat" hidden>
     <h2>Ce qu'il vous faut</h2>
     <p class="resume" id="resume"></p>
@@ -247,6 +344,9 @@ tfoot tr.fort td { font-size: 19px; font-weight: 700; border-top: 2px solid var(
     </details>
 
     <div class="actions">
+      <button type="button" id="btn-enregistrer" class="btn">Enregistrer mon projet</button>
+      <button type="button" id="btn-reprendre" class="btn">Reprendre un projet</button>
+      <input type="file" id="fichier-projet" accept=".json,application/json" hidden>
       <button type="button" id="btn-imprimer" class="btn">Imprimer / enregistrer en PDF</button>
       <a id="btn-contact" class="btn btn-plein" href="#">Demander une étude gratuite</a>
     </div>
@@ -282,14 +382,23 @@ tfoot tr.fort td { font-size: 19px; font-weight: 700; border-top: 2px solid var(
   "marge": 0.25,
   "tauxHoraire": 55,
   "tva": 0.2,
+  "_optique": [
+    "Pour qu'une caméra soit proposée sur une étude photo, elle doit porter",
+    "focaleMin et focaleMax (en mm, égales si l'objectif est fixe) ainsi que",
+    "resH et resV. Sans elles, la page dit que le modèle sera arrêté lors de",
+    "l'étude plutôt que d'en désigner un au hasard."
+  ],
   "articles": [
     {
       "type": "camera",
-      "reference": "Hikvision DS-2CD2T86G2-4I — bullet 8 MP",
+      "reference": "Hikvision DS-2CD2T86G2-4I F4 — bullet 8 MP, 4 mm",
       "prixAchat": 214.57,
       "debit": 8,
       "resH": 3840,
       "resV": 2160,
+      "focaleMin": 4,
+      "focaleMax": 4,
+      "conso": 12,
       "sourceAchat": { "type": "releve", "date": "20/09/2026", "source": "Getic.fr" }
     },
     {
@@ -351,6 +460,708 @@ const signe = (v, n = 1) => (v > 0 ? `+${fr(v, n)}` : fr(v, n));
 const frGroupe = (v, n = 0) => fr(v, n).replace(
   /\d(?=(\d{3})+(,|$))/g, '$&\u202f',
 );
+
+/* ===== optique.js ===== */
+/**
+ * Calculs optiques pour l'analyse de vue d'angle.
+ *
+ * Module pur (aucune dépendance au DOM) : utilisable dans le navigateur
+ * et dans les tests Node.
+ */
+
+/** Formats de capteurs courants en vidéosurveillance IP (zone utile 16/9, en mm). */
+const CAPTEURS = {
+  '1/4"': { largeur: 3.6, hauteur: 2.03 },
+  '1/3.6"': { largeur: 4.0, hauteur: 2.25 },
+  '1/3"': { largeur: 4.8, hauteur: 2.7 },
+  '1/2.9"': { largeur: 5.02, hauteur: 2.82 },
+  '1/2.8"': { largeur: 5.18, hauteur: 2.92 },
+  '1/2.7"': { largeur: 5.37, hauteur: 3.02 },
+  '1/2.5"': { largeur: 5.76, hauteur: 3.24 },
+  '1/2.3"': { largeur: 6.17, hauteur: 3.47 },
+  '1/2"': { largeur: 6.4, hauteur: 3.6 },
+  '1/1.8"': { largeur: 7.18, hauteur: 4.04 },
+  '1/1.7"': { largeur: 7.6, hauteur: 4.28 },
+  '1/1.2"': { largeur: 10.67, hauteur: 6.0 },
+  '2/3"': { largeur: 8.8, hauteur: 4.95 },
+  '1"': { largeur: 12.8, hauteur: 7.2 },
+
+  /*
+   * Capteurs thermiques. Un microbolomètre ne se désigne pas en pouces mais par
+   * sa matrice et son pas de pixel : 256 × 192 au pas de 12 µm mesure
+   * 3,07 × 2,30 mm. Choisir un format visible pour une caméra thermique
+   * fausserait complètement l'angle de champ, et donc toute la mesure d'écart.
+   */
+  'Thermique 256×192 — 12 µm': { largeur: 3.072, hauteur: 2.304 },
+  'Thermique 256×192 — 17 µm': { largeur: 4.352, hauteur: 3.264 },
+  'Thermique 384×288 — 12 µm': { largeur: 4.608, hauteur: 3.456 },
+  'Thermique 384×288 — 17 µm': { largeur: 6.528, hauteur: 4.896 },
+  'Thermique 640×512 — 12 µm': { largeur: 7.68, hauteur: 6.144 },
+  'Thermique 640×480 — 17 µm': { largeur: 10.88, hauteur: 8.16 },
+};
+
+/** Seuils DORI de la norme EN 62676-4, en pixels par mètre. */
+const SEUILS_DORI = {
+  detection: { label: 'Détection', ppm: 25 },
+  observation: { label: 'Observation', ppm: 62 },
+  reconnaissance: { label: 'Reconnaissance', ppm: 125 },
+  identification: { label: 'Identification', ppm: 250 },
+};
+
+const degres = (radians) => (radians * 180) / Math.PI;
+const radians = (degres_) => (degres_ * Math.PI) / 180;
+
+/**
+ * Angle de champ d'un objectif rectilinéaire.
+ * @param {number} dimensionCapteur dimension du capteur en mm (largeur ou hauteur)
+ * @param {number} focale focale en mm
+ * @returns {number} angle de champ en degrés
+ */
+function angleDeChamp(dimensionCapteur, focale) {
+  if (!(focale > 0) || !(dimensionCapteur > 0)) return 0;
+  return degres(2 * Math.atan(dimensionCapteur / (2 * focale)));
+}
+
+/**
+ * Angles de champ horizontal, vertical et diagonal.
+ * @param {{largeur:number, hauteur:number}} capteur dimensions en mm
+ * @param {number} focale en mm
+ */
+function anglesDeChamp(capteur, focale) {
+  const diagonale = Math.hypot(capteur.largeur, capteur.hauteur);
+  return {
+    horizontal: angleDeChamp(capteur.largeur, focale),
+    vertical: angleDeChamp(capteur.hauteur, focale),
+    diagonal: angleDeChamp(diagonale, focale),
+  };
+}
+
+/**
+ * Largeur (ou hauteur) de scène couverte à une distance donnée.
+ * @param {number} angleDeg angle de champ en degrés
+ * @param {number} distance en mètres
+ * @returns {number} largeur couverte en mètres
+ */
+function couverture(angleDeg, distance) {
+  if (!(distance > 0)) return 0;
+  return 2 * distance * Math.tan(radians(angleDeg) / 2);
+}
+
+/**
+ * Focale nécessaire pour couvrir une largeur donnée à une distance donnée.
+ * @param {number} largeurCapteur en mm
+ * @param {number} largeurCible en mètres
+ * @param {number} distance en mètres
+ * @returns {number} focale en mm
+ */
+function focaleRequise(largeurCapteur, largeurCible, distance) {
+  if (!(largeurCible > 0) || !(distance > 0)) return 0;
+  return (largeurCapteur * distance) / largeurCible;
+}
+
+/**
+ * Densité de pixels sur la scène, en pixels par mètre.
+ * @param {number} resolutionH résolution horizontale en pixels
+ * @param {number} angleHDeg angle de champ horizontal en degrés
+ * @param {number} distance en mètres
+ */
+function pixelsParMetre(resolutionH, angleHDeg, distance) {
+  const largeur = couverture(angleHDeg, distance);
+  if (!(largeur > 0)) return 0;
+  return resolutionH / largeur;
+}
+
+/**
+ * Distance maximale à laquelle un critère DORI est encore tenu.
+ * @param {number} resolutionH résolution horizontale en pixels
+ * @param {number} angleHDeg angle de champ horizontal en degrés
+ * @param {number} ppmRequis pixels par mètre exigés
+ * @returns {number} distance en mètres
+ */
+function distanceDori(resolutionH, angleHDeg, ppmRequis) {
+  if (!(ppmRequis > 0) || !(angleHDeg > 0)) return 0;
+  const largeurMax = resolutionH / ppmRequis;
+  return largeurMax / (2 * Math.tan(radians(angleHDeg) / 2));
+}
+
+/** Tableau complet des distances DORI pour une configuration donnée. */
+function tableauDori(resolutionH, angleHDeg) {
+  return Object.entries(SEUILS_DORI).map(([cle, { label, ppm }]) => ({
+    cle,
+    label,
+    ppm,
+    distance: distanceDori(resolutionH, angleHDeg, ppm),
+  }));
+}
+
+/** Niveau DORI atteint pour une densité de pixels donnée. */
+function niveauDori(ppm) {
+  if (ppm >= SEUILS_DORI.identification.ppm) return 'identification';
+  if (ppm >= SEUILS_DORI.reconnaissance.ppm) return 'reconnaissance';
+  if (ppm >= SEUILS_DORI.observation.ppm) return 'observation';
+  if (ppm >= SEUILS_DORI.detection.ppm) return 'detection';
+  return 'insuffisant';
+}
+
+/**
+ * Convertit un décalage exprimé en fraction de la largeur d'image
+ * en écart angulaire, en tenant compte de la projection rectilinéaire.
+ *
+ * Un décalage de 50 % de la largeur correspond exactement à un demi-angle
+ * de champ ; la relation n'est pas linéaire entre les deux.
+ *
+ * @param {number} fraction décalage / largeur d'image (0.1 = 10 % de l'image)
+ * @param {number} angleDeg angle de champ sur cet axe, en degrés
+ * @returns {number} écart angulaire en degrés
+ */
+function fractionVersAngle(fraction, angleDeg) {
+  if (!(angleDeg > 0)) return 0;
+  return degres(Math.atan(2 * fraction * Math.tan(radians(angleDeg) / 2)));
+}
+
+/**
+ * Hauteur de montage et angle de site (inclinaison) à partir de la
+ * distance au point visé.
+ * @param {number} hauteur hauteur de la caméra en mètres
+ * @param {number} distanceSol distance horizontale au point visé, en mètres
+ * @param {number} hauteurCible hauteur du point visé (0 = au sol)
+ * @returns {number} angle d'inclinaison sous l'horizontale, en degrés
+ */
+function angleInclinaison(hauteur, distanceSol, hauteurCible = 0) {
+  if (!(distanceSol > 0)) return 90;
+  return degres(Math.atan((hauteur - hauteurCible) / distanceSol));
+}
+
+/** Zone morte au pied du mât : distance à partir de laquelle le sol entre dans le champ. */
+function zoneMorte(hauteur, inclinaisonDeg, angleVDeg) {
+  const bordBas = inclinaisonDeg + angleVDeg / 2;
+  if (bordBas >= 90) return 0;
+  if (bordBas <= 0) return Infinity;
+  return hauteur / Math.tan(radians(bordBas));
+}
+
+/* ===== photo.js ===== */
+/**
+ * Analyse d'une photo prise depuis l'emplacement de la caméra.
+ *
+ * Le point de départ d'une étude, ce sont les photos du repérage. Sur l'une
+ * d'elles, on entoure la zone que le client veut voir ; ce module en tire les
+ * distances réelles, l'angle de vue nécessaire et la définition obtenue.
+ *
+ * Modèle : sténopé (projection rectilinéaire), sol plan, caméra sans roulis.
+ * Repère de l'appareil : X vers la droite, Y vers le bas, Z vers l'avant.
+ * Les coordonnées d'image sont des fractions (u, v) dans [0, 1], origine en
+ * haut à gauche.
+ *
+ * Module pur (aucune dépendance au DOM), testé sous Node.
+ */
+
+
+/** Champs de vision usuels des appareils qui servent au repérage. */
+const APPAREILS = {
+  'Téléphone — objectif principal': 67,
+  'Téléphone — ultra grand-angle': 105,
+  'Téléphone — téléobjectif': 34,
+  'Appareil photo — 24 mm équivalent': 74,
+  'Appareil photo — 35 mm équivalent': 55,
+  'Caméra en place (champ calculé au bloc 2)': 0,
+};
+
+/**
+ * Direction du rayon passant par un point de l'image, dans le repère appareil.
+ * @param {number} u abscisse, en fraction de la largeur
+ * @param {number} v ordonnée, en fraction de la hauteur
+ * @param {number} angleH champ horizontal de la photo, en degrés
+ * @param {number} angleV champ vertical de la photo, en degrés
+ */
+function rayon(u, v, angleH, angleV) {
+  return {
+    x: (2 * u - 1) * Math.tan(radians(angleH) / 2),
+    y: (2 * v - 1) * Math.tan(radians(angleV) / 2),
+    z: 1,
+  };
+}
+
+/**
+ * Point du sol visé par un pixel de la photo.
+ *
+ * C'est le cœur de l'analyse automatique : la hauteur de prise de vue et
+ * l'inclinaison étant connues, l'ordonnée d'un point dans l'image donne sa
+ * distance réelle. Un point au-dessus de l'horizon ne rencontre jamais le sol
+ * et ne renvoie rien.
+ *
+ * @param {object} prise {hauteur, inclinaison, angleH, angleV}
+ * @returns {{distance:number, avant:number, lateral:number}|null} en mètres
+ */
+function pointAuSol(u, v, prise) {
+  const { hauteur, inclinaison, angleH, angleV } = prise;
+  if (!(hauteur > 0)) return null;
+  const r = rayon(u, v, angleH, angleV);
+  const t = radians(inclinaison);
+  const cos = Math.cos(t);
+  const sin = Math.sin(t);
+
+  // Rotation de l'appareil vers le bas, autour de son axe X.
+  const bas = r.y * cos + r.z * sin;
+  const avant = -r.y * sin + r.z * cos;
+  if (!(bas > 1e-9)) return null; // rayon au-dessus de l'horizon
+
+  const k = hauteur / bas;
+  return {
+    avant: k * avant,
+    lateral: k * r.x,
+    distance: Math.hypot(k * avant, k * r.x),
+  };
+}
+
+/**
+ * Inclinaison déduite d'un point dont la distance est connue.
+ *
+ * Personne ne sait donner au degré près l'inclinaison d'une photo. En revanche,
+ * tout le monde peut désigner un point du sol et dire à quelle distance il se
+ * trouve — un portail, l'angle d'un bâtiment, une place de parking. La distance
+ * décroît quand l'appareil pique vers le bas : une recherche par dichotomie
+ * suffit.
+ *
+ * @returns {number} inclinaison en degrés sous l'horizontale, 0 si insoluble
+ */
+function inclinaisonPourDistance(u, v, distance, prise) {
+  if (!(distance > 0) || !(prise.hauteur > 0)) return 0;
+  const mesure = (t) => {
+    const p = pointAuSol(u, v, { ...prise, inclinaison: t });
+    return p ? p.distance : Infinity;
+  };
+  let bas = 0.05;
+  let haut = 89;
+  if (mesure(bas) < distance) return 0; // hors d'atteinte, même à l'horizontale
+  for (let i = 0; i < 60; i += 1) {
+    const milieu = (bas + haut) / 2;
+    if (mesure(milieu) > distance) bas = milieu;
+    else haut = milieu;
+  }
+  return (bas + haut) / 2;
+}
+
+/**
+ * Ordonnée, dans l'image, de la ligne de sol située à une distance donnée.
+ *
+ * Sert à tracer les lignes d'iso-distance sur la photo : rien ne convainc mieux
+ * un client que de voir « 20 m » posé à l'endroit exact où se trouvent 20 m.
+ *
+ * @returns {number|null} ordonnée en fraction de hauteur, null si hors champ
+ */
+function ordonneePourDistance(u, distance, prise) {
+  if (!(distance > 0)) return null;
+  const mesure = (v) => {
+    const p = pointAuSol(u, v, prise);
+    return p ? p.distance : Infinity;
+  };
+  // La distance décroît du haut vers le bas de l'image.
+  let haut = 0;
+  let bas = 1;
+  if (mesure(bas) > distance) return null; // plus proche que le bord inférieur
+  if (mesure(haut) < distance) return null; // plus loin que le bord supérieur
+  for (let i = 0; i < 50; i += 1) {
+    const milieu = (haut + bas) / 2;
+    if (mesure(milieu) > distance) haut = milieu;
+    else bas = milieu;
+  }
+  const v = (haut + bas) / 2;
+  return v > 0 && v < 1 ? v : null;
+}
+
+/** Champ vertical déduit du champ horizontal et du format de l'image. */
+const champVertical = (angleH, rapport) => degres(
+  2 * Math.atan(Math.tan(radians(angleH) / 2) * rapport),
+);
+
+/**
+ * Champ de vision ET inclinaison déduits de deux points de distance connue.
+ *
+ * Choisir l'appareil dans une liste reste une approximation : un recadrage, un
+ * zoom intermédiaire, et l'échelle angulaire est fausse. Avec deux points du
+ * sol dont on connaît la distance, les deux inconnues se lèvent d'un coup —
+ * plus rien n'est supposé, tout est mesuré.
+ *
+ * Le premier point fixe l'inclinaison pour un champ donné ; le second dit si ce
+ * champ était le bon. On balaie les champs plausibles jusqu'au changement de
+ * signe de l'écart, puis on affine par dichotomie.
+ *
+ * @param {{u:number, v:number, distance:number}} a premier repère
+ * @param {{u:number, v:number, distance:number}} b second repère
+ * @param {{hauteur:number, rapport:number}} prise hauteur en m, rapport hauteur/largeur de l'image
+ * @returns {{angleH:number, angleV:number, inclinaison:number}|null}
+ */
+function calibrerDeuxPoints(a, b, prise) {
+  const { hauteur, rapport } = prise;
+  if (!(hauteur > 0) || !(rapport > 0)) return null;
+  if (!(a.distance > 0) || !(b.distance > 0)) return null;
+  if (Math.abs(a.v - b.v) < 0.02) return null; // deux points à la même hauteur n'apprennent rien
+
+  const resoudre = (angleH) => {
+    const p = { hauteur, angleH, angleV: champVertical(angleH, rapport) };
+    const inclinaison = inclinaisonPourDistance(a.u, a.v, a.distance, p);
+    if (!(inclinaison > 0)) return null;
+    const sol = pointAuSol(b.u, b.v, { ...p, inclinaison });
+    if (!sol) return null;
+    return { inclinaison, ecart: sol.distance - b.distance };
+  };
+
+  // Balayage des champs plausibles, du téléobjectif au très grand-angle.
+  let precedent = null;
+  let borneBasse = null;
+  let borneHaute = null;
+  for (let angle = 15; angle <= 150; angle += 1) {
+    const r = resoudre(angle);
+    if (!r) { precedent = null; continue; }
+    if (precedent && Math.sign(r.ecart) !== Math.sign(precedent.ecart)) {
+      borneBasse = precedent.angle;
+      borneHaute = angle;
+      break;
+    }
+    precedent = { angle, ecart: r.ecart };
+  }
+  if (borneBasse === null) return null; // aucune solution dans la plage
+
+  for (let i = 0; i < 50; i += 1) {
+    const milieu = (borneBasse + borneHaute) / 2;
+    const r = resoudre(milieu);
+    if (!r) break;
+    const bas = resoudre(borneBasse);
+    if (Math.sign(r.ecart) === Math.sign(bas.ecart)) borneBasse = milieu;
+    else borneHaute = milieu;
+  }
+
+  const angleH = (borneBasse + borneHaute) / 2;
+  const final = resoudre(angleH);
+  if (!final) return null;
+  return {
+    angleH,
+    angleV: champVertical(angleH, rapport),
+    inclinaison: final.inclinaison,
+  };
+}
+
+/** Angle, par rapport à l'axe optique, du rayon passant par une abscisse. */
+const angleHorizontal = (u, angleH) => degres(Math.atan((2 * u - 1) * Math.tan(radians(angleH) / 2)));
+
+/** Angle, par rapport à l'axe optique, du rayon passant par une ordonnée. */
+const angleVertical = (v, angleV) => degres(Math.atan((2 * v - 1) * Math.tan(radians(angleV) / 2)));
+
+/**
+ * Étude d'une zone entourée sur la photo.
+ *
+ * @param {{u1:number, v1:number, u2:number, v2:number}} zone rectangle tracé
+ * @param {object} prise {hauteur, inclinaison, angleH, angleV}
+ * @param {object} capteur dimensions du capteur visé, en mm
+ * @param {{h:number, v:number}} resolution définition de la caméra visée
+ */
+function dimensionnerDepuisPhoto(zone, prise, capteur, resolution) {
+  const u1 = Math.min(zone.u1, zone.u2);
+  const u2 = Math.max(zone.u1, zone.u2);
+  const v1 = Math.min(zone.v1, zone.v2);
+  const v2 = Math.max(zone.v1, zone.v2);
+
+  // Angle de vue à couvrir : écart angulaire entre les deux bords de la zone.
+  const gauche = angleHorizontal(u1, prise.angleH);
+  const droite = angleHorizontal(u2, prise.angleH);
+  const angleRequis = droite - gauche;
+  const decentrage = (droite + gauche) / 2;
+
+  // Distances : le bord bas de la zone est le plus proche, le bord haut le plus
+  // éloigné. Les deux sont pris au milieu de la zone.
+  const milieu = (u1 + u2) / 2;
+  const proche = pointAuSol(milieu, v2, prise);
+  const lointain = pointAuSol(milieu, v1, prise);
+
+  const distanceMax = lointain ? lointain.distance : null;
+  const distanceMin = proche ? proche.distance : null;
+
+  // Largeur réellement embrassée au point le plus éloigné, une fois la caméra
+  // recentrée sur la zone.
+  const largeur = distanceMax ? 2 * distanceMax * Math.tan(radians(angleRequis) / 2) : null;
+  const focale = angleRequis > 0 && angleRequis < 179
+    ? capteur.largeur / (2 * Math.tan(radians(angleRequis) / 2))
+    : 0;
+  const densite = largeur > 0 ? resolution.h / largeur : 0;
+
+  return {
+    angleRequis,
+    decentrage,
+    distanceMin,
+    distanceMax,
+    largeur,
+    focale,
+    densite,
+    // Vertical : utile pour dire si la zone tient dans la hauteur de l'image.
+    angleVertical: angleVertical(v2, prise.angleV) - angleVertical(v1, prise.angleV),
+    horizonVisible: !pointAuSol(milieu, 0, prise),
+  };
+}
+
+/**
+ * Distance au-delà de laquelle un niveau d'exploitation n'est plus tenu.
+ * @param {number} resolutionH définition horizontale de la caméra
+ * @param {number} angleDeg champ horizontal retenu
+ * @param {number} ppm densité exigée, en pixels par mètre
+ */
+function porteeUtile(resolutionH, angleDeg, ppm) {
+  if (!(ppm > 0) || !(angleDeg > 0)) return 0;
+  return (resolutionH / ppm) / (2 * Math.tan(radians(angleDeg) / 2));
+}
+
+/* ===== photo-client.js ===== */
+/**
+ * Étude par photo, côté client.
+ *
+ * Le visiteur photographie depuis l'emplacement prévu de la caméra, indique à
+ * quelle distance se trouve un point qu'il reconnaît, entoure la zone à
+ * surveiller. On en tire l'angle de vue nécessaire, la distance à couvrir, la
+ * focale et le niveau d'exploitation — puis la caméra du tarif qui y répond.
+ *
+ * Les calculs sont ceux de l'outil d'étude, mot pour mot : ce sont les mêmes
+ * fonctions. Ce module n'apporte que l'interface, volontairement réduite à ce
+ * qu'un particulier peut renseigner sans se tromper.
+ */
+
+
+
+
+/** Largeur maximale des photos conservées : au-delà, le projet devient lourd. */
+const TAILLE_MAX = 1400;
+
+/** Accroche des poignées, en pixels de toile. */
+const ACCROCHE = 16;
+
+/**
+ * Capteur supposé pour traduire l'angle en focale.
+ *
+ * Le client ne le connaît pas et n'a pas à le connaître. La focale annoncée
+ * n'est qu'indicative — c'est l'**angle de vue** qui est mesuré, et lui ne
+ * dépend d'aucun capteur.
+ */
+const CAPTEUR_REFERENCE = CAPTEURS['1/2.8"'];
+
+const etatPhotos = { zones: [], courante: -1, etape: null, glisse: null };
+
+/** La zone en cours d'étude, ou null. */
+const zoneCourante = () => etatPhotos.zones[etatPhotos.courante] || null;
+
+/** Charge une image depuis une donnée en base64. */
+const chargerImage = (dataUrl) => new Promise((resoudre, rejeter) => {
+  const img = new Image();
+  img.onload = () => resoudre(img);
+  img.onerror = () => rejeter(new Error('Image illisible.'));
+  img.src = dataUrl;
+});
+
+/**
+ * Réduit une photo avant de la garder.
+ *
+ * Une photo de téléphone pèse plusieurs mégaoctets ; dix d'entre elles dans un
+ * projet enregistré deviendraient intransportables, et le navigateur refuserait
+ * de les ranger.
+ */
+async function reduire(dataUrl) {
+  const img = await chargerImage(dataUrl);
+  if (img.naturalWidth <= TAILLE_MAX) return dataUrl;
+  const l = TAILLE_MAX;
+  const h = Math.round((l * img.naturalHeight) / img.naturalWidth);
+  const c = document.createElement('canvas');
+  c.width = l;
+  c.height = h;
+  c.getContext('2d').drawImage(img, 0, 0, l, h);
+  return c.toDataURL('image/jpeg', 0.82);
+}
+
+/** Prise de vue déduite des repères posés : mesurée si possible, supposée sinon. */
+function priseDeVue(zone) {
+  if (!zone?.image || !(zone.hauteur > 0)) return null;
+  const rapport = zone.image.hauteur / zone.image.largeur;
+
+  if (zone.r1 && zone.r2 && zone.d1 > 0 && zone.d2 > 0) {
+    const mesure = calibrerDeuxPoints(
+      { ...zone.r1, distance: zone.d1 },
+      { ...zone.r2, distance: zone.d2 },
+      { hauteur: zone.hauteur, rapport },
+    );
+    if (mesure) return { ...mesure, hauteur: zone.hauteur, mesure: true };
+  }
+
+  if (zone.r1 && zone.d1 > 0) {
+    const angleH = APPAREILS[zone.appareil] || 67;
+    const p = { hauteur: zone.hauteur, angleH, angleV: champVertical(angleH, rapport) };
+    const inclinaison = inclinaisonPourDistance(zone.r1.u, zone.r1.v, zone.d1, p);
+    if (inclinaison > 0) return { ...p, inclinaison, mesure: false };
+  }
+  return null;
+}
+
+/** Ce que demande la zone entourée — null tant qu'elle ne l'est pas. */
+function mesureZone(zone) {
+  const prise = priseDeVue(zone);
+  if (!prise || !zone.zone) return null;
+  const m = dimensionnerDepuisPhoto(zone.zone, prise, CAPTEUR_REFERENCE, { h: 1920, v: 1080 });
+  return m && m.distanceMax ? { ...m, prise } : null;
+}
+
+/**
+ * Niveau d'exploitation atteint à une définition donnée.
+ * @param {object} m mesure de la zone
+ * @param {number} resolutionH définition horizontale de la caméra envisagée
+ */
+function niveauAtteint(m, resolutionH) {
+  if (!m || !(m.largeur > 0)) return null;
+  const densite = resolutionH / m.largeur;
+  const ordre = ['identification', 'reconnaissance', 'observation', 'detection'];
+  const cle = ordre.find((k) => densite >= SEUILS_DORI[k].ppm);
+  return {
+    densite,
+    cle,
+    label: cle ? SEUILS_DORI[cle].label : null,
+    // Le verbe se lit mieux que le nom dans une phrase : « elle permet
+    // d'observer » plutôt que « elle permet de observation ».
+    verbe: cle ? VERBES[cle] : null,
+  };
+}
+
+/** Ce que chaque niveau permet de faire, dit avec un verbe. */
+const VERBES = {
+  detection: 'repérer une présence',
+  observation: 'observer ce qui se passe',
+  reconnaissance: 'reconnaître une personne déjà connue',
+  identification: 'identifier une personne inconnue',
+};
+
+/** Portée à laquelle une caméra donnée tient encore un niveau d'exploitation. */
+const porteeNiveau = (m, resolutionH, cle) => (
+  m ? porteeUtile(resolutionH, m.angleRequis, SEUILS_DORI[cle].ppm) : 0
+);
+
+/* ------------------------------------------------------------- dessin */
+
+/** Coordonnées d'un événement, en fractions de la largeur de l'image. */
+function position(e, toile) {
+  const r = toile.getBoundingClientRect();
+  return {
+    u: (e.clientX - r.left) / r.width,
+    v: ((e.clientY - r.top) / r.height) * (toile.height / toile.width),
+  };
+}
+
+function dessiner(toile, zone) {
+  if (!zone?.img) return;
+  const l = Math.min(TAILLE_MAX, zone.img.naturalWidth);
+  const h = Math.round((l * zone.img.naturalHeight) / zone.img.naturalWidth);
+  toile.width = l;
+  toile.height = h;
+
+  const ctx = toile.getContext('2d');
+  ctx.drawImage(zone.img, 0, 0, l, h);
+  const trait = Math.max(2, l / 400);
+  const police = Math.max(12, Math.round(l / 46));
+  ctx.lineWidth = trait;
+  ctx.font = `600 ${police}px -apple-system, "Segoe UI", Roboto, sans-serif`;
+  ctx.textBaseline = 'middle';
+
+  for (const [repere, distance, couleur] of [
+    [zone.r1, zone.d1, '#ffd400'], [zone.r2, zone.d2, '#7ad1ff'],
+  ]) {
+    if (!repere) continue;
+    const x = repere.u * l;
+    const y = repere.v * l;
+    ctx.strokeStyle = couleur;
+    ctx.beginPath();
+    ctx.moveTo(x - trait * 5, y);
+    ctx.lineTo(x + trait * 5, y);
+    ctx.moveTo(x, y - trait * 5);
+    ctx.lineTo(x, y + trait * 5);
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(16,19,23,.75)';
+    const texte = `${fr(distance)} m`;
+    ctx.fillRect(x + trait * 6, y - police * 0.7, ctx.measureText(texte).width + 8, police * 1.4);
+    ctx.fillStyle = couleur;
+    ctx.fillText(texte, x + trait * 6 + 4, y);
+  }
+
+  if (zone.zone) {
+    const { u1, v1, u2, v2 } = zone.zone;
+    const x = Math.min(u1, u2) * l;
+    const y = Math.min(v1, v2) * l;
+    const w = Math.abs(u2 - u1) * l;
+    const hh = Math.abs(v2 - v1) * l;
+    ctx.fillStyle = 'rgba(200,16,46,.22)';
+    ctx.fillRect(x, y, w, hh);
+    ctx.strokeStyle = '#c8102e';
+    ctx.strokeRect(x, y, w, hh);
+
+    // Poignées : le rectangle se retaille sans être retracé.
+    ctx.fillStyle = '#fff';
+    ctx.strokeStyle = '#c8102e';
+    for (const [px, py] of coins(x, y, w, hh)) {
+      ctx.beginPath();
+      ctx.arc(px, py, ACCROCHE / 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
+  }
+}
+
+const coins = (x, y, w, h) => [
+  [x, y], [x + w / 2, y], [x + w, y],
+  [x, y + h / 2], [x + w, y + h / 2],
+  [x, y + h], [x + w / 2, y + h], [x + w, y + h],
+];
+
+/** Poignée saisie sous le pointeur, ou 'zone' si l'on vise l'intérieur. */
+function priseSous(p, zone, l) {
+  if (!zone?.zone) return null;
+  const { u1, v1, u2, v2 } = zone.zone;
+  const x = Math.min(u1, u2) * l;
+  const y = Math.min(v1, v2) * l;
+  const w = Math.abs(u2 - u1) * l;
+  const h = Math.abs(v2 - v1) * l;
+  const px = p.u * l;
+  const py = p.v * l;
+
+  const noms = ['hg', 'h', 'hd', 'g', 'd', 'bg', 'b', 'bd'];
+  const trouve = coins(x, y, w, h)
+    .map(([cx, cy], i) => ({ nom: noms[i], d: Math.hypot(cx - px, cy - py) }))
+    .filter((c) => c.d <= ACCROCHE)
+    .sort((a, b) => a.d - b.d)[0];
+  if (trouve) return trouve.nom;
+
+  return px >= x && px <= x + w && py >= y && py <= y + h ? 'zone' : null;
+}
+
+/** Applique un déplacement ou un redimensionnement à la zone. */
+function transformer(zone, prise, depart, p) {
+  const z = { ...zone.zone };
+  const du = p.u - depart.u;
+  const dv = p.v - depart.v;
+  if (prise === 'zone') {
+    z.u1 += du; z.u2 += du; z.v1 += dv; z.v2 += dv;
+    return z;
+  }
+  const gauche = Math.min(z.u1, z.u2);
+  const droite = Math.max(z.u1, z.u2);
+  const haut = Math.min(z.v1, z.v2);
+  const bas = Math.max(z.v1, z.v2);
+  const n = { u1: gauche, u2: droite, v1: haut, v2: bas };
+  if (prise.includes('g')) n.u1 = gauche + du;
+  if (prise.includes('d')) n.u2 = droite + du;
+  if (prise.includes('h')) n.v1 = haut + dv;
+  if (prise.includes('b')) n.v2 = bas + dv;
+  if (prise === 'h') n.v1 = haut + dv;
+  if (prise === 'b') n.v2 = bas + dv;
+  if (prise === 'g') n.u1 = gauche + du;
+  if (prise === 'd') n.u2 = droite + du;
+  return n;
+}
+
+/** Liste des appareils proposés au client, le téléphone en tête. */
+const appareilsClient = () => Object.keys(APPAREILS)
+  .filter((a) => APPAREILS[a] > 0);
 
 /* ===== stockage.js ===== */
 /**
@@ -1075,6 +1886,7 @@ const RESERVES = [
 
 
 
+
 /**
  * Où la demande d'étude est envoyée.
  *
@@ -1138,7 +1950,10 @@ function calculer() {
   if (!t) return;
 
   const r = reponses();
-  const offre = composer(r, t.articles || [], {});
+  // Une photo étudiée vaut mieux qu'un nombre déclaré : quand le visiteur en a
+  // posé, ce sont elles qui commandent le nombre de caméras.
+  const parPhotos = etatPhotos.zones.filter((z) => mesureZone(z)).length;
+  const offre = composer(parPhotos ? { ...r, zones: parPhotos } : r, t.articles || [], {});
   const marge = t.marge ?? MARGE_COMMERCIALE;
   const tva = t.tva ?? TVA_DEFAUT;
 
@@ -1319,6 +2134,353 @@ function majContact(offre, r, d) {
   bouton.hidden = false;
 }
 
+/* ===================================================== étude par photo */
+
+/** Une zone vierge, prête à recevoir ses repères. */
+const nouvelleZone = (nom, dataUrl, img) => ({
+  nom,
+  dataUrl,
+  img,
+  image: { largeur: img.naturalWidth, hauteur: img.naturalHeight },
+  hauteur: 3,
+  appareil: appareilsClient()[0],
+  d1: 10,
+  d2: 25,
+  r1: null,
+  r2: null,
+  zone: null,
+});
+
+/** Ajoute des photos, réduites, et ouvre la dernière. */
+async function ajouterPhotos(fichiers) {
+  for (const f of fichiers) {
+    if (!f.type.startsWith('image/')) continue;
+    const brut = await new Promise((ok) => {
+      const l = new FileReader();
+      l.onload = () => ok(l.result);
+      l.readAsDataURL(f);
+    });
+    const dataUrl = await reduire(brut);
+    const img = await new Promise((ok) => {
+      const i = new Image();
+      i.onload = () => ok(i);
+      i.src = dataUrl;
+    });
+    etatPhotos.zones.push(nouvelleZone(`Zone ${etatPhotos.zones.length + 1}`, dataUrl, img));
+  }
+  etatPhotos.courante = etatPhotos.zones.length - 1;
+  etatPhotos.etape = 'r1';
+  majPhotos();
+}
+
+/** Consigne du moment : dire quoi faire vaut mieux que laisser chercher. */
+function consignePhoto(z) {
+  if (!z.r1) return 'Cliquez sur la photo un point dont vous connaissez la distance — '
+    + 'le bas d\'un portail, un angle de mur, une place de parking.';
+  if (etatPhotos.etape === 'r2' && !z.r2) {
+    return 'Cliquez un second point, plus loin et plus haut dans la photo. '
+      + 'L\'angle de vue sera alors mesuré et non supposé.';
+  }
+  if (!z.zone) return 'Entourez maintenant la zone que vous voulez surveiller, '
+    + 'en faisant glisser votre doigt ou la souris.';
+  return 'Ajustez la zone en la déplaçant ou en tirant ses coins : tout se recalcule.';
+}
+
+/** Vignettes, toile, consigne et résultat de la zone ouverte. */
+function majPhotos() {
+  const z = zoneCourante();
+
+  $('#vignettes').innerHTML = etatPhotos.zones.map((x, i) => `
+    <button type="button" class="vignette${i === etatPhotos.courante ? ' actif' : ''}"
+      data-zone="${i}">
+      <img src="${x.dataUrl}" alt="">
+      <span>${ech(x.nom)}</span>
+    </button>`).join('');
+  $$('#vignettes [data-zone]').forEach((b) => b.addEventListener('click', () => {
+    etatPhotos.courante = Number(b.dataset.zone);
+    etatPhotos.etape = zoneCourante()?.zone ? null : 'r1';
+    majPhotos();
+  }));
+
+  $('#etude-photo').hidden = !z;
+  if (!z) { calculer(); return; }
+
+  $('#p-hauteur').value = z.hauteur;
+  $('#p-d1').value = z.d1;
+  $('#p-d2').value = z.d2;
+  $('#p-appareil').value = z.appareil;
+  $('#photo-consigne').textContent = consignePhoto(z);
+  $$('[data-etape]').forEach((b) => b.classList.toggle('actif', b.dataset.etape === etatPhotos.etape));
+
+  dessiner($('#toile-photo'), z);
+  majResultatPhoto(z);
+  calculer();
+}
+
+/** Ce que la zone entourée demande, et la caméra du tarif qui y répond. */
+function majResultatPhoto(z) {
+  const m = mesureZone(z);
+  if (!m) { $('#photo-resultat').innerHTML = ''; return; }
+
+  const camera = cameraPour(m);
+  const res = camera?.resH || 3840;
+  const niveau = niveauAtteint(m, res);
+
+  $('#photo-resultat').innerHTML = `<div class="mesures-client">
+      ${tuile('Angle de vue nécessaire', `${fr(m.angleRequis)} °`)}
+      ${tuile('Zone la plus éloignée', `${fr(m.distanceMax)} m`)}
+      ${tuile('Largeur à couvrir', `${fr(m.largeur)} m`)}
+      ${tuile('Champ de la photo', `${fr(m.prise.angleH)} °`,
+    m.prise.mesure ? 'mesuré sur vos deux repères' : 'supposé d\'après l\'appareil')}
+    </div>
+    ${camera ? `<p class="conseil-client">
+      <b>${ech(camera.reference)}</b> convient à cette zone.
+      ${niveau.verbe
+    ? `Elle permet d'y <b>${ech(niveau.verbe)}</b> jusqu'au fond, `
+      + `soit ${fr(niveau.densite, 0)} pixels par mètre.`
+    : `La zone est cependant trop large pour être exploitable `
+      + `(${fr(niveau.densite, 0)} pixels par mètre) : resserrez-la, `
+      + 'ou prévoyez deux caméras.'}
+      ${porteesLisibles(m, res)}
+    </p>` : `<p class="conseil-client">Aucune caméra du tarif ne porte ses
+      caractéristiques optiques : le modèle sera arrêté lors de l'étude.</p>`}`;
+}
+
+const tuile = (cle, valeur, note = '') => `<div class="tuile">
+  <span class="cle">${ech(cle)}</span><span class="val">${ech(valeur)}</span>
+  ${note ? `<span class="note-tuile">${ech(note)}</span>` : ''}</div>`;
+
+/** Jusqu'où l'image reste exploitable, en français courant. */
+function porteesLisibles(m, res) {
+  const lignes = [
+    ['reconnaître une personne déjà connue', 'reconnaissance'],
+    ['identifier un inconnu', 'identification'],
+  ].map(([texte, cle]) => {
+    const d = porteeNiveau(m, res, cle);
+    return d > 0 ? `${texte} jusqu'à ${fr(d)} m` : null;
+  }).filter(Boolean);
+  return lignes.length ? `Au-delà, elle permet encore de ${lignes.join(', et d\'')}.` : '';
+}
+
+/**
+ * La caméra du tarif qui couvre la focale demandée.
+ *
+ * Faute d'optique renseignée au tarif, on ne désigne personne : proposer un
+ * modèle au hasard parce qu'il est le moins cher tromperait le client sur le
+ * seul point qui compte ici.
+ */
+function cameraPour(m) {
+  const cameras = (etat.tarif?.articles || []).filter((a) => a.type === 'camera'
+    && (a.focaleMin > 0 || a.focaleMax > 0));
+  if (!cameras.length) return null;
+  const dans = cameras.filter((a) => m.focale >= (a.focaleMin || 0) - 0.05
+    && m.focale <= (a.focaleMax || a.focaleMin) + 0.05);
+  const choix = dans.length ? dans : cameras;
+  return choix.reduce((meilleur, a) => {
+    const ecart = (x) => Math.min(
+      Math.abs(m.focale - (x.focaleMin || 0)),
+      Math.abs(m.focale - (x.focaleMax || x.focaleMin || 0)),
+    );
+    return ecart(a) < ecart(meilleur) ? a : meilleur;
+  });
+}
+
+/* --------------------------------------------------------- interactions */
+
+function brancherPhotos() {
+  const zone = $('#depot-photo');
+  const entree = $('#fichier-photo');
+  zone.addEventListener('click', () => entree.click());
+  zone.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); entree.click(); }
+  });
+  entree.addEventListener('change', () => {
+    if (entree.files.length) ajouterPhotos([...entree.files]);
+    entree.value = '';
+  });
+  ['dragenter', 'dragover'].forEach((ev) => zone.addEventListener(ev, (e) => {
+    e.preventDefault(); zone.classList.add('survol');
+  }));
+  ['dragleave', 'drop'].forEach((ev) => zone.addEventListener(ev, () => zone.classList.remove('survol')));
+  zone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    if (e.dataTransfer.files.length) ajouterPhotos([...e.dataTransfer.files]);
+  });
+
+  $('#p-appareil').innerHTML = appareilsClient()
+    .map((a) => `<option value="${ech(a)}">${ech(a)}</option>`).join('');
+
+  for (const [id, champ] of [['#p-hauteur', 'hauteur'], ['#p-d1', 'd1'],
+    ['#p-d2', 'd2'], ['#p-appareil', 'appareil']]) {
+    $(id).addEventListener('change', () => {
+      const z = zoneCourante();
+      if (!z) return;
+      z[champ] = champ === 'appareil' ? $(id).value : parseFloat($(id).value) || 0;
+      majPhotos();
+    });
+  }
+
+  $$('[data-etape]').forEach((b) => b.addEventListener('click', () => {
+    etatPhotos.etape = b.dataset.etape;
+    if (b.dataset.etape === 'zone' && zoneCourante()) zoneCourante().zone = null;
+    majPhotos();
+  }));
+
+  $('#photo-supprimer').addEventListener('click', () => {
+    if (etatPhotos.courante < 0) return;
+    etatPhotos.zones.splice(etatPhotos.courante, 1);
+    etatPhotos.courante = Math.min(etatPhotos.courante, etatPhotos.zones.length - 1);
+    majPhotos();
+  });
+
+  brancherToile();
+}
+
+function brancherToile() {
+  const toile = $('#toile-photo');
+  let trace = null;
+
+  toile.addEventListener('pointerdown', (e) => {
+    const z = zoneCourante();
+    if (!z) return;
+    const p = position(e, toile);
+
+    if (etatPhotos.etape === 'r1' || (etatPhotos.etape === 'r2')) {
+      z[etatPhotos.etape === 'r1' ? 'r1' : 'r2'] = { u: p.u, v: p.v };
+      etatPhotos.etape = etatPhotos.etape === 'r1' ? 'r2' : (z.zone ? null : 'zone');
+      majPhotos();
+      return;
+    }
+
+    // Hors étape de repère, on trace ou l'on manipule la zone.
+    const prise = etatPhotos.etape === 'zone' ? null : priseSous(p, z, toile.width);
+    if (prise) {
+      etatPhotos.glisse = { prise, depart: p, origine: { ...z.zone } };
+    } else {
+      trace = p;
+      z.zone = { u1: p.u, v1: p.v, u2: p.u, v2: p.v };
+    }
+    toile.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  });
+
+  toile.addEventListener('pointermove', (e) => {
+    const z = zoneCourante();
+    if (!z) return;
+    const p = position(e, toile);
+    if (trace) {
+      z.zone = { u1: trace.u, v1: trace.v, u2: p.u, v2: p.v };
+      dessiner(toile, z);
+    } else if (etatPhotos.glisse) {
+      z.zone = transformer({ zone: etatPhotos.glisse.origine },
+        etatPhotos.glisse.prise, etatPhotos.glisse.depart, p);
+      dessiner(toile, z);
+    } else if (etatPhotos.etape !== 'r1' && etatPhotos.etape !== 'r2') {
+      toile.style.cursor = priseSous(p, z, toile.width) ? 'move' : 'crosshair';
+    }
+  });
+
+  const relacher = () => {
+    if (!trace && !etatPhotos.glisse) return;
+    trace = null;
+    etatPhotos.glisse = null;
+    etatPhotos.etape = null;
+    majPhotos();
+  };
+  toile.addEventListener('pointerup', relacher);
+  toile.addEventListener('pointercancel', relacher);
+}
+
+/* ------------------------------------------------- enregistrer / reprendre */
+
+const CLE_LOCALE = 'ngsecurity-devis-client';
+
+/** Le projet, sans les images décodées — elles se rechargent à l'ouverture. */
+function projet() {
+  return {
+    type: 'ng-devis-client',
+    version: 1,
+    enregistreLe: new Date().toISOString(),
+    reponses: reponses(),
+    zones: etatPhotos.zones.map((z) => ({ ...z, img: undefined })),
+  };
+}
+
+function enregistrerProjet() {
+  const contenu = projet();
+  const blob = new Blob([JSON.stringify(contenu)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'mon-projet-videosurveillance.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  memoriser();
+}
+
+/**
+ * Mémorise le projet sur l'appareil du visiteur.
+ *
+ * Rien ne part ailleurs : ni serveur, ni compte. Le rangement peut échouer —
+ * navigation privée, quota atteint, photos volumineuses — et ce n'est pas une
+ * raison de casser la page.
+ */
+function memoriser() {
+  try {
+    window.localStorage.setItem(CLE_LOCALE, JSON.stringify(projet()));
+  } catch {
+    // Tant pis : le visiteur garde son fichier enregistré.
+  }
+}
+
+async function restaurer(contenu) {
+  if (!contenu || contenu.type !== 'ng-devis-client') return false;
+  etatPhotos.zones = [];
+  for (const z of contenu.zones || []) {
+    if (!z.dataUrl) continue;
+    const img = await new Promise((ok) => {
+      const i = new Image();
+      i.onload = () => ok(i);
+      i.src = z.dataUrl;
+    });
+    etatPhotos.zones.push({ ...z, img });
+  }
+  etatPhotos.courante = etatPhotos.zones.length - 1;
+
+  const r = contenu.reponses || {};
+  for (const [id, cle] of [['#q-type', 'typeSite'], ['#q-zones', 'zones'],
+    ['#q-jours', 'jours'], ['#q-heures', 'heuresParJour'], ['#q-extension', 'extension']]) {
+    if (r[cle] !== undefined) $(id).value = r[cle];
+  }
+  for (const [id, cle] of [['#q-ecran', 'ecran'], ['#q-routeur', 'routeur'], ['#q-pose', 'pose']]) {
+    if (r[cle] !== undefined) $(id).checked = !!r[cle];
+  }
+  majPhotos();
+  return true;
+}
+
+function brancherProjet() {
+  $('#btn-enregistrer').addEventListener('click', enregistrerProjet);
+  $('#btn-reprendre').addEventListener('click', () => $('#fichier-projet').click());
+  $('#fichier-projet').addEventListener('change', async () => {
+    const f = $('#fichier-projet').files[0];
+    if (!f) return;
+    try {
+      const ok = await restaurer(JSON.parse(await f.text()));
+      if (!ok) window.alert('Ce fichier n\'est pas un projet enregistré ici.');
+    } catch {
+      window.alert('Fichier illisible.');
+    }
+    $('#fichier-projet').value = '';
+  });
+
+  try {
+    const garde = window.localStorage.getItem(CLE_LOCALE);
+    if (garde) restaurer(JSON.parse(garde));
+  } catch {
+    // Rien de mémorisé, ou rangement inaccessible : on démarre à vide.
+  }
+}
+
 async function demarrer() {
   $('#q-type').innerHTML = Object.entries(TYPES_SITE)
     .map(([cle, t]) => `<option value="${cle}">${ech(t.label)}</option>`).join('');
@@ -1341,6 +2503,12 @@ async function demarrer() {
     });
 
   $('#btn-imprimer').addEventListener('click', () => window.print());
+  brancherPhotos();
+  brancherProjet();
+
+  // Chaque réponse et chaque tracé sont mémorisés sur l'appareil du visiteur :
+  // revenir sur la page ne doit pas effacer un quart d'heure de travail.
+  document.addEventListener('change', memoriser);
 
   etat.tarif = await chargerTarif();
   if (!etat.tarif) {

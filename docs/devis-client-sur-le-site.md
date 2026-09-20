@@ -4,9 +4,9 @@ Objectif : que vos visiteurs estiment eux-mêmes leur installation, depuis votre
 site, sans que vous ayez rien à faire. Pas de plugin, pas de base de données,
 pas de compte à créer.
 
-La page est un **fichier HTML de 50 Ko** qui tourne entièrement dans le
+La page est un **fichier HTML de 90 Ko** qui tourne entièrement dans le
 navigateur du visiteur. Rien ne remonte chez nous ni chez personne : ce qu'il
-saisit reste sur son téléphone.
+saisit, et les photos qu'il prend, restent sur son téléphone.
 
 ---
 
@@ -125,7 +125,24 @@ portant à la fois une référence et un prix. Les disques s'ajoutent à la main
 
 ---
 
-## 6. Ce que cette page ne fait pas
+## 6. Prévenez vos visiteurs qu'ils peuvent photographier
+
+C'est la fonction qui change tout, et elle est facultative — donc facile à
+manquer. Dans le texte de présentation de la page sur votre site, dites-le
+franchement :
+
+> Prenez trois photos depuis l'endroit où vous voulez poser vos caméras,
+> entourez ce que vous voulez surveiller, et vous saurez quelle caméra il vous
+> faut et jusqu'où elle verra.
+
+Un visiteur qui répond seulement aux quatre questions obtient un ordre de
+grandeur. Celui qui photographie obtient une vraie mesure — et vous, une demande
+qualifiée avec ses photos, ses repères et ses zones dans un fichier que vous
+ouvrez directement.
+
+---
+
+## 7. Ce que cette page ne fait pas
 
 Elle ne remplace pas une étude, et elle le dit au visiteur à trois endroits :
 en résumé, dans le repli « ce que cette estimation ne peut pas savoir », et en
@@ -134,10 +151,12 @@ pied de page.
 Elle ne fait pas non plus :
 
 - de **panier ni de paiement** — c'est le rôle de la boutique ;
-- de **compte client ni de sauvegarde de projet** — rien n'est enregistré, le
-  visiteur imprime ou envoie sa demande ;
-- d'**analyse de photo** — le visiteur peut joindre ses photos à sa demande,
-  elles sont regardées par un technicien, pas par la machine ;
+- de **compte client ni de dossier chez nous** — le projet est bien conservé,
+  mais dans le navigateur du visiteur seul ; il nous parvient s'il nous envoie
+  le fichier `.json` que la page lui exporte, ou son impression ;
+- d'**analyse automatique du contenu des photos** — la page mesure les angles
+  et les distances à partir des repères que le visiteur pose lui-même, mais elle
+  ne reconnaît ni portail, ni façade, ni caméra existante sur l'image ;
 - de **suivi ni de statistiques** — aucun traqueur, aucun cookie.
 
 Ces briques demandent un serveur et une base de données. Elles figurent à la

@@ -1838,6 +1838,131 @@ console.log('\nDevis client');
     await page.selectOption('#q-extension', '0');
   });
 
+  await cas('le client étudie sa photo et obtient sa caméra', async () => {
+    const photo = await page.evaluate(() => {
+      const c = document.createElement('canvas');
+      c.width = 1600; c.height = 900;
+      const g = c.getContext('2d');
+      g.fillStyle = '#8fb6e0'; g.fillRect(0, 0, 1600, 380);
+      g.fillStyle = '#6a6f63'; g.fillRect(0, 380, 1600, 520);
+      for (let i = 0; i < 14; i += 1) {
+        g.fillStyle = i % 2 ? '#7c8174' : '#70756a';
+        g.fillRect(0, 380 + i * 38, 1600, 19);
+      }
+      return c.toDataURL('image/png');
+    });
+    await page.setInputFiles('#fichier-photo', {
+      name: 'cour.png', mimeType: 'image/png', buffer: enBuffer(photo),
+    });
+    await page.waitForSelector('#etude-photo:not([hidden])', { timeout: 8000 });
+
+    const toile = async () => {
+      const l = page.locator('#toile-photo');
+      await l.scrollIntoViewIfNeeded();
+      return l.boundingBox();
+    };
+    const clic = async (u, v) => {
+      const b = await toile();
+      await page.mouse.click(b.x + b.width * u, b.y + b.height * v);
+      await page.waitForTimeout(120);
+    };
+    const saisir = async (id, valeur) => {
+      await page.fill(id, valeur);
+      await page.dispatchEvent(id, 'change');
+    };
+
+    await saisir('#p-hauteur', '3.5');
+    await saisir('#p-d1', '12');
+    await saisir('#p-d2', '30');
+
+    affirmer(/point dont vous connaissez la distance/.test(
+      await page.textContent('#photo-consigne'),
+    ), 'la première consigne demande un repère');
+
+    await clic(0.5, 0.82);
+    await clic(0.5, 0.52);
+
+    const b = await toile();
+    await page.mouse.move(b.x + b.width * 0.2, b.y + b.height * 0.45);
+    await page.mouse.down();
+    await page.mouse.move(b.x + b.width * 0.8, b.y + b.height * 0.9, { steps: 8 });
+    await page.mouse.up();
+    await page.waitForTimeout(400);
+
+    const r = await page.evaluate(() => ({
+      tuiles: Object.fromEntries([...document.querySelectorAll('#photo-resultat .tuile')]
+        .map((t) => [t.querySelector('.cle').textContent.trim(),
+          t.querySelector('.val').textContent.trim()])),
+      notes: [...document.querySelectorAll('#photo-resultat .note-tuile')]
+        .map((t) => t.textContent.trim()),
+      conseil: (document.querySelector('.conseil-client') || {}).textContent || '',
+    }));
+    const nb = (x) => parseFloat((x || '').replace(',', '.'));
+    affirmer(nb(r.tuiles['Angle de vue nécessaire']) > 10
+      && nb(r.tuiles['Angle de vue nécessaire']) < 120,
+    `angle : ${r.tuiles['Angle de vue nécessaire']}`);
+    affirmer(nb(r.tuiles['Zone la plus éloignée']) > 0,
+      `distance : ${r.tuiles['Zone la plus éloignée']}`);
+    // Deux repères ont été posés : le champ doit être mesuré, pas supposé.
+    affirmer(r.notes.some((x) => /mesuré sur vos deux repères/.test(x)),
+      `le champ doit être annoncé mesuré : ${JSON.stringify(r.notes)}`);
+    affirmer(/DS-2CD2T86G2/.test(r.conseil), `une caméra doit être nommée : ${r.conseil}`);
+    affirmer(/pixels par mètre/.test(r.conseil), r.conseil);
+  });
+
+  await cas('la photo commande le nombre de caméras du devis', async () => {
+    const cameras = async () => page.evaluate(() => {
+      const l = [...document.querySelectorAll('#lignes tr')]
+        .find((t) => /Caméras/.test(t.textContent));
+      return l ? l.querySelectorAll('td')[1].textContent.trim() : null;
+    });
+    affirmer(await cameras() === '1', `une photo, une caméra : ${await cameras()}`);
+
+    // Le nombre déclaré plus haut ne doit plus l'emporter sur l'étude.
+    await page.fill('#q-zones', '9');
+    await page.dispatchEvent('#q-zones', 'change');
+    await page.waitForTimeout(250);
+    affirmer(await cameras() === '1',
+      `une photo étudiée l'emporte sur un nombre déclaré : ${await cameras()}`);
+  });
+
+  await cas('la zone se retaille sans être retracée', async () => {
+    const angle = () => page.evaluate(() => {
+      const t = [...document.querySelectorAll('#photo-resultat .tuile')]
+        .find((x) => /Angle/.test(x.querySelector('.cle').textContent));
+      return parseFloat(t.querySelector('.val').textContent.replace(',', '.'));
+    });
+    const avant = await angle();
+    const l = page.locator('#toile-photo');
+    await l.scrollIntoViewIfNeeded();
+    const b = await l.boundingBox();
+    // Le coin bas-droit de la zone tracée, ramené vers le centre.
+    await page.mouse.move(b.x + b.width * 0.8, b.y + b.height * 0.9);
+    await page.mouse.down();
+    await page.mouse.move(b.x + b.width * 0.55, b.y + b.height * 0.9, { steps: 6 });
+    await page.mouse.up();
+    await page.waitForTimeout(300);
+    const apres = await angle();
+    affirmer(apres < avant, `resserrer doit réduire l'angle : ${avant}° → ${apres}°`);
+  });
+
+  await cas('le projet s\'enregistre et se reprend', async () => {
+    const memorise = await page.evaluate(
+      () => !!window.localStorage.getItem('ngsecurity-devis-client'),
+    );
+    affirmer(memorise, 'le projet doit être mémorisé sur l\'appareil du visiteur');
+
+    const contenu = await page.evaluate(
+      () => JSON.parse(window.localStorage.getItem('ngsecurity-devis-client')),
+    );
+    affirmer(contenu.type === 'ng-devis-client', `type : ${contenu.type}`);
+    affirmer(contenu.zones.length === 1, `une zone enregistrée : ${contenu.zones.length}`);
+    affirmer(!!contenu.zones[0].dataUrl, 'la photo voyage avec le projet');
+    affirmer(!!contenu.zones[0].zone, 'et la zone tracée aussi');
+    affirmer(contenu.zones[0].img === undefined,
+      'l\'image décodée n\'a pas à être enregistrée');
+  });
+
   await cas('les réserves d\'une estimation à distance sont écrites', async () => {
     const reserves = await page.evaluate(() => [...document.querySelectorAll('#reserves li')]
       .map((t) => t.textContent.trim()));

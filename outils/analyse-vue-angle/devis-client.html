@@ -82,6 +82,53 @@
     </div>
   </section>
 
+  <section class="carte">
+    <h2>Vos photos <small>facultatif, mais c'est ce qui change tout</small></h2>
+    <p class="aide">
+      Prenez une photo <b>depuis l'endroit où vous voulez poser la caméra</b>,
+      dans la direction à surveiller. Entourez ensuite la zone : nous en
+      déduisons l'angle de vue, la distance et la caméra qu'il faut.
+    </p>
+
+    <div class="depot" id="depot-photo" tabindex="0" role="button">
+      <input type="file" id="fichier-photo" accept="image/*" multiple hidden>
+      <span>Ajouter une photo</span>
+      <small>Une par zone à surveiller</small>
+    </div>
+
+    <div id="vignettes" class="vignettes"></div>
+
+    <div id="etude-photo" hidden>
+      <p class="consigne" id="photo-consigne"></p>
+      <canvas id="toile-photo"></canvas>
+
+      <div class="questions serre">
+        <label>Hauteur de pose prévue (m)
+          <input type="number" id="p-hauteur" value="3" min="1" max="15" step="0.1">
+          <small>À quelle hauteur la caméra sera fixée.</small>
+        </label>
+        <label>Distance du premier repère (m)
+          <input type="number" id="p-d1" value="10" min="1" max="200" step="1">
+        </label>
+        <label>Distance du second repère (m) <small>facultatif</small>
+          <input type="number" id="p-d2" value="25" min="1" max="300" step="1">
+        </label>
+        <label>Avec quoi la photo a-t-elle été prise ?
+          <select id="p-appareil"></select>
+        </label>
+      </div>
+
+      <div class="etapes">
+        <button type="button" class="btn btn-petit" data-etape="r1">1 · Repère proche</button>
+        <button type="button" class="btn btn-petit" data-etape="r2">2 · Repère lointain</button>
+        <button type="button" class="btn btn-petit" data-etape="zone">3 · Entourer la zone</button>
+        <button type="button" class="btn btn-petit" id="photo-supprimer">Supprimer la photo</button>
+      </div>
+
+      <div id="photo-resultat"></div>
+    </div>
+  </section>
+
   <section class="carte" id="resultat" hidden>
     <h2>Ce qu'il vous faut</h2>
     <p class="resume" id="resume"></p>
@@ -108,6 +155,9 @@
     </details>
 
     <div class="actions">
+      <button type="button" id="btn-enregistrer" class="btn">Enregistrer mon projet</button>
+      <button type="button" id="btn-reprendre" class="btn">Reprendre un projet</button>
+      <input type="file" id="fichier-projet" accept=".json,application/json" hidden>
       <button type="button" id="btn-imprimer" class="btn">Imprimer / enregistrer en PDF</button>
       <a id="btn-contact" class="btn btn-plein" href="#">Demander une étude gratuite</a>
     </div>

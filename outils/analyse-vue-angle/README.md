@@ -103,7 +103,13 @@ Pour le mode d'emploi complet et la mise en ligne sur WordPress, voir
    configuration et son budget. Elle **partage les calculs de l'outil d'étude**,
    pour qu'un client et un technicien ne lisent jamais deux chiffres différents
    du même site. Elle ne propose que ce qui figure au tarif : ce qui manque est
-   annoncé, pas inventé. La proposition couvre **tout le système** — caméras,
+   annoncé, pas inventé. Le visiteur peut surtout **photographier ses propres
+   zones** depuis l'emplacement prévu de chaque caméra, poser un ou deux
+   repères de distance connue, entourer ce qu'il veut surveiller : l'angle de
+   vue est alors **mesuré** comme dans l'outil d'étude, la caméra du tarif qui
+   y répond est nommée, et ce sont ces zones qui commandent le devis. Le projet
+   se garde sur l'appareil et s'enregistre en un fichier réouvrable. La
+   proposition couvre **tout le système** — caméras,
    switch PoE, enregistreur, disque, routeur, câble au mètre, connectique,
    coffret — et un **synoptique** montre comment tout se raccorde, les maillons
    hors tarif grisés plutôt qu'omis. Les prix viennent de `tarif.json`, posé à
@@ -165,6 +171,7 @@ Pour le mode d'emploi complet et la mise en ligne sur WordPress, voir
 | `js/murs.js` | occlusion des champs de vision et angles morts — module pur, testé |
 | `js/prix.js` | chiffrage, marges, TVA et devis — module pur, testé |
 | `js/offre.js` | composition d'une installation depuis quatre réponses — module pur, testé |
+| `js/photo-client.js` | étude par photo côté client — module pur, testé |
 | `devis-client.html` | page publique de devis en libre-service |
 | `js/devis-client.js` | logique de cette page |
 | `devis-client.css` | sa présentation, écran et impression |
@@ -192,6 +199,7 @@ Pour le mode d'emploi complet et la mise en ligne sur WordPress, voir
 | `tests/murs.mjs` | tests unitaires des murs et des angles morts |
 | `tests/prix.mjs` | tests unitaires du chiffrage et du devis |
 | `tests/offre.mjs` | tests unitaires de la composition d'installation |
+| `tests/photo-client.mjs` | tests unitaires de l'étude par photo côté client |
 | `tests/navigateur.mjs` | tests de bout en bout dans un vrai navigateur |
 
 Les trois modules de calcul ne touchent jamais au DOM : ils reçoivent des
@@ -261,9 +269,9 @@ techniciens reste en retard sur le dépôt.
 ## Tests
 
 ```bash
-npm test                 # 242 tests unitaires, sans navigateur
+npm test                 # 258 tests unitaires, sans navigateur
 npm run build
-npm run test:navigateur  # 100 tests de bout en bout (Playwright)
+npm run test:navigateur  # 104 tests de bout en bout (Playwright)
 ```
 
 Les tests unitaires couvrent les calculs d'optique, la récupération de
@@ -284,7 +292,9 @@ part de champ dégagée mesurée en surface), le chiffrage (aller-retour HT/TTC,
 prix tiré d'un relevé de ventes écrit « 2 056,00 € », achat et vente jamais
 confondus, devis incomplet signalé), la composition d'une installation (switch
 et enregistreur dimensionnés sur le nombre de caméras, disque sur la durée,
-budget PoE vérifié, extension prévue, rien qui ne soit au tarif), la mesure des distances sur photo (sol plan, sténopé) avec le
+budget PoE vérifié, extension prévue, rien qui ne soit au tarif), l'étude par
+photo côté client (champ mesuré ou supposé selon les repères, niveau
+d'exploitation, gestes sur la zone), la mesure des distances sur photo (sol plan, sténopé) avec le
 calage automatique du champ de vision sur deux repères, et le format de dossier (conversion des fiches de la version 1, fichier
 tronqué, nom de fichier proposé).
 

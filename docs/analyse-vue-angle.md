@@ -529,6 +529,52 @@ bouton **Exporter le tarif client**. Il reprend le matériel du synoptique qui
 porte à la fois une référence et un prix. Les disques s'ajoutent à la main —
 l'outil d'étude ne les gère pas encore.
 
+### Les photos du client — le cœur du dispositif
+
+C'est ce qui distingue cette page d'un simple formulaire. Le visiteur
+photographie **depuis l'endroit où il veut poser la caméra**, dans la direction
+à surveiller, et l'outil en tire de vraies mesures.
+
+1. **Ajouter une photo** — une par zone à surveiller. Elles sont réduites à
+   1 400 px avant d'être gardées : dix photos de téléphone rendraient le projet
+   intransportable.
+2. **Hauteur de pose** prévue.
+3. **Un premier repère** : cliquer un point dont il connaît la distance — le bas
+   d'un portail, un angle de mur, une place de parking.
+4. **Un second repère**, plus loin. Avec deux repères, **l'angle de vue de la
+   photo est mesuré** ; avec un seul, il est supposé d'après l'appareil, et la
+   page l'écrit sous la valeur.
+5. **Entourer la zone**, au doigt ou à la souris. Elle reste maniable : on la
+   déplace, on tire ses coins.
+
+L'outil affiche alors l'angle de vue nécessaire, la distance du fond de zone, la
+largeur à couvrir, et **nomme la caméra du tarif** qui y répond — avec ce
+qu'elle permettra : « elle permet d'y observer ce qui se passe jusqu'au fond,
+soit 80 pixels par mètre. Au-delà, elle permet encore de reconnaître une
+personne déjà connue jusqu'à 28,5 m. »
+
+Ce sont exactement les calculs de l'outil d'étude : les mêmes fonctions, pas une
+approximation faite pour le grand public.
+
+> **Dès qu'une photo est étudiée, c'est elle qui commande le devis** : le nombre
+> de zones photographiées l'emporte sur le nombre déclaré plus haut. Une zone
+> mesurée vaut mieux qu'un chiffre avancé au jugé.
+
+Si aucune caméra du tarif ne porte ses caractéristiques optiques (`focaleMin`,
+`focaleMax`, `resH`, `resV`), la page le dit et renvoie à l'étude plutôt que de
+désigner un modèle au hasard.
+
+### Enregistrer et reprendre
+
+Le projet — réponses, photos, repères, zones — est **mémorisé sur l'appareil du
+visiteur**. Revenir sur la page ne lui fait pas perdre son travail. Rien ne part
+ailleurs : ni serveur, ni compte.
+
+**Enregistrer mon projet** en fait un fichier `.json` qu'il garde ou vous
+envoie ; **Reprendre un projet** le rouvre. C'est aussi le moyen de vous
+transmettre son étude : vous l'ouvrez et vous voyez ses photos, ses repères et
+ses zones.
+
 ### Toute la chaîne, pas seulement les caméras
 
 La proposition couvre le système entier : caméras, switch PoE, enregistreur,

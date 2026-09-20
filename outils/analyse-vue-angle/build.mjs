@@ -160,8 +160,8 @@ ecrire('analyse-vue-angle-ocr.html', injecter(html, '</head>', `${ocr}\n</head>`
  * `tarif.json` posé à côté d'elle : mettre un prix à jour ne demande alors ni
  * outil ni reconstruction.
  */
-const MODULES_CLIENT = ['dom.js', 'format.js', 'stockage.js', 'prix.js',
-  'offre.js', 'devis-client.js'];
+const MODULES_CLIENT = ['dom.js', 'format.js', 'optique.js', 'photo.js',
+  'photo-client.js', 'stockage.js', 'prix.js', 'offre.js', 'devis-client.js'];
 verifierListe(MODULES_CLIENT);
 
 const paquetClient = `(function () {\n'use strict';\n\n`
