@@ -56,11 +56,12 @@ const CHAMPS_TYPE = {
     debit: 0, conso: 0,
     // Orientation sur le plan : sans elle, pas de cône ni d'angle mort.
     azimut: 0, ouverture: 0, portee: 0,
+    prixAchat: 0, prixVente: 0,
   },
-  switch: { ports: 0, portsPoe: 0, budgetPoe: 0 },
-  nvr: { canaux: 0, capacite: 0 },
-  ecran: {},
-  baie: {},
+  switch: { ports: 0, portsPoe: 0, budgetPoe: 0, prixAchat: 0, prixVente: 0 },
+  nvr: { canaux: 0, capacite: 0, prixAchat: 0, prixVente: 0 },
+  ecran: { prixAchat: 0, prixVente: 0 },
+  baie: { prixAchat: 0, prixVente: 0 },
 };
 
 /** Un nombre saisi, jamais NaN. */
@@ -113,6 +114,8 @@ export const LIBELLES_MATERIEL = {
   budgetPoe: 'Budget PoE (W)',
   canaux: 'Canaux',
   capacite: 'Capacité installée (Go)',
+  prixAchat: 'Prix d\'achat HT (€)',
+  prixVente: 'Prix de vente HT (€)',
 };
 
 /** Nouvelle liaison entre deux matériels, avec ses points de passage éventuels. */

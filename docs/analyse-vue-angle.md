@@ -16,7 +16,7 @@ Un seul fichier à récupérer — deux versions au choix :
 | Version | Poids | Pour qui |
 | --- | --- | --- |
 | [`analyse-vue-angle.html`](../outils/analyse-vue-angle/dist/analyse-vue-angle.html) | 1,5 Mo | le cas courant : études reçues en PDF normal |
-| [`analyse-vue-angle-ocr.html`](../outils/analyse-vue-angle/dist/analyse-vue-angle-ocr.html) | 7,6 Mo | si vos études arrivent **scannées** (§ 9) |
+| [`analyse-vue-angle-ocr.html`](../outils/analyse-vue-angle/dist/analyse-vue-angle-ocr.html) | 7,6 Mo | si vos études arrivent **scannées** (§ 10) |
 
 Les deux sont le même outil. La seconde embarque en plus un moteur de
 reconnaissance de caractères, qui pèse à lui seul près de 5 Mo : inutile de le
@@ -76,7 +76,7 @@ caméra** : son repère, son optique, ses deux vues, ses zones, son analyse et s
 observations.
 
 Un seul fichier `.json` enregistre tout le dossier, et le procès-verbal couvre
-tout le chantier (§ 14).
+tout le chantier (§ 15).
 
 > Les fiches enregistrées avec la première version de l'outil s'ouvrent
 > toujours : elles deviennent un dossier d'une seule caméra, sans rien perdre.
@@ -180,7 +180,7 @@ Le bouton **Proposition client** produit le document à remettre :
    de jour, mise en œuvre soumise au relevé définitif ;
 5. les deux cadres de signature.
 
-C'est un document commercial, distinct du procès-verbal de réception (§ 14) :
+C'est un document commercial, distinct du procès-verbal de réception (§ 15) :
 l'un dit ce qui est proposé, l'autre constate ce qui a été posé.
 
 > Une proposition qui tait ses conditions de validité n'engage personne. Les
@@ -415,7 +415,66 @@ premier levier sur le prix.
 
 ---
 
-## 7. Concevoir un champ sur plan
+## 7. Devis
+
+Le repli **Devis**, sous le synoptique, chiffre l'affaire à partir du matériel
+réellement posé. Les identiques sont regroupés : quatre caméras du même modèle
+font une ligne de quatre, pas quatre lignes.
+
+### Deux prix, à ne pas confondre
+
+Sur la fiche de chaque matériel, en **hors taxes** :
+
+| | |
+| --- | --- |
+| **Prix d'achat** | ce que vous payez. Le devis lui applique la marge du formulaire |
+| **Prix de vente** | ce que vous facturez. S'il est renseigné, **il s'impose tel quel** |
+
+La distinction n'est pas cosmétique. Un prix relevé dans vos propres ventes est
+un prix de *vente* : lui appliquer 25 % de marge reviendrait à facturer deux
+fois la même marge.
+
+### D'où vient chaque prix
+
+| | |
+| --- | --- |
+| **✓** | prix pratiqué par l'agence, ou saisi par vous |
+| **~** | relevé chez un revendeur, à une date donnée — à confirmer |
+| **⋯** | aucun prix : la ligne n'est pas comptée, et le devis le dit |
+
+Une ligne sans prix n'est **pas** une ligne à zéro euro : c'est une ligne qu'on
+a oublié de chiffrer. Le devis la nomme et annonce que son total est incomplet,
+plutôt que de sortir un montant rassurant et faux.
+
+### Les prix relevés livrés
+
+Le bouton **Charger les prix relevés** applique un relevé fait le 20/09/2026
+chez des revendeurs français, aux matériels dont la référence correspond :
+
+| Référence | Prix relevé | Source |
+| --- | --- | --- |
+| Hikvision DS-2CD2T86G2 (bullet 8 MP) | 214,57 € | Getic.fr |
+| Hikvision DS-3E0310HP-E (switch 8 ports PoE, 120 W) | 86,62 € | Getic.fr |
+
+Ce sont des **prix publics affichés un jour donné**, pas votre tarif négocié —
+qui sera plus bas. Ils ne servent qu'à dégrossir : le bouton n'écrase jamais un
+prix déjà saisi, et le devis rappelle leur date.
+
+### Main-d'œuvre, remise, TVA
+
+Heures et taux horaire donnent la pose ; la remise s'applique au matériel ; la
+TVA au total. Le taux est réglable — 20 % par défaut, mais certains travaux en
+logement existant relèvent d'un taux réduit : c'est à vous de le savoir, l'outil
+ne le devine pas.
+
+### Où il sort
+
+Le devis figure à la **proposition client**, jamais au procès-verbal : l'un
+vend, l'autre constate ce qui a été posé.
+
+---
+
+## 8. Concevoir un champ sur plan
 
 L'outil sert dans les deux sens. Les sections suivantes vérifient qu'une caméra
 posée respecte l'étude ; celle-ci fait l'inverse : **tracer le champ voulu sur
@@ -547,7 +606,7 @@ pixels par mètre, hauteur — plus le plan annoté.
 
 ---
 
-## 8. Avant d'aller sur site
+## 9. Avant d'aller sur site
 
 Préparer la **vue demandée** : la référence contractuelle.
 
@@ -556,7 +615,7 @@ Préparer la **vue demandée** : la référence contractuelle.
 2. Renseigner le bloc **2 · Caméra et optique** : le repère de la caméra, puis
    capteur, focale, résolution, distance à la scène, hauteur de pose.
    Ajouter une caméra par poste prévu au chantier (§ 2).
-3. Charger la vue demandée dans le premier cadre du bloc **3** — voir le § 9
+3. Charger la vue demandée dans le premier cadre du bloc **3** — voir le § 10
    ci-dessous pour partir directement du PDF de l'étude.
 4. **Enregistrer la fiche** : un fichier `.json` est téléchargé. Il contient
    tout, images comprises. C'est ce fichier que le technicien emporte.
@@ -583,7 +642,7 @@ largeur à telle distance, il donne la focale à monter.
 
 ---
 
-## 9. Partir du PDF de l'étude
+## 10. Partir du PDF de l'étude
 
 C'est le cas le plus courant : le client a remis une étude au format PDF, avec
 le plan d'implantation et, caméra par caméra, la vue attendue.
@@ -640,7 +699,7 @@ tirée. L'outil ne devine pas : il montre sa source.
 Déplier **Texte lu par l'outil**, sous le tableau. On y voit, page par page, ce
 que l'outil a réellement extrait du PDF, les passages retenus surlignés en vert.
 Une ligne présente mais non surlignée, c'est une formulation qu'il ne sait pas
-encore lire ; une page vide, c'est un scan (§ 9).
+encore lire ; une page vide, c'est un scan (§ 10).
 
 Le bouton **Copier le texte** met ce contenu dans le presse-papiers. Le
 transmettre suffit à faire ajouter la formulation manquante — inutile de sortir
@@ -696,7 +755,7 @@ vérifications distinctes : le **matériel** correspond-il à l'étude, et le
 > visuel. Pour la comparaison de cadrage, il faut une **image** de la vue
 > attendue — capture validée ou photo de repérage. À défaut, le relevé du
 > matériel reste exploitable, et la partie cadrage se traite au recalage manuel
-> (§ 13) ou se réserve pour une visite ultérieure.
+> (§ 14) ou se réserve pour une visite ultérieure.
 
 ### Si l'étude est un scan
 
@@ -721,7 +780,7 @@ praticable, une étude ne comptant qu'une poignée de chiffres par caméra.
 
 ---
 
-## 10. Sur site, après la pose
+## 11. Sur site, après la pose
 
 1. Ouvrir la fiche (**Ouvrir une fiche…**).
 2. Prendre une capture de l'image de la caméra et la charger dans le second
@@ -735,7 +794,7 @@ Le verdict s'affiche en bas :
 - **Ajustement mineur** — reprise rapide, la consigne indique quoi faire.
 - **Non conforme** — le réglage est à refaire.
 - **Recalage non concluant** — l'outil n'a pas pu rapprocher les deux images
-  (voir le § 13).
+  (voir le § 14).
 
 Les consignes sont directement exploitables : « Pivoter la caméra de 6,4° vers
 la gauche », « Relever la caméra de 2,4° », « Élargir le champ de 12 % (focale
@@ -760,7 +819,7 @@ Trois cases complètent l'affichage :
 
 ---
 
-## 11. Zones d'intérêt
+## 12. Zones d'intérêt
 
 Pour vérifier qu'un point précis reste dans le champ (portail, caisse, quai de
 livraison, allée) :
@@ -774,7 +833,7 @@ couvert. Le seuil d'exigence se règle dans le bloc **4** (95 % par défaut).
 
 ---
 
-## 12. Tolérances de réception
+## 13. Tolérances de réception
 
 | Réglage | Défaut | Signification |
 | --- | --- | --- |
@@ -790,14 +849,14 @@ de parking. Ce sont elles qui décident du verdict : à fixer avec le client
 
 ---
 
-## 13. Quand le recalage automatique échoue
+## 14. Quand le recalage automatique échoue
 
 L'outil annonce « recalage non concluant » quand les deux images ne se
 ressemblent pas assez. Les causes habituelles :
 
 - la vue demandée est un **plan ou un croquis**, pas une photo ;
 - la page d'étude retenue porte du texte ou un cartouche : la recadrer sur la
-  seule image (§ 9) suffit souvent à débloquer la situation ;
+  seule image (§ 10) suffit souvent à débloquer la situation ;
 - les deux prises de vue ont été faites depuis **des emplacements différents** ;
 - la scène a **réellement changé** (chantier, saison, véhicules déplacés) ;
 - le décalage dépasse les trois quarts du champ : il ne reste presque plus rien
@@ -809,7 +868,7 @@ direct, et le rapport indique que le recalage a été fait à la main.
 
 ---
 
-## 14. Rapport et archivage
+## 15. Rapport et archivage
 
 **Rapport / Impression** ouvre la boîte d'impression du navigateur. Choisir
 « Enregistrer au format PDF » pour obtenir le procès-verbal du chantier :
@@ -837,7 +896,7 @@ contrôle annuel ou d'une contestation.
 
 ---
 
-## 15. Mettre l'outil en ligne sur le site
+## 16. Mettre l'outil en ligne sur le site
 
 Utile pour y accéder depuis une tablette sans rien installer.
 
@@ -896,7 +955,7 @@ restreint, deux solutions côté hébergeur :
 
 ---
 
-## 16. Ce que l'outil ne fait pas
+## 17. Ce que l'outil ne fait pas
 
 - Il ne corrige pas la **distorsion** des objectifs très grand-angle. Les
   écarts restent justes au centre et se dégradent vers les bords de l'image.
@@ -905,13 +964,13 @@ restreint, deux solutions côté hébergeur :
 - Il ne juge pas la qualité d'image (netteté, bruit, exposition) : uniquement le
   cadrage.
 - Il lit le texte des PDF ; les études scannées passent par la reconnaissance
-  de caractères (§ 9), plus faillible, d'où l'avertissement qui les accompagne.
+  de caractères (§ 10), plus faillible, d'où l'avertissement qui les accompagne.
 - Le relevé reconnaît les formulations courantes des études d'implantation et
   des fiches constructeur — « focale 3,6 mm », « f = 4 mm », « H : 102° »,
   « 1/2,8 pouce », « 1 920 x 1 080 », « 1080p », valeurs en colonnes sous leur
   en-tête. Une mise en page inhabituelle peut malgré tout lui échapper : chaque
   valeur est donc affichée avec sa page et son extrait, et le texte lu reste
-  consultable pour comprendre ce qui manque (§ 9).
+  consultable pour comprendre ce qui manque (§ 10).
 - Il ne vérifie pas les points non chiffrés d'un cahier des charges (indice de
   protection, alimentation, chemin de câbles, conformité RGPD de l'affichage).
 - Il calcule le **budget PoE** d'un switch et la **capacité** de l'enregistreur
@@ -926,8 +985,12 @@ restreint, deux solutions côté hébergeur :
 - Il ne connaît pas le cheminement réel des câbles : il mesure celui que vous
   tracez. Fourreaux existants, passages de cloison et réservations restent à
   relever sur site — d'où la réserve appliquée par défaut.
+- Il ne tient **aucun tarif à jour**. Les deux prix relevés qu'il porte (§ 7)
+  sont datés du 20/09/2026 et publics ; votre tarif distributeur est plus bas,
+  et c'est le vôtre qui doit servir. L'outil ne sait pas non plus si un taux de
+  TVA réduit s'applique à vos travaux.
 - Il ne tient pas à jour les catalogues constructeurs. Les références livrées
-  viennent de documents datés (§ 7) ; les tarifs, les disponibilités et les fins
+  viennent de documents datés (§ 8) ; les tarifs, les disponibilités et les fins
   de série ne sont pas de son ressort.
 - Il ne connaît pas le **format de capteur** des modèles du commerce : aucune
   brochure ne le publie. Les entrées concernées le disent (« ~ »), et la

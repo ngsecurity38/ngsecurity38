@@ -549,3 +549,5 @@ table.liaisons tr.depasse td { color: var(--rouge-clair); }
 .legende li { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--texte-doux); }
 .legende span { width: 16px; height: 12px; border-radius: 2px; display: inline-block; }
 .legende span.vide { border: 1px dashed var(--texte-doux); }
+table.devis td:last-child { text-align: center; cursor: help; }
+table.devis tr.a-completer td { color: var(--texte-doux); }

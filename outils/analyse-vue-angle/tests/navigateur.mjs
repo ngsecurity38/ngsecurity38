@@ -1377,6 +1377,105 @@ console.log('\nSynoptique de câblage');
     affirmer(pendants === 0, 'aucune liaison pendante ne doit subsister');
   });
 
+  await cas('le devis se chiffre depuis le matériel posé', async () => {
+    page.once('dialog', (d) => d.accept());
+    await page.click('#reseau-effacer');
+    await page.fill('#reseau-etalon', '40');
+    await page.dispatchEvent('#reseau-etalon', 'change');
+    await page.evaluate(() => { document.querySelector('#reseau-devis').open = true; });
+    await page.waitForTimeout(200);
+
+    await page.click('[data-reseau-outil="poser"]');
+    await page.selectOption('#reseau-type', 'nvr');
+    await clic(0.3, 0.2);
+    await page.selectOption('#reseau-type', 'switch');
+    await clic(0.4, 0.22);
+    await page.selectOption('#reseau-type', 'camera');
+    const places = [[0.15, 0.35], [0.25, 0.4], [0.35, 0.45], [0.55, 0.35]];
+    for (const [u, v] of places) await clic(u, v);
+
+    const reference = async (valeur) => {
+      const sel = '#reseau-selection [data-materiel-texte="reference"]';
+      await page.fill(sel, valeur);
+      await page.dispatchEvent(sel, 'change');
+    };
+    await page.click('[data-reseau-outil="deplacer"]');
+    await clic(0.4, 0.22); await reference('DS-3E0310HP-E');
+    for (const [u, v] of places) { await clic(u, v); await reference('DS-2CD2T86G2-4I'); }
+    await clic(0.3, 0.2); await reference('DS-7608NXI-I2/8P');
+    await page.waitForTimeout(150);
+
+    await page.click('#devis-prix-releves');
+    await page.waitForTimeout(250);
+
+    const lignes = await page.evaluate(() => [...document.querySelectorAll('#devis-tableau tbody tr')]
+      .map((t) => t.textContent.replace(/\s+/g, ' ').trim()));
+    // Les identiques sont regroupés : quatre caméras font une ligne de quatre.
+    affirmer(lignes.length === 3, `trois lignes attendues : ${JSON.stringify(lignes)}`);
+    const cam = lignes.find((l) => /DS-2CD2T86G2/.test(l));
+    affirmer(/ 4 /.test(cam), `quantité groupée : ${cam}`);
+    // 214,57 € relevés, majorés de 25 % : 268,21 € l'unité.
+    affirmer(/268,21/.test(cam), `prix de vente attendu : ${cam}`);
+    affirmer(/1072,85/.test(cam), `total de la ligne : ${cam}`);
+  });
+
+  await cas('un matériel sans prix laisse le devis incomplet, et le dit', async () => {
+    const lignes = await page.evaluate(() => [...document.querySelectorAll('#devis-tableau tbody tr')]
+      .map((t) => t.textContent.replace(/\s+/g, ' ').trim()));
+    const nvr = lignes.find((l) => /DS-7608NXI/.test(l));
+    affirmer(/⋯/.test(nvr), `l'enregistreur n'a pas de prix relevé : ${nvr}`);
+
+    const reserves = await page.evaluate(() => [...document.querySelectorAll('#devis-tableau .alertes li')]
+      .map((t) => t.textContent.replace(/\s+/g, ' ').trim()));
+    affirmer(reserves.some((x) => /sans prix/.test(x) && /DS-7608NXI/.test(x)),
+      `la ligne non chiffrée doit être nommée : ${JSON.stringify(reserves)}`);
+    affirmer(reserves.some((x) => /20\/09\/2026/.test(x) && /confirmer/.test(x)),
+      `les prix relevés doivent porter leur date : ${JSON.stringify(reserves)}`);
+  });
+
+  await cas('main-d\'œuvre, remise et TVA entrent dans le total', async () => {
+    const totaux = () => page.evaluate(() => Object.fromEntries(
+      [...document.querySelectorAll('#devis-mesures .mesure')].map((t) => [
+        t.querySelector('.cle').textContent.trim(),
+        t.querySelector('.val').textContent.trim(),
+      ]),
+    ));
+    await page.fill('#devis-heures', '10');
+    await page.dispatchEvent('#devis-heures', 'change');
+    await page.waitForTimeout(200);
+    const t = await totaux();
+    // 1 072,85 + 108,28 = 1 181,13 HT de matériel, plus 10 h à 55 €.
+    affirmer(/1181,13/.test(t['Matériel HT'] || ''), `matériel : ${t['Matériel HT']}`);
+    affirmer(/550/.test(t["Main-d'œuvre HT"] || ''), `main-d'œuvre : ${t["Main-d'œuvre HT"]}`);
+    affirmer(/1731,13/.test(t['Total HT'] || ''), `total HT : ${t['Total HT']}`);
+    affirmer(/2077,35/.test(t['Total TTC'] || ''), `total TTC : ${t['Total TTC']}`);
+
+    await page.fill('#devis-remise', '10');
+    await page.dispatchEvent('#devis-remise', 'change');
+    await page.waitForTimeout(200);
+    const apres = await totaux();
+    affirmer(apres['Remise'], 'la remise doit apparaître');
+    affirmer(parseFloat((apres['Total HT'] || '').replace(/[^\d,]/g, '').replace(',', '.'))
+      < 1731.13, `la remise doit baisser le total : ${apres['Total HT']}`);
+    await page.fill('#devis-remise', '0');
+    await page.dispatchEvent('#devis-remise', 'change');
+  });
+
+  await cas('le devis figure à la proposition client, pas au procès-verbal', async () => {
+    await page.click('#btn-proposition');
+    await page.waitForTimeout(600);
+    const proposition = await page.evaluate(() => document.querySelector('#rapport').innerHTML);
+    affirmer(/<h2>Devis<\/h2>/.test(proposition), 'le devis doit figurer à la proposition');
+    affirmer(/Total TTC/.test(proposition), 'avec son total');
+    affirmer(/Pose et mise en service/.test(proposition), 'et la main-d\'œuvre');
+
+    await page.click('#btn-rapport');
+    await page.waitForTimeout(600);
+    const pv = await page.evaluate(() => document.querySelector('#rapport').innerHTML);
+    affirmer(!/<h2>Devis<\/h2>/.test(pv),
+      'le procès-verbal constate une pose, il ne vend rien');
+  });
+
   await cas('une caméra orientée trace son champ, un mur le découpe', async () => {
     page.once('dialog', (d) => d.accept());
     await page.click('#reseau-effacer');

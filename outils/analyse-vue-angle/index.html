@@ -315,6 +315,36 @@
 
         <div id="reseau-selection"></div>
 
+        <details class="repli" id="reseau-devis">
+          <summary>Devis</summary>
+          <div class="grille2">
+            <label>Marge sur le matériel (%)
+              <input type="number" id="devis-marge" value="25" min="0" max="200" step="1">
+            </label>
+            <label>Remise client (%)
+              <input type="number" id="devis-remise" value="0" min="0" max="100" step="1">
+            </label>
+            <label>Main-d'œuvre (heures)
+              <input type="number" id="devis-heures" value="0" min="0" max="500" step="0.5">
+            </label>
+            <label>Taux horaire HT (€)
+              <input type="number" id="devis-taux" value="55" min="0" max="500" step="1">
+            </label>
+            <label>TVA (%)
+              <input type="number" id="devis-tva" value="20" min="0" max="30" step="0.5">
+            </label>
+          </div>
+          <button type="button" id="devis-prix-releves" class="btn btn-fantome btn-petit">
+            Charger les prix relevés
+          </button>
+          <p class="note">
+            Les prix se saisissent sur la fiche de chaque matériel, en hors
+            taxes. Un <b>prix de vente</b> renseigné s'impose tel quel ; sinon
+            le prix d'achat est majoré de la marge ci-dessus. Le devis dit
+            toujours d'où vient chaque prix.
+          </p>
+        </details>
+
         <details class="repli" id="reseau-enregistrement">
           <summary>Enregistrement et alimentation</summary>
           <div class="grille2">
@@ -588,6 +618,9 @@
       <div id="reseau-tableau"></div>
       <h3>Récapitulatif</h3>
       <div class="mesures" id="reseau-mesures"></div>
+      <h3>Devis</h3>
+      <div id="devis-tableau"></div>
+      <div class="mesures" id="devis-mesures"></div>
       <h3>Couverture et angles morts</h3>
       <div class="mesures" id="couverture-mesures"></div>
       <div id="couverture-legende"></div>

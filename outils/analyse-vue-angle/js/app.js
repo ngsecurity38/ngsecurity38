@@ -43,6 +43,9 @@ import {
 import {
   nouveauMur, longueurMur, balayage, partVisible, anglesMorts,
 } from './murs.js';
+import {
+  PROVENANCES, ligne, devis, reservesDevis, euros,
+} from './prix.js';
 
 const nb = (el, defaut = 0) => {
   const v = parseFloat(el.value);
@@ -2653,6 +2656,7 @@ function majReseau() {
   majTableauReseau(recap);
   majSelectionReseau();
   majCouverture();
+  majDevis();
   const b = majEnregistrement();
   // Les alertes des deux familles — câblage et exploitation — sont rendues
   // ensemble : sur le chantier elles se traitent d'un même mouvement.
@@ -3407,6 +3411,9 @@ function brancherCommandesReseau() {
   ['#nvr-jours', '#nvr-heures', '#nvr-marge', '#nvr-codec', '#nvr-ips']
     .forEach((id) => $(id).addEventListener('change', majReseau));
   $('#nvr-estimer').addEventListener('click', estimerDebits);
+  ['#devis-marge', '#devis-remise', '#devis-heures', '#devis-taux', '#devis-tva']
+    .forEach((id) => $(id).addEventListener('change', majReseau));
+  $('#devis-prix-releves').addEventListener('click', chargerPrixReleves);
   $('#mur-hauteur').addEventListener('change', majReseau);
   $('#opt-couverture').addEventListener('change', majReseau);
   $('#nvr-marge').value = Math.round(MARGE_DEFAUT * 100);
@@ -3650,6 +3657,164 @@ function dessinerMurs(ctx, l, r, echelle) {
     ctx.fill();
   }
   ctx.restore();
+}
+
+/* -------------------------------------------------------------- devis */
+
+/**
+ * Prix relevés chez des revendeurs français le 20/09/2026.
+ *
+ * Ce sont des **prix publics affichés un jour donné**, pas un tarif négocié.
+ * Ils portent leur date et leur source, l'outil les marque « ~ », et le devis
+ * rappelle de les confirmer avant engagement. Un tarif bouge ; celui-ci aura
+ * vieilli avant d'avoir servi deux fois.
+ */
+const PRIX_RELEVES = [
+  ['DS-2CD2T86G2', 214.57, 'Getic.fr'],
+  ['DS-3E0310HP-E', 86.62, 'Getic.fr'],
+];
+
+/** Date du relevé de prix ci-dessus. */
+const DATE_RELEVE = '20/09/2026';
+
+/** Réglages du devis, saisis au formulaire. */
+function reglagesDevis() {
+  return {
+    marge: nb($('#devis-marge'), 25) / 100,
+    remise: nb($('#devis-remise'), 0) / 100,
+    heures: nb($('#devis-heures'), 0),
+    tauxHoraire: nb($('#devis-taux'), 55),
+    tva: nb($('#devis-tva'), 20) / 100,
+  };
+}
+
+/**
+ * Devis du chantier, bâti sur le matériel réellement posé au synoptique.
+ *
+ * Les matériels identiques sont regroupés : un devis qui liste huit fois la
+ * même caméra sur huit lignes se lit mal et se discute mal.
+ */
+function devisCourant() {
+  const r = synoptiqueCourant();
+  const reglages = reglagesDevis();
+
+  const groupes = new Map();
+  for (const n of r.noeuds) {
+    const cle = `${n.type}|${n.reference || ''}|${n.prixAchat || 0}|${n.prixVente || 0}`;
+    if (!groupes.has(cle)) groupes.set(cle, { modele: n, quantite: 0 });
+    groupes.get(cle).quantite += 1;
+  }
+
+  const lignes = [...groupes.values()].map((g) => ligne(
+    {
+      ...g.modele,
+      // Le repère d'un exemplaire ne vaut pas pour le groupe : on désigne par
+      // le type et la référence.
+      nom: TYPES_MATERIEL[g.modele.type]?.label || g.modele.type,
+    },
+    g.quantite,
+    { marge: reglages.marge, tva: reglages.tva },
+  ));
+
+  return devis(lignes, reglages);
+}
+
+/** Panneau du devis, sous le synoptique. */
+function majDevis() {
+  const d = devisCourant();
+  const aQuelqueChose = d.lignes.length > 0 || d.mainOeuvreHt > 0;
+
+  $('#devis-tableau').innerHTML = aQuelqueChose
+    ? `<table class="dori devis">
+        <thead><tr><th>Désignation</th><th>Qté</th><th>PU HT</th><th>Total HT</th><th></th></tr></thead>
+        <tbody>${d.lignes.map((l) => `<tr class="${l.provenance === 'aucune' ? 'a-completer' : ''}">
+          <td>${ech(l.article.reference || l.article.nom)}</td>
+          <td>${l.quantite}</td>
+          <td>${l.venteHt > 0 ? euros(l.venteHt) : '—'}</td>
+          <td><b>${l.venteHt > 0 ? euros(l.totalHt) : '—'}</b></td>
+          <td title="${ech(PROVENANCES[l.provenance].label)}">${PROVENANCES[l.provenance].marque}</td>
+        </tr>`).join('')}</tbody>
+      </table>`
+    : '';
+
+  $('#devis-mesures').innerHTML = aQuelqueChose
+    ? mesure('Matériel HT', euros(d.materielHt), '')
+      + (d.mainOeuvreHt > 0 ? mesure('Main-d\'œuvre HT', euros(d.mainOeuvreHt), '') : '')
+      + (d.montantRemise > 0 ? mesure('Remise', `− ${euros(d.montantRemise)}`, '') : '')
+      + mesure('Total HT', euros(d.totalHt), '', true)
+      + mesure(`TVA ${fmt(d.tva * 100, 1)} %`, euros(d.montantTva), '')
+      + mesure('Total TTC', euros(d.totalTtc), '', true)
+    : '';
+
+  // Ce qui empêche ce devis d'être ferme se dit ici, pas seulement au document.
+  const reserves = reservesDevis(d);
+  $('#devis-tableau').insertAdjacentHTML('beforeend', reserves.length
+    ? `<ul class="alertes">${reserves.map((x) => `<li>${ech(x)}</li>`).join('')}</ul>`
+    : '');
+
+  return d;
+}
+
+/**
+ * Applique les prix relevés au matériel dont la référence correspond.
+ *
+ * N'écrase jamais un prix déjà saisi : celui de l'agence vaut mieux que
+ * celui d'une vitrine.
+ */
+function chargerPrixReleves() {
+  const r = synoptiqueCourant();
+  let faits = 0;
+  for (const n of r.noeuds) {
+    if (n.prixAchat > 0 || n.prixVente > 0) continue;
+    const trouve = PRIX_RELEVES.find(([ref]) => (n.reference || '').toUpperCase().includes(ref));
+    if (!trouve) continue;
+    const [, prix, source] = trouve;
+    n.prixAchat = prix;
+    n.sourceAchat = { type: 'releve', date: DATE_RELEVE, source };
+    faits += 1;
+  }
+  majReseau();
+  $('#etat-analyse').textContent = faits
+    ? `${plur(faits, 'prix', '')} relevé${faits > 1 ? 's' : ''} appliqué${faits > 1 ? 's' : ''} `
+      + `(${DATE_RELEVE}) — à confirmer auprès de votre distributeur.`
+    : 'Aucune référence du synoptique ne figure au relevé de prix. '
+      + 'Saisissez la référence exacte sur la fiche du matériel.';
+  $('#etat-analyse').classList.remove('erreur');
+}
+
+/** Section « devis » des documents. */
+function sectionDevis() {
+  const d = devisCourant();
+  if (!d.lignes.length && !(d.mainOeuvreHt > 0)) return '';
+  const reserves = reservesDevis(d);
+
+  return `<section class="saut">
+      <h2>Devis</h2>
+      <table>
+        <thead><tr><th>Désignation</th><th>Qté</th><th>PU HT</th><th>Total HT</th></tr></thead>
+        <tbody>${d.lignes.map((l) => `<tr>
+          <td>${ech(l.article.reference || l.article.nom)}</td>
+          <td>${l.quantite}</td>
+          <td>${l.venteHt > 0 ? euros(l.venteHt) : 'à chiffrer'}</td>
+          <td>${l.venteHt > 0 ? euros(l.totalHt) : '—'}</td>
+        </tr>`).join('')}
+        ${d.mainOeuvreHt > 0 ? `<tr>
+          <td>Pose et mise en service</td>
+          <td>${fmt(nb($('#devis-heures'), 0), 1)} h</td>
+          <td>${euros(nb($('#devis-taux'), 0))}</td>
+          <td>${euros(d.mainOeuvreHt)}</td></tr>` : ''}
+        ${d.montantRemise > 0 ? `<tr>
+          <td colspan="3">Remise commerciale (${fmt(d.remise * 100, 0)} %)</td>
+          <td>− ${euros(d.montantRemise)}</td></tr>` : ''}
+        <tr><td colspan="3"><b>Total HT</b></td><td><b>${euros(d.totalHt)}</b></td></tr>
+        <tr><td colspan="3">TVA ${fmt(d.tva * 100, 1)} %</td><td>${euros(d.montantTva)}</td></tr>
+        <tr><td colspan="3"><b>Total TTC</b></td><td><b>${euros(d.totalTtc)}</b></td></tr>
+      </tbody>
+      </table>
+      ${reserves.length ? `<ul>${reserves.map((x) => `<li>${ech(x)}</li>`).join('')}</ul>` : ''}
+      <p class="note">Devis valable un mois. Prix hors taxes, TVA au taux en
+        vigueur. La mise en œuvre est soumise au relevé définitif sur site.</p>
+    </section>`;
 }
 
 /* ================================================== fiche : enregistrer / ouvrir */
@@ -4081,6 +4246,8 @@ function construireProposition() {
   }).join('')}
 
     ${sectionSynoptique(true)}
+
+    ${sectionDevis()}
 
     <section class="saut">
       <h2>Méthode et hypothèses</h2>

@@ -88,25 +88,33 @@ Pour le mode d'emploi complet et la mise en ligne sur WordPress, voir
    dépassés, canaux de l'enregistreur, caméra sur un switch sans PoE,
    consommation hors norme PoE, capacité installée insuffisante, débit manquant.
    Les anomalies bloquantes passent devant les avertissements.
-7. **Conception d'un champ sur plan** — tracer sur une vue aérienne la zone à
+7. **Devis** — bâti sur le matériel réellement posé au synoptique, les
+   identiques regroupés. Chaque prix porte sa provenance : **✓** pratiqué ou
+   saisi par l'agence, **~** relevé chez un revendeur à une date donnée,
+   **⋯** manquant — et le devis dit alors qu'il est incomplet plutôt que de
+   compter la ligne à zéro. Prix d'achat et prix de vente sont distingués :
+   un prix de vente connu s'impose tel quel, sans se voir appliquer une marge
+   qu'il contient déjà. Main-d'œuvre, remise et TVA entrent dans le total, et
+   le document part à la proposition client — jamais au procès-verbal.
+8. **Conception d'un champ sur plan** — tracer sur une vue aérienne la zone à
    couvrir, et en déduire portée, ouverture, largeur couverte, **focale
    nécessaire**, densité en pixels par mètre et niveau DORI atteint. Un
    catalogue du matériel, tenu par l'agence, désigne alors la caméra à poser et
    le zoom à régler. Le plan annoté s'exporte, et le procès-verbal porte une
    fiche d'implantation au format des études.
-8. **Dossier de chantier** — une fiche porte autant de caméras que le site en
+9. **Dossier de chantier** — une fiche porte autant de caméras que le site en
    compte. Onglets avec pastille de verdict, synthèse d'avancement, un seul
    fichier `.json` pour tout le dossier et un procès-verbal unique. Les fiches
    de la version 1, à caméra unique, s'ouvrent toujours.
-9. **Import de l'étude au format PDF** — les pages du PDF remis par le client
+10. **Import de l'étude au format PDF** — les pages du PDF remis par le client
    sont affichées, on choisit celle qui porte la vue attendue et on recadre
    dessus pour n'en garder que l'image utile. Le procès-verbal cite ensuite le
    fichier et le numéro de page servis de référence.
-10. **Lecture des études scannées** — un PDF sans texte est reconnu comme tel et
+11. **Lecture des études scannées** — un PDF sans texte est reconnu comme tel et
    peut être passé en reconnaissance de caractères, hors ligne. Les valeurs
    ainsi obtenues sont signalées comme telles, à l'écran et au procès-verbal :
    un chiffre mal reconnu fausserait la mesure d'angle.
-11. **Relevé du texte de l'étude** — focale, angle de vue, capteur, résolution,
+12. **Relevé du texte de l'étude** — focale, angle de vue, capteur, résolution,
    distance et hauteur annoncés sont lus dans le texte du PDF, caméra par
    caméra, puis confrontés au matériel réellement posé. Chaque valeur est
    présentée avec sa page d'origine et son extrait : l'outil propose, le
@@ -116,18 +124,18 @@ Pour le mode d'emploi complet et la mise en ligne sur WordPress, voir
    **Texte lu** montre ce qui a été extrait,
    passages retenus surlignés, et se copie d'un clic : une formulation non
    reconnue se diagnostique sans sortir l'étude du dossier client.
-12. **Calculs optiques** — angles de champ horizontal / vertical / diagonal à
+13. **Calculs optiques** — angles de champ horizontal / vertical / diagonal à
    partir du capteur et de la focale, largeur de scène couverte, densité en
    pixels par mètre, portées DORI (EN 62676-4), zone morte au pied du mât,
    focale nécessaire pour couvrir une largeur donnée.
-13. **Recalage des deux vues** — estimation automatique du décalage, du zoom et
+14. **Recalage des deux vues** — estimation automatique du décalage, du zoom et
    du roulis entre l'image de référence et l'image réglée.
-14. **Diagnostic** — traduction de ce recalage en écarts de réglage réels
+15. **Diagnostic** — traduction de ce recalage en écarts de réglage réels
    (degrés de panoramique, de site, de roulis ; pourcentage de cadrage), note
    de conformité sur 100 et consignes d'intervention en clair.
-14. **Zones d'intérêt** — rectangles tracés sur la vue demandée, dont l'outil
+16. **Zones d'intérêt** — rectangles tracés sur la vue demandée, dont l'outil
    vérifie qu'ils restent couverts par le champ réellement réglé.
-14. **Fiche et rapport** — la fiche complète (paramètres + images) s'enregistre
+17. **Fiche et rapport** — la fiche complète (paramètres + images) s'enregistre
    en un fichier `.json` réouvrable ; le rapport s'imprime ou s'exporte en PDF.
 
 ## Organisation
@@ -142,6 +150,7 @@ Pour le mode d'emploi complet et la mise en ligne sur WordPress, voir
 | `js/reseau.js` | longueurs de câble et arborescence du synoptique — module pur, testé |
 | `js/stockage.js` | capacité d'enregistrement, budget PoE, contrôles — module pur, testé |
 | `js/murs.js` | occlusion des champs de vision et angles morts — module pur, testé |
+| `js/prix.js` | chiffrage, marges, TVA et devis — module pur, testé |
 | `js/catalogue.js` | matériel de l'agence et choix d'objectif — module pur, testé |
 | `js/alignement.js` | recalage des deux images — module pur, testé |
 | `js/diagnostic.js` | écarts de réglage et consignes — module pur, testé |
@@ -163,6 +172,7 @@ Pour le mode d'emploi complet et la mise en ligne sur WordPress, voir
 | `tests/reseau.mjs` | tests unitaires du synoptique de câblage |
 | `tests/stockage.mjs` | tests unitaires du stockage et des contrôles |
 | `tests/murs.mjs` | tests unitaires des murs et des angles morts |
+| `tests/prix.mjs` | tests unitaires du chiffrage et du devis |
 | `tests/navigateur.mjs` | tests de bout en bout dans un vrai navigateur |
 
 Les trois modules de calcul ne touchent jamais au DOM : ils reçoivent des
@@ -232,9 +242,9 @@ techniciens reste en retard sur le dépôt.
 ## Tests
 
 ```bash
-npm test                 # 201 tests unitaires, sans navigateur
+npm test                 # 222 tests unitaires, sans navigateur
 npm run build
-npm run test:navigateur  # 85 tests de bout en bout (Playwright)
+npm run test:navigateur  # 89 tests de bout en bout (Playwright)
 ```
 
 Les tests unitaires couvrent les calculs d'optique, la récupération de
@@ -251,7 +261,9 @@ matériel non raccordé, arborescence), le calcul de stockage (l'exemple de
 référence au gigaoctet près, plage horaire, calcul inverse, choix du disque) et
 les contrôles d'exploitation (adresses, ports, budget PoE, canaux, capacité), les
 angles morts (un mur survolé, un mur opaque, deux ombres qui se recouvrent, la
-part de champ dégagée mesurée en surface), la mesure des distances sur photo (sol plan, sténopé) avec le
+part de champ dégagée mesurée en surface), le chiffrage (aller-retour HT/TTC,
+prix tiré d'un relevé de ventes écrit « 2 056,00 € », achat et vente jamais
+confondus, devis incomplet signalé), la mesure des distances sur photo (sol plan, sténopé) avec le
 calage automatique du champ de vision sur deux repères, et le format de dossier (conversion des fiches de la version 1, fichier
 tronqué, nom de fichier proposé).
 
