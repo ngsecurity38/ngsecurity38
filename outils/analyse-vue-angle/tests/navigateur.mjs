@@ -2094,7 +2094,7 @@ console.log('\nPage de présentation (boutique)');
         .find((x) => /DS-2CD2T86G2-4I/.test(x.textContent));
       return f ? f.textContent.replace(/\s+/g, ' ') : '';
     });
-    const surFiche = (fiche.match(/Reconnaît une personne jusqu'à ([\d,]+) m/) || [])[1];
+    const surFiche = (fiche.match(/reconnaît une personne jusqu'à ([\d,]+) m/) || [])[1];
     affirmer(surFiche, `fiche du modèle d'exemple introuvable : ${fiche}`);
     affirmer(new RegExp(`${surFiche.replace(',', ',')} m`).test(r.texte),
       `l'échelle dit ${JSON.stringify(m)} là où la fiche dit ${surFiche} m`);
@@ -2129,7 +2129,40 @@ console.log('\nPage de présentation (boutique)');
       reserves: [...document.querySelectorAll('#reserves-produits li')]
         .map((t) => t.textContent),
     }));
-    affirmer(r.produits.length >= 8, `la gamme AcuSense : ${r.produits.length} fiches`);
+    affirmer(r.produits.length >= 12, `la gamme AcuSense : ${r.produits.length} fiches`);
+
+    /*
+     * Une caméra mobile doit dire deux choses qu'une fixe n'a pas à dire :
+     * qu'elle ne regarde qu'une direction à la fois, et jusqu'où la promesse
+     * tient. Sans elles, un 25× ferait croire à une surveillance à 200 m
+     * tous azimuts.
+     */
+    const ptz = r.produits.find((t) => /zoom ×25/.test(t));
+    affirmer(ptz, `le 25× doit figurer : ${JSON.stringify(r.produits)}`);
+    affirmer(/qu'une direction à la fois/.test(ptz), ptz);
+    affirmer(/Au zoom maximal/.test(ptz), ptz);
+    // Les pixels portent bien plus loin que l'éclairage : on annonce l'un.
+    affirmer(/portée de son éclairage, 200 m/.test(ptz), ptz);
+    affirmer(!/reconnaît une personne jusqu'à 200 m, et identifie/.test(ptz),
+      `deux fois la même distance ressemblerait à une panne : ${ptz}`);
+
+    // Un dôme mobile sans zoom optique ne se règle pas « au maximum ».
+    const fixeMobile = r.produits.find((t) => /DS-2DE3A400BW-DE/.test(t));
+    affirmer(fixeMobile && !/Au zoom maximal/.test(fixeMobile),
+      `sans zoom, pas de « zoom maximal » : ${fixeMobile}`);
+    affirmer(/qu'une direction à la fois/.test(fixeMobile), fixeMobile);
+
+    // Le ×4 doit s'annoncer comme le constructeur l'appelle, pas ×4,3.
+    const mini = r.produits.find((t) => /DS-2DE3A404IW-DE/.test(t));
+    // « ×4 » comme Hikvision l'appelle, pas « ×4,3 » comme 12/2,8 le calcule.
+    affirmer(/zoom ×4\b/.test(mini) && !/zoom ×4,\d/.test(mini),
+      `le zoom doit se dire comme sur la fiche : ${mini}`);
+    // Le chiffre de l'optique pure, lui, ne doit jamais paraître.
+    affirmer(!/6\d\d m/.test(ptz), `aucune distance à trois chiffres invraisemblable : ${ptz}`);
+
+    // Une caméra fixe ne porte aucune de ces deux mentions.
+    const fixe = r.produits.find((t) => /DS-2CD2T86G2-4I/.test(t));
+    affirmer(!/direction à la fois/.test(fixe) && !/Distances arrêtées/.test(fixe), fixe);
     // Aucune fiche produit n'existe encore sur le site : elles informent sans
     // mener nulle part, et c'est légitime sur l'espace professionnel.
     affirmer(r.sansLien === r.produits.length,
@@ -2188,7 +2221,7 @@ console.log('\nPage de présentation (boutique)');
     const bullet = r.vignettes.find((v) => /Bullet/.test(v.texte));
     affirmer(/objectif 4 mm/.test(bullet.texte), bullet.texte);
     affirmer(/m de large à 10 m/.test(bullet.texte), bullet.texte);
-    affirmer(/Reconnaît une personne jusqu'à/.test(bullet.texte), bullet.texte);
+    affirmer(/reconnaît une personne jusqu'à/.test(bullet.texte), bullet.texte);
     affirmer(/289,90 € TTC/.test(bullet.texte), `le prix TTC : ${bullet.texte}`);
 
     const zoom = r.vignettes.find((v) => /Dôme/.test(v.texte));

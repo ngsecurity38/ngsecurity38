@@ -123,6 +123,25 @@ function dessinerEchelle() {
 
 /* ------------------------------------------------------------ produits */
 
+/**
+ * Ce que la caméra permet, et jusqu'où.
+ *
+ * Trois cas, et non un seul : un objectif qui ne zoome pas ne se règle pas
+ * « au maximum » ; et quand l'éclairage s'arrête avant que les pixels ne
+ * manquent, répéter deux fois la même distance donnerait l'air d'une panne.
+ */
+function portee(a) {
+  const ou = a.ptz && a.zoom > 1.05 ? 'Au zoom maximal, l' : 'L';
+  if (a.reconnaissance >= a.plafond - 0.05) {
+    return `${ou}'image reste exploitable pour identifier quelqu'un sur toute
+      la portée de son éclairage, <b>${ech(fr(a.plafond, 0))} m</b>. Au-delà,
+      ce sont l'éclairage et l'air qui décident, plus les pixels.`;
+  }
+  return `${ou}a caméra reconnaît une personne jusqu'à
+    <b>${ech(fr(a.reconnaissance))} m</b>, et identifie un inconnu jusqu'à
+    <b>${ech(fr(a.identification))} m</b>.`;
+}
+
 /** Les vignettes produits, ou le mot qui explique leur absence. */
 function afficherProduits(catalogue) {
   const boutique = catalogue?.boutique || BOUTIQUE;
@@ -145,9 +164,9 @@ function afficherProduits(catalogue) {
       ${p.image ? `<img src="${ech(p.image)}" alt="" loading="lazy">` : ''}
       <span class="nom">${ech(p.reference)}</span>
       ${a ? `<span class="optique">${ech(a.champ)}</span>
-        <span class="portee">Reconnaît une personne jusqu'à
-          <b>${ech(fr(a.reconnaissance))} m</b>, identifie un inconnu jusqu'à
-          <b>${ech(fr(a.identification))} m</b>${c.estSuppose ? '*' : ''}</span>`
+        <span class="portee">${portee(a)}${c.estSuppose ? '*' : ''}</span>
+        ${a.ptz ? `<span class="note-fiche">Caméra mobile : elle ne regarde
+          qu'une direction à la fois.</span>` : ''}`
     : '<span class="optique">Caractéristiques optiques sur la fiche produit.</span>'}
       ${p.prixTtc > 0 ? `<span class="prix">${ech(euros(p.prixTtc))} TTC</span>` : ''}
     ${ferme}`;

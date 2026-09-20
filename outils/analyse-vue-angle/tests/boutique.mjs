@@ -6,8 +6,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
-  CAPTEUR_DEFAUT, DISTANCE_VITRINE, focales, capacites, argumentaire,
-  produitsAffichables, reservesCatalogue,
+  CAPTEUR_DEFAUT, DISTANCE_VITRINE, PLAFOND_DEFAUT, focales, capacites,
+  argumentaire, produitsAffichables, reservesCatalogue,
 } from '../js/boutique.js';
 
 const proche = (a, b, tol, m) => assert.ok(
@@ -108,6 +108,56 @@ test('un zoom peut déclarer ses deux angles', () => {
   proche(c.angleLarge, 108, 1e-9);
   proche(c.angleSerre, 30, 1e-9, 'la portée se calcule au téléobjectif');
   assert.ok(c.portees.identification > 0);
+});
+
+/* --------------------------------------------------- caméras mobiles (PTZ) */
+
+/** Hikvision DS-2DE7A825IW-AEB : 8 MP, zoom ×25, infrarouge à 200 m. */
+const PTZ25 = {
+  reference: 'DS-2DE7A825IW-AEB', type: 'ptz', resH: 3840, capteur: '1/1.8"',
+  focaleMin: 5.9, focaleMax: 147.5, angleH: 50.8, angleHTele: 2.6, porteeMax: 200,
+};
+
+test('la portée d\'un PTZ est arrêtée là où l\'éclairage s\'arrête', () => {
+  const c = capacites(PTZ25);
+  assert.equal(c.ptz, true);
+  // L'optique seule mène à un chiffre que le terrain dément.
+  assert.ok(c.portees.reconnaissance > 600,
+    `l'optique promet ${c.portees.reconnaissance} m`);
+  assert.equal(c.porteesTenues.reconnaissance, 200, 'rabattu sur l\'infrarouge');
+  assert.equal(c.porteesTenues.identification, 200);
+  assert.equal(c.plafonne, true, 'la page doit pouvoir dire pourquoi');
+  assert.equal(c.plafond, 200);
+
+  // C'est bien la valeur rabattue qui part sur la fiche.
+  const a = argumentaire(PTZ25);
+  assert.equal(a.reconnaissance, 200);
+  assert.equal(a.plafonne, true);
+});
+
+test('sans portée déclarée, le plafond par défaut s\'applique', () => {
+  const c = capacites({ ...PTZ25, porteeMax: undefined });
+  assert.equal(c.plafond, PLAFOND_DEFAUT);
+  assert.equal(c.porteesTenues.reconnaissance, PLAFOND_DEFAUT);
+});
+
+test('une caméra dont l\'optique ne dépasse pas le plafond n\'est pas rabattue', () => {
+  const c = capacites({ resH: 3840, capteur: '1/1.8"', focale: 4, angleH: 87 });
+  assert.equal(c.plafonne, false);
+  assert.equal(c.porteesTenues.reconnaissance, c.portees.reconnaissance);
+  proche(c.porteesTenues.reconnaissance, 16.2, 0.1);
+});
+
+test('un PTZ s\'annonce par son zoom, pas par sa focale', () => {
+  const a = argumentaire(PTZ25);
+  assert.match(a.optique, /zoom ×25/, a.optique);
+  assert.match(a.optique, /de 50,8 ° à 2,6 °/, a.optique);
+  assert.equal(a.ptz, true, 'la page doit pouvoir dire qu\'elle est mobile');
+
+  // Un PTZ sans zoom optique reste une caméra mobile, mais s'annonce en focale.
+  const fixe = argumentaire({ reference: 'x', type: 'ptz', resH: 2560, capteur: '1/1.8"', focale: 4, angleH: 88.7 });
+  assert.equal(fixe.ptz, true);
+  assert.match(fixe.optique, /objectif 4 mm/, fixe.optique);
 });
 
 /* --------------------------------------------------------- argumentaire */
@@ -225,6 +275,18 @@ test('le catalogue livré tient debout', async () => {
     assert.ok(p._source, `${p.reference} : une caractéristique sans source ne vaut rien`);
     // Aucun prix ne doit partir en ligne sans avoir été relevé chez nous.
     assert.equal(p.prixTtc, undefined, `${p.reference} : prix non relevé`);
+
+    /*
+     * Aucune distance invraisemblable ne doit partir sur une page client.
+     * 300 m est déjà généreux pour une promesse de reconnaissance : au-delà,
+     * ce sont l'éclairage et l'air qui décident, plus les pixels.
+     */
+    assert.ok(c.porteesTenues.reconnaissance <= 300,
+      `${p.reference} : ${c.porteesTenues.reconnaissance} m annoncés en reconnaissance`);
+    if (p.type === 'ptz') {
+      assert.ok(p.porteeMax > 0,
+        `${p.reference} : une caméra mobile doit porter sa limite d'éclairage`);
+    }
   }
   assert.deepEqual(reservesCatalogue(cat), [],
     'le catalogue livré ne doit porter aucune réserve');

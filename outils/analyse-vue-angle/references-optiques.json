@@ -8,7 +8,8 @@
     "",
     "S'en servir : copier la ligne qui vous intéresse dans catalogue.json,",
     "puis y ajouter VOS deux informations — url (la fiche produit sur votre",
-    "site) et prixTtc. Sans url, la page n'affiche pas le produit.",
+    "site) et prixTtc. Sans url la fiche s'affiche quand même, sans être",
+    "cliquable.",
     "",
     "Pourquoi angleH plutôt qu'un calcul : un grand-angle n'est pas",
     "rectiligne. Dahua annonce 98° pour son 2,8 mm quand le calcul rectiligne",
@@ -158,17 +159,17 @@
   ],
   "_a_verifier": [
     "Modèles présents à votre catalogue dont l'optique reste à relever :",
-    "Hikvision DS-2CD3786G2T-IZS, DS-2CD2786G2-IZS(C), DS-2CD2T87G2H-LI,",
-    "DS-2CD1353G0-I, DS-2CD6825G0/C-IS, iDS-2 DeepinView 12 MP,",
-    "DS-2DE3A404 / DS-2DE3A400BW-DE / DS-2DE7A825IW-AEB (PTZ),",
-    "DS-2TD2628T-7/QA (thermique), DS-2CE56D0T-IRPF (analogique HD) ;",
+    "Hikvision DS-2CD3786G2T-IZS, DS-2CD2T87G2H-LI, DS-2CD1353G0-I,",
+    "DS-2CD6825G0/C-IS, iDS-2 DeepinView 12 MP, DS-2TD2628T-7/QA (thermique),",
+    "DS-2CE56D0T-IRPF (analogique HD) ;",
     "Dahua DH-IPC-HFW3549T1P-ZAS-PV, DH-IPC-HDW5842TMP-ASE-0280B-S3 ;",
-    "Axis Q6128-E, Q6055-E, Q3517-LVE, Q1785-LE, Q6075(-E), Q6010-E,",
-    "Q6078-E, P1468-LE ; Hanwha PNO-A9081R ; Alarm.com ADC-V724X.",
+    "Axis Q3517-LVE, Q1785-LE, P1468-LE ;",
+    "PTZ Axis Q6010-E, Q6055-E, Q6075(-E), Q6078-E, Q6128-E ;",
+    "Hanwha PNO-A9081R ; Alarm.com ADC-V724X.",
     "",
-    "Les PTZ demandent un traitement à part : leur champ varie du tout au",
-    "tout entre le grand angle et le téléobjectif, et la page ne sait",
-    "aujourd'hui annoncer qu'un couple d'angles. Dites-le-moi si vous voulez",
-    "les faire figurer."
+    "Les PTZ Hikvision sont traités : voir catalogue.json. Une caméra mobile",
+    "y porte type = \"ptz\", son zoom, et porteeMax — la distance au-delà de",
+    "laquelle son éclairage ne porte plus. Sans ce plafond, l'optique seule",
+    "annoncerait des portées que le terrain dément."
   ]
 }

@@ -27,6 +27,20 @@ export const CAPTEUR_DEFAUT = '1/2.8"';
 /** Distance de référence pour annoncer une largeur de champ, en mètres. */
 export const DISTANCE_VITRINE = 10;
 
+/**
+ * Plafond de portée, faute de mieux : 150 m.
+ *
+ * L'optique seule mène à des chiffres que le terrain dément. Un 25× annonce
+ * une reconnaissance à 677 m si l'on ne regarde que les pixels ; de nuit
+ * l'infrarouge s'arrête à 200 m, et de jour la brume et la turbulence de
+ * l'air font le reste. Hikvision plafonne ce même modèle à 409 m dans sa
+ * propre table. Imprimer 677 m sur une page client serait indéfendable.
+ *
+ * `porteeMax` sur la fiche produit — la portée de l'éclairage, en général —
+ * remplace ce plafond dès qu'elle est connue.
+ */
+export const PLAFOND_DEFAUT = 150;
+
 /** Ce que chaque niveau permet, dit à un particulier. */
 export const USAGES = {
   detection: 'voir qu\'il se passe quelque chose',
@@ -79,6 +93,7 @@ export function capacites(produit) {
     ? produit.capteur : CAPTEUR_DEFAUT;
   const capteur = CAPTEURS[nomCapteur];
   const calcule = (focale) => anglesDeChamp(capteur, focale).horizontal;
+  const plafond = nombre(produit?.porteeMax) || PLAFOND_DEFAUT;
 
   // Au grand angle pour la largeur embrassée, au téléobjectif pour la portée :
   // c'est ainsi que le produit sera réglé selon ce qu'on lui demande.
@@ -87,6 +102,10 @@ export function capacites(produit) {
   // focale longue, sinon l'objectif est fixe et le champ ne bouge pas.
   const angleSerre = declareSerre
     || (f && f.max > f.min ? calcule(f.max) : angleLarge);
+
+  const optiques = Object.fromEntries(Object.keys(SEUILS_DORI).map((cle) => [
+    cle, distanceDori(resH, angleSerre, SEUILS_DORI[cle].ppm),
+  ]));
 
   return {
     reglable: angleSerre < angleLarge - 0.5,
@@ -99,9 +118,22 @@ export function capacites(produit) {
     angleLarge,
     angleSerre,
     largeurA: (d = DISTANCE_VITRINE) => couverture(angleLarge, d),
-    portees: Object.fromEntries(Object.keys(SEUILS_DORI).map((cle) => [
-      cle, distanceDori(resH, angleSerre, SEUILS_DORI[cle].ppm),
-    ])),
+    // Le zoom annoncé par le constructeur prime : un 2,8–12 mm fait 4,29× au
+    // calcul, et Hikvision l'appelle un ×4. Autant parler comme la fiche.
+    zoom: nombre(produit?.zoom) || (f && f.max > f.min ? f.max / f.min : 1),
+    ptz: produit.type === 'ptz',
+    plafond,
+    // Ce que l'optique permet, et ce que le terrain tient vraiment.
+    portees: optiques,
+    porteesTenues: Object.fromEntries(Object.entries(optiques)
+      .map(([cle, d]) => [cle, Math.min(d, plafond)])),
+    /*
+     * Vrai seulement si un chiffre RÉELLEMENT AFFICHÉ a été rabattu. Se fier
+     * à la détection — qui porte toujours le plus loin — ferait apparaître
+     * l'avertissement sous des fiches dont aucune distance annoncée n'a
+     * bougé.
+     */
+    plafonne: optiques.reconnaissance > plafond,
   };
 }
 
@@ -121,10 +153,15 @@ export function argumentaire(produit) {
     optique,
     largeur,
     // Deux repères concrets : ce qu'on embrasse de large, et jusqu'où on
-    // reconnaît une tête connue.
+    // reconnaît une tête connue. Les portées sont celles que le terrain
+    // tient, pas celles que l'optique promet.
     champ: `${optique} — ${arr(largeur)} m de large à ${DISTANCE_VITRINE} m`,
-    reconnaissance: c.portees.reconnaissance,
-    identification: c.portees.identification,
+    reconnaissance: c.porteesTenues.reconnaissance,
+    identification: c.porteesTenues.identification,
+    plafonne: c.plafonne,
+    plafond: c.plafond,
+    ptz: c.ptz,
+    zoom: c.zoom,
   };
 }
 
@@ -135,6 +172,11 @@ export function argumentaire(produit) {
  * les deux quand on a les deux, l'angle seul sinon.
  */
 function optiqueEnClair(c) {
+  if (c.ptz && c.zoom > 1.05) {
+    // Sur une caméra mobile, le zoom parle plus que la focale : « ×25 » se
+    // comprend, « 5,9 à 147,5 mm » demande un calcul.
+    return `zoom ×${arr(c.zoom)}, de ${arr(c.angleLarge)} ° à ${arr(c.angleSerre)} °`;
+  }
   if (!c.focaleMin) return `champ de ${arr(c.angleLarge)} °`;
   if (c.reglable && c.focaleMax > c.focaleMin) {
     return `objectif réglable de ${arr(c.focaleMin)} à ${arr(c.focaleMax)} mm`;

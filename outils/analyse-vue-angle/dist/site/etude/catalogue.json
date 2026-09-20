@@ -32,7 +32,16 @@
     "",
     "Les caractéristiques ci-dessous sont relevées sur les fiches Hikvision.",
     "Les prix sont à VOUS : relevez-les chez votre distributeur, ils ne se",
-    "devinent pas. Voir references-optiques.json pour les autres marques."
+    "devinent pas. Voir references-optiques.json pour les autres marques.",
+    "",
+    "CAMÉRAS MOBILES (PTZ) : ajouter type = \"ptz\". La fiche annonce alors le",
+    "zoom plutôt que la focale, et rappelle qu'une caméra mobile ne regarde",
+    "qu'une direction à la fois.",
+    "  zoom       le grossissement annoncé par le constructeur (4 pour un ×4).\n  porteeMax  distance au-delà de laquelle on n'annonce plus rien, en",
+    "             mètres — en pratique la portée de l'éclairage infrarouge.",
+    "             À défaut, 150 m. L'optique seule mènerait à des chiffres que",
+    "             le terrain dément : un 25× « reconnaît » à 677 m sur le",
+    "             papier, quand son infrarouge s'arrête à 200 m."
   ],
   "outil": "/outils/devis/",
   "boutique": "/",
@@ -128,6 +137,48 @@
       "focale": 4,
       "angleH": 94,
       "_source": "Fiche Hikvision DS-2CD2T47G2-L (C), 18/04/2023"
+    },
+    {
+      "reference": "Hikvision DS-2DE3A404IW-DE — mini PTZ 4 MP, zoom ×4",
+      "type": "ptz",
+      "url": "",
+      "resH": 2560,
+      "resV": 1440,
+      "capteur": "1/2.8\"",
+      "focaleMin": 2.8,
+      "focaleMax": 12,
+      "angleH": 96.7,
+      "angleHTele": 31.6,
+      "porteeMax": 50,
+      "_source": "Fiche Hikvision DS-2DE3A404IW-DE (2.8-12 mm), 11/01/2021 — infrarouge 50 m",
+      "zoom": 4
+    },
+    {
+      "reference": "Hikvision DS-2DE3A400BW-DE — speed dome 4 MP ColorVu, 4 mm",
+      "type": "ptz",
+      "url": "",
+      "resH": 2560,
+      "resV": 1440,
+      "capteur": "1/1.8\"",
+      "focale": 4,
+      "angleH": 88.7,
+      "porteeMax": 30,
+      "_source": "Fiche produit Hikvision DS-2DE3A400BW-DE(F1) — lumière blanche 30 m"
+    },
+    {
+      "reference": "Hikvision DS-2DE7A825IW-AEB — speed dome 8 MP, zoom ×25",
+      "type": "ptz",
+      "url": "",
+      "resH": 3840,
+      "resV": 2160,
+      "capteur": "1/1.8\"",
+      "focaleMin": 5.9,
+      "focaleMax": 147.5,
+      "angleH": 50.8,
+      "angleHTele": 2.6,
+      "porteeMax": 200,
+      "_source": "Fiche Hikvision DS-2DE7A825IW-AEB(T5), 13/03/2024 — infrarouge 200 m",
+      "_reserve": "Hikvision annonce 409 m en reconnaissance dans sa propre table DORI, calculée sur un champ de 4,3° et non sur les 2,6° de la fiche optique. Nous retenons 200 m, la portée de l'infrarouge : de nuit, au-delà, il n'y a rien à voir."
     }
   ]
 }

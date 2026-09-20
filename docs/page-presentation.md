@@ -140,6 +140,43 @@ argument, pas une gêne.
 
 ---
 
+## 3 ter. Les caméras mobiles (PTZ)
+
+Une PTZ n'est pas une caméra fixe avec un zoom. Deux choses la distinguent,
+et la page les dit toutes les deux.
+
+### Elle ne regarde qu'une direction à la fois
+
+Un 25× « reconnaît à 200 m » — mais seulement là où il pointe. Pendant qu'il
+regarde le portail, il ne voit pas le parking. C'est écrit sous chaque fiche
+mobile, parce qu'un client qui l'ignore croit acheter une surveillance
+panoramique.
+
+### Sa portée s'arrête où s'arrête son éclairage
+
+Le DS-2DE7A825IW-AEB au zoom maximal donne, en pixels seuls, une
+reconnaissance à **677 m**. Personne ne peut promettre cela : de nuit son
+infrarouge s'arrête à 200 m, et de jour la brume et la turbulence de l'air
+font le reste. Hikvision plafonne d'ailleurs ce même modèle à 409 m dans sa
+propre table.
+
+La page retient **200 m**, la portée de l'éclairage, renseignée par
+`porteeMax`. Sans ce champ, le plafond est de 150 m. Un test refuse qu'une
+fiche annonce plus de 300 m en reconnaissance.
+
+### Les trois modèles livrés
+
+| Modèle | Zoom | Champ | Portée retenue |
+| --- | --- | --- | --- |
+| DS-2DE3A404IW-DE, mini PTZ 4 MP | ×4 | 96,7 → 31,6 ° | 50 m (infrarouge) |
+| DS-2DE3A400BW-DE, ColorVu 4 MP | — | 88,7 ° | 30 m (lumière blanche) |
+| DS-2DE7A825IW-AEB, 8 MP | ×25 | 50,8 → 2,6 ° | 200 m (infrarouge) |
+
+Pour en ajouter une : `type: "ptz"`, `zoom` tel que le constructeur
+l'appelle — un 2,8–12 mm est un ×4, pas un ×4,3 — et `porteeMax`.
+
+---
+
 ## 4. Le lien dans le menu
 
 Admin WordPress → **Apparence > Menus** → **Liens personnalisés** :
