@@ -1,0 +1,25 @@
+# Reverse proxy + HTTPS automatique (Let's Encrypt) pour NGS38.
+# Gère le domaine racine ET le www (certificats obtenus pour les deux).
+{$DOMAIN}, www.{$DOMAIN} {
+        encode gzip
+
+        # Les outils d'étude, servis par le conteneur ngs-outils.
+        # Placé avant le reste : « handle » s'arrête au premier qui répond.
+        handle /outils/* {
+                reverse_proxy ngs-outils:80
+        }
+
+        # Tout le reste continue vers l'application, comme avant.
+        handle {
+                reverse_proxy backend:3000
+        }
+
+        # En-têtes de sécurité
+        header {
+                Strict-Transport-Security "max-age=31536000; includeSubDomains"
+                X-Content-Type-Options "nosniff"
+                Referrer-Policy "strict-origin-when-cross-origin"
+                X-Frame-Options "SAMEORIGIN"
+                -Server
+        }
+}

@@ -105,7 +105,38 @@ docker exec deploy-caddy-1 wget -qO- http://ngs-outils/outils/etude/ | head -3
 Si la dernière commande affiche du HTML, le proxy voit les pages. Reste à
 lui dire de les servir.
 
-### La règle Caddy
+### La règle Caddy — fichier proposé
+
+`deploiement/Caddyfile-propose` reprend le Caddyfile du VPS relevé le
+20/09/2026, avec la seule dérivation ajoutée. À comparer avant d'appliquer :
+
+```bash
+diff /opt/ngs38/deploy/Caddyfile ~/ngsecurity38/deploiement/Caddyfile-propose
+```
+
+Le `diff` ne doit montrer que l'ajout de `handle`. S'il montre autre chose,
+c'est que la configuration a changé depuis : ne remplacez rien, signalez-le.
+
+```bash
+cp /opt/ngs38/deploy/Caddyfile /opt/ngs38/deploy/Caddyfile.bak
+cp ~/ngsecurity38/deploiement/Caddyfile-propose /opt/ngs38/deploy/Caddyfile
+docker exec deploy-caddy-1 caddy validate --config /etc/caddy/Caddyfile
+docker exec deploy-caddy-1 caddy reload  --config /etc/caddy/Caddyfile
+```
+
+`validate` avant `reload` : une erreur de syntaxe rattrapée là ne coûte
+rien, la même passée en production coupe le site.
+
+Retour en arrière, si besoin :
+
+```bash
+cp /opt/ngs38/deploy/Caddyfile.bak /opt/ngs38/deploy/Caddyfile
+docker exec deploy-caddy-1 caddy reload --config /etc/caddy/Caddyfile
+```
+
+### Pourquoi deux blocs `handle`
+
+
 
 À ajouter dans le Caddyfile, **dans le bloc du domaine voulu** :
 
