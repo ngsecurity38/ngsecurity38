@@ -9,11 +9,16 @@ quelques mégaoctets suffit, sans base de données ni PHP.
 ## Avant de commencer : que tourne-t-il déjà ?
 
 ```bash
-docker ps
-ss -tlnp | grep -E ':(80|443|8080) '
+sh deploiement/etat-du-serveur.sh
 ```
 
-Si le port 8080 est pris, changez `PORT` dans `.env`.
+Ce script ne lit aucun secret — ni `.env`, ni clés, ni lignes de commande des
+processus, qui contiennent parfois des identifiants. Il regarde le système,
+les conteneurs, les ports occupés, et si un serveur web est déjà devant.
+Rien n'est modifié.
+
+Sa sortie se colle sans risque dans une conversation. Si le port 8080 est
+pris, changez `PORT` dans `.env`.
 
 ---
 
