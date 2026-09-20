@@ -2325,6 +2325,52 @@ console.log('\nBlocs à coller (WordPress)');
     affirmer(!/cursive/.test(r.police), `ni sa police : ${r.police}`);
   });
 
+  await cas('les deux adresses en tête du bloc l\'emportent', async () => {
+    /*
+     * Une fois les pages publiées, leurs adresses ne sont connues que de
+     * l'auteur. Elles figurent aussi dans le catalogue, mais celui-ci tient
+     * sur une ligne de plusieurs dizaines de milliers de caractères : elles
+     * seraient introuvables dans l'éditeur. D'où ces deux lignes en tête,
+     * qui doivent primer.
+     */
+    const bloc = await readFile(join(racine, 'dist', 'site', 'wordpress', 'etude.html'), 'utf8');
+    affirmer(/window\.__ngsOutil = '\/outils\/devis\/';/.test(bloc),
+      'les deux lignes doivent figurer en clair, en tête du bloc');
+    const tete = bloc.slice(0, bloc.indexOf('window.__ngsOutil'));
+    affirmer(tete.length < 700,
+      `elles doivent sauter aux yeux, pas se cacher après ${tete.length} caractères`);
+
+    const regle = bloc
+      .replace("window.__ngsOutil = '/outils/devis/';",
+        () => "window.__ngsOutil = 'https://exemple.test/mon-etude/';")
+      .replace("window.__ngsBoutique = '/';",
+        () => "window.__ngsBoutique = 'https://exemple.test/nos-cameras/';");
+    await page.route('https://exemple.test/reglee', (r) => r.fulfill({
+      status: 200, contentType: 'text/html; charset=utf-8',
+      body: theme.replace('__BLOC__', () => regle),
+    }));
+    await page.goto('https://exemple.test/reglee', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(400);
+
+    const liens = await page.evaluate(() => {
+      const o = document.getElementById('ngs-etude').shadowRoot;
+      return {
+        outil: o.querySelector('#lien-outil').getAttribute('href'),
+        bas: o.querySelector('#lien-outil-bas').getAttribute('href'),
+        boutique: o.querySelector('#lien-boutique').getAttribute('href'),
+        pied: [...o.querySelectorAll('#pied-liens a')].map((a) => a.getAttribute('href')),
+      };
+    });
+    affirmer(liens.outil === 'https://exemple.test/mon-etude/', `étude : ${liens.outil}`);
+    affirmer(liens.bas === liens.outil, 'les deux boutons suivent');
+    affirmer(liens.boutique === 'https://exemple.test/nos-cameras/', `boutique : ${liens.boutique}`);
+    affirmer(liens.pied.includes('https://exemple.test/mon-etude/')
+      && liens.pied.includes('https://exemple.test/nos-cameras/'),
+    `le pied aussi : ${JSON.stringify(liens.pied)}`);
+
+    await servir('etude.html');
+  });
+
   await cas('le site hôte n\'est pas abîmé en retour', async () => {
     const hote = await page.evaluate(() => ({
       carte: getComputedStyle(document.querySelector('.carte')).borderStyle,

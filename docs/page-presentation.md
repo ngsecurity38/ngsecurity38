@@ -206,6 +206,20 @@ Un test le vérifie à chaque construction, sur une page hôte volontairement
 hostile : fond vert, titres magenta, police cursive, et un `display:none` sur
 `.produit`. La page collée en sort intacte, et le thème aussi.
 
+### Relier les deux pages
+
+Une fois les deux pages publiées, relevez leurs adresses et corrigez les
+**deux lignes en tête** du bloc de la présentation — elles y sont isolées et
+commentées, impossible de les manquer :
+
+```js
+window.__ngsOutil = 'https://ngsecurity38.fr/estimer-mon-installation/';
+window.__ngsBoutique = 'https://ngsecurity38.fr/nos-cameras/';
+```
+
+Elles priment sur tout le reste. Inutile d'aller fouiller le catalogue, qui
+tient sur une seule ligne de plusieurs dizaines de milliers de caractères.
+
 ### Changer les produits, ensuite
 
 Le bloc porte ses données avec lui. La ligne `window.__catalogue={…}`, visible

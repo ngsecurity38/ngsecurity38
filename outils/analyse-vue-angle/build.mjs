@@ -244,7 +244,7 @@ aDeposer('etude', presentation, lire('catalogue.json'), 'catalogue.json');
  * `.carte` ou `.btn` écraseraient ceux du site — deux noms si courants que la
  * collision est certaine.
  */
-function pourWordpress(page, feuille, paquet, donnees, id) {
+function pourWordpress(page, feuille, paquet, donnees, id, adresses = '') {
   const corps = page.slice(page.indexOf('<body>') + 6, page.indexOf('</body>'))
     .replace(/<script[\s\S]*?<\/script>/g, '')
     .trim();
@@ -260,10 +260,10 @@ function pourWordpress(page, feuille, paquet, donnees, id) {
 
   return `<!-- ${id} — NG Security 38. Bloc « HTML personnalisé ».
      Produit par build.mjs le ${new Date().toISOString().slice(0, 10)}.
-     Pour changer les données : la ligne __ngsDonnees ci-dessous se modifie
-     ici même, dans l'éditeur. -->
+     Tout se modifie ici même, dans l'éditeur : les adresses en tête, et les
+     données sur la ligne window.__catalogue / window.__tarif plus bas. -->
 <div id="${id}"></div>
-<script>
+${adresses}<script>
 (function () {
   var hote = document.getElementById(${JSON.stringify(id)});
   if (!hote || hote.shadowRoot) return;
@@ -279,13 +279,32 @@ function pourWordpress(page, feuille, paquet, donnees, id) {
 
 const dossierWp = join(ici, 'dist', 'site', 'wordpress');
 mkdirSync(dossierWp, { recursive: true });
-for (const [nom, page, feuille, paquet, donnees, id] of [
+/*
+ * Les deux seules lignes qu'on aura à modifier, hissées en tête du bloc.
+ *
+ * Elles figurent aussi dans le catalogue, mais celui-ci est collé sur une
+ * ligne unique de plusieurs dizaines de milliers de caractères : y retrouver
+ * une adresse dans l'éditeur WordPress est hors de portée. Ici, elles sautent
+ * aux yeux.
+ */
+const adressesEnTete = `<script>
+/* ————————————————————————————————————————————————————————————————
+   Les DEUX SEULES lignes à modifier une fois vos pages publiées.
+   Remplacez-les par l'adresse complète de chacune, par exemple
+   'https://ngsecurity38.fr/estimer-mon-installation/'.
+   ———————————————————————————————————————————————————————————— */
+window.__ngsOutil = '/outils/devis/';     /* « Lancer l'étude »     */
+window.__ngsBoutique = '/';               /* « Voir nos caméras »   */
+</${'script'}>
+`;
+
+for (const [nom, page, feuille, paquet, donnees, id, adresses] of [
   ['etude', presentation, lire('presentation.css'), paquetPresentation,
-    `window.__catalogue=${inerte(lire('catalogue.json'))}`, 'ngs-etude'],
+    `window.__catalogue=${inerte(lire('catalogue.json'))}`, 'ngs-etude', adressesEnTete],
   ['devis', client, lire('devis-client.css'), paquetClient,
-    `window.__tarif=${inerte(lire('tarif.json'))}`, 'ngs-devis'],
+    `window.__tarif=${inerte(lire('tarif.json'))}`, 'ngs-devis', ''],
 ]) {
-  const bloc = pourWordpress(page, feuille, paquet, donnees, id);
+  const bloc = pourWordpress(page, feuille, paquet, donnees, id, adresses);
   writeFileSync(join(dossierWp, `${nom}.html`), bloc);
   console.log(`${join(dossierWp, `${nom}.html`)} — ${(bloc.length / 1024).toFixed(0)} Ko `
     + 'à coller dans un bloc HTML personnalisé');

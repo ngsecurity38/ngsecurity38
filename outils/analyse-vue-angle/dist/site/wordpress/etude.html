@@ -1,8 +1,17 @@
 <!-- ngs-etude — NG Security 38. Bloc « HTML personnalisé ».
      Produit par build.mjs le 2026-09-20.
-     Pour changer les données : la ligne __ngsDonnees ci-dessous se modifie
-     ici même, dans l'éditeur. -->
+     Tout se modifie ici même, dans l'éditeur : les adresses en tête, et les
+     données sur la ligne window.__catalogue / window.__tarif plus bas. -->
 <div id="ngs-etude"></div>
+<script>
+/* ————————————————————————————————————————————————————————————————
+   Les DEUX SEULES lignes à modifier une fois vos pages publiées.
+   Remplacez-les par l'adresse complète de chacune, par exemple
+   'https://ngsecurity38.fr/estimer-mon-installation/'.
+   ———————————————————————————————————————————————————————————— */
+window.__ngsOutil = '/outils/devis/';     /* « Lancer l'étude »     */
+window.__ngsBoutique = '/';               /* « Voir nos caméras »   */
+</script>
 <script>
 (function () {
   var hote = document.getElementById("ngs-etude");
@@ -1042,7 +1051,7 @@ function portee(a) {
 
 /** Les vignettes produits, ou le mot qui explique leur absence. */
 function afficherProduits(catalogue) {
-  const boutique = catalogue?.boutique || BOUTIQUE;
+  const boutique = destination('__ngsBoutique', catalogue?.boutique, BOUTIQUE);
   const produits = produitsAffichables(catalogue);
 
   $('#intro-produits').textContent = produits.length
@@ -1083,14 +1092,27 @@ function afficherProduits(catalogue) {
   // Libellés neutres : ils conviennent que les deux pages soient sur un seul
   // site ou sur deux domaines.
   $('#pied-liens').innerHTML = `<a href="${ech(boutique)}">Nos caméras</a>
-    · <a href="${ech(catalogue?.outil || OUTIL)}">Estimer mon installation</a>`;
+    · <a href="${ech(destination('__ngsOutil', catalogue?.outil, OUTIL))}"
+      >Estimer mon installation</a>`;
 }
 
 /* ------------------------------------------------------------ démarrage */
 
+/**
+ * Les deux destinations, par ordre de priorité.
+ *
+ * Un bloc collé dans un site porte son catalogue sur une seule ligne, longue
+ * de dizaines de milliers de caractères : y retrouver une adresse relève de
+ * l'exploit. Le bloc les redéclare donc en clair, en tête, et ce sont
+ * celles-là qui gagnent.
+ */
+const destination = (cle, depuisCatalogue, defaut) => (
+  globalThis[cle] || depuisCatalogue || defaut
+);
+
 async function demarrer() {
   const catalogue = await chargerCatalogue();
-  const outil = catalogue?.outil || OUTIL;
+  const outil = destination('__ngsOutil', catalogue?.outil, OUTIL);
   $$('#lien-outil, #lien-outil-bas').forEach((a) => { a.href = outil; });
 
   dessinerEchelle();
