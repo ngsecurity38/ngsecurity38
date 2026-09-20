@@ -11,7 +11,8 @@
     "",
     "Champs par article :",
     "  type       hub | ouverture | mouvement | mouvementPhoto | brisVitre |",
-    "             clavier | telecommande | sireneInt | sireneExt | relais",
+    "             exterieur | agression | clavier | telecommande |",
+    "             sireneInt | sireneExt | relais",
     "  reference  ce que lira le client",
     "  prixAchat  ce que vous payez, hors taxes",
     "  prixVente  ce que vous facturez, hors taxes. S'il est renseigné, il",
@@ -64,6 +65,18 @@
     {
       "type": "brisVitre",
       "reference": "Ajax GlassProtect — détecteur de bris de vitre",
+      "_a_renseigner": "prixAchat"
+    },
+    {
+      "type": "exterieur",
+      "reference": "Ajax MotionProtect Outdoor — détecteur de mouvement extérieur",
+      "_source": "Désignation constructeur Ajax Systems. Portée et immunité aux animaux errants à relever sur la fiche.",
+      "_a_renseigner": "prixAchat"
+    },
+    {
+      "type": "agression",
+      "reference": "Ajax Button — bouton d'alarme discret",
+      "_source": "Désignation constructeur Ajax Systems. Vérifiez le modèle retenu : certains boutons demandent deux pressions pour éviter les déclenchements involontaires, ce qui est préférable en caisse.",
       "_a_renseigner": "prixAchat"
     },
     {

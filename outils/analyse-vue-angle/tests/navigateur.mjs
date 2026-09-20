@@ -2547,7 +2547,7 @@ console.log('\nPage d\'étude alarme');
     await repondre({ '#a-animaux': 'aucun', '#a-hautes': 4 });
     const texte = await page.evaluate(() => document.querySelector('#a-explications').textContent);
     affirmer(/Ce qui n'est pas couvert/.test(texte), texte.slice(0, 400));
-    affirmer(/4 ouvertures d'étage/.test(texte), texte.slice(0, 400));
+    affirmer(/4 ouvertures en hauteur/.test(texte), texte.slice(0, 400));
 
     const reserves = await page.evaluate(() => [...document.querySelectorAll('#a-reserves li')]
       .map((t) => t.textContent));
@@ -2621,6 +2621,102 @@ console.log('\nPage d\'étude alarme');
     affirmer(repris.portes === '5' && repris.animaux === 'grandChien',
       JSON.stringify(repris));
     affirmer(repris.ouvertures >= 14, `et l'étude est refaite dessus : ${repris.ouvertures}`);
+  });
+
+  await cas('le magasin pose ses propres questions, et le pavillon les siennes', async () => {
+    /*
+     * Demander son garage à un entrepôt, ou sa vitrine à un pavillon, c'est
+     * inviter à répondre n'importe quoi — et ce n'importe quoi se retrouve
+     * ensuite dans le matériel chiffré.
+     */
+    const visibles = () => page.evaluate(() => Object.fromEntries(
+      ['#a-vitrines', '#a-rideau', '#a-garage', '#a-animaux', '#a-quais', '#a-hauteur',
+        '#a-basesvie', '#a-entrees', '#a-present']
+        .map((s) => {
+          const n = document.querySelector(s).closest('label');
+          return [s, !n.hidden && getComputedStyle(n).display !== 'none'];
+        }),
+    ));
+
+    await repondre({ '#a-type': 'plainPied' });
+    const maison = await visibles();
+    affirmer(maison['#a-garage'] && maison['#a-animaux'], JSON.stringify(maison));
+    affirmer(!maison['#a-vitrines'] && !maison['#a-quais'] && !maison['#a-basesvie'],
+      `un pavillon n'a ni vitrine, ni quai, ni base-vie : ${JSON.stringify(maison)}`);
+
+    await repondre({ '#a-type': 'commerce' });
+    const magasin = await visibles();
+    affirmer(magasin['#a-vitrines'] && magasin['#a-rideau'] && magasin['#a-entrees'],
+      JSON.stringify(magasin));
+    affirmer(!magasin['#a-garage'] && !magasin['#a-animaux'] && !magasin['#a-present'],
+      `un magasin n'a ni garage ni chien : ${JSON.stringify(magasin)}`);
+
+    await repondre({ '#a-type': 'depot' });
+    const depot = await visibles();
+    affirmer(depot['#a-quais'] && depot['#a-hauteur'], JSON.stringify(depot));
+
+    await repondre({ '#a-type': 'chantier' });
+    const chantier = await visibles();
+    affirmer(chantier['#a-basesvie'], JSON.stringify(chantier));
+    affirmer(!chantier['#a-vitrines'] && !chantier['#a-quais'] && !chantier['#a-garage'],
+      JSON.stringify(chantier));
+
+    // L'intitulé suit : « surface habitable » ne veut rien dire pour un terrain.
+    const intitule = await page.evaluate(() => document.querySelector('#i-surface').textContent);
+    affirmer(/terrain/i.test(intitule), `intitulé : ${intitule}`);
+  });
+
+  await cas('un magasin protège sa vitrine, sa réserve et son rideau', async () => {
+    await repondre({
+      '#a-type': 'commerce', '#a-vitrines': 2, '#a-rideau': true, '#a-reserve': true,
+      '#a-entrees': 2, '#a-portes': 2, '#a-fenetres': 1,
+    });
+    const q = await quantites();
+    affirmer(q['Détecteurs de bris de vitre'] >= 2,
+      `une vitrine, un détecteur de bris : ${JSON.stringify(q)}`);
+    affirmer(q['Claviers de commande'] === 2, `un par entrée : ${JSON.stringify(q)}`);
+    affirmer(q['Bouton d\'alarme discret'] === 1, JSON.stringify(q));
+
+    const texte = await page.evaluate(() => document.querySelector('#a-explications').textContent);
+    affirmer(/façade est en verre/.test(texte), texte.slice(0, 400));
+    affirmer(/rideau métallique a son/.test(texte), texte.slice(0, 600));
+    affirmer(/porte de livraison/.test(texte), texte.slice(0, 800));
+  });
+
+  await cas('un entrepôt haut sous plafond le dit avant la pose', async () => {
+    /*
+     * Un détecteur d'intérieur se pose vers 2,40 m. Sous sept mètres, il ne
+     * surveille qu'une tranche au sol : le taire, c'est vendre une protection
+     * que le site n'aura pas.
+     */
+    await repondre({ '#a-type': 'depot', '#a-hauteur': 7, '#a-metallique': true, '#a-quais': 3 });
+    const texte = await page.evaluate(() => document.querySelector('#a-explications').textContent);
+    affirmer(/2,40 m/.test(texte), `la hauteur doit être dite : ${texte.slice(0, 600)}`);
+    affirmer(/avale la radio/.test(texte), texte.slice(0, 800));
+
+    const q = await quantites();
+    affirmer(q['Relais radio'] === 2, `charpente métallique : ${JSON.stringify(q)}`);
+    affirmer(q['Détecteurs d\'ouverture'] >= 5, `les quais sont des portes : ${JSON.stringify(q)}`);
+  });
+
+  await cas('un chantier se surveille dehors, et la page le dit franchement', async () => {
+    await repondre({
+      '#a-type': 'chantier', '#a-basesvie': 2, '#a-acces': 2, '#a-electricite': 'aucune',
+    });
+    const q = await quantites();
+    affirmer(q['Détecteurs de mouvement extérieurs'] >= 4, JSON.stringify(q));
+    affirmer(q['Détecteurs de mouvement'] === undefined,
+      `aucun volume intérieur à surveiller : ${JSON.stringify(q)}`);
+
+    const r = await page.evaluate(() => ({
+      texte: document.querySelector('#a-explications').textContent,
+      titre: document.querySelector('#a-schema').textContent,
+      reserves: [...document.querySelectorAll('#a-reserves li')].map((x) => x.textContent),
+    }));
+    affirmer(/l'alarme seule ne suffit presque jamais/.test(r.texte), r.texte.slice(0, 400));
+    affirmer(/sur batterie/.test(r.texte), r.texte.slice(0, 700));
+    affirmer(/Aux accès/.test(r.titre), `le schéma doit parler d'accès : ${r.titre}`);
+    affirmer(r.reserves.some((x) => /périmètre change/.test(x)), JSON.stringify(r.reserves));
   });
 
   await cas('la page porte le menu du site et ses portes de sortie', async () => {

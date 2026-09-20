@@ -6,8 +6,8 @@
      Pour changer les prix : éditer tarif-alarme.json, à côté de la page. -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Protéger ma maison — étude d'alarme anti-intrusion — NG Security 38</title>
-<meta name="description" content="Combien de détecteurs vous faut-il, où, et pourquoi ? Répondez sur vos portes, vos fenêtres, votre garage et vos animaux : l'étude se fait sous vos yeux.">
+<title>Étude d'alarme anti-intrusion — maison, magasin, bureaux, dépôt, chantier — NG Security 38</title>
+<meta name="description" content="Combien de détecteurs vous faut-il, où, et pourquoi ? Maison, magasin, bureaux, dépôt ou chantier : répondez sur vos ouvertures, votre vitrine, vos quais ou vos bases-vie, l'étude se fait sous vos yeux.">
 <style>/* Devis client — NG Security 38.
    Page publique : lisible sur téléphone d'abord, imprimable ensuite. */
 
@@ -364,10 +364,10 @@ tfoot tr.fort td { font-size: 19px; font-weight: 700; border-top: 2px solid var(
 
 <header class="entete">
   <div class="dedans">
-    <h1>Protéger ma maison</h1>
-    <p>Combien de détecteurs, à quels endroits, et pourquoi. Répondez sur vos
-      portes, vos fenêtres et vos animaux&nbsp;: l'étude se fait sous vos yeux.
-      Sans inscription, sans engagement.</p>
+    <h1>Alarme anti-intrusion</h1>
+    <p>Maison, magasin, bureaux, dépôt ou chantier&nbsp;: combien de détecteurs,
+      à quels endroits, et pourquoi. L'étude se fait sous vos yeux, au fil de vos
+      réponses. Sans inscription, sans engagement.</p>
   </div>
 </header>
 
@@ -379,30 +379,52 @@ tfoot tr.fort td { font-size: 19px; font-weight: 700; border-top: 2px solid var(
   </p>
 
   <section class="carte">
-    <h2>Votre logement</h2>
+    <h2>Votre site</h2>
     <div class="questions">
       <label>De quoi s'agit-il&nbsp;?
         <select id="a-type"></select>
+        <small>Maison, magasin, bureaux, dépôt ou chantier&nbsp;: l'étude n'est
+          pas la même, et les questions non plus.</small>
       </label>
 
-      <label>Surface habitable (m²)
-        <input type="number" id="a-surface" min="10" max="600" step="5" value="100">
-        <small>Au plus juste&nbsp;: c'est elle qui décide du nombre de détecteurs
-          de mouvement.</small>
+      <label><span id="i-surface">Surface habitable (m²)</span>
+        <input type="number" id="a-surface" min="10" max="20000" step="5" value="100">
+        <small id="s-surface">Au plus juste&nbsp;: c'est elle qui décide du nombre
+          de détecteurs de mouvement.</small>
       </label>
 
-      <label>Nombre de niveaux occupés
+      <label data-si="habitation commerce tertiaire depot">Nombre de niveaux occupés
         <select id="a-niveaux">
           <option value="1">Un seul (plain-pied)</option>
           <option value="2">Deux</option>
           <option value="3">Trois ou plus</option>
         </select>
-        <small>Sous-sol aménagé et combles habités compris.</small>
+        <small>Sous-sol aménagé et combles occupés compris.</small>
       </label>
 
-      <label>Combien de personnes doivent pouvoir mettre en marche&nbsp;?
-        <input type="number" id="a-occupants" min="0" max="12" step="1" value="2">
+      <label data-si="depot">Hauteur sous plafond (m)
+        <input type="number" id="a-hauteur" min="2" max="20" step="0.5" value="3">
+        <small>Un détecteur ordinaire se pose vers 2,40 m&nbsp;: au-delà de 4 m,
+          il ne surveille plus qu'une tranche au sol.</small>
+      </label>
+
+      <label data-si="depot" class="case">
+        <input type="checkbox" id="a-metallique"> Charpente ou bardage métallique
+      </label>
+
+      <label><span id="i-occupants">Combien de personnes doivent pouvoir mettre en marche&nbsp;?</span>
+        <input type="number" id="a-occupants" min="0" max="40" step="1" value="2">
         <small>Une télécommande chacun. Le clavier reste utilisable par tous.</small>
+      </label>
+
+      <label data-si="commerce tertiaire depot">Entrées utilisées tous les jours
+        <input type="number" id="a-entrees" min="1" max="10" step="1" value="1">
+        <small>Un clavier par entrée&nbsp;: traverser le local dans le noir pour
+          aller désarmer n'est pas une méthode.</small>
+      </label>
+
+      <label data-si="commerce tertiaire" class="case">
+        <input type="checkbox" id="a-immeuble"> Le local est dans un immeuble partagé
       </label>
     </div>
   </section>
@@ -410,41 +432,86 @@ tfoot tr.fort td { font-size: 19px; font-weight: 700; border-top: 2px solid var(
   <section class="carte">
     <h2>Par où peut-on entrer</h2>
     <p class="aide">C'est la partie qui compte. Un détecteur sur une ouverture
-      prévient <b>avant</b> que l'intrus soit chez vous — et permet de garder
-      l'alarme en marche pendant que vous dormez.</p>
+      prévient <b>avant</b> que l'intrus soit dedans — et permet de garder
+      l'alarme en marche pendant que le site est occupé.</p>
 
     <div class="questions">
-      <label>Portes donnant sur l'extérieur
-        <input type="number" id="a-portes" min="0" max="20" step="1" value="2">
-        <small>Entrée, porte de service, porte-fenêtre servant d'accès, porte
-          de cave extérieure.</small>
+      <label data-si="habitation commerce tertiaire depot"><span id="i-portes">Portes donnant sur l'extérieur</span>
+        <input type="number" id="a-portes" min="0" max="40" step="1" value="2">
+        <small id="s-portes">Entrée, porte de service, porte-fenêtre servant
+          d'accès, porte de cave extérieure.</small>
       </label>
 
-      <label>Fenêtres accessibles sans échelle
-        <input type="number" id="a-fenetres" min="0" max="40" step="1" value="4">
+      <label data-si="habitation commerce tertiaire depot"><span id="i-fenetres">Fenêtres accessibles sans échelle</span>
+        <input type="number" id="a-fenetres" min="0" max="80" step="1" value="4">
         <small>De plain-pied, ou au-dessus d'un garage, d'une véranda, d'un
           appentis — tout ce sur quoi on peut monter.</small>
       </label>
 
-      <label>Dont grandes surfaces vitrées (baies, vérandas)
-        <input type="number" id="a-baies" min="0" max="20" step="1" value="1">
+      <label data-si="habitation tertiaire depot">Dont grandes surfaces vitrées (baies, vérandas)
+        <input type="number" id="a-baies" min="0" max="40" step="1" value="1">
         <small>Une vitre se casse sans que le battant s'ouvre&nbsp;: elles
           appellent un détecteur de bris.</small>
       </label>
 
-      <label>Fenêtres en étage, inaccessibles sans échelle
-        <input type="number" id="a-hautes" min="0" max="40" step="1" value="0">
+      <label data-si="habitation commerce tertiaire depot">Fenêtres en hauteur, inaccessibles sans échelle
+        <input type="number" id="a-hautes" min="0" max="80" step="1" value="0">
         <small>Elles ne seront pas équipées&nbsp;: nous vous dirons ce que cela
           laisse passer.</small>
       </label>
 
-      <label>Garage
+      <label data-si="commerce">Vitrines donnant sur la rue
+        <input type="number" id="a-vitrines" min="0" max="20" step="1" value="1">
+        <small>La façade d'un magasin est la plus grande ouverture du site, et
+          la seule qu'un contact ne sait pas protéger.</small>
+      </label>
+
+      <label data-si="commerce" class="case">
+        <input type="checkbox" id="a-rideau"> J'ai un rideau métallique ou un
+        volet roulant de façade
+      </label>
+
+      <label data-si="commerce" class="case">
+        <input type="checkbox" id="a-reserve" checked> J'ai une réserve ou une
+        arrière-boutique avec un accès livraison
+      </label>
+
+      <label data-si="depot">Quais de chargement ou portes sectionnelles
+        <input type="number" id="a-quais" min="0" max="20" step="1" value="1">
+        <small>C'est par là qu'on sort la marchandise&nbsp;: un quai est une
+          porte de la taille d'un camion.</small>
+      </label>
+
+      <label data-si="tertiaire" class="case">
+        <input type="checkbox" id="a-local"> J'ai un local technique ou une
+        salle serveur à protéger à part
+      </label>
+
+      <label data-si="habitation">Garage
         <select id="a-garage"></select>
       </label>
 
-      <label class="case">
+      <label data-si="habitation" class="case">
         <input type="checkbox" id="a-dependance"> J'ai une dépendance à protéger
         (atelier, abri de jardin)
+      </label>
+
+      <label data-si="chantier">Bases-vie, bungalows ou containers
+        <input type="number" id="a-basesvie" min="0" max="30" step="1" value="1">
+        <small>Un contact sur chaque porte&nbsp;: c'est là que dorment l'outillage
+          et les documents.</small>
+      </label>
+
+      <label data-si="chantier">Accès au terrain (portails, brèches)
+        <input type="number" id="a-acces" min="0" max="20" step="1" value="1">
+        <small>Tout ce par quoi un véhicule peut entrer.</small>
+      </label>
+
+      <label data-si="chantier">Électricité sur place
+        <select id="a-electricite">
+          <option value="reseau" selected>Oui, raccordement de chantier</option>
+          <option value="aucune">Non, rien pour l'instant</option>
+        </select>
       </label>
     </div>
   </section>
@@ -452,13 +519,13 @@ tfoot tr.fort td { font-size: 19px; font-weight: 700; border-top: 2px solid var(
   <section class="carte">
     <h2>Votre quotidien</h2>
     <div class="questions">
-      <label>Animaux
+      <label data-si="habitation">Animaux
         <select id="a-animaux"></select>
         <small>La question qui change le plus une installation&nbsp;: nous vous
           expliquons pourquoi plus bas.</small>
       </label>
 
-      <label>Internet sur place
+      <label data-si="habitation commerce tertiaire depot">Internet sur place
         <select id="a-internet">
           <option value="box" selected>Oui, j'ai une box</option>
           <option value="aucun">Non, ou pas de façon fiable</option>
@@ -467,9 +534,14 @@ tfoot tr.fort td { font-size: 19px; font-weight: 700; border-top: 2px solid var(
           une carte SIM.</small>
       </label>
 
-      <label class="case">
+      <label data-si="habitation" class="case">
         <input type="checkbox" id="a-present" checked> Je veux pouvoir garder
         l'alarme en marche pendant que je suis chez moi
+      </label>
+
+      <label data-si="commerce" class="case">
+        <input type="checkbox" id="a-agression" checked> Je veux un bouton
+        d'alarme discret en caisse
       </label>
 
       <label class="case">
@@ -526,7 +598,7 @@ tfoot tr.fort td { font-size: 19px; font-weight: 700; border-top: 2px solid var(
   </section>
 
   <p class="pied">
-    Étude établie à partir de vos réponses, sans visite du domicile. Elle ne
+    Étude établie à partir de vos réponses, sans visite des lieux. Elle ne
     vaut pas devis&nbsp;: seul un relevé sur place permet d'arrêter le nombre de
     détecteurs et leurs emplacements.
   </p>
@@ -551,7 +623,8 @@ tfoot tr.fort td { font-size: 19px; font-weight: 700; border-top: 2px solid var(
     "",
     "Champs par article :",
     "  type       hub | ouverture | mouvement | mouvementPhoto | brisVitre |",
-    "             clavier | telecommande | sireneInt | sireneExt | relais",
+    "             exterieur | agression | clavier | telecommande |",
+    "             sireneInt | sireneExt | relais",
     "  reference  ce que lira le client",
     "  prixAchat  ce que vous payez, hors taxes",
     "  prixVente  ce que vous facturez, hors taxes. S'il est renseigné, il",
@@ -604,6 +677,18 @@ tfoot tr.fort td { font-size: 19px; font-weight: 700; border-top: 2px solid var(
     {
       "type": "brisVitre",
       "reference": "Ajax GlassProtect — détecteur de bris de vitre",
+      "_a_renseigner": "prixAchat"
+    },
+    {
+      "type": "exterieur",
+      "reference": "Ajax MotionProtect Outdoor — détecteur de mouvement extérieur",
+      "_source": "Désignation constructeur Ajax Systems. Portée et immunité aux animaux errants à relever sur la fiche.",
+      "_a_renseigner": "prixAchat"
+    },
+    {
+      "type": "agression",
+      "reference": "Ajax Button — bouton d'alarme discret",
+      "_source": "Désignation constructeur Ajax Systems. Vérifiez le modèle retenu : certains boutons demandent deux pressions pour éviter les déclenchements involontaires, ce qui est préférable en caisse.",
       "_a_renseigner": "prixAchat"
     },
     {
@@ -740,7 +825,7 @@ const MENU_DEFAUT = {
     { texte: 'Nos produits', href: '/' },
     { texte: 'Quelle caméra vous faut-il ?', href: '/outils/etude/' },
     { texte: 'Estimer mes caméras', href: '/outils/devis/' },
-    { texte: 'Protéger ma maison', href: '/outils/alarme/' },
+    { texte: 'Alarme anti-intrusion', href: '/outils/alarme/' },
   ],
   ailleurs: { texte: 'La boutique .com', href: 'https://ngsecurity38.com/' },
 };
@@ -1084,50 +1169,121 @@ const euros = (v) => {
 
 /* ===== alarme.js ===== */
 /**
- * Étude d'un système d'alarme anti-intrusion, à partir de ce qu'un
- * particulier sait dire de chez lui.
- *
- * Il ne connaît ni les zones, ni les groupes, ni la portée radio. Il sait en
- * revanche combien il a de portes, de fenêtres de plain-pied, s'il a un
- * garage, un chien, et s'il veut pouvoir armer en dormant chez lui. De ces
- * réponses-là on tire une installation cohérente.
+ * Étude d'un système d'alarme anti-intrusion, à partir de ce que le client
+ * sait dire de chez lui — maison, magasin, bureaux, dépôt ou chantier.
  *
  * DEUX FAÇONS DE PROTÉGER, ET ELLES NE SE VALENT PAS
  *
- * - **Périmétrique** : des contacts sur les portes et les fenêtres. La
- *   détection a lieu AVANT que l'intrus soit entré, et le système peut rester
- *   armé pendant qu'on dort dans la maison. C'est la protection qui demande
- *   le plus de détecteurs.
+ * - **Périmétrique** : des contacts sur les portes, les fenêtres, le rideau.
+ *   La détection a lieu AVANT que l'intrus soit entré, et le système peut
+ *   rester armé pendant qu'on est dedans. C'est la protection qui demande le
+ *   plus d'appareils.
  * - **Volumétrique** : des détecteurs de mouvement à l'intérieur. Moins
  *   d'appareils, donc moins cher — mais la détection n'a lieu qu'UNE FOIS
- *   L'INTRUS DEDANS, et le système ne peut plus être armé quand on est chez
- *   soi.
+ *   L'INTRUS DEDANS.
  *
- * Une installation sérieuse mêle les deux : le périmètre sur ce qui est
- * accessible, le volumétrique sur les circulations, en seconde ligne. Ce
- * module compose ce mélange, et dit ce qu'il laisse de côté — une étude qui
- * tait ses trous n'est pas une étude.
+ * Une installation sérieuse mêle les deux. Ce module compose ce mélange, et
+ * dit ce qu'il laisse de côté : une étude qui tait ses trous n'est pas une
+ * étude.
+ *
+ * CINQ FAMILLES DE SITES, CINQ RAISONNEMENTS
+ *
+ * Un magasin n'est pas une maison avec une autre étiquette. Sa façade est en
+ * verre, son point faible est la réserve, et le risque qu'on y craint n'est
+ * pas seulement l'effraction de nuit. Un dépôt se compte en volume et non en
+ * surface, sa charpente métallique avale la radio. Un chantier n'a ni mur, ni
+ * courant, ni internet, et se déplace au fil des semaines. Chaque famille a
+ * donc son profil — ce qu'elle protège, à quelle densité, et ce qu'on ne peut
+ * pas lui promettre depuis un bureau.
  *
  * Il ne choisit rien qui ne soit au tarif : à défaut, il le dit.
  *
  * Module pur (aucune dépendance au DOM), testé sous Node.
  */
 
-/** Types de logement, avec ce qu'ils supposent par défaut. */
-const TYPES_LOGEMENT = {
-  plainPied: { label: 'Maison de plain-pied', niveaux: 1, surface: 100, exterieur: true },
-  etage: { label: 'Maison à étage', niveaux: 2, surface: 130, exterieur: true },
-  appartement: { label: 'Appartement', niveaux: 1, surface: 70, exterieur: false },
-  local: { label: 'Local professionnel', niveaux: 1, surface: 150, exterieur: true },
+/**
+ * Familles de sites.
+ *
+ * `surfaceParDetecteur` n'est pas la portée d'un détecteur — un détecteur
+ * courant porte à une douzaine de mètres sur 90°. C'est la surface qu'il
+ * couvre UTILEMENT : dans un logement cloisonné les murs arrêtent
+ * l'infrarouge bien avant la portée, tandis qu'un plateau de bureaux ou une
+ * halle se traversent du regard.
+ */
+const FAMILLES = {
+  habitation: {
+    surfaceParDetecteur: 45,
+    plancher: 50,
+    max: 14,
+    animaux: true,
+    garage: true,
+    armerPresent: true,
+  },
+  commerce: {
+    surfaceParDetecteur: 70,
+    plancher: 40,
+    max: 14,
+    vitrine: true,
+    agression: true,
+    reserve: true,
+  },
+  tertiaire: { surfaceParDetecteur: 55, plancher: 40, max: 18, local: true },
+  depot: { surfaceParDetecteur: 150, plancher: 100, max: 24, quais: true, hauteur: true },
+  chantier: { surfaceParDetecteur: 0, plancher: 0, max: 0, exterieur: true },
+};
+
+/**
+ * Sites proposés, avec ce qu'ils supposent par défaut.
+ *
+ * `portes` et `fenetres` sont des points de départ que le client corrige. Les
+ * proposer par site et non en général évite le contresens : un chantier n'a
+ * pas « deux portes et quatre fenêtres », un magasin en a une de plus côté
+ * réserve et presque aucune fenêtre ouvrante.
+ */
+const SITES = {
+  plainPied: {
+    label: 'Maison de plain-pied', court: 'maison de plain-pied', article: 'votre',
+    famille: 'habitation',
+    niveaux: 1, surface: 100, portes: 2, fenetres: 4,
+  },
+  etage: {
+    label: 'Maison à étage', court: 'maison à étage', article: 'votre',
+    famille: 'habitation',
+    niveaux: 2, surface: 130, portes: 2, fenetres: 5,
+  },
+  appartement: {
+    label: 'Appartement', court: 'appartement', article: 'votre',
+    famille: 'habitation', immeuble: true,
+    niveaux: 1, surface: 70, portes: 1, fenetres: 3,
+  },
+  commerce: {
+    label: 'Magasin, commerce, restaurant', court: 'magasin', article: 'votre',
+    famille: 'commerce',
+    niveaux: 1, surface: 120, portes: 2, fenetres: 1,
+  },
+  bureaux: {
+    label: 'Bureaux, cabinet, agence', court: 'bureaux', article: 'vos',
+    famille: 'tertiaire',
+    niveaux: 1, surface: 200, portes: 2, fenetres: 6,
+  },
+  depot: {
+    label: 'Dépôt, entrepôt, atelier', court: 'dépôt', article: 'votre',
+    famille: 'depot',
+    niveaux: 1, surface: 600, portes: 2, fenetres: 2,
+  },
+  chantier: {
+    label: 'Chantier, site temporaire', court: 'chantier', article: 'votre',
+    famille: 'chantier',
+    niveaux: 1, surface: 1500, portes: 0, fenetres: 0,
+  },
 };
 
 /**
  * Présence d'animaux — la question qui change le plus une installation.
  *
- * `limite` est la masse au-delà de laquelle l'immunité annoncée par les
- * constructeurs ne tient plus. `grimpe` marque les animaux qui prennent de la
- * hauteur : l'immunité repose sur le fait que l'animal reste au sol, et un
- * chat sur un meuble se présente au détecteur comme un humain.
+ * `grimpe` marque les animaux qui prennent de la hauteur : l'immunité repose
+ * sur le fait que l'animal reste au sol, et un chat sur un meuble se présente
+ * au détecteur comme un humain.
  */
 const ANIMAUX = {
   aucun: { label: 'Aucun animal', immunite: false, grimpe: false, masse: 0 },
@@ -1137,23 +1293,27 @@ const ANIMAUX = {
   plusieurs: { label: 'Plusieurs animaux, dont un chat', immunite: true, grimpe: true, masse: 25 },
 };
 
-/** Ce qu'il y a côté garage. */
+/** Ce qu'il y a côté garage — habitation seulement. */
 const GARAGES = {
   aucun: { label: 'Pas de garage', porte: 0, volume: 0, detache: false },
   communicant: {
     label: 'Garage attenant, avec une porte vers la maison',
     porte: 2, volume: 1, detache: false,
   },
-  attenant: { label: 'Garage attenant, sans porte vers la maison', porte: 1, volume: 1, detache: false },
-  independant: { label: 'Garage ou dépendance à part', porte: 1, volume: 1, detache: true },
+  attenant: {
+    label: 'Garage attenant, sans porte vers la maison', porte: 1, volume: 1, detache: false,
+  },
+  independant: {
+    label: 'Garage ou dépendance à part', porte: 1, volume: 1, detache: true,
+  },
 };
 
 /**
  * Masse au-delà de laquelle l'immunité animale des détecteurs ne tient plus.
  *
- * Les constructeurs de détecteurs de mouvement annoncent couramment une
- * immunité jusqu'à une vingtaine de kilos et une cinquantaine de centimètres
- * au garrot. Au-delà, un chien déclenche comme un homme.
+ * Les constructeurs annoncent couramment une immunité jusqu'à une vingtaine
+ * de kilos et une cinquantaine de centimètres au garrot. Au-delà, un chien
+ * déclenche comme un homme.
  *
  * À CONFIRMER sur la fiche du détecteur effectivement posé : ce seuil varie
  * d'un modèle à l'autre, et c'est sur lui que repose toute la suite.
@@ -1161,43 +1321,34 @@ const GARAGES = {
 const MASSE_IMMUNITE = 20;
 
 /**
- * Surface desservie par un détecteur de mouvement, en mètres carrés.
+ * Hauteur sous plafond au-delà de laquelle un détecteur ordinaire ne suffit
+ * plus, en mètres.
  *
- * Ce n'est pas la portée du détecteur — un détecteur courant porte à une
- * douzaine de mètres sur 90°, soit bien plus. C'est la surface qu'il couvre
- * UTILEMENT dans un logement cloisonné, où les murs arrêtent l'infrarouge
- * avant la portée. Un détecteur par pièce de vie, en somme.
+ * Un détecteur d'intérieur se pose vers 2,40 m et regarde vers le bas. Sous
+ * une halle de sept mètres, il surveille une tranche au sol et laisse tout le
+ * volume au-dessus — dont les lanterneaux et les bardages, par où l'on entre
+ * dans un entrepôt.
  */
-const SURFACE_PAR_DETECTEUR = 45;
+const HAUTEUR_COURANTE = 4;
 
-/** Surface en deçà de laquelle un seul détecteur par niveau suffit. */
-const SURFACE_PLANCHER = 50;
-
-/** Au-delà, ce n'est plus un logement : c'est une étude sur place. */
-const DETECTEURS_MAX = 14;
+/**
+ * Plafond de détecteurs intérieurs, à défaut d'indication de la famille.
+ *
+ * Au-delà, ce n'est plus un formulaire : c'est une étude sur place. Le
+ * plafond dépend de la famille — quatorze détecteurs dans une maison signalent
+ * qu'on a dépassé ce qu'un questionnaire sait faire, là où un entrepôt en
+ * demande légitimement davantage.
+ */
+const DETECTEURS_MAX = 24;
 
 /**
  * Temps de pose, en heures.
  *
  * Un système radio ne se câble pas : l'essentiel du temps passe à fixer, à
- * appairer, à régler les zones et à former les occupants. Ces valeurs sont
+ * appairer, à régler les zones et à former les utilisateurs. Ces valeurs sont
  * celles de l'agence et se règlent : elles ne sortent d'aucune norme.
  */
 const POSE_DEFAUT = { base: 2.5, parDetecteur: 0.4, parSirene: 0.6 };
-
-/**
- * Stratégie de protection retenue.
- *
- * Elle découle des animaux et de l'usage, pas d'un goût : un grand chien ou
- * un chat qui grimpe rendent le volumétrique peu fiable, et c'est alors le
- * périmètre qui porte la détection.
- */
-function strategie(reponses = {}) {
-  const animal = ANIMAUX[reponses.animaux] || ANIMAUX.aucun;
-  if (animal.masse > MASSE_IMMUNITE || animal.grimpe) return 'perimetrique';
-  if (reponses.armerPresent) return 'mixte';
-  return 'mixte';
-}
 
 /**
  * Un entier positif, jamais NaN.
@@ -1212,6 +1363,29 @@ const entier = (v, defaut = 0, mini = 0) => {
   return Number.isFinite(n) ? Math.max(mini, n) : Math.max(mini, defaut);
 };
 
+/** Le profil du site demandé, jamais indéfini. */
+function profil(cle) {
+  const site = SITES[cle] ? SITES[cle] : SITES.plainPied;
+  return { cle: SITES[cle] ? cle : 'plainPied', site, famille: FAMILLES[site.famille] };
+}
+
+/**
+ * Stratégie de protection retenue.
+ *
+ * Elle découle du site et des animaux, pas d'un goût. Un grand chien ou un
+ * chat qui grimpe rendent le volumétrique peu fiable, et c'est alors le
+ * périmètre qui porte la détection. Un chantier n'a pas d'intérieur : tout s'y
+ * joue dehors.
+ */
+function strategie(reponses = {}) {
+  const { famille } = profil(reponses.typeSite);
+  if (famille.exterieur) return 'exterieur';
+  if (!famille.animaux) return 'mixte';
+  const animal = ANIMAUX[reponses.animaux] || ANIMAUX.aucun;
+  if (animal.masse > MASSE_IMMUNITE || animal.grimpe) return 'perimetrique';
+  return 'mixte';
+}
+
 /**
  * Ce qui doit être protégé, avant tout choix de matériel.
  *
@@ -1219,92 +1393,177 @@ const entier = (v, defaut = 0, mini = 0) => {
  * pouvoir relire. Les quantités qui en sortent ne dépendent d'aucun tarif.
  */
 function inventaire(reponses = {}) {
-  const type = TYPES_LOGEMENT[reponses.typeLogement] ? reponses.typeLogement : 'plainPied';
-  const defauts = TYPES_LOGEMENT[type];
-  const niveaux = entier(reponses.niveaux ?? defauts.niveaux, defauts.niveaux, 1);
-  const surface = entier(reponses.surface ?? defauts.surface, defauts.surface, 10);
-  const garage = GARAGES[reponses.garage] || GARAGES.aucun;
-  const animal = ANIMAUX[reponses.animaux] || ANIMAUX.aucun;
+  const { cle, site, famille } = profil(reponses.typeSite);
+  const niveaux = entier(reponses.niveaux ?? site.niveaux, site.niveaux, 1);
+  const surface = entier(reponses.surface ?? site.surface, site.surface, 10);
   const mode = strategie(reponses);
 
-  const portes = entier(reponses.portes ?? 2, 2);
-  const fenetres = entier(reponses.fenetresAccessibles ?? 4, 4);
+  const portes = entier(reponses.portes ?? site.portes, site.portes);
+  const fenetres = entier(reponses.fenetresAccessibles ?? site.fenetres, site.fenetres);
   const hautes = entier(reponses.fenetresHautes ?? 0, 0);
   const baies = Math.min(fenetres, entier(reponses.baies ?? 0, 0));
 
+  const garage = famille.garage ? (GARAGES[reponses.garage] || GARAGES.aucun) : GARAGES.aucun;
+  const animal = famille.animaux ? (ANIMAUX[reponses.animaux] || ANIMAUX.aucun) : ANIMAUX.aucun;
+  const dependance = famille.garage && reponses.dependance ? 1 : 0;
+
   /*
-   * Le périmètre.
+   * La vitrine.
    *
-   * Une porte se protège toujours : c'est par là qu'on entre le plus souvent,
-   * et c'est le seul point par lequel l'intrus ressortira chargé. Les fenêtres
-   * comptées sont celles que le client a dites accessibles — de plain-pied, ou
-   * au-dessus d'un garage, d'une véranda, d'un appentis.
+   * La façade d'un magasin est en verre : c'est la plus grande ouverture du
+   * site, et la seule qu'on ne puisse pas équiper d'un simple contact. Chaque
+   * vitrine reçoit donc un détecteur de bris, et le rideau métallique — quand
+   * il y en a un — son propre contact : baissé, il est la vraie porte.
    */
-  const ouvertures = portes + fenetres + garage.porte;
+  const vitrines = famille.vitrine ? entier(reponses.vitrines ?? 1, 1) : 0;
+  const rideau = famille.vitrine && reponses.rideau ? 1 : 0;
+
+  /*
+   * La réserve, l'arrière-boutique, le quai.
+   *
+   * C'est par là qu'on entre dans un commerce : une porte de livraison donne
+   * sur une cour ou une ruelle, hors de vue de la rue. Le client la déclare à
+   * part parce qu'il l'oublie en comptant « ses portes » — il pense à celles
+   * par lesquelles entrent ses clients.
+   */
+  const livraison = famille.reserve && reponses.reserve ? 1 : 0;
+  const quais = famille.quais ? entier(reponses.quais ?? 1, 1) : 0;
+
+  const localTechnique = famille.local && reponses.localTechnique ? 1 : 0;
+
+  /*
+   * Le chantier.
+   *
+   * Ni mur, ni fenêtre : ce qui s'y protège, ce sont les bases-vie, les
+   * containers et les accès. La détection se fait dehors.
+   */
+  const basesVie = famille.exterieur ? entier(reponses.basesVie ?? 1, 1) : 0;
+  const acces = famille.exterieur ? entier(reponses.acces ?? 1, 1) : 0;
+
+  const ouvertures = portes + fenetres + garage.porte + dependance
+    + rideau + livraison + quais + basesVie;
 
   /*
    * Le bris de vitre.
    *
    * Un contact d'ouverture détecte qu'un battant s'ouvre. Il ne détecte pas
    * une vitre cassée à travers laquelle on passe le bras, ni une baie percée
-   * puis enjambée. Une grande surface vitrée appelle donc un détecteur de
-   * bris — sans quoi le périmètre a un trou de la taille de la baie.
+   * puis enjambée.
    */
-  const brisVitre = baies > 0 ? Math.max(1, Math.ceil(baies / 2)) : 0;
+  const brisVitre = vitrines + (baies > 0 ? Math.max(1, Math.ceil(baies / 2)) : 0);
 
   /*
    * Le volumétrique.
    *
    * Un détecteur par niveau pour la circulation — entrée, palier, couloir :
    * c'est le passage obligé, quel que soit le point d'entrée. Puis un par
-   * tranche de surface au-delà d'un petit logement.
+   * tranche de surface, à la densité de la famille.
    */
-  const circulation = niveaux;
-  const pieces = surface > SURFACE_PLANCHER
-    ? Math.ceil((surface - SURFACE_PLANCHER) / SURFACE_PAR_DETECTEUR)
-    : 0;
-  let mouvements = Math.min(DETECTEURS_MAX, circulation + pieces + garage.volume);
+  let mouvements = 0;
+  if (!famille.exterieur) {
+    const circulation = niveaux;
+    const pieces = surface > famille.plancher
+      ? Math.ceil((surface - famille.plancher) / famille.surfaceParDetecteur)
+      : 0;
+    mouvements = circulation + pieces + garage.volume + dependance
+      + localTechnique + livraison;
+  }
 
   /*
    * Avec un animal que l'immunité ne couvre pas, le volumétrique se réduit à
-   * ce qu'on peut lui fermer : la circulation, et le garage s'il n'y va pas.
-   * Poser des détecteurs dans des pièces où l'animal passe, c'est fabriquer
-   * des alertes qui finiront par faire désarmer le système pour de bon —
-   * la panne la plus courante d'une alarme n'est pas technique.
+   * ce qu'on peut lui fermer. Poser des détecteurs dans des pièces où
+   * l'animal passe, c'est fabriquer des alertes qui finiront par faire
+   * désarmer le système pour de bon — la panne la plus courante d'une alarme
+   * n'est pas technique.
    */
   const volumetriqueReduit = mode === 'perimetrique';
-  if (volumetriqueReduit) mouvements = Math.min(mouvements, circulation + garage.volume);
+  if (volumetriqueReduit) mouvements = Math.min(mouvements, niveaux + garage.volume + dependance);
+  mouvements = Math.min(famille.max ?? DETECTEURS_MAX, mouvements);
 
-  const dependance = reponses.dependance ? 1 : 0;
+  /*
+   * Le volumétrique extérieur.
+   *
+   * Un chantier se surveille dehors : un détecteur par base-vie et un par
+   * accès, deux au minimum — un seul appareil sur un terrain ne détecte
+   * jamais qu'une direction.
+   */
+  const exterieurs = famille.exterieur ? Math.max(2, basesVie + acces) : 0;
+
+  const hauteur = famille.hauteur ? entier(reponses.hauteur ?? 3, 3, 2) : 0;
+  const metallique = !!(famille.hauteur && reponses.metallique);
 
   return {
-    type,
-    labelType: defauts.label,
+    typeSite: cle,
+    labelSite: site.label,
+    // Le nom court et son article : « votre magasin », « vos bureaux ».
+    // Le libellé de la liste énumère des synonymes — « Magasin, commerce,
+    // restaurant » — qui se lisent mal au milieu d'une phrase.
+    nomCourt: site.court,
+    article: site.article,
+    famille: site.famille,
+    profil: famille,
     niveaux,
     surface,
     portes,
     fenetres,
     fenetresHautes: hautes,
     baies,
-    garage: reponses.garage && GARAGES[reponses.garage] ? reponses.garage : 'aucun',
+    vitrines,
+    rideau,
+    livraison,
+    quais,
+    localTechnique,
+    basesVie,
+    acces,
+    hauteur,
+    metallique,
+    garage: famille.garage && GARAGES[reponses.garage] ? reponses.garage : 'aucun',
     labelGarage: garage.label,
     animal,
     mode,
     volumetriqueReduit,
-    ouvertures: ouvertures + dependance,
+    ouvertures,
     brisVitre,
-    mouvements: mouvements + dependance,
+    mouvements,
+    exterieurs,
     /*
-     * La portée radio ne se calcule pas depuis un salon : elle dépend des
-     * murs, des planchers et de ce qu'il y a dedans. Ces trois cas sont ceux
-     * où un relais est à PRÉVOIR AU BUDGET plutôt que découvert le jour de la
-     * pose — ce qui n'est pas la même chose que de l'affirmer nécessaire.
+     * Le relais radio.
+     *
+     * La portée ne se calcule pas depuis un bureau : elle dépend des murs,
+     * des planchers et de ce qu'il y a dedans. Ces cas sont ceux où un relais
+     * est à PRÉVOIR AU BUDGET plutôt que découvert le jour de la pose — ce
+     * qui n'est pas la même chose que de l'affirmer nécessaire. Une charpente
+     * métallique et un chantier étendu en demandent souvent deux.
      */
-    relais: (garage.detache || dependance > 0 || niveaux >= 3 || surface > 200) ? 1 : 0,
+    relais: (() => {
+      if (famille.exterieur) return surface > 2000 ? 2 : 1;
+      let n = 0;
+      if (garage.detache || dependance > 0 || niveaux >= 3 || surface > 200) n = 1;
+      if (metallique || surface > 800) n = Math.max(n, 2);
+      return n;
+    })(),
+    /*
+     * Les claviers.
+     *
+     * Un par entrée utilisée tous les jours : sur un site professionnel, la
+     * porte du personnel et celle des livraisons ne sont pas la même, et
+     * traverser le magasin dans le noir pour désarmer n'est pas une méthode.
+     */
+    claviers: famille.garage ? 1 : Math.max(1, entier(reponses.entrees ?? 1, 1, 1)),
     telecommandes: entier(reponses.occupants ?? 2, 2),
+    /*
+     * Le bouton d'agression.
+     *
+     * Ce n'est pas de l'anti-intrusion : c'est un appel au secours déclenché
+     * par quelqu'un qui est là, sous la contrainte. Il n'a de sens que là où
+     * l'on tient une caisse.
+     */
+    agression: famille.agression && reponses.agression !== false ? 1 : 0,
     // Sans box sur place, la transmission passe par le réseau mobile : il
     // faut une carte SIM, et le dire avant la facture.
-    sansBox: reponses.internet === 'aucun',
+    sansBox: reponses.internet === 'aucun' || !!famille.exterieur,
+    sansCourant: !!(famille.exterieur && reponses.electricite === 'aucune'),
+    immeuble: !!site.immeuble || !!reponses.immeuble,
     leveeDoute: !!reponses.leveeDoute,
     sireneExterieure: reponses.sireneExterieure !== false,
     dependance,
@@ -1358,8 +1617,8 @@ function composerAlarme(reponses = {}, tarif = [], options = {}) {
   };
 
   /*
-   * Le détecteur de mouvement dépend de l'animal, et c'est le seul choix
-   * de ce module qui ne soit pas dicté par une quantité.
+   * Le détecteur de mouvement dépend de l'animal, et c'est le seul choix de
+   * ce module qui ne soit pas dicté par une quantité.
    */
   const besoinImmunite = inv.animal.immunite;
   const typeMouvement = inv.leveeDoute ? 'mouvementPhoto' : 'mouvement';
@@ -1372,8 +1631,9 @@ function composerAlarme(reponses = {}, tarif = [], options = {}) {
   }
 
   // --- le cerveau : assez de place pour tout ce qui précède
-  const appareils = inv.ouvertures + inv.brisVitre + inv.mouvements
-    + inv.relais + inv.telecommandes + 1 + (inv.sireneExterieure ? 2 : 1);
+  const appareils = inv.ouvertures + inv.brisVitre + inv.mouvements + inv.exterieurs
+    + inv.relais + inv.telecommandes + inv.claviers + inv.agression
+    + (inv.sireneExterieure ? 2 : 1);
   const hub = moinsCher(tarif, 'hub', (a) => !(a.capacite > 0) || a.capacite >= appareils);
   if (hub) lignes.push({ article: hub, quantite: 1, role: 'Centrale' });
   else if (candidats(tarif, 'hub').length) {
@@ -1390,14 +1650,16 @@ function composerAlarme(reponses = {}, tarif = [], options = {}) {
     });
   } else if (inv.mouvements > 0) manques.push('Aucun détecteur de mouvement au tarif.');
 
-  poser('clavier', 1, 'Clavier de commande');
+  poser('exterieur', inv.exterieurs, 'Détecteurs de mouvement extérieurs');
+  poser('agression', inv.agression, 'Bouton d\'alarme discret');
+  poser('clavier', inv.claviers, 'Claviers de commande');
   poser('telecommande', inv.telecommandes, 'Télécommandes');
   poser('sireneInt', 1, 'Sirène intérieure');
   if (inv.sireneExterieure) poser('sireneExt', 1, 'Sirène extérieure');
   poser('relais', inv.relais, 'Relais radio');
 
   const pose = { ...POSE_DEFAUT, ...(options.pose || {}) };
-  const detecteurs = inv.ouvertures + inv.brisVitre + inv.mouvements;
+  const detecteurs = inv.ouvertures + inv.brisVitre + inv.mouvements + inv.exterieurs;
   const sirenes = 1 + (inv.sireneExterieure ? 1 : 0);
 
   return {
@@ -1424,14 +1686,14 @@ function reservesAlarme(inv) {
   const r = [];
 
   if (inv.fenetresHautes > 0) {
-    r.push(`${inv.fenetresHautes} ouverture${inv.fenetresHautes > 1 ? 's' : ''} en étage `
+    r.push(`${inv.fenetresHautes} ouverture${inv.fenetresHautes > 1 ? 's' : ''} en hauteur `
       + 'ne sont pas protégées : elles ont été déclarées inaccessibles sans échelle. '
       + 'Un intrus muni d\'une échelle entrerait par là sans déclencher le périmètre — '
-      + 'il trouverait ensuite le détecteur de mouvement du palier.');
+      + 'il trouverait ensuite le détecteur de mouvement intérieur.');
   }
 
   if (inv.animal.masse > MASSE_IMMUNITE) {
-    r.push(`Un chien de cette taille dépasse l'immunité annoncée par les constructeurs `
+    r.push('Un chien de cette taille dépasse l\'immunité annoncée par les constructeurs '
       + `(de l'ordre de ${MASSE_IMMUNITE} kg). La détection repose donc sur le périmètre, `
       + 'et le volumétrique est limité aux pièces où l\'animal ne va pas.');
   } else if (inv.animal.grimpe) {
@@ -1445,10 +1707,10 @@ function reservesAlarme(inv) {
       + 'il varie d\'un détecteur à l\'autre.');
   }
 
-  if (inv.brisVitre === 0 && inv.baies === 0) {
+  if (inv.brisVitre === 0 && inv.baies === 0 && inv.vitrines === 0) {
     r.push('Aucune grande surface vitrée n\'a été déclarée. Un contact d\'ouverture '
-      + 'détecte un battant qui s\'ouvre, pas une vitre cassée : si une baie existe, '
-      + 'signalez-la, elle appelle un détecteur de bris.');
+      + 'détecte un battant qui s\'ouvre, pas une vitre cassée : s\'il y a une baie ou '
+      + 'une vitrine, signalez-la, elle appelle un détecteur de bris.');
   }
 
   if (inv.garage === 'communicant') {
@@ -1458,10 +1720,57 @@ function reservesAlarme(inv) {
       + 'des regards.');
   }
 
+  if (inv.famille === 'commerce') {
+    r.push('Le bouton d\'alarme discret ne relève pas de l\'anti-intrusion : c\'est un '
+      + 'appel au secours déclenché sous la contrainte, pendant les heures d\'ouverture. '
+      + 'Il suppose que quelqu\'un reçoive l\'alerte et sache quoi en faire.');
+    if (!inv.rideau) {
+      r.push('Aucun rideau métallique n\'a été déclaré. S\'il y en a un, il mérite son '
+        + 'propre contact : baissé, c\'est lui la vraie porte, et un contact posé '
+        + 'seulement sur la porte vitrée derrière ne verrait rien tant qu\'il est fermé.');
+    }
+  }
+
+  if (inv.famille === 'depot') {
+    if (inv.hauteur > HAUTEUR_COURANTE) {
+      r.push(`Sous ${inv.hauteur} m de hauteur, un détecteur d'intérieur posé vers `
+        + '2,40 m ne surveille qu\'une tranche au sol. Les lanterneaux, les bardages et '
+        + 'le volume au-dessus lui échappent : à cette hauteur, le relevé sur place et '
+        + 'des détecteurs adaptés (longue portée, barrières, rideaux) ne sont pas '
+        + 'optionnels.');
+    }
+    if (inv.metallique) {
+      r.push('Une charpente ou un bardage métallique dégrade fortement la portée radio. '
+        + 'Deux relais sont prévus au budget ; leur nombre et leur position ne se '
+        + 'décident qu\'après un essai de portée sur place.');
+    }
+    r.push('Un dépôt non chauffé expose les détecteurs au froid et à la condensation. '
+      + 'La plage de température admise est à vérifier sur la fiche de chaque modèle.');
+  }
+
+  if (inv.famille === 'chantier') {
+    r.push('Un chantier n\'est pas un bâtiment : il n\'a ni mur fermé, ni installation '
+      + 'définitive, et son périmètre change chaque mois. Ce chiffrage est un ordre de '
+      + 'grandeur pour une base-vie et ses accès, à revoir à chaque phase.');
+    r.push('Sur un chantier, l\'alarme seule ne suffit presque jamais : sans levée de '
+      + 'doute — photo ou vidéo — une alerte nocturne en rase campagne ne déclenche '
+      + 'aucune intervention. Prévoyez-la, ou une télésurveillance.');
+    if (inv.sansCourant) {
+      r.push('Sans alimentation électrique sur place, tout le matériel fonctionne sur '
+        + 'batterie : l\'autonomie réelle et le rythme de remplacement sont à arrêter '
+        + 'ensemble, ils conditionnent le coût d\'exploitation.');
+    }
+  }
+
+  if (inv.immeuble) {
+    r.push('En immeuble ou en copropriété, une sirène extérieure peut être encadrée par '
+      + 'le règlement ou un arrêté municipal. À vérifier avant la pose.');
+  }
+
   if (inv.relais > 0) {
-    r.push('Un relais radio est prévu au budget. La portée réelle dépend des murs '
-      + 'et des planchers et ne se mesure que sur place : il peut se révéler inutile, '
-      + 'ou il peut en falloir deux.');
+    r.push(`${inv.relais > 1 ? 'Deux relais radio sont prévus' : 'Un relais radio est prévu'} `
+      + 'au budget. La portée réelle dépend des murs et des planchers et ne se mesure que '
+      + 'sur place : il peut se révéler inutile, ou il peut en falloir davantage.');
   }
 
   if (inv.sansBox) {
@@ -1473,7 +1782,7 @@ function reservesAlarme(inv) {
     + 'Sans télésurveillance, l\'alerte arrive sur votre téléphone — quelqu\'un doit '
     + 'pouvoir y répondre.');
   r.push('Le nombre de détecteurs et leurs emplacements définitifs sont arrêtés lors '
-    + 'du relevé sur place : la disposition des pièces et les habitudes des occupants '
+    + 'du relevé sur place : la disposition des lieux et les habitudes des occupants '
     + 'les déplacent toujours un peu.');
   r.push('Si votre assureur impose une certification (NF A2P, grade 2), demandez-la '
     + 'expressément : elle porte sur des références précises et conditionne la prise '
@@ -1485,36 +1794,47 @@ function reservesAlarme(inv) {
 /**
  * Les trois lignes de défense, dans l'ordre où l'intrus les rencontre.
  *
- * Sert au schéma de la page. Le client comprend en un coup d'œil ce que
- * trois pages de désignations ne lui diraient pas : ce qu'il paie, c'est de
- * la détection de plus en plus tardive.
+ * Sert au schéma de la page. Le client comprend en un coup d'œil ce que trois
+ * pages de désignations ne lui diraient pas : ce qu'il paie, c'est de la
+ * détection de plus en plus tardive.
  */
 function couches(inv) {
+  const dehors = inv.exterieurs > 0;
+  const details = [];
+  if (inv.ouvertures > 0) {
+    details.push(`${inv.ouvertures} ouverture${inv.ouvertures > 1 ? 's' : ''}`);
+  }
+  if (inv.brisVitre > 0) details.push(`${inv.brisVitre} bris de vitre`);
+  if (dehors) details.push(`${inv.exterieurs} détecteurs extérieurs`);
+
   return [
     {
       cle: 'perimetre',
-      titre: 'Au périmètre',
-      quand: 'avant qu\'il soit entré',
-      nombre: inv.ouvertures + inv.brisVitre,
-      detail: `${inv.ouvertures} ouverture${inv.ouvertures > 1 ? 's' : ''}`
-        + (inv.brisVitre ? `, ${inv.brisVitre} bris de vitre` : ''),
+      titre: dehors ? 'Aux accès' : 'Au périmètre',
+      quand: dehors ? 'dès qu\'il approche' : 'avant qu\'il soit entré',
+      nombre: inv.ouvertures + inv.brisVitre + inv.exterieurs,
+      detail: details.join(', ') || 'rien de déclaré',
     },
     {
       cle: 'volume',
       titre: 'À l\'intérieur',
-      quand: 'une fois entré, sur son passage',
+      quand: dehors ? 'dans les bases-vie' : 'une fois entré, sur son passage',
       nombre: inv.mouvements,
-      detail: `${inv.mouvements} détecteur${inv.mouvements > 1 ? 's' : ''} de mouvement`
-        + (inv.leveeDoute ? ', avec photo à l\'alerte' : ''),
+      detail: inv.mouvements > 0
+        ? `${inv.mouvements} détecteur${inv.mouvements > 1 ? 's' : ''} de mouvement`
+          + (inv.leveeDoute ? ', avec photo à l\'alerte' : '')
+        : 'aucun volume intérieur à surveiller',
     },
     {
       cle: 'alerte',
       titre: 'À l\'alerte',
-      quand: 'immédiatement, et chez vous',
-      nombre: 1 + (inv.sireneExterieure ? 1 : 0),
-      detail: inv.sireneExterieure
-        ? 'sirène intérieure et sirène extérieure, notification sur votre téléphone'
-        : 'sirène intérieure, notification sur votre téléphone',
+      quand: 'immédiatement, où que vous soyez',
+      nombre: 1 + (inv.sireneExterieure ? 1 : 0) + inv.agression,
+      detail: [
+        inv.sireneExterieure ? 'sirène intérieure et sirène extérieure' : 'sirène intérieure',
+        inv.agression ? 'bouton d\'alarme discret' : '',
+        'notification sur votre téléphone',
+      ].filter(Boolean).join(', '),
     },
   ];
 }
@@ -1578,9 +1898,72 @@ function garnirListes() {
       .map(([cle, v]) => `<option value="${echapper(cle)}">${echapper(v.label)}</option>`)
       .join('');
   };
-  options('#a-type', TYPES_LOGEMENT);
+  options('#a-type', SITES);
   options('#a-garage', GARAGES);
   options('#a-animaux', ANIMAUX);
+}
+
+/**
+ * Les intitulés qui changent de sens d'une famille à l'autre.
+ *
+ * « Surface habitable » ne veut rien dire pour un entrepôt, et « combien de
+ * personnes doivent pouvoir mettre en marche » se dit autrement à un
+ * commerçant qui pense en ouverture et fermeture. Un formulaire qui parle la
+ * langue du client obtient des réponses justes ; un formulaire générique
+ * obtient des approximations qu'on chiffre ensuite.
+ */
+const INTITULES = {
+  habitation: {
+    surface: 'Surface habitable (m²)',
+    aide: 'Au plus juste : c\'est elle qui décide du nombre de détecteurs de mouvement.',
+    portes: 'Portes donnant sur l\'extérieur',
+    occupants: 'Combien de personnes doivent pouvoir mettre en marche ?',
+  },
+  commerce: {
+    surface: 'Surface de vente et réserve (m²)',
+    aide: 'Surface de plancher, réserve comprise.',
+    portes: 'Portes donnant sur l\'extérieur, réserve comprise',
+    occupants: 'Combien de personnes ouvrent et ferment ?',
+  },
+  tertiaire: {
+    surface: 'Surface des bureaux (m²)',
+    aide: 'Plateaux, couloirs et salles de réunion compris.',
+    portes: 'Portes donnant sur l\'extérieur ou sur les parties communes',
+    occupants: 'Combien de personnes ouvrent et ferment ?',
+  },
+  depot: {
+    surface: 'Surface au sol (m²)',
+    aide: 'Un dépôt se compte en volume : la hauteur compte autant que la surface.',
+    portes: 'Portes de service et issues',
+    occupants: 'Combien de personnes ouvrent et ferment ?',
+  },
+  chantier: {
+    surface: 'Surface du terrain (m²)',
+    aide: 'Ordre de grandeur : elle sert à prévoir la portée radio, pas à compter '
+      + 'des détecteurs.',
+    portes: 'Portes donnant sur l\'extérieur',
+    occupants: 'Combien de personnes doivent pouvoir mettre en marche ?',
+  },
+};
+
+/**
+ * N'affiche que les questions qui ont un sens pour le site choisi.
+ *
+ * Demander son garage à un entrepôt, ou sa vitrine à un pavillon, c'est
+ * inviter à répondre n'importe quoi — et ce n'importe quoi se retrouve
+ * ensuite dans le matériel chiffré.
+ */
+function appliquerFamille() {
+  const { site } = profil($('#a-type').value);
+  const nom = site.famille;
+  for (const n of $$('[data-si]')) {
+    n.hidden = !n.dataset.si.split(/\s+/).includes(nom);
+  }
+  const i = INTITULES[nom] || INTITULES.habitation;
+  $('#i-surface').textContent = i.surface;
+  $('#s-surface').textContent = i.aide;
+  $('#i-portes').textContent = i.portes;
+  $('#i-occupants').textContent = i.occupants;
 }
 
 const nombre = (sel, defaut = 0) => {
@@ -1591,10 +1974,11 @@ const nombre = (sel, defaut = 0) => {
 /** Les réponses, telles que le module de calcul les attend. */
 function reponsesAlarme() {
   return {
-    typeLogement: $('#a-type').value,
+    typeSite: $('#a-type').value,
     surface: nombre('#a-surface', 100),
     niveaux: nombre('#a-niveaux', 1),
     occupants: nombre('#a-occupants', 2),
+    entrees: nombre('#a-entrees', 1),
     portes: nombre('#a-portes', 2),
     fenetresAccessibles: nombre('#a-fenetres', 4),
     baies: nombre('#a-baies', 0),
@@ -1604,6 +1988,22 @@ function reponsesAlarme() {
     animaux: $('#a-animaux').value,
     internet: $('#a-internet').value,
     armerPresent: $('#a-present').checked,
+    // Commerce
+    vitrines: nombre('#a-vitrines', 0),
+    rideau: $('#a-rideau').checked,
+    reserve: $('#a-reserve').checked,
+    agression: $('#a-agression').checked,
+    immeuble: $('#a-immeuble').checked,
+    // Bureaux
+    localTechnique: $('#a-local').checked,
+    // Dépôt
+    quais: nombre('#a-quais', 0),
+    hauteur: nombre('#a-hauteur', 3),
+    metallique: $('#a-metallique').checked,
+    // Chantier
+    basesVie: nombre('#a-basesvie', 1),
+    acces: nombre('#a-acces', 1),
+    electricite: $('#a-electricite').value,
     leveeDoute: $('#a-photo').checked,
     sireneExterieure: $('#a-sirene').checked,
     pose: $('#a-pose').checked,
@@ -1618,10 +2018,11 @@ function reponsesAlarme() {
  * aurait laissé passer.
  */
 function suggererDepuisType() {
-  const t = TYPES_LOGEMENT[$('#a-type').value];
-  if (!t) return;
-  $('#a-surface').value = t.surface;
-  $('#a-niveaux').value = String(t.niveaux);
+  const { site } = profil($('#a-type').value);
+  $('#a-surface').value = site.surface;
+  $('#a-niveaux').value = String(site.niveaux);
+  $('#a-portes').value = site.portes;
+  $('#a-fenetres').value = site.fenetres;
 }
 
 /* ----------------------------------------------------------------- schéma */
@@ -1648,7 +2049,8 @@ function dessinerCouches(inv) {
         >${echapper(x.titre)}</text>
       <text x="0" y="${y + 33}" font-size="11" fill="#5b6472"
         >${echapper(x.quand)}</text>
-      <circle cx="${disque + 19}" cy="${y + 19}" r="19" fill="${couleurs[i]}"/>
+      <circle cx="${disque + 19}" cy="${y + 19}" r="19"
+        fill="${x.nombre > 0 ? couleurs[i] : '#aeb4be'}"/>
       <text x="${disque + 19}" y="${y + 25}" font-size="17" font-weight="700"
         text-anchor="middle" fill="#ffffff">${x.nombre}</text>
       <text x="${disque + 52}" y="${y + 25}" font-size="13" fill="#1a1d23"
@@ -1673,13 +2075,91 @@ function dessinerCouches(inv) {
  */
 function expliquer(inv, offre) {
   const p = [];
-  const avant = inv.ouvertures + inv.brisVitre;
+  const avant = inv.ouvertures + inv.brisVitre + inv.exterieurs;
 
-  p.push(`Votre installation surveille <b>${avant} point${avant > 1 ? 's' : ''} d'entrée</b> `
-    + `et <b>${inv.mouvements} volume${inv.mouvements > 1 ? 's' : ''} intérieur${
-      inv.mouvements > 1 ? 's' : ''}</b>. `
-    + 'Les premiers préviennent avant que l\'intrus soit chez vous ; les seconds le '
-    + 'détectent sur son passage s\'il est entré par ailleurs.');
+  if (inv.famille === 'chantier') {
+    p.push(`Un chantier n'a ni mur fermé ni fenêtre : la détection se fait <b>dehors</b>. `
+      + `${inv.exterieurs} détecteur${inv.exterieurs > 1 ? 's' : ''} extérieur`
+      + `${inv.exterieurs > 1 ? 's' : ''} couvrent les accès et les abords des bases-vie, `
+      + `et ${inv.ouvertures} contact${inv.ouvertures > 1 ? 's' : ''} équipent leurs portes.`);
+  } else {
+    p.push(`Votre installation surveille <b>${avant} point${avant > 1 ? 's' : ''} d'entrée</b> `
+      + `et <b>${inv.mouvements} volume${inv.mouvements > 1 ? 's' : ''} intérieur${
+        inv.mouvements > 1 ? 's' : ''}</b>. `
+      + 'Les premiers préviennent avant que l\'intrus soit dedans ; les seconds le '
+      + 'détectent sur son passage s\'il est entré par ailleurs.');
+  }
+
+  /* ------------------------------------------------ ce qui tient au site */
+
+  if (inv.famille === 'commerce') {
+    if (inv.vitrines > 0) {
+      p.push(`Votre façade est en verre. C'est la plus grande ouverture du magasin, et `
+        + `la seule qu'un contact ne sait pas protéger : ${inv.vitrines > 1
+          ? `vos ${inv.vitrines} vitrines reçoivent chacune` : 'votre vitrine reçoit'} `
+        + 'un détecteur de bris, qui entend la vitre céder.');
+    }
+    if (inv.rideau) {
+      p.push('Le rideau métallique a son <b>propre contact</b>. Baissé, c\'est lui la vraie '
+        + 'porte : un contact posé seulement sur la porte vitrée derrière ne verrait rien '
+        + 'tant que le rideau est fermé.');
+    }
+    if (inv.livraison) {
+      p.push('<b>La réserve est équipée à part.</b> C\'est par là qu\'on entre dans un '
+        + 'commerce : une porte de livraison donne sur une cour ou une ruelle, hors de vue '
+        + 'de la rue — l\'intrus y travaille sans être dérangé.');
+    }
+    if (inv.agression) {
+      p.push('Le bouton d\'alarme discret ne relève pas de l\'anti-intrusion : il sert '
+        + '<b>pendant les heures d\'ouverture</b>, déclenché par quelqu\'un qui est là, sous '
+        + 'la contrainte. Il suppose que l\'alerte soit reçue et qu\'on sache quoi en faire.');
+    }
+  }
+
+  if (inv.famille === 'tertiaire') {
+    p.push('Des bureaux sont vides la nuit et sans animaux : c\'est le cas où le '
+      + 'volumétrique donne le plus pour le moins cher — les couloirs et les plateaux '
+      + 'sont des passages obligés, quel que soit le point d\'entrée.');
+    if (inv.localTechnique) {
+      p.push('Le local technique est traité à part : c\'est le seul endroit d\'un bureau où '
+        + 'l\'on fait beaucoup de dégâts en très peu de temps.');
+    }
+  }
+
+  if (inv.famille === 'depot') {
+    if (inv.quais > 0) {
+      p.push(`${inv.quais > 1 ? `Vos ${inv.quais} quais` : 'Votre quai'} de chargement `
+        + `${inv.quais > 1 ? 'sont équipés' : 'est équipé'} comme des portes — parce que `
+        + 'c\'en sont, à la taille d\'un camion. C\'est par là que la marchandise sort.');
+    }
+    if (inv.hauteur > HAUTEUR_COURANTE) {
+      p.push(`<b>Attention à la hauteur.</b> Sous ${fr(inv.hauteur)} m, un détecteur `
+        + 'd\'intérieur posé vers 2,40 m ne surveille qu\'une tranche au sol : les '
+        + 'lanterneaux, les bardages et tout le volume au-dessus lui échappent. À cette '
+        + 'hauteur, le relevé sur place et des détecteurs adaptés ne sont pas optionnels.');
+    }
+    if (inv.metallique) {
+      p.push('Une charpente ou un bardage métallique <b>avale la radio</b>. Deux relais sont '
+        + 'prévus au budget ; leur nombre exact ne se décide qu\'après un essai de portée '
+        + 'sur place.');
+    }
+  }
+
+  if (inv.famille === 'chantier') {
+    p.push('<b>Sur un chantier, l\'alarme seule ne suffit presque jamais.</b> Sans levée de '
+      + 'doute — photo ou vidéo — une alerte nocturne en bord de route ne déclenche aucune '
+      + 'intervention : personne ne se déplace sur une sirène. Cochez la photo à l\'alerte, '
+      + 'ou prévoyez une télésurveillance.');
+    if (inv.sansCourant) {
+      p.push('Sans électricité sur place, tout fonctionne sur batterie. L\'autonomie réelle '
+        + 'et le rythme de remplacement sont à arrêter ensemble : ils font le coût '
+        + 'd\'exploitation, pas le prix d\'achat.');
+    }
+    p.push('Le périmètre d\'un chantier change à chaque phase. Ce chiffrage vaut pour '
+      + 'l\'installation d\'aujourd\'hui ; prévoyez de la faire évoluer.');
+  }
+
+  /* ------------------------------------------- ce qui tient aux réponses */
 
   if (inv.mode === 'perimetrique') {
     p.push('<b>À cause de votre animal</b>, la détection repose sur les ouvertures plutôt '
@@ -1702,8 +2182,7 @@ function expliquer(inv, offre) {
     const sujet = inv.baies > 1
       ? `Vos ${inv.baies} grandes surfaces vitrées appellent`
       : 'Votre grande surface vitrée appelle';
-    const combien = inv.brisVitre > 1 ? `${inv.brisVitre} détecteurs` : 'un détecteur';
-    p.push(`${sujet} ${combien} de bris : un contact d'ouverture sait qu'un battant `
+    p.push(`${sujet} un détecteur de bris : un contact d'ouverture sait qu'un battant `
       + "s'ouvre, il ignore qu'une vitre a été cassée et qu'on est passé au travers.");
   }
 
@@ -1715,16 +2194,27 @@ function expliquer(inv, offre) {
 
   if (inv.fenetresHautes > 0) {
     p.push(`<b>Ce qui n'est pas couvert :</b> vos ${inv.fenetresHautes} ouverture`
-      + `${inv.fenetresHautes > 1 ? 's' : ''} d'étage, déclarée`
+      + `${inv.fenetresHautes > 1 ? 's' : ''} en hauteur, déclarée`
       + `${inv.fenetresHautes > 1 ? 's' : ''} inaccessible`
       + `${inv.fenetresHautes > 1 ? 's' : ''} sans échelle. Un intrus qui en apporterait une `
-      + 'entrerait sans déclencher le périmètre — il trouverait le détecteur du palier.');
+      + 'entrerait sans déclencher le périmètre — il trouverait le détecteur intérieur.');
   }
 
-  if ($('#a-present').checked) {
+  if (inv.claviers > 1) {
+    p.push(`${inv.claviers} claviers, un par entrée utilisée tous les jours : traverser le `
+      + 'local dans le noir pour aller désarmer à l\'autre bout n\'est pas une méthode, et '
+      + 'c\'est ainsi qu\'on finit par ne plus armer du tout.');
+  }
+
+  if (inv.profil.armerPresent && $('#a-present').checked) {
     p.push('Vous pourrez <b>mettre en marche en restant chez vous</b> : les ouvertures '
       + 'restent surveillées pendant que les détecteurs intérieurs se mettent en veille. '
       + 'C\'est précisément ce que le périmètre permet et que le volumétrique seul interdit.');
+  }
+
+  if (inv.immeuble) {
+    p.push('En immeuble partagé, une sirène extérieure peut être encadrée par le règlement '
+      + 'de copropriété ou un arrêté municipal : à vérifier avant la pose.');
   }
 
   if (inv.sansBox) {
@@ -1735,10 +2225,10 @@ function expliquer(inv, offre) {
       + 'ligne tombe — couper l\'internet ne suffit pas à faire taire le système.');
   }
 
-  p.push(`Temps de pose estimé : <b>${fr(offre.heures)} h</b>, formation des occupants `
+  p.push(`Temps de pose estimé : <b>${fr(offre.heures)} h</b>, formation des utilisateurs `
     + 'comprise.');
 
-  $('#a-explications').innerHTML = p.map((t) => `<p class="aide">${t}</p>`).join('');
+  $('#a-explications').innerHTML = p.map((x) => `<p class="aide">${x}</p>`).join('');
 }
 
 /* ----------------------------------------------------------------- devis */
@@ -1767,16 +2257,24 @@ function afficherLignes(d) {
 
 /** Le résumé en une phrase : ce qu'on retient si l'on ne lit rien d'autre. */
 function resumer(inv, d) {
-  const appareils = inv.ouvertures + inv.brisVitre + inv.mouvements;
+  const detecteurs = inv.ouvertures + inv.brisVitre + inv.mouvements + inv.exterieurs;
   const prix = d.complet && d.totalTtc > 0
     ? ` Estimation : <b>${echapper(euros(d.totalTtc))} TTC</b>, pose comprise.`
     : ' Les montants restent à compléter par l\'agence.';
-  return `Pour votre ${echapper(inv.labelType.toLowerCase())} de ${inv.surface} m², `
-    + `<b>${appareils} détecteurs</b> répartis sur ${inv.ouvertures} ouverture`
-    + `${inv.ouvertures > 1 ? 's' : ''} et ${inv.mouvements} volume`
-    + `${inv.mouvements > 1 ? 's' : ''} intérieur${inv.mouvements > 1 ? 's' : ''}, `
-    + `une centrale, un clavier et ${inv.sireneExterieure ? 'deux sirènes' : 'une sirène'}.`
-    + prix;
+
+  const repartition = inv.famille === 'chantier'
+    ? `${inv.exterieurs} détecteur${inv.exterieurs > 1 ? 's' : ''} extérieur`
+      + `${inv.exterieurs > 1 ? 's' : ''} et ${inv.ouvertures} contact`
+      + `${inv.ouvertures > 1 ? 's' : ''} sur les bases-vie`
+    : `${inv.ouvertures} ouverture${inv.ouvertures > 1 ? 's' : ''} et ${inv.mouvements} `
+      + `volume${inv.mouvements > 1 ? 's' : ''} intérieur${inv.mouvements > 1 ? 's' : ''}`;
+
+  const commande = `une centrale, ${inv.claviers > 1 ? `${inv.claviers} claviers` : 'un clavier'}`
+    + ` et ${inv.sireneExterieure ? 'deux sirènes' : 'une sirène'}`;
+
+  return `Pour ${echapper(inv.article)} ${echapper(inv.nomCourt)} de `
+    + `${echapper(frGroupe(inv.surface))} m², <b>${detecteurs} détecteurs</b> répartis sur `
+    + `${repartition}, ${commande}.${prix}`;
 }
 
 function majContact(inv, d) {
@@ -1788,14 +2286,36 @@ function majContact(inv, d) {
   const corps = [
     'Bonjour,',
     '',
-    'Je souhaite une étude pour la protection de mon domicile :',
-    `- Logement : ${inv.labelType}, ${inv.surface} m², ${inv.niveaux} niveau(x)`,
+    'Je souhaite une étude pour la protection de mon site :',
+    `- Site : ${inv.labelSite}, ${inv.surface} m², ${inv.niveaux} niveau(x)`,
     `- Portes extérieures : ${inv.portes}`,
     `- Fenêtres accessibles : ${inv.fenetres}, dont ${inv.baies} grande(s) surface(s) vitrée(s)`,
-    `- Fenêtres d'étage non équipées : ${inv.fenetresHautes}`,
-    `- Garage : ${inv.labelGarage}`,
-    `- Animaux : ${inv.animal.label}`,
-    `- Armer en ma présence : ${$('#a-present').checked ? 'oui' : 'non'}`,
+    `- Ouvertures en hauteur non équipées : ${inv.fenetresHautes}`,
+    ...(inv.profil.garage ? [
+      `- Garage : ${inv.labelGarage}`,
+      `- Animaux : ${inv.animal.label}`,
+      `- Armer en ma présence : ${$('#a-present').checked ? 'oui' : 'non'}`,
+    ] : []),
+    ...(inv.famille === 'commerce' ? [
+      `- Vitrines : ${inv.vitrines}`,
+      `- Rideau métallique : ${inv.rideau ? 'oui' : 'non'}`,
+      `- Réserve avec accès livraison : ${inv.livraison ? 'oui' : 'non'}`,
+      `- Bouton d'alarme discret : ${inv.agression ? 'oui' : 'non'}`,
+    ] : []),
+    ...(inv.famille === 'tertiaire' ? [
+      `- Local technique à part : ${inv.localTechnique ? 'oui' : 'non'}`,
+    ] : []),
+    ...(inv.famille === 'depot' ? [
+      `- Quais et portes sectionnelles : ${inv.quais}`,
+      `- Hauteur sous plafond : ${inv.hauteur} m`,
+      `- Charpente métallique : ${inv.metallique ? 'oui' : 'non'}`,
+    ] : []),
+    ...(inv.famille === 'chantier' ? [
+      `- Bases-vie ou containers : ${inv.basesVie}`,
+      `- Accès au terrain : ${inv.acces}`,
+      `- Électricité sur place : ${inv.sansCourant ? 'non' : 'oui'}`,
+    ] : []),
+    `- Entrées utilisées tous les jours : ${inv.claviers}`,
     `- Photo à l'alerte : ${inv.leveeDoute ? 'oui' : 'non'}`,
     `- Sirène extérieure : ${inv.sireneExterieure ? 'oui' : 'non'}`,
     '',
@@ -1865,17 +2385,24 @@ function memoriserAlarme() {
 function restaurerAlarme(contenu) {
   if (!contenu || contenu.type !== 'ng-etude-alarme') return false;
   const r = contenu.reponses || {};
-  for (const [sel, cle] of [['#a-type', 'typeLogement'], ['#a-surface', 'surface'],
-    ['#a-niveaux', 'niveaux'], ['#a-occupants', 'occupants'], ['#a-portes', 'portes'],
-    ['#a-fenetres', 'fenetresAccessibles'], ['#a-baies', 'baies'],
+  for (const [sel, cle] of [['#a-type', 'typeSite'], ['#a-surface', 'surface'],
+    ['#a-niveaux', 'niveaux'], ['#a-occupants', 'occupants'], ['#a-entrees', 'entrees'],
+    ['#a-portes', 'portes'], ['#a-fenetres', 'fenetresAccessibles'], ['#a-baies', 'baies'],
     ['#a-hautes', 'fenetresHautes'], ['#a-garage', 'garage'], ['#a-animaux', 'animaux'],
-    ['#a-internet', 'internet']]) {
+    ['#a-internet', 'internet'], ['#a-vitrines', 'vitrines'], ['#a-quais', 'quais'],
+    ['#a-hauteur', 'hauteur'], ['#a-basesvie', 'basesVie'], ['#a-acces', 'acces'],
+    ['#a-electricite', 'electricite']]) {
     if (r[cle] !== undefined) $(sel).value = r[cle];
   }
   for (const [sel, cle] of [['#a-dependance', 'dependance'], ['#a-present', 'armerPresent'],
-    ['#a-photo', 'leveeDoute'], ['#a-sirene', 'sireneExterieure'], ['#a-pose', 'pose']]) {
+    ['#a-photo', 'leveeDoute'], ['#a-sirene', 'sireneExterieure'], ['#a-pose', 'pose'],
+    ['#a-rideau', 'rideau'], ['#a-reserve', 'reserve'], ['#a-agression', 'agression'],
+    ['#a-immeuble', 'immeuble'], ['#a-local', 'localTechnique'],
+    ['#a-metallique', 'metallique']]) {
     if (r[cle] !== undefined) $(sel).checked = !!r[cle];
   }
+  // Le site a pu changer : les questions affichées doivent suivre.
+  appliquerFamille();
   return true;
 }
 
@@ -1919,11 +2446,18 @@ async function demarrerAlarme() {
 
   garnirListes();
   brancherProjetAlarme();
+  appliquerFamille();
 
-  $('#a-type').addEventListener('change', () => { suggererDepuisType(); calculerAlarme(); });
+  $('#a-type').addEventListener('change', () => {
+    suggererDepuisType();
+    appliquerFamille();
+    calculerAlarme();
+  });
   $$('#a-surface, #a-niveaux, #a-occupants, #a-portes, #a-fenetres, #a-baies, #a-hautes, '
     + '#a-garage, #a-animaux, #a-internet, #a-dependance, #a-present, #a-photo, #a-sirene, '
-    + '#a-pose').forEach((n) => {
+    + '#a-pose, #a-entrees, #a-vitrines, #a-rideau, #a-reserve, #a-agression, #a-immeuble, '
+    + '#a-local, #a-quais, #a-hauteur, #a-metallique, #a-basesvie, #a-acces, #a-electricite')
+    .forEach((n) => {
     n.addEventListener('change', calculerAlarme);
     n.addEventListener('input', calculerAlarme);
   });

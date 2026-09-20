@@ -225,6 +225,11 @@ font en plus travailler la page :
 | `capacite` | la centrale | la page refuse une centrale trop petite au lieu de la proposer |
 | `immuniteAnimaux` | un détecteur de mouvement | sans lui, la page prévient que l'animal déclenchera |
 
+La page couvre cinq familles de sites — maison, magasin, bureaux, dépôt,
+chantier — et le tarif porte deux articles qui ne servent qu'aux
+professionnels : `exterieur` (détecteur de mouvement extérieur, pour les
+chantiers) et `agression` (bouton d'alarme discret, pour les commerces).
+
 ---
 
 ## Ce qui a été vérifié, et ce qui ne l'a pas été
