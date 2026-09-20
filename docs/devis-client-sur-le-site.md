@@ -49,7 +49,7 @@ faire la même chose depuis l'admin.
 
 ### L'adresse qui reçoit les demandes
 
-Elle est réglée sur **`contact@ngsecurity38.com`**, la seule boîte de votre
+Elle est réglée sur **`contact@ngsecurity38.com`**, la boîte de votre
 hébergement Hostinger. Pour en changer, dans `js/devis-client.js` :
 
 ```js
