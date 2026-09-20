@@ -1,0 +1,1032 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<!-- Présentation — NG Security 38.
+     Fichier unique produit par build.mjs le 2026-09-20.
+     Pour changer les produits : éditer catalogue.json, à côté de la page. -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quelle caméra vous faut-il ? — NG Security 38</title>
+<meta name="description" content="Photographiez ce que vous voulez surveiller : vous saurez quelle caméra il vous faut, quel objectif, et jusqu'où elle verra. Outil gratuit NG Security 38.">
+<style>/* Page de présentation pour la boutique — NG Security 38.
+   Téléphone d'abord : c'est là que se lit une page de boutique. */
+
+:root {
+  --rouge: #c8102e;
+  --rouge-sombre: #9d0c24;
+  --encre: #1a1d23;
+  --doux: #5b6472;
+  --bord: #dde1e7;
+  --fond: #f6f7f9;
+  --police: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  font-family: var(--police);
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--encre);
+  background: var(--fond);
+}
+
+.dedans { max-width: 820px; margin: 0 auto; padding: 0 20px; }
+
+.entete {
+  background: var(--encre);
+  color: #fff;
+  padding: 40px 0 34px;
+  border-bottom: 4px solid var(--rouge);
+}
+.entete .surtitre {
+  margin: 0 0 8px; font-size: 12px; font-weight: 700; letter-spacing: .09em;
+  text-transform: uppercase; color: var(--rouge);
+}
+.entete h1 { margin: 0 0 12px; font-size: 30px; line-height: 1.2; }
+.entete .chapeau { margin: 0 0 22px; color: #c3c9d3; max-width: 34em; }
+.entete .mention { margin: 14px 0 0; font-size: 13px; color: #9aa2ae; }
+
+main { padding-bottom: 40px; }
+
+.carte {
+  background: #fff;
+  border: 1px solid var(--bord);
+  border-radius: 12px;
+  padding: 24px;
+  margin: 22px 0;
+}
+.carte h2 { margin: 0 0 16px; font-size: 19px; }
+
+.aide { color: var(--doux); font-size: 15px; margin: 0 0 16px; }
+.aide:last-child { margin-bottom: 0; }
+
+.actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 22px 0 0; }
+.btn {
+  display: inline-block;
+  font: inherit;
+  font-weight: 600;
+  padding: 13px 22px;
+  border-radius: 8px;
+  border: 1px solid var(--bord);
+  background: #fff;
+  color: var(--encre);
+  text-decoration: none;
+  cursor: pointer;
+}
+.btn-plein { background: var(--rouge); border-color: var(--rouge); color: #fff; }
+.btn-plein:hover { background: var(--rouge-sombre); border-color: var(--rouge-sombre); }
+.entete .btn:not(.btn-plein) { background: transparent; border-color: #4a515c; color: #fff; }
+.entete .btn:not(.btn-plein):hover { border-color: #fff; }
+
+/* Trois étapes numérotées : le compteur se lit mieux qu'une puce. */
+.etapes-num { margin: 0; padding: 0; list-style: none; counter-reset: etape; }
+.etapes-num li {
+  counter-increment: etape;
+  position: relative;
+  padding: 0 0 20px 52px;
+}
+.etapes-num li:last-child { padding-bottom: 0; }
+.etapes-num li::before {
+  content: counter(etape);
+  position: absolute; left: 0; top: 0;
+  width: 34px; height: 34px; border-radius: 50%;
+  background: var(--rouge); color: #fff;
+  font-weight: 700; font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+}
+.etapes-num h3 { margin: 4px 0 4px; font-size: 16px; }
+.etapes-num p { margin: 0; color: var(--doux); font-size: 15px; }
+
+.echelle { margin: 0 0 18px; padding: 0; }
+.echelle svg { width: 100%; height: auto; display: block; }
+.echelle figcaption {
+  margin-top: 12px; font-size: 13px; color: var(--doux); line-height: 1.5;
+}
+
+.produits { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; }
+.produit {
+  display: flex; flex-direction: column; gap: 6px;
+  border: 1px solid var(--bord); border-radius: 10px; padding: 14px;
+  text-decoration: none; color: inherit; background: #fff;
+}
+.produit:hover { border-color: var(--rouge); }
+.produit img {
+  display: block; width: 100%; height: 130px; object-fit: contain;
+  background: var(--fond); border-radius: 8px; margin-bottom: 4px;
+}
+.produit .nom { font-weight: 700; font-size: 15px; line-height: 1.35; }
+.produit .optique { font-size: 13px; color: var(--doux); }
+.produit .portee { font-size: 13px; color: var(--encre); }
+.produit .prix { font-size: 17px; font-weight: 700; color: var(--rouge); margin-top: 4px; }
+
+.manques { margin: 16px 0 0; padding-left: 20px; }
+.manques li { color: #8a5a00; font-size: 13px; }
+.manques:empty { display: none; }
+
+.sobre { margin: 0; padding-left: 20px; color: var(--doux); font-size: 15px; }
+.sobre li { margin-bottom: 8px; }
+
+.pied { color: var(--doux); font-size: 13px; padding-bottom: 32px; }
+.pied a { color: var(--doux); }
+
+@media (max-width: 560px) {
+  .entete h1 { font-size: 25px; }
+  .carte { padding: 18px; }
+  .actions .btn { flex: 1 1 auto; text-align: center; }
+}
+</style>
+</head>
+<body>
+
+<header class="entete">
+  <div class="dedans">
+    <p class="surtitre">Outil gratuit</p>
+    <h1>Quelle caméra vous faut-il&nbsp;?</h1>
+    <p class="chapeau">Prenez une photo depuis l'endroit où vous voulez poser
+      votre caméra, entourez ce que vous voulez surveiller. Vous saurez le
+      modèle, l'objectif, et jusqu'où l'image restera exploitable.</p>
+    <p class="actions">
+      <a class="btn btn-plein" id="lien-outil" href="#">Lancer l'étude</a>
+      <a class="btn" id="lien-boutique" href="#">Voir nos caméras</a>
+    </p>
+    <p class="mention">Sans inscription. Vos photos restent sur votre appareil.</p>
+  </div>
+</header>
+
+<main class="dedans">
+
+  <section class="carte">
+    <h2>Comment ça marche</h2>
+    <ol class="etapes-num">
+      <li>
+        <h3>Photographiez</h3>
+        <p>Depuis l'emplacement prévu de la caméra, et dans la direction que
+          vous voulez surveiller. Un téléphone suffit.</p>
+      </li>
+      <li>
+        <h3>Donnez deux distances</h3>
+        <p>Cliquez deux points dont vous connaissez la distance — le bas d'un
+          portail, un angle de mur, une place de parking. C'est ce qui permet
+          de <b>mesurer</b> l'angle de votre photo au lieu de le supposer.</p>
+      </li>
+      <li>
+        <h3>Entourez la zone</h3>
+        <p>Au doigt ou à la souris. L'angle de vue nécessaire, la distance à
+          couvrir et la caméra qui y répond s'affichent aussitôt.</p>
+      </li>
+    </ol>
+  </section>
+
+  <section class="carte">
+    <h2>Ce que « voir » veut dire</h2>
+    <p class="aide">Une caméra ne « voit » pas&nbsp;: elle pose un certain
+      nombre de pixels sur chaque mètre de terrain. C'est ce nombre qui décide
+      de ce que vous pourrez en faire — et il diminue avec la distance. La
+      norme européenne EN&nbsp;62676-4 fixe quatre paliers.</p>
+
+    <figure class="echelle">
+      <div id="schema-dori"></div>
+      <figcaption id="legende-dori"></figcaption>
+    </figure>
+
+    <p class="aide">C'est pourquoi « caméra 4K » ne dit rien à soi seul&nbsp;:
+      la même caméra identifie un inconnu à quelques mètres et ne fait que
+      repérer une silhouette au fond du terrain. L'outil vous donne ces
+      distances pour <b>votre</b> terrain.</p>
+  </section>
+
+  <section class="carte">
+    <h2>Nos caméras</h2>
+    <p class="aide" id="intro-produits"></p>
+    <div id="produits" class="produits"></div>
+    <ul class="manques" id="reserves-produits"></ul>
+  </section>
+
+  <section class="carte">
+    <h2>Ce que cet outil ne fait pas</h2>
+    <ul class="sobre">
+      <li>Il ne reconnaît pas ce qu'il y a sur vos photos&nbsp;: c'est vous qui
+        posez les repères et entourez la zone. Il mesure, il ne devine pas.</li>
+      <li>Il suppose le sol plan et la caméra sans roulis. Un terrain en pente
+        déplace les distances.</li>
+      <li>Il ne remplace pas une visite&nbsp;: seul un relevé sur place permet
+        d'arrêter les emplacements et le cheminement des câbles.</li>
+    </ul>
+    <p class="actions">
+      <a class="btn btn-plein" id="lien-outil-bas" href="#">Lancer l'étude</a>
+    </p>
+  </section>
+
+</main>
+
+<footer class="pied dedans">
+  <p id="pied-liens"></p>
+</footer>
+
+<script>window.__catalogue={
+  "_lisez_moi": [
+    "Catalogue de la page de présentation (presentation.html), pour la",
+    "boutique ngsecurity38.com.",
+    "",
+    "C'est le SEUL fichier à modifier : la page le relit à chaque ouverture",
+    "quand elle est servie depuis un site web. Ni reconstruction, ni renvoi",
+    "de la page.",
+    "",
+    "Champs par produit :",
+    "  reference  ce que lira le client — obligatoire",
+    "  url        adresse de la fiche produit — obligatoire, sinon le produit",
+    "             n'est pas affiché : une vignette sur laquelle on ne peut pas",
+    "             cliquer ne sert personne",
+    "  image      adresse d'une photo du produit (facultatif)",
+    "  prixTtc    prix de vente TTC (facultatif)",
+    "  focale     en mm, pour un objectif fixe",
+    "  focaleMin  et focaleMax, en mm, pour un objectif réglable",
+    "  resH       définition horizontale en pixels (3840 pour de la 4K,",
+    "             2560 pour du 4 MP, 1920 pour du 1080p)",
+    "  capteur    facultatif, au format 1/2.8\" — à défaut il est supposé,",
+    "             et la page le signale au visiteur",
+    "",
+    "Sans focale ni resH, le produit est affiché SANS portée annoncée : la",
+    "page ne calcule rien qu'elle ne puisse justifier."
+  ],
+  "outil": "https://ngsecurity38.fr/outils/devis/",
+  "boutique": "https://ngsecurity38.com/",
+  "produits": []
+}
+;</script>
+<script>(function () {
+'use strict';
+
+/* ===== dom.js ===== */
+/** Raccourcis de sélection, partagés par les modules d'interface. */
+
+const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => [...document.querySelectorAll(sel)];
+
+/** Charge un script à la demande : les gros moteurs ne sont montés qu'au besoin. */
+function chargerScript(src) {
+  return new Promise((resoudre, rejeter) => {
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = resoudre;
+    s.onerror = () => rejeter(new Error(`Fichier introuvable : ${src}`));
+    document.head.append(s);
+  });
+}
+
+/* ===== format.js ===== */
+/** Mise en forme des nombres à la française, partagée par les modules. */
+
+const arrondir = (v, n = 1) => {
+  const f = 10 ** n;
+  return Math.round(v * f) / f;
+};
+
+/** « 6,4 » plutôt que « 6.4 » : ces valeurs sont lues sur le terrain. */
+const fr = (v, n = 1) => String(arrondir(v, n)).replace('.', ',');
+
+/** Idem, avec le signe explicite : un écart se lit « +2,4 » ou « −1,1 ». */
+const signe = (v, n = 1) => (v > 0 ? `+${fr(v, n)}` : fr(v, n));
+
+/**
+ * Grands nombres avec séparateur de milliers : « 15 552 » se lit d'un coup
+ * d'œil, « 15552 » se compte du doigt. L'espace est insécable, pour qu'un
+ * retour à la ligne ne coupe pas le nombre en deux.
+ */
+const frGroupe = (v, n = 0) => fr(v, n).replace(
+  /\d(?=(\d{3})+(,|$))/g, '$&\u202f',
+);
+
+/**
+ * Élide « de » devant une voyelle : « de reconnaître », mais « d'identifier ».
+ *
+ * Les textes de la page se composent à partir de listes de verbes, et l'un
+ * d'eux commence par une voyelle une fois sur deux. Écrire « de identifier »
+ * dans un document remis à un client se remarque immédiatement.
+ *
+ * Le h aspiré (« de hauteur » ne s'élide pas, « d'habitude » si) n'est pas
+ * traité : aucun mot de nos listes ne commence par un h.
+ */
+const elider = (mot) => (
+  /^[aeiouyàâäéèêëîïôöùûü]/i.test(mot) ? `d'${mot}` : `de ${mot}`
+);
+
+/* ===== optique.js ===== */
+/**
+ * Calculs optiques pour l'analyse de vue d'angle.
+ *
+ * Module pur (aucune dépendance au DOM) : utilisable dans le navigateur
+ * et dans les tests Node.
+ */
+
+/** Formats de capteurs courants en vidéosurveillance IP (zone utile 16/9, en mm). */
+const CAPTEURS = {
+  '1/4"': { largeur: 3.6, hauteur: 2.03 },
+  '1/3.6"': { largeur: 4.0, hauteur: 2.25 },
+  '1/3"': { largeur: 4.8, hauteur: 2.7 },
+  '1/2.9"': { largeur: 5.02, hauteur: 2.82 },
+  '1/2.8"': { largeur: 5.18, hauteur: 2.92 },
+  '1/2.7"': { largeur: 5.37, hauteur: 3.02 },
+  '1/2.5"': { largeur: 5.76, hauteur: 3.24 },
+  '1/2.3"': { largeur: 6.17, hauteur: 3.47 },
+  '1/2"': { largeur: 6.4, hauteur: 3.6 },
+  '1/1.8"': { largeur: 7.18, hauteur: 4.04 },
+  '1/1.7"': { largeur: 7.6, hauteur: 4.28 },
+  '1/1.2"': { largeur: 10.67, hauteur: 6.0 },
+  '2/3"': { largeur: 8.8, hauteur: 4.95 },
+  '1"': { largeur: 12.8, hauteur: 7.2 },
+
+  /*
+   * Capteurs thermiques. Un microbolomètre ne se désigne pas en pouces mais par
+   * sa matrice et son pas de pixel : 256 × 192 au pas de 12 µm mesure
+   * 3,07 × 2,30 mm. Choisir un format visible pour une caméra thermique
+   * fausserait complètement l'angle de champ, et donc toute la mesure d'écart.
+   */
+  'Thermique 256×192 — 12 µm': { largeur: 3.072, hauteur: 2.304 },
+  'Thermique 256×192 — 17 µm': { largeur: 4.352, hauteur: 3.264 },
+  'Thermique 384×288 — 12 µm': { largeur: 4.608, hauteur: 3.456 },
+  'Thermique 384×288 — 17 µm': { largeur: 6.528, hauteur: 4.896 },
+  'Thermique 640×512 — 12 µm': { largeur: 7.68, hauteur: 6.144 },
+  'Thermique 640×480 — 17 µm': { largeur: 10.88, hauteur: 8.16 },
+};
+
+/** Seuils DORI de la norme EN 62676-4, en pixels par mètre. */
+const SEUILS_DORI = {
+  detection: { label: 'Détection', ppm: 25 },
+  observation: { label: 'Observation', ppm: 62 },
+  reconnaissance: { label: 'Reconnaissance', ppm: 125 },
+  identification: { label: 'Identification', ppm: 250 },
+};
+
+const degres = (radians) => (radians * 180) / Math.PI;
+const radians = (degres_) => (degres_ * Math.PI) / 180;
+
+/**
+ * Angle de champ d'un objectif rectilinéaire.
+ * @param {number} dimensionCapteur dimension du capteur en mm (largeur ou hauteur)
+ * @param {number} focale focale en mm
+ * @returns {number} angle de champ en degrés
+ */
+function angleDeChamp(dimensionCapteur, focale) {
+  if (!(focale > 0) || !(dimensionCapteur > 0)) return 0;
+  return degres(2 * Math.atan(dimensionCapteur / (2 * focale)));
+}
+
+/**
+ * Angles de champ horizontal, vertical et diagonal.
+ * @param {{largeur:number, hauteur:number}} capteur dimensions en mm
+ * @param {number} focale en mm
+ */
+function anglesDeChamp(capteur, focale) {
+  const diagonale = Math.hypot(capteur.largeur, capteur.hauteur);
+  return {
+    horizontal: angleDeChamp(capteur.largeur, focale),
+    vertical: angleDeChamp(capteur.hauteur, focale),
+    diagonal: angleDeChamp(diagonale, focale),
+  };
+}
+
+/**
+ * Largeur (ou hauteur) de scène couverte à une distance donnée.
+ * @param {number} angleDeg angle de champ en degrés
+ * @param {number} distance en mètres
+ * @returns {number} largeur couverte en mètres
+ */
+function couverture(angleDeg, distance) {
+  if (!(distance > 0)) return 0;
+  return 2 * distance * Math.tan(radians(angleDeg) / 2);
+}
+
+/**
+ * Focale nécessaire pour couvrir une largeur donnée à une distance donnée.
+ * @param {number} largeurCapteur en mm
+ * @param {number} largeurCible en mètres
+ * @param {number} distance en mètres
+ * @returns {number} focale en mm
+ */
+function focaleRequise(largeurCapteur, largeurCible, distance) {
+  if (!(largeurCible > 0) || !(distance > 0)) return 0;
+  return (largeurCapteur * distance) / largeurCible;
+}
+
+/**
+ * Densité de pixels sur la scène, en pixels par mètre.
+ * @param {number} resolutionH résolution horizontale en pixels
+ * @param {number} angleHDeg angle de champ horizontal en degrés
+ * @param {number} distance en mètres
+ */
+function pixelsParMetre(resolutionH, angleHDeg, distance) {
+  const largeur = couverture(angleHDeg, distance);
+  if (!(largeur > 0)) return 0;
+  return resolutionH / largeur;
+}
+
+/**
+ * Distance maximale à laquelle un critère DORI est encore tenu.
+ * @param {number} resolutionH résolution horizontale en pixels
+ * @param {number} angleHDeg angle de champ horizontal en degrés
+ * @param {number} ppmRequis pixels par mètre exigés
+ * @returns {number} distance en mètres
+ */
+function distanceDori(resolutionH, angleHDeg, ppmRequis) {
+  if (!(ppmRequis > 0) || !(angleHDeg > 0)) return 0;
+  const largeurMax = resolutionH / ppmRequis;
+  return largeurMax / (2 * Math.tan(radians(angleHDeg) / 2));
+}
+
+/** Tableau complet des distances DORI pour une configuration donnée. */
+function tableauDori(resolutionH, angleHDeg) {
+  return Object.entries(SEUILS_DORI).map(([cle, { label, ppm }]) => ({
+    cle,
+    label,
+    ppm,
+    distance: distanceDori(resolutionH, angleHDeg, ppm),
+  }));
+}
+
+/** Niveau DORI atteint pour une densité de pixels donnée. */
+function niveauDori(ppm) {
+  if (ppm >= SEUILS_DORI.identification.ppm) return 'identification';
+  if (ppm >= SEUILS_DORI.reconnaissance.ppm) return 'reconnaissance';
+  if (ppm >= SEUILS_DORI.observation.ppm) return 'observation';
+  if (ppm >= SEUILS_DORI.detection.ppm) return 'detection';
+  return 'insuffisant';
+}
+
+/**
+ * Convertit un décalage exprimé en fraction de la largeur d'image
+ * en écart angulaire, en tenant compte de la projection rectilinéaire.
+ *
+ * Un décalage de 50 % de la largeur correspond exactement à un demi-angle
+ * de champ ; la relation n'est pas linéaire entre les deux.
+ *
+ * @param {number} fraction décalage / largeur d'image (0.1 = 10 % de l'image)
+ * @param {number} angleDeg angle de champ sur cet axe, en degrés
+ * @returns {number} écart angulaire en degrés
+ */
+function fractionVersAngle(fraction, angleDeg) {
+  if (!(angleDeg > 0)) return 0;
+  return degres(Math.atan(2 * fraction * Math.tan(radians(angleDeg) / 2)));
+}
+
+/**
+ * Hauteur de montage et angle de site (inclinaison) à partir de la
+ * distance au point visé.
+ * @param {number} hauteur hauteur de la caméra en mètres
+ * @param {number} distanceSol distance horizontale au point visé, en mètres
+ * @param {number} hauteurCible hauteur du point visé (0 = au sol)
+ * @returns {number} angle d'inclinaison sous l'horizontale, en degrés
+ */
+function angleInclinaison(hauteur, distanceSol, hauteurCible = 0) {
+  if (!(distanceSol > 0)) return 90;
+  return degres(Math.atan((hauteur - hauteurCible) / distanceSol));
+}
+
+/** Zone morte au pied du mât : distance à partir de laquelle le sol entre dans le champ. */
+function zoneMorte(hauteur, inclinaisonDeg, angleVDeg) {
+  const bordBas = inclinaisonDeg + angleVDeg / 2;
+  if (bordBas >= 90) return 0;
+  if (bordBas <= 0) return Infinity;
+  return hauteur / Math.tan(radians(bordBas));
+}
+
+/* ===== prix.js ===== */
+/**
+ * Chiffrage : prix du matériel, main-d'œuvre, devis.
+ *
+ * Un prix n'a de valeur que daté et sourcé. Trois provenances cohabitent, et
+ * elles ne se valent pas :
+ *
+ * - **vendu** : un prix que l'agence a réellement pratiqué, tiré de ses ventes ;
+ * - **relevé** : un prix vu chez un revendeur, un jour donné, qui aura bougé ;
+ * - **saisi** : un prix entré à la main, sous la responsabilité de l'agence.
+ *
+ * Le devis dit toujours de laquelle il tient chaque ligne. Un prix relevé il y a
+ * six mois et présenté comme ferme engage l'agence sur une marge qui n'existe
+ * plus.
+ *
+ * Module pur (aucune dépendance au DOM), testé sous Node.
+ */
+
+
+/** Taux normal de TVA en France. */
+const TVA_DEFAUT = 0.2;
+
+/** Marge commerciale appliquée par défaut au matériel. */
+const MARGE_COMMERCIALE = 0.25;
+
+/** Provenances d'un prix, de la plus sûre à la moins. */
+const PROVENANCES = {
+  vendu: { label: 'Prix pratiqué', marque: '✓' },
+  saisi: { label: 'Saisi par l\'agence', marque: '✓' },
+  releve: { label: 'Relevé chez un revendeur', marque: '~' },
+  aucune: { label: 'Prix à renseigner', marque: '⋯' },
+};
+
+/**
+ * Un nombre, jamais NaN, lu à la française.
+ *
+ * Les montants d'un export comptable arrivent écrits pour être lus :
+ * « 2 056,00 € », avec un séparateur de milliers qui peut être une espace
+ * ordinaire, insécable ou fine. `parseFloat` s'arrête au premier espace et lit
+ * 2 au lieu de 2 056 — une erreur d'un facteur mille, silencieuse.
+ */
+const montant = (v, defaut = 0) => {
+  const t = String(v ?? '')
+    .replace(/[\s\u00a0\u202f]/g, '')
+    .replace(/[€$£]/g, '')
+    .replace(',', '.');
+  const n = parseFloat(t);
+  return Number.isFinite(n) ? n : defaut;
+};
+
+/** Prix hors taxes à partir d'un prix toutes taxes comprises. */
+const htDepuisTtc = (ttc, tva = TVA_DEFAUT) => (tva > -1 ? ttc / (1 + tva) : ttc);
+
+/** Et l'inverse. */
+const ttcDepuisHt = (ht, tva = TVA_DEFAUT) => ht * (1 + tva);
+
+/**
+ * Prix unitaire tiré d'un relevé de ventes.
+ *
+ * Les rapports de place de marché donnent un chiffre d'affaires et un nombre
+ * d'unités : leur quotient est le prix réellement pratiqué. Sur une place de
+ * marché grand public il est **toutes taxes comprises**, ce que l'appelant doit
+ * savoir pour le ramener hors taxes avant de l'inscrire à un devis.
+ *
+ * @returns {number|null} prix unitaire, `null` si le quotient n'a pas de sens
+ */
+function prixDepuisVentes(ventes, unites) {
+  const ca = montant(ventes);
+  const n = montant(unites);
+  if (!(ca > 0) || !(n > 0)) return null;
+  return ca / n;
+}
+
+/**
+ * Prix d'un article, ramené hors taxes.
+ *
+ * `champ` vaut `prixAchat` ou `prixVente` : ce que l'agence paie, ou ce
+ * qu'elle facture. **Les confondre fausse la marge dans un sens ou dans
+ * l'autre** — un prix de vente relevé dans ses propres ventes, repris comme
+ * prix d'achat, se verrait appliquer une marge qu'il contient déjà.
+ *
+ * @param {object} article
+ * @param {string} [champ='prixAchat']
+ * @param {number} [tvaDefaut]
+ * @returns {number} prix hors taxes, 0 si ce prix-là n'est pas connu
+ */
+function prixHt(article, champ = 'prixAchat', tvaDefaut = TVA_DEFAUT) {
+  const p = montant(article?.[champ]);
+  if (!(p > 0)) return 0;
+  const ttc = champ === 'prixVente' ? article.venteTtc : article.achatTtc;
+  return ttc ? htDepuisTtc(p, montant(article.tva, tvaDefaut)) : p;
+}
+
+/**
+ * Provenance du prix retenu pour un article.
+ *
+ * Le prix de vente l'emporte quand il existe : c'est celui que l'agence
+ * pratique, et il n'a pas à être recalculé depuis un coût d'achat.
+ */
+function provenancePrix(article) {
+  const vente = montant(article?.prixVente);
+  const achat = montant(article?.prixAchat);
+  if (!(vente > 0) && !(achat > 0)) return 'aucune';
+  const source = vente > 0 ? article.sourceVente : article.sourceAchat;
+  const p = source?.type;
+  return PROVENANCES[p] ? p : 'saisi';
+}
+
+/**
+ * Une ligne de devis.
+ *
+ * @param {object} article référence du catalogue, prix compris
+ * @param {number} quantite
+ * @param {object} [options]
+ * @param {number} [options.marge] marge appliquée au prix d'achat
+ * @param {number} [options.tva]
+ */
+function ligne(article, quantite, options = {}) {
+  const marge = options.marge ?? MARGE_COMMERCIALE;
+  const achat = prixHt(article, 'prixAchat', options.tva);
+  const venteSaisie = prixHt(article, 'prixVente', options.tva);
+  // Un prix de vente connu s'impose ; sinon la marge le construit sur l'achat.
+  const vente = venteSaisie > 0 ? venteSaisie : achat * (1 + marge);
+  const q = Math.max(0, montant(quantite));
+  return {
+    article,
+    quantite: q,
+    achatHt: achat,
+    venteHt: vente,
+    totalHt: vente * q,
+    // Une marge n'a de sens que si l'on connaît le coût d'achat.
+    margeReelle: achat > 0 ? (vente - achat) / achat : null,
+    provenance: provenancePrix(article),
+  };
+}
+
+/**
+ * Devis complet.
+ *
+ * @param {object[]} lignes issues de `ligne()`
+ * @param {object} [reglages]
+ * @param {number} [reglages.heures] main-d'œuvre, en heures
+ * @param {number} [reglages.tauxHoraire] en euros hors taxes
+ * @param {number} [reglages.remise] part retirée du total matériel
+ * @param {number} [reglages.tva]
+ */
+function devis(lignes, reglages = {}) {
+  const tva = reglages.tva ?? TVA_DEFAUT;
+  const remise = Math.min(1, Math.max(0, montant(reglages.remise)));
+
+  const materielBrut = (lignes || []).reduce((s, l) => s + l.totalHt, 0);
+  const montantRemise = materielBrut * remise;
+  const materielHt = materielBrut - montantRemise;
+  const mainOeuvreHt = Math.max(0, montant(reglages.heures))
+    * Math.max(0, montant(reglages.tauxHoraire));
+
+  const totalHt = materielHt + mainOeuvreHt;
+  const montantTva = totalHt * tva;
+
+  // Ce qui manque pour que le devis soit complet : une ligne sans prix n'est
+  // pas une ligne à zéro euro, c'est une ligne qu'on a oublié de chiffrer.
+  const sansPrix = (lignes || []).filter((l) => l.provenance === 'aucune');
+  const releves = (lignes || []).filter((l) => l.provenance === 'releve');
+
+  return {
+    lignes: lignes || [],
+    materielBrut,
+    remise,
+    montantRemise,
+    materielHt,
+    mainOeuvreHt,
+    totalHt,
+    tva,
+    montantTva,
+    totalTtc: totalHt + montantTva,
+    sansPrix,
+    releves,
+    complet: sansPrix.length === 0,
+  };
+}
+
+/**
+ * Réserves à joindre au devis — vides quand tout est sourcé et chiffré.
+ */
+function reservesDevis(d) {
+  const reserves = [];
+  if (d.sansPrix.length) {
+    reserves.push(`${d.sansPrix.length} ligne${d.sansPrix.length > 1 ? 's' : ''} sans prix : `
+      + `${d.sansPrix.map((l) => l.article.reference || l.article.nom || '?').join(', ')}. `
+      + 'Le total ci-dessous est donc incomplet.');
+  }
+  if (d.releves.length) {
+    const dates = [...new Set(d.releves
+      .map((l) => (l.article.sourceVente || l.article.sourceAchat)?.date)
+      .filter(Boolean))];
+    reserves.push(`${d.releves.length} prix relevé${d.releves.length > 1 ? 's' : ''} chez un `
+      + `revendeur${dates.length ? ` (${dates.join(', ')})` : ''} : à confirmer auprès du `
+      + 'distributeur avant engagement — un tarif bouge.');
+  }
+  return reserves;
+}
+
+/**
+ * Un montant s'écrit « 1 590,50 € ».
+ *
+ * Deux décimales toujours, la seconde fût-elle un zéro, et un séparateur de
+ * milliers insécable. « 1590,5 € » sur un devis se lit comme une saisie
+ * inachevée, et « 12345,67 € » se compte du doigt.
+ */
+const euros = (v) => {
+  const n = arrondir(Number(v) || 0, 2);
+  const [entier, decimales] = Math.abs(n).toFixed(2).split('.');
+  const groupe = entier.replace(/\d(?=(\d{3})+$)/g, '$&\u202f');
+  return `${n < 0 ? '-' : ''}${groupe},${decimales} €`;
+};
+
+/* ===== boutique.js ===== */
+/**
+ * Catalogue de la boutique, traduit en langage d'acheteur.
+ *
+ * Un particulier ne sait pas ce qu'est une focale de 4 mm ni un capteur
+ * 1/2.8". Il sait en revanche très bien ce qu'il veut : « voir qui sonne à ma
+ * porte », « surveiller le fond du jardin ». Ce module fait la traduction,
+ * avec les mêmes fonctions optiques que l'outil d'étude — pas une règle de
+ * trois écrite pour la vitrine.
+ *
+ * Règle intangible : **rien n'est inventé**. Une caméra sans optique
+ * renseignée est présentée sans chiffres plutôt qu'avec des chiffres
+ * plausibles.
+ *
+ * Module pur (aucune dépendance au DOM), testé sous Node.
+ */
+
+
+/**
+ * Capteur retenu faute de mieux.
+ *
+ * C'est le format courant des caméras IP 4K de vidéosurveillance. Il est
+ * *supposé* : `estSuppose` le dit, et la page l'écrit au visiteur.
+ */
+const CAPTEUR_DEFAUT = '1/2.8"';
+
+/** Distance de référence pour annoncer une largeur de champ, en mètres. */
+const DISTANCE_VITRINE = 10;
+
+/** Ce que chaque niveau permet, dit à un particulier. */
+const USAGES = {
+  detection: 'voir qu\'il se passe quelque chose',
+  observation: 'suivre ce qui se passe',
+  reconnaissance: 'reconnaître quelqu\'un que vous connaissez',
+  identification: 'identifier une personne inconnue',
+};
+
+/** Un nombre utilisable, ou 0. */
+const nombre = (v) => (Number.isFinite(Number(v)) && Number(v) > 0 ? Number(v) : 0);
+
+/**
+ * Les deux focales d'un produit : bornes d'un zoom, ou deux fois la même pour
+ * un objectif fixe.
+ * @returns {{min:number, max:number}|null} null si aucune focale n'est connue
+ */
+function focales(produit) {
+  const min = nombre(produit?.focaleMin) || nombre(produit?.focale);
+  const max = nombre(produit?.focaleMax) || nombre(produit?.focale) || min;
+  if (!min) return null;
+  return { min, max: Math.max(min, max) };
+}
+
+/**
+ * Ce qu'un produit permet de voir, calculé sur son optique.
+ *
+ * @returns {object|null} null tant que focale et définition ne sont pas toutes
+ *   deux connues — auquel cas la page n'annonce aucun chiffre.
+ */
+function capacites(produit) {
+  const f = focales(produit);
+  const resH = nombre(produit?.resH);
+  if (!f || !resH) return null;
+
+  const nomCapteur = produit.capteur && CAPTEURS[produit.capteur]
+    ? produit.capteur : CAPTEUR_DEFAUT;
+  const capteur = CAPTEURS[nomCapteur];
+
+  // Au grand angle pour la largeur embrassée, au téléobjectif pour la portée :
+  // c'est ainsi que le produit sera réglé selon ce qu'on lui demande.
+  const angleLarge = anglesDeChamp(capteur, f.min).horizontal;
+  const angleSerre = anglesDeChamp(capteur, f.max).horizontal;
+
+  return {
+    reglable: f.max > f.min,
+    focaleMin: f.min,
+    focaleMax: f.max,
+    capteur: nomCapteur,
+    estSuppose: !produit.capteur || !CAPTEURS[produit.capteur],
+    angleLarge,
+    angleSerre,
+    largeurA: (d = DISTANCE_VITRINE) => couverture(angleLarge, d),
+    portees: Object.fromEntries(Object.keys(SEUILS_DORI).map((cle) => [
+      cle, distanceDori(resH, angleSerre, SEUILS_DORI[cle].ppm),
+    ])),
+  };
+}
+
+/**
+ * Phrase de vitrine : ce que cette caméra permet de faire, et jusqu'où.
+ *
+ * On annonce la reconnaissance plutôt que l'identification : c'est le niveau
+ * qu'un client attend d'une caméra d'extérieur, et le promettre à la distance
+ * d'identification reviendrait à vendre deux fois moins de portée qu'annoncé.
+ */
+function argumentaire(produit) {
+  const c = capacites(produit);
+  if (!c) return null;
+  const largeur = c.largeurA(DISTANCE_VITRINE);
+  const optique = c.reglable
+    ? `objectif réglable de ${arr(c.focaleMin)} à ${arr(c.focaleMax)} mm`
+    : `objectif ${arr(c.focaleMin)} mm`;
+  return {
+    optique,
+    largeur,
+    // Deux repères concrets : ce qu'on embrasse de large, et jusqu'où on
+    // reconnaît une tête connue.
+    champ: `${optique} — ${arr(largeur)} m de large à ${DISTANCE_VITRINE} m`,
+    reconnaissance: c.portees.reconnaissance,
+    identification: c.portees.identification,
+  };
+}
+
+/** Arrondi à une décimale, sans zéro inutile : 4 et non 4,0. */
+const arr = (v) => String(Math.round(v * 10) / 10).replace('.', ',');
+
+/**
+ * Produits retenus pour la page, dans l'ordre du fichier.
+ *
+ * Un produit sans référence n'est pas affichable : le client n'aurait rien à
+ * demander. Un produit sans adresse ne l'est pas davantage sur une boutique —
+ * une vignette sur laquelle on ne peut pas cliquer ne sert personne.
+ */
+const produitsAffichables = (catalogue) => (catalogue?.produits || [])
+  .filter((p) => p && typeof p.reference === 'string' && p.reference.trim() && p.url);
+
+/**
+ * Réserves à afficher sous le catalogue.
+ *
+ * Un fichier vide n'est pas une erreur : c'est un catalogue pas encore
+ * rempli. Le dire vaut mieux que montrer une grille vide sans explication.
+ */
+function reservesCatalogue(catalogue) {
+  const reserves = [];
+  const bruts = catalogue?.produits || [];
+  const affichables = produitsAffichables(catalogue);
+
+  if (!bruts.length) {
+    reserves.push('Aucun produit n\'est encore inscrit à cette page.');
+  } else if (affichables.length < bruts.length) {
+    const n = bruts.length - affichables.length;
+    reserves.push(`${n} produit${n > 1 ? 's' : ''} sans référence ou sans adresse de `
+      + 'fiche : non affiché, faute de quoi le visiteur ne saurait pas quoi demander.');
+  }
+
+  const sansOptique = affichables.filter((p) => !capacites(p));
+  if (sansOptique.length) {
+    reserves.push(`${sansOptique.length} produit${sansOptique.length > 1 ? 's' : ''} sans `
+      + 'focale ni définition : présenté sans portée annoncée. '
+      + 'Renseignez focale et resH pour que la page les calcule.');
+  }
+  return reserves;
+}
+
+/* ===== presentation.js ===== */
+/**
+ * Page de présentation, pour la boutique (ngsecurity38.com).
+ *
+ * Elle ne calcule pas d'installation : c'est le rôle de l'outil d'étude, sur
+ * l'espace professionnel. Elle explique ce que l'outil fait, montre ce qu'une
+ * caméra permet vraiment de voir, et renvoie vers les deux — l'étude et les
+ * produits.
+ *
+ * Les chiffres de l'échelle et des fiches produits sortent des mêmes fonctions
+ * optiques que l'outil d'étude. Une vitrine qui annonce d'autres portées que
+ * l'étude est une vitrine qui ment à moitié.
+ */
+
+
+
+
+// Le même formatage de montant que le devis : « 289,90 € », jamais « 289,9 € ».
+
+
+/**
+ * Adresses à régler avant mise en ligne.
+ *
+ * Elles sont ici, en clair et en tête de fichier, pour être trouvées sans
+ * fouiller. `catalogue.json`, posé à côté de la page, peut les redéfinir : la
+ * page se met alors à jour sans reconstruction.
+ */
+const OUTIL = 'https://ngsecurity38.fr/outils/devis/';
+const BOUTIQUE = 'https://ngsecurity38.com/';
+
+/** Catalogue de secours, embarqué à la fabrication. */
+const CATALOGUE_EMBARQUE = globalThis.__catalogue || null;
+
+/**
+ * Caméra servant d'exemple à l'échelle des paliers.
+ *
+ * Elle n'est pas présentée comme un produit : elle sert à montrer l'ordre de
+ * grandeur, et la légende dit laquelle c'est. Sans cela, les distances
+ * affichées ne voudraient rien dire.
+ */
+const EXEMPLE = { reference: 'exemple', url: '#', resH: 3840, focale: 4 };
+
+const ech = (t) => String(t ?? '').replace(/[&<>"']/g, (c) => ({
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+}[c]));
+
+/** Charge le catalogue posé à côté de la page, sinon celui embarqué. */
+async function chargerCatalogue() {
+  // Depuis le disque, `fetch` est refusé et le refus s'inscrit dans la console
+  // quoi qu'on l'attrape : sur une page publique, autant aller droit au but.
+  if (window.location.protocol !== 'file:') {
+    try {
+      const r = await fetch('catalogue.json', { cache: 'no-store' });
+      if (r.ok) return await r.json();
+    } catch {
+      // Fichier absent : le catalogue embarqué fera l'affaire.
+    }
+  }
+  return CATALOGUE_EMBARQUE;
+}
+
+/* --------------------------------------------------------- échelle DORI */
+
+/**
+ * L'échelle des quatre paliers, dessinée à l'échelle des distances.
+ *
+ * Une barre par palier, longue comme la distance à laquelle il tient encore.
+ * Le rapport entre « repérer » et « identifier » — un facteur dix — se voit
+ * alors d'un coup d'œil, là où un tableau de chiffres se lit.
+ */
+function dessinerEchelle() {
+  const c = capacites(EXEMPLE);
+  const ordre = ['detection', 'observation', 'reconnaissance', 'identification'];
+  const max = c.portees.detection;
+
+  const L = 720;
+  const hauteurLigne = 46;
+  // De quoi loger « reconnaître quelqu'un que vous connaissez » sans que la
+  // légende ne passe sous sa propre barre.
+  const marge = 230;
+  const H = ordre.length * hauteurLigne + 26;
+
+  const barres = ordre.map((cle, i) => {
+    const d = c.portees[cle];
+    const y = i * hauteurLigne + 16;
+    const l = Math.max(2, ((L - marge - 64) * d) / max);
+    return `<g>
+      <text x="0" y="${y + 15}" font-size="13" font-weight="600" fill="#1a1d23"
+        >${ech(SEUILS_DORI[cle].label)}</text>
+      <text x="0" y="${y + 31}" font-size="11" fill="#5b6472"
+        >${ech(USAGES[cle])}</text>
+      <rect x="${marge}" y="${y + 4}" width="${l}" height="20" rx="4"
+        fill="${['#8a9099', '#5b6472', '#9d0c24', '#c8102e'][i]}"/>
+      <text x="${marge + l + 8}" y="${y + 19}" font-size="13" font-weight="600"
+        fill="#1a1d23">${ech(fr(d))} m</text>
+    </g>`;
+  }).join('');
+
+  $('#schema-dori').innerHTML = `<svg viewBox="0 0 ${L} ${H}" role="img"
+    aria-label="Distances auxquelles chaque palier est encore tenu">
+    ${barres}
+  </svg>`;
+
+  const a = argumentaire(EXEMPLE);
+  $('#legende-dori').textContent = 'Distances pour une caméra 4K à '
+    + `${a.optique}, l'exemple le plus courant — elle embrasse `
+    + `${fr(a.largeur)} m de large à ${DISTANCE_VITRINE} m. Une caméra plus `
+    + 'ouverte voit plus large mais moins loin ; une caméra plus serrée, '
+    + 'l\'inverse. C\'est tout le travail de l\'étude que de trancher.';
+}
+
+/* ------------------------------------------------------------ produits */
+
+/** Les vignettes produits, ou le mot qui explique leur absence. */
+function afficherProduits(catalogue) {
+  const boutique = catalogue?.boutique || BOUTIQUE;
+  const produits = produitsAffichables(catalogue);
+
+  $('#intro-produits').textContent = produits.length
+    ? 'Les portées ci-dessous sont calculées sur l\'optique de chaque modèle, '
+      + 'pas relevées sur une fiche commerciale.'
+    : 'La sélection est en cours de constitution.';
+
+  $('#produits').innerHTML = produits.map((p) => {
+    const a = argumentaire(p);
+    const c = capacites(p);
+    return `<a class="produit" href="${ech(p.url)}">
+      ${p.image ? `<img src="${ech(p.image)}" alt="" loading="lazy">` : ''}
+      <span class="nom">${ech(p.reference)}</span>
+      ${a ? `<span class="optique">${ech(a.champ)}</span>
+        <span class="portee">Reconnaît une personne jusqu'à
+          <b>${ech(fr(a.reconnaissance))} m</b>, identifie un inconnu jusqu'à
+          <b>${ech(fr(a.identification))} m</b>${c.estSuppose ? '*' : ''}</span>`
+    : '<span class="optique">Caractéristiques optiques sur la fiche produit.</span>'}
+      ${p.prixTtc > 0 ? `<span class="prix">${ech(euros(p.prixTtc))} TTC</span>` : ''}
+    </a>`;
+  }).join('');
+
+  const reserves = reservesCatalogue(catalogue);
+  const suppose = produits.some((p) => capacites(p)?.estSuppose);
+  if (suppose) {
+    reserves.push('* Portées calculées en supposant un capteur 1/2.8", format '
+      + 'courant de ces caméras. La fiche produit fait foi.');
+  }
+  $('#reserves-produits').innerHTML = reserves
+    .map((r) => `<li>${ech(r)}</li>`).join('');
+
+  for (const id of ['#lien-boutique']) $(id).href = boutique;
+  $('#pied-liens').innerHTML = `<a href="${ech(boutique)}">Retour à la boutique</a>
+    · <a href="${ech(catalogue?.outil || OUTIL)}">Espace professionnels</a>`;
+}
+
+/* ------------------------------------------------------------ démarrage */
+
+async function demarrer() {
+  const catalogue = await chargerCatalogue();
+  const outil = catalogue?.outil || OUTIL;
+  $$('#lien-outil, #lien-outil-bas').forEach((a) => { a.href = outil; });
+
+  dessinerEchelle();
+  afficherProduits(catalogue);
+}
+
+demarrer();
+
+}());</script>
+</body>
+</html>

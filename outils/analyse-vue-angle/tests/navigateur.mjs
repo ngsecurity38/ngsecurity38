@@ -2058,6 +2058,108 @@ console.log('\nDevis client');
   await page.close();
 }
 
+/* ------------------------------------- 10. page de présentation, boutique */
+
+console.log('\nPage de présentation (boutique)');
+{
+  const page = await contexte.newPage();
+  const erreurs = surveiller(page);
+  await page.goto(`${BASE}/presentation.html`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(300);
+
+  await cas('l\'échelle des paliers est dessinée, et dit sur quoi elle porte', async () => {
+    const r = await page.evaluate(() => ({
+      barres: document.querySelectorAll('#schema-dori rect').length,
+      texte: document.querySelector('#schema-dori').textContent.replace(/\s+/g, ' '),
+      legende: document.querySelector('#legende-dori').textContent,
+    }));
+    affirmer(r.barres === 4, `quatre paliers : ${r.barres}`);
+    affirmer(/Détection/.test(r.texte) && /Identification/.test(r.texte), r.texte);
+    // Les distances doivent décroître : on repère bien plus loin qu'on identifie.
+    const m = [...r.texte.matchAll(/(\d+(?:,\d+)?) m/g)].map((x) => nombre(x[1]));
+    affirmer(m.length === 4, `quatre distances : ${JSON.stringify(m)}`);
+    affirmer(m[0] > m[1] && m[1] > m[2] && m[2] > m[3],
+      `décroissantes : ${JSON.stringify(m)}`);
+    affirmer(/4K/.test(r.legende) && /4 mm/.test(r.legende),
+      `la légende doit dire de quelle caméra il s'agit : ${r.legende}`);
+  });
+
+  await cas('un catalogue vide le dit, au lieu d\'une grille vide', async () => {
+    const r = await page.evaluate(() => ({
+      produits: document.querySelectorAll('.produit').length,
+      intro: document.querySelector('#intro-produits').textContent,
+      reserves: [...document.querySelectorAll('#reserves-produits li')]
+        .map((t) => t.textContent),
+    }));
+    affirmer(r.produits === 0, `aucun produit au catalogue livré : ${r.produits}`);
+    affirmer(/en cours de constitution/.test(r.intro), r.intro);
+    affirmer(r.reserves.some((x) => /Aucun produit/.test(x)),
+      `l'absence doit être dite : ${JSON.stringify(r.reserves)}`);
+  });
+
+  await cas('un catalogue rempli donne des vignettes cliquables et chiffrées', async () => {
+    // La page lit `catalogue.json` posé à côté d'elle : on sert le nôtre.
+    const catalogue = {
+      outil: 'https://exemple.test/outil/',
+      boutique: 'https://exemple.test/boutique/',
+      produits: [
+        { reference: 'Bullet 4K 4 mm', url: 'https://exemple.test/p/1', resH: 3840, focale: 4, prixTtc: 289.9 },
+        { reference: 'Dôme zoom 2.8-12', url: 'https://exemple.test/p/2', resH: 2560, focaleMin: 2.8, focaleMax: 12 },
+        { reference: 'Sans optique', url: 'https://exemple.test/p/3' },
+        { reference: 'Sans adresse' },
+      ],
+    };
+    await page.route('**/catalogue.json', (r) => r.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(catalogue),
+    }));
+    await page.reload({ waitUntil: 'networkidle' });
+    await page.waitForTimeout(300);
+
+    const r = await page.evaluate(() => ({
+      vignettes: [...document.querySelectorAll('.produit')].map((a) => ({
+        href: a.getAttribute('href'),
+        texte: a.textContent.replace(/\s+/g, ' ').trim(),
+      })),
+      reserves: [...document.querySelectorAll('#reserves-produits li')].map((t) => t.textContent),
+      outil: document.querySelector('#lien-outil').getAttribute('href'),
+      boutique: document.querySelector('#lien-boutique').getAttribute('href'),
+    }));
+
+    affirmer(r.vignettes.length === 3,
+      `trois produits affichables sur quatre : ${JSON.stringify(r.vignettes.map((v) => v.texte))}`);
+    affirmer(r.vignettes.every((v) => /^https:\/\/exemple\.test\/p\//.test(v.href)),
+      `chaque vignette mène à sa fiche : ${JSON.stringify(r.vignettes.map((v) => v.href))}`);
+
+    const bullet = r.vignettes.find((v) => /Bullet/.test(v.texte));
+    affirmer(/objectif 4 mm/.test(bullet.texte), bullet.texte);
+    affirmer(/m de large à 10 m/.test(bullet.texte), bullet.texte);
+    affirmer(/Reconnaît une personne jusqu'à/.test(bullet.texte), bullet.texte);
+    affirmer(/289,90 € TTC/.test(bullet.texte), `le prix TTC : ${bullet.texte}`);
+
+    const zoom = r.vignettes.find((v) => /Dôme/.test(v.texte));
+    affirmer(/réglable de 2,8 à 12 mm/.test(zoom.texte), zoom.texte);
+
+    // Aucune portée inventée pour un produit sans optique.
+    const nu = r.vignettes.find((v) => /Sans optique/.test(v.texte));
+    affirmer(!/jusqu'à/.test(nu.texte),
+      `aucune portée ne doit être annoncée sans optique : ${nu.texte}`);
+    affirmer(r.reserves.some((x) => /sans focale ni définition/.test(x)),
+      `la lacune doit être dite : ${JSON.stringify(r.reserves)}`);
+    affirmer(r.reserves.some((x) => /sans référence ou sans adresse/.test(x)),
+      `le produit écarté aussi : ${JSON.stringify(r.reserves)}`);
+    affirmer(r.reserves.some((x) => /capteur 1\/2.8/.test(x)),
+      `le capteur supposé doit être signalé : ${JSON.stringify(r.reserves)}`);
+
+    affirmer(r.outil === 'https://exemple.test/outil/', `lien vers l'étude : ${r.outil}`);
+    affirmer(r.boutique === 'https://exemple.test/boutique/', `lien boutique : ${r.boutique}`);
+  });
+
+  await cas('aucune erreur de console', () => affirmer(!erreurs.length, erreurs.join(' | ')));
+  await page.close();
+}
+
 await navigateur.close();
 serveur.close();
 

@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quelle caméra vous faut-il ? — NG Security 38</title>
+<meta name="description" content="Photographiez ce que vous voulez surveiller : vous saurez quelle caméra il vous faut, quel objectif, et jusqu'où elle verra. Outil gratuit NG Security 38.">
+<link rel="stylesheet" href="presentation.css">
+</head>
+<body>
+
+<header class="entete">
+  <div class="dedans">
+    <p class="surtitre">Outil gratuit</p>
+    <h1>Quelle caméra vous faut-il&nbsp;?</h1>
+    <p class="chapeau">Prenez une photo depuis l'endroit où vous voulez poser
+      votre caméra, entourez ce que vous voulez surveiller. Vous saurez le
+      modèle, l'objectif, et jusqu'où l'image restera exploitable.</p>
+    <p class="actions">
+      <a class="btn btn-plein" id="lien-outil" href="#">Lancer l'étude</a>
+      <a class="btn" id="lien-boutique" href="#">Voir nos caméras</a>
+    </p>
+    <p class="mention">Sans inscription. Vos photos restent sur votre appareil.</p>
+  </div>
+</header>
+
+<main class="dedans">
+
+  <section class="carte">
+    <h2>Comment ça marche</h2>
+    <ol class="etapes-num">
+      <li>
+        <h3>Photographiez</h3>
+        <p>Depuis l'emplacement prévu de la caméra, et dans la direction que
+          vous voulez surveiller. Un téléphone suffit.</p>
+      </li>
+      <li>
+        <h3>Donnez deux distances</h3>
+        <p>Cliquez deux points dont vous connaissez la distance — le bas d'un
+          portail, un angle de mur, une place de parking. C'est ce qui permet
+          de <b>mesurer</b> l'angle de votre photo au lieu de le supposer.</p>
+      </li>
+      <li>
+        <h3>Entourez la zone</h3>
+        <p>Au doigt ou à la souris. L'angle de vue nécessaire, la distance à
+          couvrir et la caméra qui y répond s'affichent aussitôt.</p>
+      </li>
+    </ol>
+  </section>
+
+  <section class="carte">
+    <h2>Ce que « voir » veut dire</h2>
+    <p class="aide">Une caméra ne « voit » pas&nbsp;: elle pose un certain
+      nombre de pixels sur chaque mètre de terrain. C'est ce nombre qui décide
+      de ce que vous pourrez en faire — et il diminue avec la distance. La
+      norme européenne EN&nbsp;62676-4 fixe quatre paliers.</p>
+
+    <figure class="echelle">
+      <div id="schema-dori"></div>
+      <figcaption id="legende-dori"></figcaption>
+    </figure>
+
+    <p class="aide">C'est pourquoi « caméra 4K » ne dit rien à soi seul&nbsp;:
+      la même caméra identifie un inconnu à quelques mètres et ne fait que
+      repérer une silhouette au fond du terrain. L'outil vous donne ces
+      distances pour <b>votre</b> terrain.</p>
+  </section>
+
+  <section class="carte">
+    <h2>Nos caméras</h2>
+    <p class="aide" id="intro-produits"></p>
+    <div id="produits" class="produits"></div>
+    <ul class="manques" id="reserves-produits"></ul>
+  </section>
+
+  <section class="carte">
+    <h2>Ce que cet outil ne fait pas</h2>
+    <ul class="sobre">
+      <li>Il ne reconnaît pas ce qu'il y a sur vos photos&nbsp;: c'est vous qui
+        posez les repères et entourez la zone. Il mesure, il ne devine pas.</li>
+      <li>Il suppose le sol plan et la caméra sans roulis. Un terrain en pente
+        déplace les distances.</li>
+      <li>Il ne remplace pas une visite&nbsp;: seul un relevé sur place permet
+        d'arrêter les emplacements et le cheminement des câbles.</li>
+    </ul>
+    <p class="actions">
+      <a class="btn btn-plein" id="lien-outil-bas" href="#">Lancer l'étude</a>
+    </p>
+  </section>
+
+</main>
+
+<footer class="pied dedans">
+  <p id="pied-liens"></p>
+</footer>
+
+<script type="module" src="js/presentation.js"></script>
+</body>
+</html>

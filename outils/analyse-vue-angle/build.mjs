@@ -181,6 +181,34 @@ client = injecter(client, '<head>', `<head>\n<!-- Devis client — NG Security 3
 ecrire('devis-client.html', client);
 
 /*
+ * Page de présentation, pour la boutique.
+ *
+ * Elle ne chiffre rien : elle explique, montre ce qu'une caméra permet de
+ * voir, et renvoie vers l'étude sur l'espace professionnel et vers les
+ * produits. Elle partage les mêmes fonctions optiques — une vitrine qui
+ * annoncerait d'autres portées que l'étude mentirait à moitié.
+ */
+const MODULES_PRESENTATION = ['dom.js', 'format.js', 'optique.js', 'prix.js',
+  'boutique.js', 'presentation.js'];
+verifierListe(MODULES_PRESENTATION);
+
+const paquetPresentation = `(function () {\n'use strict';\n\n`
+  + `${MODULES_PRESENTATION.map((nom) => `/* ===== ${nom} ===== */\n`
+    + deModuliser(lire('js', nom)).trim()).join('\n\n')}\n\n}());`;
+
+let presentation = lire('presentation.html');
+presentation = injecter(presentation, '<link rel="stylesheet" href="presentation.css">',
+  `<style>${inerte(lire('presentation.css'))}</style>`);
+presentation = injecter(presentation, '<script type="module" src="js/presentation.js"></script>',
+  `<script>window.__catalogue=${inerte(lire('catalogue.json'))};</script>\n`
+  + `<script>${inerte(paquetPresentation)}</script>`);
+presentation = injecter(presentation, '<head>', `<head>\n<!-- Présentation — NG Security 38.\n`
+  + `     Fichier unique produit par build.mjs le ${new Date().toISOString().slice(0, 10)}.\n`
+  + '     Pour changer les produits : éditer catalogue.json, à côté de la page. -->');
+
+ecrire('presentation.html', presentation);
+
+/*
  * Dossier prêt à déposer sur le site, tel quel.
  *
  * La mise en ligne se fait à la main, par FTP : moins il y a d'étapes, moins
@@ -190,8 +218,15 @@ ecrire('devis-client.html', client);
  * faute de quoi la page se rabattrait en silence sur le tarif embarqué à la
  * fabrication.
  */
-const dossierSite = join(ici, 'dist', 'site', 'devis');
-mkdirSync(dossierSite, { recursive: true });
-writeFileSync(join(dossierSite, 'index.html'), client);
-writeFileSync(join(dossierSite, 'tarif.json'), lire('tarif.json'));
-console.log(`${dossierSite} — dossier à déposer tel quel sur le site`);
+const aDeposer = (nom, page, donnees, fichierDonnees) => {
+  const dossier = join(ici, 'dist', 'site', nom);
+  mkdirSync(dossier, { recursive: true });
+  writeFileSync(join(dossier, 'index.html'), page);
+  writeFileSync(join(dossier, fichierDonnees), donnees);
+  console.log(`${dossier} — dossier à déposer tel quel sur le site`);
+};
+
+// L'étude chiffrée, pour l'espace professionnel (ngsecurity38.fr).
+aDeposer('devis', client, lire('tarif.json'), 'tarif.json');
+// La présentation, pour la boutique (ngsecurity38.com).
+aDeposer('etude', presentation, lire('catalogue.json'), 'catalogue.json');

@@ -1,0 +1,30 @@
+{
+  "_lisez_moi": [
+    "Catalogue de la page de présentation (presentation.html), pour la",
+    "boutique ngsecurity38.com.",
+    "",
+    "C'est le SEUL fichier à modifier : la page le relit à chaque ouverture",
+    "quand elle est servie depuis un site web. Ni reconstruction, ni renvoi",
+    "de la page.",
+    "",
+    "Champs par produit :",
+    "  reference  ce que lira le client — obligatoire",
+    "  url        adresse de la fiche produit — obligatoire, sinon le produit",
+    "             n'est pas affiché : une vignette sur laquelle on ne peut pas",
+    "             cliquer ne sert personne",
+    "  image      adresse d'une photo du produit (facultatif)",
+    "  prixTtc    prix de vente TTC (facultatif)",
+    "  focale     en mm, pour un objectif fixe",
+    "  focaleMin  et focaleMax, en mm, pour un objectif réglable",
+    "  resH       définition horizontale en pixels (3840 pour de la 4K,",
+    "             2560 pour du 4 MP, 1920 pour du 1080p)",
+    "  capteur    facultatif, au format 1/2.8\" — à défaut il est supposé,",
+    "             et la page le signale au visiteur",
+    "",
+    "Sans focale ni resH, le produit est affiché SANS portée annoncée : la",
+    "page ne calcule rien qu'elle ne puisse justifier."
+  ],
+  "outil": "https://ngsecurity38.fr/outils/devis/",
+  "boutique": "https://ngsecurity38.com/",
+  "produits": []
+}
