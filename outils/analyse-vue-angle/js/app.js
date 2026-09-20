@@ -16,6 +16,7 @@ import {
 import { diagnostiquer, LIBELLES_VERDICT, TOLERANCES_DEFAUT } from './diagnostic.js';
 import { estPdf, ouvrirSelecteurPdf } from './etude-pdf.js';
 import { $, $$ } from './dom.js';
+import { frGroupe } from './format.js';
 import { champsPourCamera, confronter } from './lecture-etude.js';
 import {
   TYPE_FICHE, VERSION_FICHE, migrer, nouvelleCamera, nomDeFichier,
@@ -34,7 +35,11 @@ import {
 import {
   LIMITE_LIEN, TYPES_MATERIEL, nouveauSynoptique, nouveauNoeud, nouveauLien,
   noeudPar, trajet, mesurerLien, recapitulatif, dispositionLogique, nomNoeud,
+  champsDeType, LIBELLES_MATERIEL,
 } from './reseau.js';
+import {
+  CODECS, MARGE_DEFAUT, debitEstime, bilan, classePour,
+} from './stockage.js';
 
 const nb = (el, defaut = 0) => {
   const v = parseFloat(el.value);
@@ -2636,6 +2641,10 @@ function majReseau() {
   const recap = recapReseau();
   majTableauReseau(recap);
   majSelectionReseau();
+  const b = majEnregistrement();
+  // Les alertes des deux familles — câblage et exploitation — sont rendues
+  // ensemble : sur le chantier elles se traitent d'un même mouvement.
+  majAlertesReseau(recap, b);
   majVisionneuse();
 }
 
@@ -2667,6 +2676,15 @@ function majTableauReseau(recap) {
       + (recap.plusLong ? mesure('Liaison la plus longue', fmt(recap.plusLong.cable), 'm') : '')
     : '';
 
+  majAlertesReseau(recap, null, liens);
+}
+
+/**
+ * Alertes du synoptique : ce qui empêchera l'installation de fonctionner, puis
+ * ce qui la rend fragile.
+ */
+function majAlertesReseau(recap, b, nbLiens) {
+  const liens = nbLiens ?? synoptiqueCourant().liens.length;
   const alertes = [];
   if (!recap.mesurable && synoptiqueCourant().noeuds.length) {
     alertes.push(`Plan non calibré : le matériel se pose et ${liens > 1 ? 'les' : 'la'} `
@@ -2687,8 +2705,17 @@ function majTableauReseau(recap) {
       + `${recap.sansEnregistreur.length > 1 ? 'nt' : ''} à aucun enregistreur : `
       + recap.sansEnregistreur.map((n, i) => ech(nomNoeud(n, i))).join(', ') + '.');
   }
-  $('#reseau-alertes').innerHTML = alertes.length
-    ? `<ul class="alertes">${alertes.map((a) => `<li>${a}</li>`).join('')}</ul>` : '';
+  // Anomalies d'exploitation : adresses, ports, budget PoE, canaux, capacité.
+  const bloquantes = [];
+  for (const a of b?.anomalies || []) {
+    (a.niveau === 'bloquant' ? bloquantes : alertes).push(ech(a.texte));
+  }
+
+  const ligne = (t, grave) => `<li${grave ? ' class="grave"' : ''}>${t}</li>`;
+  $('#reseau-alertes').innerHTML = bloquantes.length || alertes.length
+    ? `<ul class="alertes">${bloquantes.map((t) => ligne(t, true)).join('')}`
+      + `${alertes.map((t) => ligne(t, false)).join('')}</ul>`
+    : '';
 }
 
 /* ------------------------------------------------------------ rendu */
@@ -3058,17 +3085,107 @@ function majSelectionReseau() {
   const n = noeudPar(synoptiqueCourant(), etat.reseauChoisi);
   const boite = $('#reseau-selection');
   if (!n) { boite.innerHTML = ''; return; }
+  const champs = champsDeType(n.type)
+    .map((c) => `<label>${ech(LIBELLES_MATERIEL[c] || c)}
+      <input type="number" data-materiel="${c}" value="${n[c] || ''}" min="0" step="0.1">
+    </label>`).join('');
+
   boite.innerHTML = `<div class="grille2">
-      <label>Repère<input type="text" id="sel-nom" value="${ech(n.nom)}"></label>
+      <label>Repère<input type="text" data-materiel-texte="nom" value="${ech(n.nom)}"></label>
       <label>Hauteur de pose (m)
-        <input type="number" id="sel-hauteur" value="${n.hauteur}" min="0" max="40" step="0.1">
+        <input type="number" data-materiel="hauteur" value="${n.hauteur}" min="0" max="40" step="0.1">
       </label>
-    </div>`;
-  $('#sel-nom').addEventListener('change', () => { n.nom = $('#sel-nom').value; majReseau(); });
-  $('#sel-hauteur').addEventListener('change', () => {
-    n.hauteur = nb($('#sel-hauteur'), 0);
+      <label>Référence
+        <input type="text" data-materiel-texte="reference" value="${ech(n.reference)}">
+      </label>
+      <label>Adresse IP
+        <input type="text" data-materiel-texte="ip" value="${ech(n.ip)}" placeholder="192.168.1.4">
+      </label>
+      ${champs}
+    </div>
+    ${n.type === 'camera' && n.conso > 0 ? `<p class="note">${ech(etiquettePoe(n.conso))}</p>` : ''}`;
+
+  $$('#reseau-selection [data-materiel]').forEach((el) => el.addEventListener('change', () => {
+    n[el.dataset.materiel] = nb(el, 0);
     majReseau();
-  });
+  }));
+  $$('#reseau-selection [data-materiel-texte]').forEach((el) => el.addEventListener('change', () => {
+    n[el.dataset.materielTexte] = el.value.trim();
+    majReseau();
+  }));
+}
+
+/** Classe PoE exigée par une consommation, dite en clair. */
+function etiquettePoe(watts) {
+  const c = classePour(watts);
+  return c
+    ? `${watts} W : ${c.label} suffit (${c.appareil} W utiles au bout du câble).`
+    : `${watts} W : au-delà du PoE++ type 4. Alimentation séparée à prévoir.`;
+}
+
+/** Réglages d'enregistrement saisis au formulaire. */
+function reglagesEnregistrement() {
+  const nvr = (etat.synoptique?.noeuds || []).filter((n) => n.type === 'nvr');
+  return {
+    jours: parseInt($('#nvr-jours').value, 10) || 30,
+    heuresParJour: nb($('#nvr-heures'), 24),
+    marge: nb($('#nvr-marge'), 20) / 100,
+    // Ce que porte réellement l'enregistreur : c'est à cette capacité que la
+    // durée demandée sera confrontée.
+    capaciteInstallee: nvr.reduce((s, n) => s + (n.capacite > 0 ? n.capacite : 0), 0),
+  };
+}
+
+/** Bilan d'enregistrement et d'alimentation, affiché sous le synoptique. */
+function majEnregistrement() {
+  const b = bilan(synoptiqueCourant(), reglagesEnregistrement());
+  const aDesCameras = b.cameras > 0;
+
+  $('#nvr-mesures').innerHTML = aDesCameras
+    ? mesure('Débit total', fmt(b.debitTotal, 1), 'Mbit/s')
+      + mesure('Conservation', `${b.jours}`, `jour${b.jours > 1 ? 's' : ''}`)
+      + mesure('Capacité nécessaire', frGroupe(b.capaciteGo), 'Go', true)
+      + (b.disque ? mesure('Disques', b.disque.nombre > 1
+        ? `${b.disque.nombre} × ${fmt(b.disque.unitaire, 0)} To`
+        : `${fmt(b.disque.unitaire, 0)} To`, '', true) : '')
+      + b.poe.map((p) => mesure(
+        `PoE — ${nomNoeud(p.noeud)}`,
+        p.budget ? `${fmt(p.conso, 1)} / ${fmt(p.budget, 0)}` : fmt(p.conso, 1),
+        'W',
+      )).join('')
+    : '';
+
+  $('#nvr-conseil').textContent = aDesCameras && b.capaciteGo > 0
+    ? `Pour ${plur(b.cameras, 'caméra')} totalisant ${fmt(b.debitTotal, 1)} Mbit/s, `
+      + `enregistrée${b.cameras > 1 ? 's' : ''} ${b.heuresParJour} h/24 pendant ${b.jours} jours, `
+      + `la capacité recommandée est de ${fmt(b.capaciteGo / 1000, 1)} To `
+      + `(marge de ${Math.round(b.marge * 100)} % comprise).`
+    : '';
+
+  return b;
+}
+
+/** Estime les débits manquants depuis la définition de chaque caméra du dossier. */
+function estimerDebits() {
+  const r = synoptiqueCourant();
+  const codec = $('#nvr-codec').value;
+  const ips = nb($('#nvr-ips'), 25);
+  let faits = 0;
+  for (const n of r.noeuds.filter((x) => x.type === 'camera' && !(x.debit > 0))) {
+    // On cherche la caméra du dossier portant le même repère : c'est elle qui
+    // connaît sa définition. À défaut, le Full HD sert de base.
+    const cam = etat.cameras.find((c) => c.nom === n.nom);
+    const resH = nb2(cam?.optique?.resH, 1920);
+    const resV = nb2(cam?.optique?.resV, 1080);
+    const d = debitEstime({ resH, resV, ips, codec });
+    if (d > 0) { n.debit = Math.round(d * 10) / 10; faits += 1; }
+  }
+  majReseau();
+  $('#etat-analyse').textContent = faits
+    ? `${plur(faits, 'débit')} estimé${faits > 1 ? 's' : ''} — à remplacer par les valeurs `
+      + 'de la fiche technique dès que vous les avez.'
+    : 'Tous les débits sont déjà renseignés.';
+  $('#etat-analyse').classList.remove('erreur');
 }
 
 /** Pose une caméra par entrée de la fiche, alignées, prêtes à être déplacées. */
@@ -3197,6 +3314,14 @@ function brancherCommandesReseau() {
       majReseau();
     });
   });
+
+  $('#nvr-codec').innerHTML = CODECS
+    .map((c) => `<option value="${c.cle}"${c.cle === 'h265' ? ' selected' : ''}>${c.label}</option>`)
+    .join('');
+  ['#nvr-jours', '#nvr-heures', '#nvr-marge', '#nvr-codec', '#nvr-ips']
+    .forEach((id) => $(id).addEventListener('change', majReseau));
+  $('#nvr-estimer').addEventListener('click', estimerDebits);
+  $('#nvr-marge').value = Math.round(MARGE_DEFAUT * 100);
 
   $('#reseau-cameras').addEventListener('click', poserCamerasDeLaFiche);
   $('#reseau-exporter').addEventListener('click', exporterReseau);
@@ -3668,6 +3793,55 @@ function construireProposition() {
 }
 
 /**
+ * Enregistrement et alimentation, au dossier.
+ *
+ * Le calcul est écrit en toutes lettres plutôt que réduit à son résultat : un
+ * client qui voit « 16 To » sans savoir d'où ça sort n'a aucun moyen de
+ * discuter la durée de conservation, qui est pourtant le premier levier sur le
+ * prix.
+ */
+function sectionEnregistrement() {
+  const b = bilan(synoptiqueCourant(), reglagesEnregistrement());
+  if (!(b.debitTotal > 0)) return '';
+
+  const parJour = b.debitTotal * 10.8 * (Math.min(b.heuresParJour, 24) / 24);
+  const anomalies = b.anomalies.filter((a) => a.niveau === 'bloquant');
+
+  return `<h3>Enregistrement</h3>
+    <table>
+      <tbody>
+        <tr><td>Caméras enregistrées</td><td>${b.cameras}</td></tr>
+        <tr><td>Débit cumulé</td><td>${fmt(b.debitTotal, 1)} Mbit/s</td></tr>
+        <tr><td>Volume par jour</td><td>${frGroupe(parJour)} Go</td></tr>
+        <tr><td>Durée de conservation</td><td>${b.jours} jours,
+          ${b.heuresParJour} h/24</td></tr>
+        <tr><td>Marge de sécurité</td><td>${Math.round(b.marge * 100)} %</td></tr>
+        <tr><td><b>Capacité nécessaire</b></td>
+          <td><b>${frGroupe(b.capaciteGo)} Go — ${fmt(b.capaciteGo / 1000, 1)} To</b></td></tr>
+        ${b.disque ? `<tr><td><b>Disques à prévoir</b></td><td><b>${b.disque.nombre > 1
+          ? `${b.disque.nombre} × ${fmt(b.disque.unitaire, 0)} To`
+          : `${fmt(b.disque.unitaire, 0)} To`}</b></td></tr>` : ''}
+      </tbody>
+    </table>
+    <p class="note">Téraoctets décimaux, comme les étiquettes des fabricants.
+      Le calcul suppose le débit constant : un enregistrement sur détection
+      consomme moins, un trafic dense davantage.</p>
+
+    ${b.poe.length ? `<h3>Alimentation PoE</h3>
+    <table>
+      <thead><tr><th>Switch</th><th>Caméras alimentées</th><th>Puissance</th></tr></thead>
+      <tbody>${b.poe.map((p) => `<tr>
+        <td>${ech(nomNoeud(p.noeud))}</td>
+        <td>${p.alimentes}</td>
+        <td>${fmt(p.conso, 1)} W${p.budget ? ` sur ${fmt(p.budget, 0)} W` : ''}</td>
+      </tr>`).join('')}</tbody>
+    </table>` : ''}
+
+    ${anomalies.length ? `<h3>Anomalies relevées</h3>
+      <ul>${anomalies.map((a) => `<li>${ech(a.texte)}</li>`).join('')}</ul>` : ''}`;
+}
+
+/**
  * Section « synoptique de câblage » des documents.
  *
  * Elle ne figure que si le matériel a été posé : un dossier ne doit pas porter
@@ -3727,6 +3901,8 @@ function sectionSynoptique(pourClient = false) {
         elles servent au chiffrage et non à la commande au mètre près.</p>`
     : '<p>Le plan n\'ayant pas été calibré sur une distance connue, les longueurs '
       + 'de câble ne sont pas chiffrées.</p>'}
+
+      ${sectionEnregistrement()}
 
       ${reserves.length ? `<h3>Points à traiter</h3>
         <ul>${reserves.map((x) => `<li>${x}</li>`).join('')}</ul>` : ''}

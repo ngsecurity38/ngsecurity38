@@ -44,6 +44,24 @@ export const TYPES_MATERIEL = {
 /** Hauteur de pose supposée par type, en mètres, quand rien n'est saisi. */
 const HAUTEUR_DEFAUT = { camera: 3.5, switch: 0, nvr: 0, ecran: 1.2, baie: 0 };
 
+/**
+ * Champs de fiche propres à chaque type, avec leur valeur de départ.
+ *
+ * Ils sont volontairement à zéro : un port, un canal ou un watt supposé ferait
+ * passer un contrôle qui aurait dû alerter. Zéro veut dire « non renseigné », et
+ * les contrôles se taisent sur ce qu'ils ignorent.
+ */
+const CHAMPS_TYPE = {
+  camera: { debit: 0, conso: 0 },
+  switch: { ports: 0, portsPoe: 0, budgetPoe: 0 },
+  nvr: { canaux: 0, capacite: 0 },
+  ecran: {},
+  baie: {},
+};
+
+/** Un nombre saisi, jamais NaN. */
+const champNumerique = (v, defaut = 0) => (Number.isFinite(parseFloat(v)) ? parseFloat(v) : defaut);
+
 let compteur = 0;
 const identifiant = (prefixe) => `${prefixe}-${Date.now().toString(36)}-${(compteur += 1)}`;
 
@@ -59,6 +77,10 @@ export const nouveauSynoptique = () => ({ noeuds: [], liens: [] });
  */
 export function nouveauNoeud(type, x, y, champs = {}) {
   const connu = TYPES_MATERIEL[type] ? type : 'camera';
+  const propres = {};
+  for (const [cle, defaut] of Object.entries(CHAMPS_TYPE[connu] || {})) {
+    propres[cle] = champNumerique(champs[cle], defaut);
+  }
   return {
     id: champs.id || identifiant(connu),
     type: connu,
@@ -67,8 +89,24 @@ export function nouveauNoeud(type, x, y, champs = {}) {
     y,
     hauteur: Number.isFinite(champs.hauteur) ? champs.hauteur : HAUTEUR_DEFAUT[connu],
     reference: champs.reference || '',
+    ip: String(champs.ip || '').trim(),
+    ...propres,
   };
 }
+
+/** Champs de fiche d'un type de matériel, pour construire son formulaire. */
+export const champsDeType = (type) => Object.keys(CHAMPS_TYPE[type] || {});
+
+/** Étiquettes des champs de fiche matériel, en clair. */
+export const LIBELLES_MATERIEL = {
+  debit: 'Débit (Mbit/s)',
+  conso: 'Consommation PoE (W)',
+  ports: 'Ports (total)',
+  portsPoe: 'Ports PoE',
+  budgetPoe: 'Budget PoE (W)',
+  canaux: 'Canaux',
+  capacite: 'Capacité installée (Go)',
+};
 
 /** Nouvelle liaison entre deux matériels, avec ses points de passage éventuels. */
 export function nouveauLien(de, vers, points = []) {

@@ -306,6 +306,39 @@
 
         <div id="reseau-selection"></div>
 
+        <details class="repli" id="reseau-enregistrement">
+          <summary>Enregistrement et alimentation</summary>
+          <div class="grille2">
+            <label>Conservation (jours)
+              <select id="nvr-jours">
+                <option>7</option><option>15</option>
+                <option selected>30</option><option>45</option>
+                <option>60</option><option>90</option>
+              </select>
+            </label>
+            <label>Heures par jour
+              <input type="number" id="nvr-heures" value="24" min="1" max="24" step="1">
+            </label>
+            <label>Codec <small>pour l'estimation</small>
+              <select id="nvr-codec"></select>
+            </label>
+            <label>Images par seconde
+              <input type="number" id="nvr-ips" value="25" min="1" max="60" step="1">
+            </label>
+            <label>Marge de sécurité (%)
+              <input type="number" id="nvr-marge" value="20" min="0" max="100" step="5">
+            </label>
+          </div>
+          <button type="button" id="nvr-estimer" class="btn btn-fantome btn-petit">
+            Estimer les débits manquants
+          </button>
+          <p class="note">
+            Le débit réel figure sur la fiche technique de la caméra, et souvent
+            dans l'étude du client (« DÉBIT CAMÉRA 8 Mbits/s »). L'estimation ne
+            sert qu'à démarrer : un débit supposé faux se paie en téraoctets.
+          </p>
+        </details>
+
         <div class="etude-actions">
           <button type="button" id="reseau-cameras" class="btn btn-fantome btn-petit">
             Poser les caméras de la fiche
@@ -546,6 +579,9 @@
       <div id="reseau-tableau"></div>
       <h3>Récapitulatif</h3>
       <div class="mesures" id="reseau-mesures"></div>
+      <h3>Enregistrement et alimentation</h3>
+      <div class="mesures" id="nvr-mesures"></div>
+      <p class="conseil" id="nvr-conseil"></p>
     </div>
 
     <!-- Résultats de l'étude : sous la photo, là où se porte le regard. -->

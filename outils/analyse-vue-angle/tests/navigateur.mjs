@@ -1377,6 +1377,107 @@ console.log('\nSynoptique de câblage');
     affirmer(pendants === 0, 'aucune liaison pendante ne doit subsister');
   });
 
+  await cas('le calcul de stockage reprend l\'exemple de référence', async () => {
+    // Huit caméras à 5 Mbps, 30 jours, 20 % de marge : 15 552 Go, soit 16 To.
+    // Le tout posé par le code : l\'interface a déjà été éprouvée plus haut.
+    // Autonome : le bloc précédent a laissé du matériel, et un compte de
+    // caméras hérité fausserait l'exemple qu'on cherche à reproduire.
+    page.once('dialog', (d) => d.accept());
+    await page.click('#reseau-effacer');
+    await page.waitForTimeout(200);
+
+    await page.click('[data-reseau-outil="poser"]');
+    await page.selectOption('#reseau-type', 'nvr');
+    await clic(0.32, 0.2);
+    await page.selectOption('#reseau-type', 'switch');
+    await clic(0.4, 0.25);
+    await page.selectOption('#reseau-type', 'camera');
+    const places = [[0.12, 0.32], [0.2, 0.36], [0.28, 0.4], [0.52, 0.32],
+      [0.6, 0.36], [0.68, 0.4], [0.76, 0.46], [0.84, 0.52]];
+    for (const [u, v] of places) await clic(u, v);
+
+    await page.click('[data-reseau-outil="relier"]');
+    await clic(0.4, 0.25); await clic(0.32, 0.2);
+    for (const [u, v] of places) { await clic(u, v); await clic(0.4, 0.25); }
+
+    const saisir = async (champ, valeur) => {
+      const sel = `#reseau-selection [data-materiel="${champ}"]`;
+      await page.fill(sel, valeur);
+      await page.dispatchEvent(sel, 'change');
+    };
+    await page.click('[data-reseau-outil="deplacer"]');
+    for (const [u, v] of places) {
+      await clic(u, v);
+      await saisir('debit', '5');
+      await saisir('conso', '8');
+    }
+    await clic(0.4, 0.25);
+    await saisir('portsPoe', '8');
+    await saisir('budgetPoe', '65');
+    await clic(0.32, 0.2);
+    await saisir('canaux', '8');
+    await page.waitForTimeout(250);
+
+    const m = await page.evaluate(() => Object.fromEntries(
+      [...document.querySelectorAll('#nvr-mesures .mesure')].map((t) => [
+        t.querySelector('.cle').textContent.trim(),
+        t.querySelector('.val').textContent.trim(),
+      ]),
+    ));
+    affirmer(/^40,0\b/.test(m['Débit total'] || ''), `débit cumulé : ${m['Débit total']}`);
+    affirmer(/15\s*552/.test(m['Capacité nécessaire'] || ''),
+      `capacité : ${m['Capacité nécessaire']}`);
+    affirmer(/^16 To/.test(m['Disques'] || ''), `disque recommandé : ${m['Disques']}`);
+    affirmer(/64/.test(m['PoE — SW 1'] || ''), `budget PoE : ${m['PoE — SW 1']}`);
+
+    const conseil = await page.evaluate(() => document.querySelector('#nvr-conseil').textContent);
+    affirmer(/8 caméras/.test(conseil) && /30 jours/.test(conseil), conseil);
+  });
+
+  await cas('une capacité installée trop faible est signalée', async () => {
+    await clic(0.32, 0.2);
+    await page.fill('#reseau-selection [data-materiel="capacite"]', '8000');
+    await page.dispatchEvent('#reseau-selection [data-materiel="capacite"]', 'change');
+    await page.waitForTimeout(200);
+    const a = await alertes();
+    const manque = a.find((x) => /Capacité installée insuffisante/.test(x));
+    affirmer(!!manque, `l'insuffisance doit être dite : ${a.join(' | ')}`);
+    affirmer(/15,4 jours tenus au lieu de 30/.test(manque), manque);
+    // Et elle est présentée comme bloquante, pas comme une remarque.
+    const graves = await page.evaluate(
+      () => document.querySelectorAll('#reseau-alertes li.grave').length,
+    );
+    affirmer(graves >= 1, 'une capacité insuffisante est bloquante');
+  });
+
+  await cas('un budget PoE dépassé et une adresse en double sont signalés', async () => {
+    await clic(0.12, 0.32);
+    await page.fill('#reseau-selection [data-materiel="conso"]', '25');
+    await page.dispatchEvent('#reseau-selection [data-materiel="conso"]', 'change');
+    await page.fill('#reseau-selection [data-materiel-texte="ip"]', '192.168.1.10');
+    await page.dispatchEvent('#reseau-selection [data-materiel-texte="ip"]', 'change');
+    await clic(0.2, 0.36);
+    await page.fill('#reseau-selection [data-materiel-texte="ip"]', '192.168.1.10');
+    await page.dispatchEvent('#reseau-selection [data-materiel-texte="ip"]', 'change');
+    await page.waitForTimeout(200);
+
+    const a = await alertes();
+    affirmer(a.some((x) => /budget PoE dépassé/.test(x)), `PoE : ${a.join(' | ')}`);
+    affirmer(a.some((x) => /192\.168\.1\.10 attribuée à 2 appareils/.test(x)),
+      `adresse en double : ${a.join(' | ')}`);
+  });
+
+  await cas('le stockage figure au procès-verbal', async () => {
+    await page.click('#btn-rapport');
+    await page.waitForTimeout(600);
+    const rapport = await page.evaluate(() => document.querySelector('#rapport').innerHTML);
+    affirmer(/Enregistrement/.test(rapport), 'la section doit figurer');
+    affirmer(/Capacité nécessaire/.test(rapport), 'avec le besoin chiffré');
+    affirmer(/Volume par jour/.test(rapport), 'et le détail du calcul');
+    affirmer(/Alimentation PoE/.test(rapport), 'et le bilan PoE');
+    affirmer(/Anomalies relevées/.test(rapport), 'et les anomalies bloquantes');
+  });
+
   await cas('le synoptique figure au procès-verbal', async () => {
     // On reconstitue un câblage complet, puis on regarde le document produit.
     await page.click('[data-reseau-outil="poser"]');

@@ -16,7 +16,7 @@ Un seul fichier à récupérer — deux versions au choix :
 | Version | Poids | Pour qui |
 | --- | --- | --- |
 | [`analyse-vue-angle.html`](../outils/analyse-vue-angle/dist/analyse-vue-angle.html) | 1,5 Mo | le cas courant : études reçues en PDF normal |
-| [`analyse-vue-angle-ocr.html`](../outils/analyse-vue-angle/dist/analyse-vue-angle-ocr.html) | 7,6 Mo | si vos études arrivent **scannées** (§ 7) |
+| [`analyse-vue-angle-ocr.html`](../outils/analyse-vue-angle/dist/analyse-vue-angle-ocr.html) | 7,6 Mo | si vos études arrivent **scannées** (§ 8) |
 
 Les deux sont le même outil. La seconde embarque en plus un moteur de
 reconnaissance de caractères, qui pèse à lui seul près de 5 Mo : inutile de le
@@ -76,7 +76,7 @@ caméra** : son repère, son optique, ses deux vues, ses zones, son analyse et s
 observations.
 
 Un seul fichier `.json` enregistre tout le dossier, et le procès-verbal couvre
-tout le chantier (§ 12).
+tout le chantier (§ 13).
 
 > Les fiches enregistrées avec la première version de l'outil s'ouvrent
 > toujours : elles deviennent un dossier d'une seule caméra, sans rien perdre.
@@ -180,7 +180,7 @@ Le bouton **Proposition client** produit le document à remettre :
    de jour, mise en œuvre soumise au relevé définitif ;
 5. les deux cadres de signature.
 
-C'est un document commercial, distinct du procès-verbal de réception (§ 12) :
+C'est un document commercial, distinct du procès-verbal de réception (§ 13) :
 l'un dit ce qui est proposé, l'autre constate ce qui a été posé.
 
 > Une proposition qui tait ses conditions de validité n'engage personne. Les
@@ -254,7 +254,102 @@ rien n'est chiffré.
 
 ---
 
-## 5. Concevoir un champ sur plan
+## 5. Enregistrement et alimentation
+
+Le repli **Enregistrement et alimentation**, sous le synoptique, répond à la
+question du devis : quelle capacité, quel switch.
+
+### Combien de téraoctets
+
+Vous renseignez le **débit** de chaque caméra dans sa fiche — il figure sur la
+fiche technique, et souvent dans l'étude du client (« DÉBIT CAMÉRA 8 Mbits/s »).
+Vous choisissez la durée de conservation, les heures par jour et la marge.
+
+Le calcul est celui de la profession :
+
+```
+débit cumulé (Mbit/s) × 10,8 × jours × (heures par jour ÷ 24) × (1 + marge)
+```
+
+10,8 parce qu'un mégabit par seconde pendant vingt-quatre heures fait
+10,8 gigaoctets. L'exemple de référence :
+
+```
+8 caméras × 5 Mbit/s      = 40 Mbit/s
+40 × 10,8                 = 432 Go par jour
+432 × 30 jours            = 12 960 Go
++ 20 % de marge           = 15 552 Go
+→ disque de 16 To
+```
+
+L'outil affiche directement : *« Pour 8 caméras totalisant 40 Mbit/s,
+enregistrées 24 h/24 pendant 30 jours, la capacité recommandée est de 15,6 To
+(marge de 20 % comprise). »*
+
+Les téraoctets sont **décimaux**, comme les étiquettes des fabricants : un
+disque annoncé 16 To offre bien 16 × 10¹² octets. C'est l'affichage du système,
+en Tio, qui montrera 14,5 — différence d'unité, pas de capacité perdue.
+
+> **Si vous n'avez pas encore les débits**, le bouton **Estimer les débits
+> manquants** en propose un d'après la définition de chaque caméra, la cadence
+> et le codec. C'est un ordre de grandeur pour démarrer, pas une valeur de fiche
+> technique : un débit supposé faux se paie en téraoctets. Remplacez-le dès que
+> vous avez le vrai.
+
+### Le calcul dans l'autre sens
+
+Renseignez la **capacité installée** sur la fiche de l'enregistreur, et l'outil
+dit ce qu'elle tient réellement : *« 8 000 Go pour 15 552 Go nécessaires —
+15,4 jours tenus au lieu de 30. »* C'est souvent là que se joue la discussion
+avec le client : trente jours ou quinze, le prix du disque n'est pas le même.
+
+### Les huit contrôles
+
+L'outil relève, en rouge ce qui empêchera l'installation de fonctionner, en
+ambre ce qui la fragilise :
+
+| Contrôle | Ce qu'il attrape |
+| --- | --- |
+| **Adresse IP en double** | deux appareils sur la même adresse |
+| **Adresse mal formée** | `192.168.1.300`, un zéro en tête |
+| **Ports dépassés** | plus d'appareils que le switch n'a de ports |
+| **Ports PoE dépassés** | plus de caméras à alimenter que de ports PoE |
+| **Budget PoE dépassé** | la somme des consommations passe le budget du switch |
+| **Canaux de l'enregistreur** | plus de caméras que de canaux |
+| **Caméra sans PoE** | raccordée à un switch qui n'alimente pas : injecteur à prévoir |
+| **Capacité insuffisante** | le disque installé ne tient pas la durée demandée |
+
+Un contrôle ne dit jamais « peut-être » : tant qu'une donnée manque pour
+trancher, il se tait plutôt que d'alarmer à tort. C'est pourquoi les champs de
+fiche partent à zéro — zéro veut dire « non renseigné ».
+
+### Les classes PoE
+
+Quand vous saisissez la consommation d'une caméra, l'outil dit quelle classe
+suffit :
+
+| Classe | Au port | Utile au bout du câble |
+| --- | --- | --- |
+| PoE (802.3af) | 15,4 W | 12,95 W |
+| PoE+ (802.3at) | 30 W | 25,5 W |
+| PoE++ type 3 (802.3bt) | 60 W | 51 W |
+| PoE++ type 4 (802.3bt) | 100 W | 71 W |
+
+La différence entre les deux colonnes part en échauffement du câble.
+Dimensionner un switch sur la seule puissance des caméras, c'est le
+sous-dimensionner.
+
+### Au dossier
+
+La section *Synoptique de câblage* des deux documents porte le détail du
+calcul — débit cumulé, volume par jour, durée, marge, capacité, disques — et
+non seulement son résultat. Un client qui voit « 16 To » sans savoir d'où ça
+sort n'a aucun moyen de discuter la durée de conservation, qui est pourtant le
+premier levier sur le prix.
+
+---
+
+## 6. Concevoir un champ sur plan
 
 L'outil sert dans les deux sens. Les sections suivantes vérifient qu'une caméra
 posée respecte l'étude ; celle-ci fait l'inverse : **tracer le champ voulu sur
@@ -386,7 +481,7 @@ pixels par mètre, hauteur — plus le plan annoté.
 
 ---
 
-## 6. Avant d'aller sur site
+## 7. Avant d'aller sur site
 
 Préparer la **vue demandée** : la référence contractuelle.
 
@@ -395,7 +490,7 @@ Préparer la **vue demandée** : la référence contractuelle.
 2. Renseigner le bloc **2 · Caméra et optique** : le repère de la caméra, puis
    capteur, focale, résolution, distance à la scène, hauteur de pose.
    Ajouter une caméra par poste prévu au chantier (§ 2).
-3. Charger la vue demandée dans le premier cadre du bloc **3** — voir le § 7
+3. Charger la vue demandée dans le premier cadre du bloc **3** — voir le § 8
    ci-dessous pour partir directement du PDF de l'étude.
 4. **Enregistrer la fiche** : un fichier `.json` est téléchargé. Il contient
    tout, images comprises. C'est ce fichier que le technicien emporte.
@@ -422,7 +517,7 @@ largeur à telle distance, il donne la focale à monter.
 
 ---
 
-## 7. Partir du PDF de l'étude
+## 8. Partir du PDF de l'étude
 
 C'est le cas le plus courant : le client a remis une étude au format PDF, avec
 le plan d'implantation et, caméra par caméra, la vue attendue.
@@ -479,7 +574,7 @@ tirée. L'outil ne devine pas : il montre sa source.
 Déplier **Texte lu par l'outil**, sous le tableau. On y voit, page par page, ce
 que l'outil a réellement extrait du PDF, les passages retenus surlignés en vert.
 Une ligne présente mais non surlignée, c'est une formulation qu'il ne sait pas
-encore lire ; une page vide, c'est un scan (§ 7).
+encore lire ; une page vide, c'est un scan (§ 8).
 
 Le bouton **Copier le texte** met ce contenu dans le presse-papiers. Le
 transmettre suffit à faire ajouter la formulation manquante — inutile de sortir
@@ -535,7 +630,7 @@ vérifications distinctes : le **matériel** correspond-il à l'étude, et le
 > visuel. Pour la comparaison de cadrage, il faut une **image** de la vue
 > attendue — capture validée ou photo de repérage. À défaut, le relevé du
 > matériel reste exploitable, et la partie cadrage se traite au recalage manuel
-> (§ 11) ou se réserve pour une visite ultérieure.
+> (§ 12) ou se réserve pour une visite ultérieure.
 
 ### Si l'étude est un scan
 
@@ -560,7 +655,7 @@ praticable, une étude ne comptant qu'une poignée de chiffres par caméra.
 
 ---
 
-## 8. Sur site, après la pose
+## 9. Sur site, après la pose
 
 1. Ouvrir la fiche (**Ouvrir une fiche…**).
 2. Prendre une capture de l'image de la caméra et la charger dans le second
@@ -574,7 +669,7 @@ Le verdict s'affiche en bas :
 - **Ajustement mineur** — reprise rapide, la consigne indique quoi faire.
 - **Non conforme** — le réglage est à refaire.
 - **Recalage non concluant** — l'outil n'a pas pu rapprocher les deux images
-  (voir le § 11).
+  (voir le § 12).
 
 Les consignes sont directement exploitables : « Pivoter la caméra de 6,4° vers
 la gauche », « Relever la caméra de 2,4° », « Élargir le champ de 12 % (focale
@@ -599,7 +694,7 @@ Trois cases complètent l'affichage :
 
 ---
 
-## 9. Zones d'intérêt
+## 10. Zones d'intérêt
 
 Pour vérifier qu'un point précis reste dans le champ (portail, caisse, quai de
 livraison, allée) :
@@ -613,7 +708,7 @@ couvert. Le seuil d'exigence se règle dans le bloc **4** (95 % par défaut).
 
 ---
 
-## 10. Tolérances de réception
+## 11. Tolérances de réception
 
 | Réglage | Défaut | Signification |
 | --- | --- | --- |
@@ -629,14 +724,14 @@ de parking. Ce sont elles qui décident du verdict : à fixer avec le client
 
 ---
 
-## 11. Quand le recalage automatique échoue
+## 12. Quand le recalage automatique échoue
 
 L'outil annonce « recalage non concluant » quand les deux images ne se
 ressemblent pas assez. Les causes habituelles :
 
 - la vue demandée est un **plan ou un croquis**, pas une photo ;
 - la page d'étude retenue porte du texte ou un cartouche : la recadrer sur la
-  seule image (§ 7) suffit souvent à débloquer la situation ;
+  seule image (§ 8) suffit souvent à débloquer la situation ;
 - les deux prises de vue ont été faites depuis **des emplacements différents** ;
 - la scène a **réellement changé** (chantier, saison, véhicules déplacés) ;
 - le décalage dépasse les trois quarts du champ : il ne reste presque plus rien
@@ -648,7 +743,7 @@ direct, et le rapport indique que le recalage a été fait à la main.
 
 ---
 
-## 12. Rapport et archivage
+## 13. Rapport et archivage
 
 **Rapport / Impression** ouvre la boîte d'impression du navigateur. Choisir
 « Enregistrer au format PDF » pour obtenir le procès-verbal du chantier :
@@ -676,7 +771,7 @@ contrôle annuel ou d'une contestation.
 
 ---
 
-## 13. Mettre l'outil en ligne sur le site
+## 14. Mettre l'outil en ligne sur le site
 
 Utile pour y accéder depuis une tablette sans rien installer.
 
@@ -735,7 +830,7 @@ restreint, deux solutions côté hébergeur :
 
 ---
 
-## 14. Ce que l'outil ne fait pas
+## 15. Ce que l'outil ne fait pas
 
 - Il ne corrige pas la **distorsion** des objectifs très grand-angle. Les
   écarts restent justes au centre et se dégradent vers les bords de l'image.
@@ -744,23 +839,28 @@ restreint, deux solutions côté hébergeur :
 - Il ne juge pas la qualité d'image (netteté, bruit, exposition) : uniquement le
   cadrage.
 - Il lit le texte des PDF ; les études scannées passent par la reconnaissance
-  de caractères (§ 7), plus faillible, d'où l'avertissement qui les accompagne.
+  de caractères (§ 8), plus faillible, d'où l'avertissement qui les accompagne.
 - Le relevé reconnaît les formulations courantes des études d'implantation et
   des fiches constructeur — « focale 3,6 mm », « f = 4 mm », « H : 102° »,
   « 1/2,8 pouce », « 1 920 x 1 080 », « 1080p », valeurs en colonnes sous leur
   en-tête. Une mise en page inhabituelle peut malgré tout lui échapper : chaque
   valeur est donc affichée avec sa page et son extrait, et le texte lu reste
-  consultable pour comprendre ce qui manque (§ 7).
+  consultable pour comprendre ce qui manque (§ 8).
 - Il ne vérifie pas les points non chiffrés d'un cahier des charges (indice de
   protection, alimentation, chemin de câbles, conformité RGPD de l'affichage).
-- Il ne fait pas d'étude d'alimentation. Le synoptique mesure le câble et
-  vérifie les 90 m ; il ne calcule ni le budget PoE d'un switch, ni la section
-  des alimentations, ni l'autonomie d'un onduleur.
+- Il calcule le **budget PoE** d'un switch et la **capacité** de l'enregistreur
+  (§ 5), mais ni la section des alimentations, ni l'autonomie d'un onduleur, ni
+  la bande passante du lien Internet pour la consultation à distance.
+- Le stockage est calculé à **débit constant**. Un enregistrement sur détection
+  consomme moins, un site très passant davantage ; la marge de sécurité est là
+  pour cela, pas pour compenser un débit mal renseigné.
+- Il ne **dessine pas les murs** et ne calcule donc pas les **angles morts**
+  qu'ils créent. Les cônes tracés supposent le champ dégagé.
 - Il ne connaît pas le cheminement réel des câbles : il mesure celui que vous
   tracez. Fourreaux existants, passages de cloison et réservations restent à
   relever sur site — d'où la réserve appliquée par défaut.
 - Il ne tient pas à jour les catalogues constructeurs. Les références livrées
-  viennent de documents datés (§ 5) ; les tarifs, les disponibilités et les fins
+  viennent de documents datés (§ 6) ; les tarifs, les disponibilités et les fins
   de série ne sont pas de son ressort.
 - Il ne connaît pas le **format de capteur** des modèles du commerce : aucune
   brochure ne le publie. Les entrées concernées le disent (« ~ »), et la

@@ -544,3 +544,4 @@ table.liaisons tr.depasse td { color: var(--rouge-clair); }
 
 #reseau-vue canvas { background: #fff; }
 #reseau-selection { margin: 12px 0; }
+.alertes li.grave { color: var(--rouge-clair); font-weight: 600; }
