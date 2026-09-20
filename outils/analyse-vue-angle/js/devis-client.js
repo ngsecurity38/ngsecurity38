@@ -54,10 +54,20 @@ const reponses = () => ({
   zones: parseInt($('#q-zones').value, 10),
   jours: parseInt($('#q-jours').value, 10),
   heuresParJour: parseInt($('#q-heures').value, 10),
+  extension: parseInt($('#q-extension').value, 10),
   ecran: $('#q-ecran').checked,
+  routeur: $('#q-routeur').checked,
   pose: $('#q-pose').checked,
 });
 
+/**
+ * Le synoptique, en SVG.
+ *
+ * Il ne sert pas à décorer : le client comprend d'un coup pourquoi un switch
+ * PoE figure au devis — les caméras y sont branchées, et c'est lui qui les
+ * alimente. C'est ce que le cahier des charges appelle la pédagogie, et c'est
+ * ce qui évite qu'on lui retire la ligne en croyant faire une économie.
+ */
 /** Échappe le texte : le tarif est un fichier que l'agence édite à la main. */
 const ech = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => (
   { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -109,8 +119,100 @@ function calculer() {
     <tr class="fort"><td colspan="3">Total TTC</td>
       <td class="nombre">${euros(d.totalTtc)}</td></tr>`;
 
+  dessinerSchema(offre, r);
   $('#reserves').innerHTML = RESERVES.map((x) => `<li>${ech(x)}</li>`).join('');
   majContact(offre, r, d);
+}
+
+/**
+ * Le synoptique, en SVG.
+ *
+ * Il ne sert pas à décorer : le client comprend d'un coup pourquoi un switch
+ * PoE figure au devis — les caméras y sont branchées, et c'est lui qui les
+ * alimente. C'est ce que le cahier des charges appelle la pédagogie, et c'est
+ * ce qui évite qu'on lui retire la ligne en croyant faire une économie.
+ */
+function dessinerSchema(offre, r) {
+  /*
+   * La chaîne est dessinée en entier, toujours.
+   *
+   * Ce schéma explique comment l'installation tient debout ; il ne dresse pas
+   * la liste de ce qui est au tarif. Un maillon absent du tarif y figure donc
+   * en grisé — sinon le client verrait des caméras reliées à rien et croirait
+   * l'architecture incomplète, alors que c'est seulement le tarif qui l'est.
+   */
+  const presents = new Set(offre.lignes.map((l) => l.role));
+  const couleur = (c, role) => (!role || presents.has(role) ? c : '#b6bcc6');
+
+  /*
+   * Chaque maillon nomme son parent : le téléphone dépend du routeur, l'écran
+   * de l'enregistreur. Relier chaque étage au précédent sans distinguer
+   * traçait un lien de l'enregistreur au téléphone, qui n'existe pas.
+   */
+  const noeuds = [
+    { id: 'cam', t: `${offre.cameras} caméra${offre.cameras > 1 ? 's' : ''}`,
+      c: '#c8102e', role: 'Caméras', niveau: 0 },
+    { id: 'sw', t: 'Switch PoE', c: '#2eae6a', role: 'Switch PoE', niveau: 1, parent: 'cam' },
+    { id: 'nvr', t: 'Enregistreur', c: '#c05cc0', role: 'Enregistreur', niveau: 2, parent: 'sw' },
+    r.routeur
+      ? { id: 'box', t: 'Routeur', c: '#3d8bfd', role: 'Routeur', niveau: 2, parent: 'sw' }
+      : null,
+    r.ecran
+      ? { id: 'ecr', t: 'Écran', c: '#d99b1f', role: 'Écran de supervision', niveau: 3, parent: 'nvr' }
+      : null,
+    r.routeur
+      ? { id: 'tel', t: 'Mon téléphone', c: '#5b6472', niveau: 3, parent: 'box' }
+      : null,
+  ].filter(Boolean);
+
+  const niveaux = Math.max(...noeuds.map((n) => n.niveau)) + 1;
+  const L = 560;
+  const hauteurEtage = 74;
+  const H = niveaux * hauteurEtage + 8;
+  const largeurBoite = 156;
+  const hauteurBoite = 40;
+
+  // Position : les maillons d'un même étage se répartissent sur la largeur.
+  const place = new Map();
+  for (let k = 0; k < niveaux; k += 1) {
+    const etage = noeuds.filter((n) => n.niveau === k);
+    etage.forEach((n, i) => place.set(n.id, {
+      x: (L * (i + 1)) / (etage.length + 1),
+      y: 26 + k * hauteurEtage,
+    }));
+  }
+
+  const traits = noeuds.filter((n) => n.parent && place.has(n.parent)).map((n) => {
+    const a = place.get(n.parent);
+    const b = place.get(n.id);
+    return `<line x1="${a.x}" y1="${a.y + hauteurBoite / 2}" `
+      + `x2="${b.x}" y2="${b.y - hauteurBoite / 2}" stroke="#aab1bb" stroke-width="2"/>`;
+  }).join('');
+
+  const boites = noeuds.map((n) => {
+    const p = place.get(n.id);
+    return `<g>
+      <rect x="${p.x - largeurBoite / 2}" y="${p.y - hauteurBoite / 2}"
+        width="${largeurBoite}" height="${hauteurBoite}" rx="8"
+        fill="${couleur(n.c, n.role)}" />
+      <text x="${p.x}" y="${p.y + 5}" text-anchor="middle"
+        fill="#fff" font-size="15" font-weight="600">${ech(n.t)}</text>
+    </g>`;
+  }).join('');
+
+  // Un maillon grisé mérite son mot d'explication, sous le schéma.
+  const absents = noeuds.filter((n) => n.role && !presents.has(n.role));
+  const note = absents.length
+    ? `<figcaption class="note-schema">En gris : `
+      + `${absents.map((n) => n.t.toLowerCase()).join(', ')} — `
+      + `nécessaire${absents.length > 1 ? 's' : ''} à l'installation, `
+      + `chiffré${absents.length > 1 ? 's' : ''} lors de l'étude.</figcaption>`
+    : '';
+
+  $('#schema').innerHTML = `<svg viewBox="0 0 ${L} ${H}" role="img"
+    aria-label="Schéma de raccordement de l'installation proposée">
+    ${traits}${boites}
+  </svg>${note}`;
 }
 
 /** Résumé en français courant, avant le tableau. */
@@ -138,6 +240,8 @@ function majContact(offre, r, d) {
     `- Type de site : ${TYPES_SITE[r.typeSite]?.label || r.typeSite}`,
     `- Zones à couvrir : ${offre.cameras}`,
     `- Conservation : ${offre.jours} jours, ${offre.heuresParJour} h/24`,
+    `- Extension prévue : ${offre.prevues - offre.cameras} caméra(s)`,
+    `- Câble estimé : ${offre.metresCable} m`,
     `- Écran de supervision : ${r.ecran ? 'oui' : 'non'}`,
     `- Installation par vos soins : ${r.pose ? 'oui' : 'non'}`,
     '',
@@ -169,7 +273,7 @@ async function demarrer() {
     calculer();
   });
 
-  ['#q-zones', '#q-jours', '#q-heures', '#q-ecran', '#q-pose']
+  ['#q-zones', '#q-jours', '#q-heures', '#q-extension', '#q-ecran', '#q-routeur', '#q-pose']
     .forEach((id) => {
       $(id).addEventListener('change', calculer);
       $(id).addEventListener('input', calculer);

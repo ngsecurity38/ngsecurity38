@@ -529,6 +529,36 @@ bouton **Exporter le tarif client**. Il reprend le matériel du synoptique qui
 porte à la fois une référence et un prix. Les disques s'ajoutent à la main —
 l'outil d'étude ne les gère pas encore.
 
+### Toute la chaîne, pas seulement les caméras
+
+La proposition couvre le système entier : caméras, switch PoE, enregistreur,
+disque, routeur, **câble au mètre**, connectique, supports et coffret. Le câble
+et la connectique ne se voient sur aucune photo et se retrouvent pourtant sur
+toutes les factures : les compter d'emblée évite l'écart le plus fréquent entre
+l'estimation et la note finale. Trente mètres par caméra par défaut — une
+moyenne de chantier, pas une mesure, et la page le dit.
+
+Le switch est choisi sur trois critères, pas seulement le prix : assez de ports
+PoE, assez de ports au total (un est réservé au routeur), et **assez de watts**
+pour alimenter les caméras.
+
+Une question porte sur l'**extension** : « prévoir deux caméras de plus à
+terme ? ». Le switch et l'enregistreur sont alors choisis plus grands dès
+maintenant, sans que les caméras supplémentaires soient facturées. Ajouter une
+caméra dans deux ans ne coûtera qu'une caméra.
+
+### Le synoptique
+
+Sous le résumé, un schéma montre comment tout se raccorde : caméras → switch
+PoE → enregistreur et routeur → écran et téléphone. Le client comprend d'un
+coup pourquoi un switch PoE figure au devis, et ne demande plus à le retirer en
+croyant faire une économie.
+
+La chaîne est dessinée **en entier**, toujours. Un maillon absent du tarif y
+figure en gris, avec sa mention sous le schéma — sinon le visiteur verrait des
+caméras reliées à rien et croirait l'architecture incomplète, alors que c'est
+seulement le tarif qui l'est.
+
 ### Avant la mise en ligne
 
 Une seule chose à faire dans le code : renseigner la constante `CONTACT` en
@@ -536,6 +566,10 @@ tête de `js/devis-client.js` avec l'adresse qui doit recevoir les demandes,
 puis relancer `npm run build`. Laissée vide, le bouton « Demander une étude »
 reste masqué — mieux vaut pas de bouton qu'un lien vers une adresse qui
 n'existe pas.
+
+La marche à suivre complète pour la mise en ligne sur `ngsecurity38.fr` —
+transfert, menu, intégration dans une page, mise à jour des prix — figure dans
+[`devis-client-sur-le-site.md`](devis-client-sur-le-site.md).
 
 ---
 

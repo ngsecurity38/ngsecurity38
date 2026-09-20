@@ -1784,6 +1784,60 @@ console.log('\nDevis client');
     affirmer(r.manques.some((m) => /chiffrés lors de l'étude/.test(m)), JSON.stringify(r.manques));
   });
 
+  await cas('le synoptique montre toute la chaîne, pas seulement le tarif', async () => {
+    const schema = await page.evaluate(() => {
+      const svg = document.querySelector('#schema svg');
+      return {
+        textes: [...svg.querySelectorAll('text')].map((t) => t.textContent.trim()),
+        gris: [...svg.querySelectorAll('rect')].filter((r) => r.getAttribute('fill') === '#b6bcc6').length,
+        traits: svg.querySelectorAll('line').length,
+        note: (document.querySelector('.note-schema') || {}).textContent || '',
+      };
+    });
+    // Le tarif livré n'a ni enregistreur ni routeur : ils doivent quand même
+    // figurer, en gris, sinon les caméras sembleraient reliées à rien.
+    affirmer(schema.textes.some((t) => /Enregistreur/.test(t)), JSON.stringify(schema.textes));
+    affirmer(schema.textes.some((t) => /Switch PoE/.test(t)), JSON.stringify(schema.textes));
+    affirmer(schema.gris >= 2, `les maillons hors tarif sont grisés : ${schema.gris}`);
+    affirmer(/En gris/.test(schema.note), `et expliqués : ${schema.note}`);
+    affirmer(schema.traits >= 3, `la chaîne est reliée : ${schema.traits} traits`);
+  });
+
+  await cas('chaque maillon est relié au bon parent', async () => {
+    // Le téléphone passe par le routeur, jamais par l'enregistreur : autant de
+    // traits que de maillons ayant un parent, pas le produit des étages.
+    await page.evaluate(() => {
+      document.querySelector('#q-ecran').checked = true;
+      document.querySelector('#q-ecran').dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    await page.waitForTimeout(200);
+    const traits = await page.evaluate(
+      () => document.querySelectorAll('#schema svg line').length,
+    );
+    // caméras→switch, switch→NVR, switch→routeur, NVR→écran, routeur→téléphone.
+    affirmer(traits === 5, `cinq liaisons attendues, pas davantage : ${traits}`);
+  });
+
+  await cas('câble, connectique et coffret figurent au besoin', async () => {
+    const r = await lire();
+    // Ils ne sont pas au tarif d'exemple : la page doit le dire.
+    affirmer(r.manques.some((m) => /câble/i.test(m)), JSON.stringify(r.manques));
+  });
+
+  await cas('prévoir une extension change le matériel, pas le nombre de caméras', async () => {
+    await page.fill('#q-zones', '4');
+    await page.dispatchEvent('#q-zones', 'change');
+    await page.waitForTimeout(200);
+    const avant = await lire();
+    await page.selectOption('#q-extension', '4');
+    await page.waitForTimeout(200);
+    const apres = await lire();
+    const cameras = (t) => (t.lignes.find((l) => /Caméras/.test(l)) || '').match(/ (\d+) /);
+    affirmer(String(cameras(avant)?.[1]) === String(cameras(apres)?.[1]),
+      'on ne vend pas les caméras de l\'extension d\'avance');
+    await page.selectOption('#q-extension', '0');
+  });
+
   await cas('les réserves d\'une estimation à distance sont écrites', async () => {
     const reserves = await page.evaluate(() => [...document.querySelectorAll('#reserves li')]
       .map((t) => t.textContent.trim()));

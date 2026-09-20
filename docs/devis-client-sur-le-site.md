@@ -1,0 +1,144 @@
+# Mettre le devis en libre-service sur ngsecurity38.fr
+
+Objectif : que vos visiteurs estiment eux-mêmes leur installation, depuis votre
+site, sans que vous ayez rien à faire. Pas de plugin, pas de base de données,
+pas de compte à créer.
+
+La page est un **fichier HTML de 50 Ko** qui tourne entièrement dans le
+navigateur du visiteur. Rien ne remonte chez nous ni chez personne : ce qu'il
+saisit reste sur son téléphone.
+
+---
+
+## 1. Ce qu'il faut envoyer sur le site
+
+Deux fichiers seulement :
+
+| Fichier | Rôle |
+| --- | --- |
+| `dist/devis-client.html` | la page |
+| `tarif.json` | vos prix — le seul à retoucher ensuite |
+
+Mettez-les **dans le même dossier**, par exemple `/outils/devis/`.
+
+### Par FTP
+
+1. Ouvrir FileZilla et se connecter à l'hébergement.
+2. Aller dans le dossier du site : `public_html/` (ou `www/`).
+3. Créer un dossier `outils`, puis dedans un dossier `devis`.
+4. Y déposer `devis-client.html` (à renommer `index.html`) et `tarif.json`.
+5. Vérifier dans un navigateur : `https://ngsecurity38.fr/outils/devis/`.
+
+En renommant la page `index.html`, l'adresse reste courte et se retient.
+
+### Par l'admin WordPress
+
+WordPress refuse les fichiers `.html` et `.json` par défaut. Le FTP reste le
+chemin le plus simple. À défaut, l'extension **WP File Manager** permet de
+faire la même chose depuis l'admin.
+
+---
+
+## 2. Avant d'envoyer : trois choses à régler
+
+### L'adresse qui reçoit les demandes
+
+Dans `js/devis-client.js`, en tête du fichier :
+
+```js
+const CONTACT = '';
+```
+
+Mettre l'adresse qui doit recevoir les demandes d'étude, puis relancer
+`npm run build`. **Laissée vide, le bouton « Demander une étude » n'apparaît
+pas** — mieux vaut pas de bouton qu'un lien vers une adresse qui n'existe pas.
+
+### Vos prix
+
+Ouvrir `tarif.json` dans un éditeur de texte. Le fichier porte ses propres
+explications en tête. Il faut au minimum une ligne par type :
+
+| `type` | Champs attendus en plus du prix |
+| --- | --- |
+| `camera` | `debit` en Mbit/s |
+| `switch` | `ports`, `portsPoe`, `budgetPoe` en watts |
+| `nvr` | `canaux` |
+| `disque` | `capacite` en Go |
+| `routeur`, `ecran`, `connectique`, `coffret` | rien de plus |
+| `cable` | prix **au mètre** |
+
+Tant qu'un type manque, la page le dit au visiteur (« Aucun enregistreur au
+tarif — cet élément sera chiffré lors de l'étude ») au lieu de composer une
+installation incomplète en silence.
+
+### Le bandeau « tarif d'exemple »
+
+Dans `tarif.json` :
+
+```json
+"exemple": false
+```
+
+Tant qu'il vaut `true`, la page affiche en haut que les montants n'engagent
+personne. À passer à `false` **une fois vos prix saisis**, pas avant.
+
+---
+
+## 3. Le lien dans le menu
+
+1. Admin WordPress → **Apparence > Menus**.
+2. Déplier **Liens personnalisés**.
+3. URL : `https://ngsecurity38.fr/outils/devis/`
+   Texte : `Estimer mon installation`
+4. **Ajouter au menu**, placer l'entrée, **Enregistrer le menu**.
+
+---
+
+## 4. L'intégrer dans une page existante
+
+Pour que l'outil apparaisse *dans* une page du site plutôt que seul :
+
+1. Créer une page WordPress (par exemple « Estimer mon installation »).
+2. Ajouter un bloc **HTML personnalisé**.
+3. Y coller :
+
+```html
+<iframe src="/outils/devis/" style="width:100%;height:1600px;border:0"
+        title="Estimer mon installation de vidéosurveillance"></iframe>
+```
+
+La hauteur est fixée à la main : l'outil est long, et un cadre trop court
+obligerait à faire défiler dans le défilement. 1600 pixels conviennent à la
+plupart des cas ; ajustez si besoin.
+
+---
+
+## 5. Mettre les prix à jour, plus tard
+
+**Un seul fichier à remplacer : `tarif.json`.** La page le relit à chaque
+ouverture. Ni reconstruction, ni renvoi de la page, ni intervention de notre
+part.
+
+Pour ne pas tout retaper, l'outil d'étude sait l'exporter : repli **Devis**,
+bouton **Exporter le tarif client**. Il reprend le matériel du synoptique
+portant à la fois une référence et un prix. Les disques s'ajoutent à la main.
+
+---
+
+## 6. Ce que cette page ne fait pas
+
+Elle ne remplace pas une étude, et elle le dit au visiteur à trois endroits :
+en résumé, dans le repli « ce que cette estimation ne peut pas savoir », et en
+pied de page.
+
+Elle ne fait pas non plus :
+
+- de **panier ni de paiement** — c'est le rôle de la boutique ;
+- de **compte client ni de sauvegarde de projet** — rien n'est enregistré, le
+  visiteur imprime ou envoie sa demande ;
+- d'**analyse de photo** — le visiteur peut joindre ses photos à sa demande,
+  elles sont regardées par un technicien, pas par la machine ;
+- de **suivi ni de statistiques** — aucun traqueur, aucun cookie.
+
+Ces briques demandent un serveur et une base de données. Elles figurent à la
+feuille de route du cahier des charges, aux phases 2 et suivantes.

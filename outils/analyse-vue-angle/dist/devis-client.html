@@ -133,6 +133,17 @@ tfoot tr.fort td { font-size: 19px; font-weight: 700; border-top: 2px solid var(
   .repli[open] ul, .repli ul { display: block; }
   .bandeau { border: 1px solid #000; }
 }
+
+.synoptique { margin: 20px 0; padding: 0; }
+.synoptique figcaption {
+  font-size: 12px; text-transform: uppercase; letter-spacing: .05em;
+  color: var(--doux); margin-bottom: 10px;
+}
+.synoptique svg { width: 100%; height: auto; display: block; }
+.synoptique figcaption.note-schema {
+  font-size: 12px; color: var(--doux); margin: 8px 0 0;
+  text-transform: none; letter-spacing: 0; line-height: 1.45;
+}
 </style>
 </head>
 <body>
@@ -186,8 +197,22 @@ tfoot tr.fort td { font-size: 19px; font-weight: 700; border-top: 2px solid var(
         </select>
       </label>
 
+      <label>Prévoir une extension plus tard ?
+        <select id="q-extension">
+          <option value="0" selected>Non, l'installation est définitive</option>
+          <option value="2">Oui, deux caméras de plus à terme</option>
+          <option value="4">Oui, quatre caméras de plus à terme</option>
+        </select>
+        <small>Le switch et l'enregistreur sont alors choisis plus grands dès
+          maintenant : ajouter une caméra plus tard ne coûtera qu'une caméra.</small>
+      </label>
+
       <label class="case">
         <input type="checkbox" id="q-ecran"> Je veux un écran de supervision sur place
+      </label>
+
+      <label class="case">
+        <input type="checkbox" id="q-routeur" checked> J'ai besoin d'un routeur (accès à distance)
       </label>
 
       <label class="case">
@@ -201,6 +226,11 @@ tfoot tr.fort td { font-size: 19px; font-weight: 700; border-top: 2px solid var(
     <p class="resume" id="resume"></p>
 
     <div id="manques"></div>
+
+    <figure class="synoptique">
+      <figcaption>Comment tout se raccorde</figcaption>
+      <div id="schema"></div>
+    </figure>
 
     <table id="table-devis">
       <thead>
@@ -270,6 +300,12 @@ tfoot tr.fort td { font-size: 19px; font-weight: 700; border-top: 2px solid var(
       "portsPoe": 8,
       "sourceAchat": { "type": "releve", "date": "20/09/2026", "source": "Getic.fr" }
     }
+  ],
+  "_a_completer": [
+    "Il manque à ce tarif : nvr (canaux), disque (capacite en Go), routeur,",
+    "cable (prix au mètre), connectique, coffret, ecran.",
+    "Tant qu'ils manquent, la page le dit au visiteur au lieu de composer une",
+    "installation incomplète sans le signaler."
   ]
 }
 ;</script>
@@ -857,8 +893,20 @@ const TYPES_SITE = {
  */
 const POSE_DEFAUT = { base: 3, parCamera: 1.5 };
 
-/** Un port d'uplink est réservé sur le switch : il relie l'enregistreur. */
+/** Un port d'uplink est réservé sur le switch : il relie le routeur. */
 const PORTS_RESERVES = 1;
+
+/**
+ * Longueur de câble supposée par caméra, en mètres.
+ *
+ * Une moyenne de chantier, pas une mesure : le cheminement réel ne se connaît
+ * qu'au relevé. Elle sert à ce que le câble figure au budget plutôt que d'être
+ * découvert à la facture.
+ */
+const METRES_PAR_CAMERA = 30;
+
+/** Consommation supposée d'une caméra quand le tarif ne la donne pas, en watts. */
+const CONSO_SUPPOSEE = 8;
 
 /** Articles d'un type donné, du moins cher au plus cher. */
 function candidats(tarif, type, filtre) {
@@ -903,21 +951,41 @@ function composer(reponses = {}, tarif = [], options = {}) {
   if (camera) lignes.push({ article: camera, quantite: cameras, role: 'Caméras' });
   else manques.push('Aucune caméra au tarif.');
 
-  // --- le switch : assez de ports PoE pour les caméras, plus l'uplink
-  const portsRequis = cameras + PORTS_RESERVES;
-  const sw = moinsCher(tarif, 'switch', (a) => a.portsPoe >= cameras && a.ports >= portsRequis);
+  /*
+   * Le dimensionnement se fait sur le nombre de caméras **prévues**, extension
+   * comprise : poser un switch à huit ports pour huit caméras, c'est condamner
+   * la neuvième à un second switch.
+   */
+  const prevues = cameras + Math.max(0, Math.round(reponses.extension ?? 0));
+
+  // --- le switch : assez de ports PoE, assez de ports, et assez de watts
+  const portsRequis = prevues + PORTS_RESERVES;
+  const consoCamera = camera?.conso > 0 ? camera.conso : CONSO_SUPPOSEE;
+  const budgetRequis = consoCamera * prevues;
+  const sw = moinsCher(tarif, 'switch', (a) => a.portsPoe >= prevues
+    && a.ports >= portsRequis
+    && (!(a.budgetPoe > 0) || a.budgetPoe >= budgetRequis));
   if (sw) lignes.push({ article: sw, quantite: 1, role: 'Switch PoE' });
   else if (candidats(tarif, 'switch').length) {
-    manques.push(`Aucun switch du tarif n'offre ${cameras} ports PoE `
-      + `et ${portsRequis} ports au total.`);
+    manques.push(`Aucun switch du tarif n'offre ${prevues} ports PoE, `
+      + `${portsRequis} ports et ${Math.round(budgetRequis)} W de budget PoE.`);
   } else manques.push('Aucun switch au tarif.');
 
   // --- l'enregistreur : assez de canaux
-  const nvr = moinsCher(tarif, 'nvr', (a) => a.canaux >= cameras);
+  const nvr = moinsCher(tarif, 'nvr', (a) => a.canaux >= prevues);
   if (nvr) lignes.push({ article: nvr, quantite: 1, role: 'Enregistreur' });
   else if (candidats(tarif, 'nvr').length) {
-    manques.push(`Aucun enregistreur du tarif n'offre ${cameras} canaux.`);
+    manques.push(`Aucun enregistreur du tarif n'offre ${prevues} canaux.`);
   } else manques.push('Aucun enregistreur au tarif.');
+
+  // --- le routeur : la porte vers l'extérieur, sans laquelle pas d'accès distant
+  if (reponses.routeur !== false) {
+    const routeur = moinsCher(tarif, 'routeur');
+    if (routeur) lignes.push({ article: routeur, quantite: 1, role: 'Routeur' });
+    else if (candidats(tarif, 'routeur').length === 0 && reponses.routeur) {
+      manques.push('Aucun routeur au tarif.');
+    }
+  }
 
   // --- le disque : dimensionné sur la durée demandée
   const debit = camera?.debit > 0
@@ -937,9 +1005,31 @@ function composer(reponses = {}, tarif = [], options = {}) {
     else manques.push('Aucun écran au tarif.');
   }
 
+  /*
+   * Le câble et la connectique.
+   *
+   * Ils ne se voient pas sur une photo et se retrouvent pourtant sur toutes
+   * les factures. Les compter d'emblée évite l'écart le plus fréquent entre
+   * l'estimation et la note finale.
+   */
+  const metres = Math.max(0, reponses.metresParCamera ?? METRES_PAR_CAMERA) * cameras;
+  if (metres > 0) {
+    const cable = moinsCher(tarif, 'cable');
+    if (cable) {
+      lignes.push({ article: cable, quantite: Math.ceil(metres), role: 'Câble réseau' });
+    } else manques.push('Aucun câble réseau au tarif.');
+  }
+  for (const [type, role] of [['connectique', 'Connectique et supports'],
+    ['coffret', 'Coffret réseau']]) {
+    const a = moinsCher(tarif, type);
+    if (a) lignes.push({ article: a, quantite: type === 'connectique' ? cameras : 1, role });
+  }
+
   const pose = { ...POSE_DEFAUT, ...(options.pose || {}) };
   return {
     cameras,
+    prevues,
+    metresCable: metres,
     jours,
     heuresParJour,
     capaciteGo,
@@ -965,6 +1055,8 @@ const RESERVES = [
     + 'végétation) ne peuvent être évalués à distance.',
   'Les prix sont donnés hors taxes et sous réserve de disponibilité des '
     + 'références au moment de la commande.',
+  'La longueur de câble est une moyenne de chantier, pas une mesure : le '
+    + 'cheminement réel ne se connaît qu\'au relevé.',
 ];
 
 /* ===== devis-client.js ===== */
@@ -1023,10 +1115,20 @@ const reponses = () => ({
   zones: parseInt($('#q-zones').value, 10),
   jours: parseInt($('#q-jours').value, 10),
   heuresParJour: parseInt($('#q-heures').value, 10),
+  extension: parseInt($('#q-extension').value, 10),
   ecran: $('#q-ecran').checked,
+  routeur: $('#q-routeur').checked,
   pose: $('#q-pose').checked,
 });
 
+/**
+ * Le synoptique, en SVG.
+ *
+ * Il ne sert pas à décorer : le client comprend d'un coup pourquoi un switch
+ * PoE figure au devis — les caméras y sont branchées, et c'est lui qui les
+ * alimente. C'est ce que le cahier des charges appelle la pédagogie, et c'est
+ * ce qui évite qu'on lui retire la ligne en croyant faire une économie.
+ */
 /** Échappe le texte : le tarif est un fichier que l'agence édite à la main. */
 const ech = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => (
   { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -1078,8 +1180,100 @@ function calculer() {
     <tr class="fort"><td colspan="3">Total TTC</td>
       <td class="nombre">${euros(d.totalTtc)}</td></tr>`;
 
+  dessinerSchema(offre, r);
   $('#reserves').innerHTML = RESERVES.map((x) => `<li>${ech(x)}</li>`).join('');
   majContact(offre, r, d);
+}
+
+/**
+ * Le synoptique, en SVG.
+ *
+ * Il ne sert pas à décorer : le client comprend d'un coup pourquoi un switch
+ * PoE figure au devis — les caméras y sont branchées, et c'est lui qui les
+ * alimente. C'est ce que le cahier des charges appelle la pédagogie, et c'est
+ * ce qui évite qu'on lui retire la ligne en croyant faire une économie.
+ */
+function dessinerSchema(offre, r) {
+  /*
+   * La chaîne est dessinée en entier, toujours.
+   *
+   * Ce schéma explique comment l'installation tient debout ; il ne dresse pas
+   * la liste de ce qui est au tarif. Un maillon absent du tarif y figure donc
+   * en grisé — sinon le client verrait des caméras reliées à rien et croirait
+   * l'architecture incomplète, alors que c'est seulement le tarif qui l'est.
+   */
+  const presents = new Set(offre.lignes.map((l) => l.role));
+  const couleur = (c, role) => (!role || presents.has(role) ? c : '#b6bcc6');
+
+  /*
+   * Chaque maillon nomme son parent : le téléphone dépend du routeur, l'écran
+   * de l'enregistreur. Relier chaque étage au précédent sans distinguer
+   * traçait un lien de l'enregistreur au téléphone, qui n'existe pas.
+   */
+  const noeuds = [
+    { id: 'cam', t: `${offre.cameras} caméra${offre.cameras > 1 ? 's' : ''}`,
+      c: '#c8102e', role: 'Caméras', niveau: 0 },
+    { id: 'sw', t: 'Switch PoE', c: '#2eae6a', role: 'Switch PoE', niveau: 1, parent: 'cam' },
+    { id: 'nvr', t: 'Enregistreur', c: '#c05cc0', role: 'Enregistreur', niveau: 2, parent: 'sw' },
+    r.routeur
+      ? { id: 'box', t: 'Routeur', c: '#3d8bfd', role: 'Routeur', niveau: 2, parent: 'sw' }
+      : null,
+    r.ecran
+      ? { id: 'ecr', t: 'Écran', c: '#d99b1f', role: 'Écran de supervision', niveau: 3, parent: 'nvr' }
+      : null,
+    r.routeur
+      ? { id: 'tel', t: 'Mon téléphone', c: '#5b6472', niveau: 3, parent: 'box' }
+      : null,
+  ].filter(Boolean);
+
+  const niveaux = Math.max(...noeuds.map((n) => n.niveau)) + 1;
+  const L = 560;
+  const hauteurEtage = 74;
+  const H = niveaux * hauteurEtage + 8;
+  const largeurBoite = 156;
+  const hauteurBoite = 40;
+
+  // Position : les maillons d'un même étage se répartissent sur la largeur.
+  const place = new Map();
+  for (let k = 0; k < niveaux; k += 1) {
+    const etage = noeuds.filter((n) => n.niveau === k);
+    etage.forEach((n, i) => place.set(n.id, {
+      x: (L * (i + 1)) / (etage.length + 1),
+      y: 26 + k * hauteurEtage,
+    }));
+  }
+
+  const traits = noeuds.filter((n) => n.parent && place.has(n.parent)).map((n) => {
+    const a = place.get(n.parent);
+    const b = place.get(n.id);
+    return `<line x1="${a.x}" y1="${a.y + hauteurBoite / 2}" `
+      + `x2="${b.x}" y2="${b.y - hauteurBoite / 2}" stroke="#aab1bb" stroke-width="2"/>`;
+  }).join('');
+
+  const boites = noeuds.map((n) => {
+    const p = place.get(n.id);
+    return `<g>
+      <rect x="${p.x - largeurBoite / 2}" y="${p.y - hauteurBoite / 2}"
+        width="${largeurBoite}" height="${hauteurBoite}" rx="8"
+        fill="${couleur(n.c, n.role)}" />
+      <text x="${p.x}" y="${p.y + 5}" text-anchor="middle"
+        fill="#fff" font-size="15" font-weight="600">${ech(n.t)}</text>
+    </g>`;
+  }).join('');
+
+  // Un maillon grisé mérite son mot d'explication, sous le schéma.
+  const absents = noeuds.filter((n) => n.role && !presents.has(n.role));
+  const note = absents.length
+    ? `<figcaption class="note-schema">En gris : `
+      + `${absents.map((n) => n.t.toLowerCase()).join(', ')} — `
+      + `nécessaire${absents.length > 1 ? 's' : ''} à l'installation, `
+      + `chiffré${absents.length > 1 ? 's' : ''} lors de l'étude.</figcaption>`
+    : '';
+
+  $('#schema').innerHTML = `<svg viewBox="0 0 ${L} ${H}" role="img"
+    aria-label="Schéma de raccordement de l'installation proposée">
+    ${traits}${boites}
+  </svg>${note}`;
 }
 
 /** Résumé en français courant, avant le tableau. */
@@ -1107,6 +1301,8 @@ function majContact(offre, r, d) {
     `- Type de site : ${TYPES_SITE[r.typeSite]?.label || r.typeSite}`,
     `- Zones à couvrir : ${offre.cameras}`,
     `- Conservation : ${offre.jours} jours, ${offre.heuresParJour} h/24`,
+    `- Extension prévue : ${offre.prevues - offre.cameras} caméra(s)`,
+    `- Câble estimé : ${offre.metresCable} m`,
     `- Écran de supervision : ${r.ecran ? 'oui' : 'non'}`,
     `- Installation par vos soins : ${r.pose ? 'oui' : 'non'}`,
     '',
@@ -1138,7 +1334,7 @@ async function demarrer() {
     calculer();
   });
 
-  ['#q-zones', '#q-jours', '#q-heures', '#q-ecran', '#q-pose']
+  ['#q-zones', '#q-jours', '#q-heures', '#q-extension', '#q-ecran', '#q-routeur', '#q-pose']
     .forEach((id) => {
       $(id).addEventListener('change', calculer);
       $(id).addEventListener('input', calculer);

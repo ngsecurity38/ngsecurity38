@@ -123,3 +123,14 @@ tfoot tr.fort td { font-size: 19px; font-weight: 700; border-top: 2px solid var(
   .repli[open] ul, .repli ul { display: block; }
   .bandeau { border: 1px solid #000; }
 }
+
+.synoptique { margin: 20px 0; padding: 0; }
+.synoptique figcaption {
+  font-size: 12px; text-transform: uppercase; letter-spacing: .05em;
+  color: var(--doux); margin-bottom: 10px;
+}
+.synoptique svg { width: 100%; height: auto; display: block; }
+.synoptique figcaption.note-schema {
+  font-size: 12px; color: var(--doux); margin: 8px 0 0;
+  text-transform: none; letter-spacing: 0; line-height: 1.45;
+}

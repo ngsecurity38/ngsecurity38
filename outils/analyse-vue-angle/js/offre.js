@@ -42,8 +42,20 @@ export const TYPES_SITE = {
  */
 export const POSE_DEFAUT = { base: 3, parCamera: 1.5 };
 
-/** Un port d'uplink est réservé sur le switch : il relie l'enregistreur. */
+/** Un port d'uplink est réservé sur le switch : il relie le routeur. */
 const PORTS_RESERVES = 1;
+
+/**
+ * Longueur de câble supposée par caméra, en mètres.
+ *
+ * Une moyenne de chantier, pas une mesure : le cheminement réel ne se connaît
+ * qu'au relevé. Elle sert à ce que le câble figure au budget plutôt que d'être
+ * découvert à la facture.
+ */
+export const METRES_PAR_CAMERA = 30;
+
+/** Consommation supposée d'une caméra quand le tarif ne la donne pas, en watts. */
+const CONSO_SUPPOSEE = 8;
 
 /** Articles d'un type donné, du moins cher au plus cher. */
 function candidats(tarif, type, filtre) {
@@ -88,21 +100,41 @@ export function composer(reponses = {}, tarif = [], options = {}) {
   if (camera) lignes.push({ article: camera, quantite: cameras, role: 'Caméras' });
   else manques.push('Aucune caméra au tarif.');
 
-  // --- le switch : assez de ports PoE pour les caméras, plus l'uplink
-  const portsRequis = cameras + PORTS_RESERVES;
-  const sw = moinsCher(tarif, 'switch', (a) => a.portsPoe >= cameras && a.ports >= portsRequis);
+  /*
+   * Le dimensionnement se fait sur le nombre de caméras **prévues**, extension
+   * comprise : poser un switch à huit ports pour huit caméras, c'est condamner
+   * la neuvième à un second switch.
+   */
+  const prevues = cameras + Math.max(0, Math.round(reponses.extension ?? 0));
+
+  // --- le switch : assez de ports PoE, assez de ports, et assez de watts
+  const portsRequis = prevues + PORTS_RESERVES;
+  const consoCamera = camera?.conso > 0 ? camera.conso : CONSO_SUPPOSEE;
+  const budgetRequis = consoCamera * prevues;
+  const sw = moinsCher(tarif, 'switch', (a) => a.portsPoe >= prevues
+    && a.ports >= portsRequis
+    && (!(a.budgetPoe > 0) || a.budgetPoe >= budgetRequis));
   if (sw) lignes.push({ article: sw, quantite: 1, role: 'Switch PoE' });
   else if (candidats(tarif, 'switch').length) {
-    manques.push(`Aucun switch du tarif n'offre ${cameras} ports PoE `
-      + `et ${portsRequis} ports au total.`);
+    manques.push(`Aucun switch du tarif n'offre ${prevues} ports PoE, `
+      + `${portsRequis} ports et ${Math.round(budgetRequis)} W de budget PoE.`);
   } else manques.push('Aucun switch au tarif.');
 
   // --- l'enregistreur : assez de canaux
-  const nvr = moinsCher(tarif, 'nvr', (a) => a.canaux >= cameras);
+  const nvr = moinsCher(tarif, 'nvr', (a) => a.canaux >= prevues);
   if (nvr) lignes.push({ article: nvr, quantite: 1, role: 'Enregistreur' });
   else if (candidats(tarif, 'nvr').length) {
-    manques.push(`Aucun enregistreur du tarif n'offre ${cameras} canaux.`);
+    manques.push(`Aucun enregistreur du tarif n'offre ${prevues} canaux.`);
   } else manques.push('Aucun enregistreur au tarif.');
+
+  // --- le routeur : la porte vers l'extérieur, sans laquelle pas d'accès distant
+  if (reponses.routeur !== false) {
+    const routeur = moinsCher(tarif, 'routeur');
+    if (routeur) lignes.push({ article: routeur, quantite: 1, role: 'Routeur' });
+    else if (candidats(tarif, 'routeur').length === 0 && reponses.routeur) {
+      manques.push('Aucun routeur au tarif.');
+    }
+  }
 
   // --- le disque : dimensionné sur la durée demandée
   const debit = camera?.debit > 0
@@ -122,9 +154,31 @@ export function composer(reponses = {}, tarif = [], options = {}) {
     else manques.push('Aucun écran au tarif.');
   }
 
+  /*
+   * Le câble et la connectique.
+   *
+   * Ils ne se voient pas sur une photo et se retrouvent pourtant sur toutes
+   * les factures. Les compter d'emblée évite l'écart le plus fréquent entre
+   * l'estimation et la note finale.
+   */
+  const metres = Math.max(0, reponses.metresParCamera ?? METRES_PAR_CAMERA) * cameras;
+  if (metres > 0) {
+    const cable = moinsCher(tarif, 'cable');
+    if (cable) {
+      lignes.push({ article: cable, quantite: Math.ceil(metres), role: 'Câble réseau' });
+    } else manques.push('Aucun câble réseau au tarif.');
+  }
+  for (const [type, role] of [['connectique', 'Connectique et supports'],
+    ['coffret', 'Coffret réseau']]) {
+    const a = moinsCher(tarif, type);
+    if (a) lignes.push({ article: a, quantite: type === 'connectique' ? cameras : 1, role });
+  }
+
   const pose = { ...POSE_DEFAUT, ...(options.pose || {}) };
   return {
     cameras,
+    prevues,
+    metresCable: metres,
     jours,
     heuresParJour,
     capaciteGo,
@@ -150,4 +204,6 @@ export const RESERVES = [
     + 'végétation) ne peuvent être évalués à distance.',
   'Les prix sont donnés hors taxes et sous réserve de disponibilité des '
     + 'références au moment de la commande.',
+  'La longueur de câble est une moyenne de chantier, pas une mesure : le '
+    + 'cheminement réel ne se connaît qu\'au relevé.',
 ];

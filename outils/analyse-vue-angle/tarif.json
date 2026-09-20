@@ -39,5 +39,11 @@
       "portsPoe": 8,
       "sourceAchat": { "type": "releve", "date": "20/09/2026", "source": "Getic.fr" }
     }
+  ],
+  "_a_completer": [
+    "Il manque à ce tarif : nvr (canaux), disque (capacite en Go), routeur,",
+    "cable (prix au mètre), connectique, coffret, ecran.",
+    "Tant qu'ils manquent, la page le dit au visiteur au lieu de composer une",
+    "installation incomplète sans le signaler."
   ]
 }

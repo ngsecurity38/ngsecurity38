@@ -58,8 +58,22 @@
         </select>
       </label>
 
+      <label>Prévoir une extension plus tard ?
+        <select id="q-extension">
+          <option value="0" selected>Non, l'installation est définitive</option>
+          <option value="2">Oui, deux caméras de plus à terme</option>
+          <option value="4">Oui, quatre caméras de plus à terme</option>
+        </select>
+        <small>Le switch et l'enregistreur sont alors choisis plus grands dès
+          maintenant : ajouter une caméra plus tard ne coûtera qu'une caméra.</small>
+      </label>
+
       <label class="case">
         <input type="checkbox" id="q-ecran"> Je veux un écran de supervision sur place
+      </label>
+
+      <label class="case">
+        <input type="checkbox" id="q-routeur" checked> J'ai besoin d'un routeur (accès à distance)
       </label>
 
       <label class="case">
@@ -73,6 +87,11 @@
     <p class="resume" id="resume"></p>
 
     <div id="manques"></div>
+
+    <figure class="synoptique">
+      <figcaption>Comment tout se raccorde</figcaption>
+      <div id="schema"></div>
+    </figure>
 
     <table id="table-devis">
       <thead>

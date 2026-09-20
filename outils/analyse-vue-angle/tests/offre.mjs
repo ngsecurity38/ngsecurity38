@@ -5,7 +5,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { TYPES_SITE, POSE_DEFAUT, RESERVES, composer } from '../js/offre.js';
+import {
+  TYPES_SITE, POSE_DEFAUT, METRES_PAR_CAMERA, RESERVES, composer,
+} from '../js/offre.js';
 
 /** Tarif d'essai : deux caméras, trois switches, deux NVR, trois disques. */
 const TARIF = [
@@ -20,6 +22,10 @@ const TARIF = [
   { type: 'disque', reference: 'HDD 8 To', prixAchat: 190, capacite: 8000 },
   { type: 'disque', reference: 'HDD 16 To', prixAchat: 330, capacite: 16000 },
   { type: 'ecran', reference: 'Écran 24"', prixAchat: 130 },
+  { type: 'routeur', reference: 'Routeur', prixAchat: 110 },
+  { type: 'cable', reference: 'U/FTP cat.6 (au mètre)', prixAchat: 0.9 },
+  { type: 'connectique', reference: 'Connectique et support', prixAchat: 12 },
+  { type: 'coffret', reference: 'Coffret réseau', prixAchat: 70 },
 ];
 
 const roles = (o) => Object.fromEntries(o.lignes.map((l) => [l.role, l]));
@@ -43,7 +49,62 @@ test('trois caméras : le switch, l\'enregistreur et le disque suivent', () => {
   // 3 caméras + 1 uplink = 4 ports, dont 3 PoE : le SW 5 suffit.
   assert.equal(r['Switch PoE'].article.reference, 'SW 5');
   assert.equal(r['Enregistreur'].article.reference, 'NVR 4');
+  assert.equal(r['Routeur'].article.reference, 'Routeur');
   assert.equal(o.manques.length, 0, JSON.stringify(o.manques));
+});
+
+test('le câble, la connectique et le coffret figurent au budget', () => {
+  const o = composer({ zones: 3, jours: 15 }, TARIF);
+  const r = roles(o);
+  assert.equal(o.metresCable, 3 * METRES_PAR_CAMERA);
+  assert.equal(r['Câble réseau'].quantite, 90, 'trente mètres par caméra');
+  assert.equal(r['Connectique et supports'].quantite, 3, 'une par caméra');
+  assert.equal(r['Coffret réseau'].quantite, 1);
+});
+
+test('la longueur de câble se règle', () => {
+  const o = composer({ zones: 2, jours: 15, metresParCamera: 50 }, TARIF);
+  assert.equal(o.metresCable, 100);
+  assert.equal(roles(o)['Câble réseau'].quantite, 100);
+  assert.equal(composer({ zones: 2, jours: 15, metresParCamera: 0 }, TARIF).metresCable, 0);
+});
+
+test('le switch est choisi sur son budget PoE autant que sur ses ports', () => {
+  // Huit caméras à 12 W : 96 W. Le SW 18 a les ports mais pas les watts.
+  const tarif = [
+    { type: 'camera', reference: 'CAM', prixAchat: 150, debit: 4, conso: 12 },
+    { type: 'switch', reference: 'SW 18 maigre', prixAchat: 220, ports: 18, portsPoe: 16, budgetPoe: 70 },
+    { type: 'switch', reference: 'SW 18 costaud', prixAchat: 300, ports: 18, portsPoe: 16, budgetPoe: 130 },
+  ];
+  const o = composer({ zones: 8, jours: 15 }, tarif);
+  assert.equal(roles(o)['Switch PoE'].article.reference, 'SW 18 costaud',
+    'le moins cher ne suffit pas s\'il ne peut pas alimenter');
+});
+
+test('un switch sans budget PoE annoncé n\'est pas écarté pour autant', () => {
+  const tarif = [
+    { type: 'camera', reference: 'CAM', prixAchat: 150, debit: 4, conso: 12 },
+    { type: 'switch', reference: 'SW muet', prixAchat: 100, ports: 10, portsPoe: 8 },
+  ];
+  assert.ok(roles(composer({ zones: 4, jours: 15 }, tarif))['Switch PoE'],
+    'ce qui n\'est pas dit ne doit pas disqualifier');
+});
+
+test('une extension prévue dimensionne le switch et l\'enregistreur', () => {
+  const sans = composer({ zones: 4, jours: 15 }, TARIF);
+  assert.equal(roles(sans)['Switch PoE'].article.reference, 'SW 5');
+  assert.equal(roles(sans)['Enregistreur'].article.reference, 'NVR 4');
+
+  const avec = composer({ zones: 4, jours: 15, extension: 2 }, TARIF);
+  assert.equal(avec.prevues, 6);
+  assert.equal(roles(avec)['Switch PoE'].article.reference, 'SW 10', 'six caméras à terme');
+  assert.equal(roles(avec)['Enregistreur'].article.reference, 'NVR 8');
+  assert.equal(roles(avec)['Caméras'].quantite, 4, 'mais on n\'en vend que quatre');
+});
+
+test('le routeur peut être écarté quand le client en a déjà un', () => {
+  assert.ok(roles(composer({ zones: 2, jours: 15 }, TARIF))['Routeur']);
+  assert.ok(!roles(composer({ zones: 2, jours: 15, routeur: false }, TARIF))['Routeur']);
 });
 
 test('le switch réserve un port pour l\'enregistreur', () => {
@@ -92,13 +153,15 @@ test('ce qui manque au tarif est dit, et rien n\'est inventé', () => {
   assert.ok(!roles(o)['Enregistreur']);
   assert.ok(o.manques.some((m) => /20 ports PoE/.test(m)), JSON.stringify(o.manques));
   assert.ok(o.manques.some((m) => /20 canaux/.test(m)), JSON.stringify(o.manques));
+  assert.ok(o.manques.some((m) => /budget PoE/.test(m)), JSON.stringify(o.manques));
   assert.ok(o.manques.some((m) => /disque/.test(m)), JSON.stringify(o.manques));
 });
 
 test('un tarif vide ne compose rien et le dit', () => {
   const o = composer({ zones: 3, jours: 30 }, []);
   assert.equal(o.lignes.length, 0);
-  assert.equal(o.manques.length, 4, JSON.stringify(o.manques));
+  // Caméra, switch, enregistreur, disque, câble : cinq manques nommés.
+  assert.equal(o.manques.length, 5, JSON.stringify(o.manques));
   assert.ok(o.manques.every((m) => /Aucun/.test(m)));
 });
 
@@ -136,4 +199,5 @@ test('les réserves disent ce qu\'une configuration à distance ne sait pas', ()
   assert.ok(RESERVES.length >= 3);
   assert.ok(RESERVES.some((r) => /sans visite du site/.test(r)));
   assert.ok(RESERVES.some((r) => /angles de vue|obstacles/.test(r)));
+  assert.ok(RESERVES.some((r) => /longueur de câble/.test(r)));
 });
