@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Estimer mon installation de vidéosurveillance — NG Security 38</title>
+<meta name="description" content="Estimez en une minute le matériel et le budget d'une installation de vidéosurveillance : caméras, enregistreur, stockage et pose.">
+<link rel="stylesheet" href="devis-client.css">
+</head>
+<body>
+
+<header class="entete">
+  <div class="dedans">
+    <h1>Estimer mon installation</h1>
+    <p>Quatre questions, et vous savez ce qu'il vous faut et ce que cela coûte.
+      Sans engagement.</p>
+  </div>
+</header>
+
+<main class="dedans">
+
+  <p class="bandeau" id="bandeau-exemple" hidden>
+    <b>Tarif d'exemple.</b> Les montants affichés servent à illustrer le
+    fonctionnement de cette page et ne constituent pas une offre.
+  </p>
+
+  <section class="carte">
+    <h2>Votre site</h2>
+
+    <div class="questions">
+      <label>Quel type de site ?
+        <select id="q-type"></select>
+      </label>
+
+      <label>Combien d'accès ou de zones à couvrir ?
+        <input type="number" id="q-zones" min="1" max="32" step="1" value="3">
+        <small>Une entrée, un portail, une façade, une allée : comptez une
+          caméra par point à surveiller.</small>
+      </label>
+
+      <label>Combien de temps garder les images ?
+        <select id="q-jours">
+          <option value="7">7 jours</option>
+          <option value="15">15 jours</option>
+          <option value="30" selected>30 jours</option>
+          <option value="45">45 jours</option>
+          <option value="60">60 jours</option>
+          <option value="90">90 jours</option>
+        </select>
+        <small>Trente jours conviennent à la plupart des sites. Plus longtemps
+          demande un disque plus gros.</small>
+      </label>
+
+      <label>Enregistrement
+        <select id="q-heures">
+          <option value="24" selected>24 h/24</option>
+          <option value="14">Seulement la nuit et les heures de fermeture</option>
+        </select>
+      </label>
+
+      <label class="case">
+        <input type="checkbox" id="q-ecran"> Je veux un écran de supervision sur place
+      </label>
+
+      <label class="case">
+        <input type="checkbox" id="q-pose" checked> Installation et mise en service par NG Security 38
+      </label>
+    </div>
+  </section>
+
+  <section class="carte" id="resultat" hidden>
+    <h2>Ce qu'il vous faut</h2>
+    <p class="resume" id="resume"></p>
+
+    <div id="manques"></div>
+
+    <table id="table-devis">
+      <thead>
+        <tr><th>Désignation</th><th class="nombre">Qté</th>
+          <th class="nombre">PU HT</th><th class="nombre">Total HT</th></tr>
+      </thead>
+      <tbody id="lignes"></tbody>
+      <tfoot id="totaux"></tfoot>
+    </table>
+
+    <details class="repli">
+      <summary>Ce que cette estimation ne peut pas savoir</summary>
+      <ul id="reserves"></ul>
+    </details>
+
+    <div class="actions">
+      <button type="button" id="btn-imprimer" class="btn">Imprimer / enregistrer en PDF</button>
+      <a id="btn-contact" class="btn btn-plein" href="#">Demander une étude gratuite</a>
+    </div>
+  </section>
+
+  <p class="pied">
+    Estimation établie à partir de vos réponses, sans visite du site. Elle ne
+    vaut pas devis : seul un relevé technique permet d'arrêter le nombre de
+    caméras, leurs emplacements et le cheminement des câbles.
+  </p>
+</main>
+
+<script type="module" src="js/devis-client.js"></script>
+</body>
+</html>

@@ -1,0 +1,153 @@
+/**
+ * Composition automatique d'une installation, à partir de ce qu'un client sait
+ * dire de son site.
+ *
+ * Un particulier ne connaît ni focale, ni budget PoE, ni codec. Il sait en
+ * revanche combien d'accès il veut couvrir, s'ils sont dehors, et combien de
+ * temps il veut garder les images. De ces trois réponses on tire une
+ * installation cohérente : les caméras, le switch qui les alimente,
+ * l'enregistreur qui les reçoit et le disque qui tient la durée demandée.
+ *
+ * Ce module **ne choisit rien qui ne soit au tarif**. S'il manque un switch
+ * assez grand ou un disque assez gros, il le dit au lieu de composer une
+ * installation qui ne se commande pas.
+ *
+ * Module pur (aucune dépendance au DOM), testé sous Node.
+ */
+
+import { capaciteNecessaire, debitEstime } from './stockage.js';
+
+/**
+ * Types de site proposés au client, avec ce qu'ils impliquent d'ordinaire.
+ *
+ * `zones` est une **suggestion de départ**, pas une règle : le client la
+ * corrige. `jours` reprend les durées de conservation habituelles — un
+ * commerce garde plus longtemps qu'un particulier.
+ */
+export const TYPES_SITE = {
+  maison: { label: 'Maison', article: 'une', zones: 3, jours: 15, exterieur: true },
+  commerce: { label: 'Commerce', article: 'un', zones: 4, jours: 30, exterieur: false },
+  entrepot: { label: 'Entrepôt', article: 'un', zones: 6, jours: 30, exterieur: true },
+  parking: { label: 'Parking', article: 'un', zones: 4, jours: 30, exterieur: true },
+  copropriete: { label: 'Copropriété', article: 'une', zones: 6, jours: 30, exterieur: true },
+  chantier: { label: 'Chantier', article: 'un', zones: 4, jours: 15, exterieur: true },
+};
+
+/**
+ * Temps de pose, en heures.
+ *
+ * Une base pour le coffret, le réseau et la mise en service, puis un forfait
+ * par caméra — percement, fixation, tirage, réglage. Ces valeurs sont celles de
+ * l'agence et se règlent : elles ne sortent d'aucune norme.
+ */
+export const POSE_DEFAUT = { base: 3, parCamera: 1.5 };
+
+/** Un port d'uplink est réservé sur le switch : il relie l'enregistreur. */
+const PORTS_RESERVES = 1;
+
+/** Articles d'un type donné, du moins cher au plus cher. */
+function candidats(tarif, type, filtre) {
+  return (tarif || [])
+    .filter((a) => a.type === type)
+    .filter((a) => (filtre ? filtre(a) : true))
+    .filter((a) => prixRepere(a) > 0)
+    .sort((a, b) => prixRepere(a) - prixRepere(b));
+}
+
+/** Prix servant au classement : celui de vente s'il existe, sinon l'achat. */
+const prixRepere = (a) => (a.prixVente > 0 ? a.prixVente : a.prixAchat || 0);
+
+/** Le moins cher qui convient, ou `null`. */
+const moinsCher = (tarif, type, filtre) => candidats(tarif, type, filtre)[0] || null;
+
+/**
+ * Compose une installation.
+ *
+ * @param {object} reponses ce que le client a indiqué
+ * @param {string} reponses.typeSite clé de TYPES_SITE
+ * @param {number} reponses.zones nombre d'accès à couvrir
+ * @param {number} reponses.jours durée de conservation
+ * @param {boolean} [reponses.ecran] poste de visualisation sur place
+ * @param {object[]} tarif articles disponibles, avec leurs prix
+ * @param {object} [options]
+ * @param {object} [options.pose] base et forfait par caméra, en heures
+ * @returns {{lignes: object[], heures: number, manques: string[], capaciteGo: number}}
+ */
+export function composer(reponses = {}, tarif = [], options = {}) {
+  const type = TYPES_SITE[reponses.typeSite] ? reponses.typeSite : 'maison';
+  const defauts = TYPES_SITE[type];
+  const cameras = Math.max(1, Math.round(reponses.zones ?? defauts.zones));
+  const jours = Math.max(1, Math.round(reponses.jours ?? defauts.jours));
+  const heuresParJour = Math.min(24, Math.max(1, reponses.heuresParJour ?? 24));
+
+  const lignes = [];
+  const manques = [];
+
+  // --- la caméra : la moins chère du tarif, puisque c'est ce qu'on demande
+  const camera = moinsCher(tarif, 'camera');
+  if (camera) lignes.push({ article: camera, quantite: cameras, role: 'Caméras' });
+  else manques.push('Aucune caméra au tarif.');
+
+  // --- le switch : assez de ports PoE pour les caméras, plus l'uplink
+  const portsRequis = cameras + PORTS_RESERVES;
+  const sw = moinsCher(tarif, 'switch', (a) => a.portsPoe >= cameras && a.ports >= portsRequis);
+  if (sw) lignes.push({ article: sw, quantite: 1, role: 'Switch PoE' });
+  else if (candidats(tarif, 'switch').length) {
+    manques.push(`Aucun switch du tarif n'offre ${cameras} ports PoE `
+      + `et ${portsRequis} ports au total.`);
+  } else manques.push('Aucun switch au tarif.');
+
+  // --- l'enregistreur : assez de canaux
+  const nvr = moinsCher(tarif, 'nvr', (a) => a.canaux >= cameras);
+  if (nvr) lignes.push({ article: nvr, quantite: 1, role: 'Enregistreur' });
+  else if (candidats(tarif, 'nvr').length) {
+    manques.push(`Aucun enregistreur du tarif n'offre ${cameras} canaux.`);
+  } else manques.push('Aucun enregistreur au tarif.');
+
+  // --- le disque : dimensionné sur la durée demandée
+  const debit = camera?.debit > 0
+    ? camera.debit
+    : debitEstime({ resH: camera?.resH || 2560, resV: camera?.resV || 1440 });
+  const capaciteGo = capaciteNecessaire({ debitTotal: debit * cameras, jours, heuresParJour });
+  const disque = moinsCher(tarif, 'disque', (a) => a.capacite >= capaciteGo);
+  if (disque) lignes.push({ article: disque, quantite: 1, role: 'Disque de surveillance' });
+  else if (candidats(tarif, 'disque').length) {
+    manques.push(`Aucun disque du tarif ne couvre ${Math.round(capaciteGo)} Go.`);
+  } else manques.push('Aucun disque au tarif.');
+
+  // --- l'écran, si le client en veut un
+  if (reponses.ecran) {
+    const ecran = moinsCher(tarif, 'ecran');
+    if (ecran) lignes.push({ article: ecran, quantite: 1, role: 'Écran de supervision' });
+    else manques.push('Aucun écran au tarif.');
+  }
+
+  const pose = { ...POSE_DEFAUT, ...(options.pose || {}) };
+  return {
+    cameras,
+    jours,
+    heuresParJour,
+    capaciteGo,
+    debitTotal: debit * cameras,
+    lignes,
+    heures: reponses.pose === false ? 0 : pose.base + pose.parCamera * cameras,
+    manques,
+  };
+}
+
+/**
+ * Ce que l'installation composée ne saurait promettre.
+ *
+ * Une configuration tirée de trois réponses n'est pas une étude. Le dire au
+ * client n'affaiblit pas la proposition : cela évite qu'il découvre sur place
+ * qu'il faut une caméra de plus, et que l'écart lui soit reproché.
+ */
+export const RESERVES = [
+  'Cette configuration est établie à partir de vos réponses, sans visite du '
+    + 'site. Le nombre de caméras et leur emplacement définitif sont arrêtés '
+    + 'lors du relevé technique.',
+  'Les angles de vue, les longueurs de câble et les obstacles (murs, portails, '
+    + 'végétation) ne peuvent être évalués à distance.',
+  'Les prix sont donnés hors taxes et sous réserve de disponibilité des '
+    + 'références au moment de la commande.',
+];

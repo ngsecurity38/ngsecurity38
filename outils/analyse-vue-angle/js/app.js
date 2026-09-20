@@ -3414,6 +3414,7 @@ function brancherCommandesReseau() {
   ['#devis-marge', '#devis-remise', '#devis-heures', '#devis-taux', '#devis-tva']
     .forEach((id) => $(id).addEventListener('change', majReseau));
   $('#devis-prix-releves').addEventListener('click', chargerPrixReleves);
+  $('#devis-tarif').addEventListener('click', exporterTarif);
   $('#mur-hauteur').addEventListener('change', majReseau);
   $('#opt-couverture').addEventListener('change', majReseau);
   $('#nvr-marge').value = Math.round(MARGE_DEFAUT * 100);
@@ -3779,6 +3780,68 @@ function chargerPrixReleves() {
       + `(${DATE_RELEVE}) — à confirmer auprès de votre distributeur.`
     : 'Aucune référence du synoptique ne figure au relevé de prix. '
       + 'Saisissez la référence exacte sur la fiche du matériel.';
+  $('#etat-analyse').classList.remove('erreur');
+}
+
+/**
+ * Exporte le tarif que lit la page de devis client.
+ *
+ * Le pont entre les deux outils : ce que l'agence a chiffré ici alimente
+ * l'estimation que ses clients font eux-mêmes. Seuls les matériels portant un
+ * prix sont exportés — un tarif à trous ferait composer des installations
+ * incomplètes chez le client, ce que la page ne saurait pas expliquer.
+ */
+function exporterTarif() {
+  const r = synoptiqueCourant();
+  const vus = new Set();
+  const articles = [];
+
+  for (const n of r.noeuds) {
+    if (!(n.prixAchat > 0 || n.prixVente > 0)) continue;
+    const cle = `${n.type}|${n.reference}`;
+    if (!n.reference || vus.has(cle)) continue;
+    vus.add(cle);
+    articles.push({
+      type: n.type,
+      reference: n.reference,
+      ...(n.prixAchat > 0 ? { prixAchat: n.prixAchat } : {}),
+      ...(n.prixVente > 0 ? { prixVente: n.prixVente } : {}),
+      ...(n.sourceAchat ? { sourceAchat: n.sourceAchat } : {}),
+      ...(n.debit > 0 ? { debit: n.debit } : {}),
+      ...(n.ports > 0 ? { ports: n.ports, portsPoe: n.portsPoe } : {}),
+      ...(n.canaux > 0 ? { canaux: n.canaux } : {}),
+    });
+  }
+
+  if (!articles.length) {
+    $('#etat-analyse').textContent = 'Aucun matériel du synoptique ne porte à la fois '
+      + 'une référence et un prix : il n\'y a rien à exporter.';
+    $('#etat-analyse').classList.add('erreur');
+    return;
+  }
+
+  const d = new Date();
+  const tarif = {
+    _lisez_moi: 'Tarif de la page de devis client. Ajoutez les disques à la main '
+      + '(type « disque », champ « capacite » en Go) : l\'outil d\'étude ne les gère pas.',
+    exemple: false,
+    maj: `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`,
+    marge: nb($('#devis-marge'), 25) / 100,
+    tauxHoraire: nb($('#devis-taux'), 55),
+    tva: nb($('#devis-tva'), 20) / 100,
+    articles,
+  };
+
+  const blob = new Blob([JSON.stringify(tarif, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'tarif.json';
+  a.click();
+  URL.revokeObjectURL(url);
+
+  $('#etat-analyse').textContent = `Tarif exporté — ${plur(articles.length, 'article')}. `
+    + 'À poser à côté de devis-client.html.';
   $('#etat-analyse').classList.remove('erreur');
 }
 

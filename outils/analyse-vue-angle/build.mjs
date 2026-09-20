@@ -31,10 +31,10 @@ const MODULES = [
  * charge, puis lâche au premier appel avec un « X is not defined ». Le fichier
  * livré paraît bon et ne l'est pas. Mieux vaut un build qui refuse.
  */
-function verifierListe() {
-  const declares = new Set(MODULES);
+function verifierListe(liste) {
+  const declares = new Set(liste);
   const manquants = new Set();
-  for (const nom of MODULES) {
+  for (const nom of liste) {
     const source = lire('js', nom);
     for (const m of source.matchAll(/from\s*['"]\.\/([\w-]+\.js)['"]/g)) {
       if (!declares.has(m[1])) manquants.add(`${m[1]} (importé par ${nom})`);
@@ -46,7 +46,7 @@ function verifierListe() {
       + 'se chargera puis plantera à l\'usage.');
   }
 }
-verifierListe();
+verifierListe(MODULES);
 
 /** Neutralise toute fin de balise qui casserait le script ou le style l'accueillant. */
 const inerte = (code) => code.replace(/<\/(script|style)/gi, '<\\/$1');
@@ -148,3 +148,34 @@ const ocr = [
 ].join('\n');
 
 ecrire('analyse-vue-angle-ocr.html', injecter(html, '</head>', `${ocr}\n</head>`));
+
+/*
+ * Page de devis client, fabriquée à part.
+ *
+ * Elle partage les calculs de l'outil d'étude — c'est tout l'intérêt : un
+ * client et un technicien ne doivent jamais lire deux chiffres différents du
+ * même site — mais elle est publique, légère, et n'embarque ni PDF.js ni OCR.
+ *
+ * Le tarif y est inclus en secours. Servie depuis un site web, la page relit
+ * `tarif.json` posé à côté d'elle : mettre un prix à jour ne demande alors ni
+ * outil ni reconstruction.
+ */
+const MODULES_CLIENT = ['dom.js', 'format.js', 'stockage.js', 'prix.js',
+  'offre.js', 'devis-client.js'];
+verifierListe(MODULES_CLIENT);
+
+const paquetClient = `(function () {\n'use strict';\n\n`
+  + `${MODULES_CLIENT.map((nom) => `/* ===== ${nom} ===== */\n`
+    + deModuliser(lire('js', nom)).trim()).join('\n\n')}\n\n}());`;
+
+let client = lire('devis-client.html');
+client = injecter(client, '<link rel="stylesheet" href="devis-client.css">',
+  `<style>${inerte(lire('devis-client.css'))}</style>`);
+client = injecter(client, '<script type="module" src="js/devis-client.js"></script>',
+  `<script>window.__tarif=${inerte(lire('tarif.json'))};</script>\n`
+  + `<script>${inerte(paquetClient)}</script>`);
+client = injecter(client, '<head>', `<head>\n<!-- Devis client — NG Security 38.\n`
+  + `     Fichier unique produit par build.mjs le ${new Date().toISOString().slice(0, 10)}.\n`
+  + '     Pour changer les prix : éditer tarif.json, à côté de la page. -->');
+
+ecrire('devis-client.html', client);

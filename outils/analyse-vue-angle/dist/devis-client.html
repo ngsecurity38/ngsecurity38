@@ -1,0 +1,1164 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<!-- Devis client — NG Security 38.
+     Fichier unique produit par build.mjs le 2026-09-20.
+     Pour changer les prix : éditer tarif.json, à côté de la page. -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Estimer mon installation de vidéosurveillance — NG Security 38</title>
+<meta name="description" content="Estimez en une minute le matériel et le budget d'une installation de vidéosurveillance : caméras, enregistreur, stockage et pose.">
+<style>/* Devis client — NG Security 38.
+   Page publique : lisible sur téléphone d'abord, imprimable ensuite. */
+
+:root {
+  --rouge: #c8102e;
+  --rouge-sombre: #9d0c24;
+  --encre: #1a1d23;
+  --doux: #5b6472;
+  --bord: #dde1e7;
+  --fond: #f6f7f9;
+  --police: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  font-family: var(--police);
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--encre);
+  background: var(--fond);
+}
+
+.dedans { max-width: 760px; margin: 0 auto; padding: 0 20px; }
+
+.entete {
+  background: var(--encre);
+  color: #fff;
+  padding: 32px 0 28px;
+  border-bottom: 4px solid var(--rouge);
+}
+.entete h1 { margin: 0 0 6px; font-size: 26px; }
+.entete p { margin: 0; color: #c3c9d3; }
+
+main { padding-bottom: 48px; }
+
+.carte {
+  background: #fff;
+  border: 1px solid var(--bord);
+  border-radius: 12px;
+  padding: 22px;
+  margin: 22px 0;
+}
+.carte h2 { margin: 0 0 16px; font-size: 18px; }
+
+.bandeau {
+  margin: 22px 0 0;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: #fff4d6;
+  border: 1px solid #e3c77a;
+  font-size: 14px;
+}
+
+.questions { display: grid; gap: 18px; }
+.questions label { display: block; font-weight: 600; }
+.questions small { display: block; font-weight: 400; color: var(--doux); font-size: 13px; margin-top: 4px; }
+.questions input[type="number"], .questions select {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 11px 12px;
+  font: inherit;
+  color: inherit;
+  background: #fff;
+  border: 1px solid var(--bord);
+  border-radius: 8px;
+}
+.questions .case { display: flex; align-items: center; gap: 10px; font-weight: 400; }
+.questions .case input { width: 20px; height: 20px; }
+
+.resume {
+  margin: 0 0 16px;
+  padding: 14px 16px;
+  background: var(--fond);
+  border-left: 3px solid var(--rouge);
+  border-radius: 0 8px 8px 0;
+}
+
+.manques, .manques li { color: #8a5a00; font-size: 14px; }
+.manques { margin: 0 0 16px; padding-left: 20px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 15px; }
+th, td { padding: 10px 8px; text-align: left; border-bottom: 1px solid var(--bord); }
+th { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--doux); }
+.nombre { text-align: right; white-space: nowrap; }
+.ref { color: var(--doux); font-size: 13px; }
+tfoot td { border-bottom: 0; padding-top: 12px; }
+tfoot tr.fort td { font-size: 19px; font-weight: 700; border-top: 2px solid var(--encre); }
+
+.repli { margin-top: 18px; font-size: 14px; }
+.repli summary { cursor: pointer; color: var(--doux); }
+.repli ul { margin: 10px 0 0; padding-left: 20px; color: var(--doux); }
+
+.actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
+.btn {
+  display: inline-block;
+  font: inherit;
+  font-weight: 600;
+  padding: 12px 20px;
+  border-radius: 8px;
+  border: 1px solid var(--bord);
+  background: #fff;
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+.btn-plein { background: var(--rouge); border-color: var(--rouge); color: #fff; }
+.btn-plein:hover { background: var(--rouge-sombre); border-color: var(--rouge-sombre); }
+
+.pied { color: var(--doux); font-size: 13px; margin-top: 28px; }
+
+/* À l'impression, le client garde le chiffrage : les questions n'y servent
+   plus, et l'encre non plus. */
+@media print {
+  body { background: #fff; font-size: 12pt; }
+  .entete { background: #fff; color: #000; border-bottom: 2px solid #000; padding: 0 0 8pt; }
+  .entete p { color: #444; }
+  .carte { border: 0; padding: 0; margin: 12pt 0; }
+  .questions, .actions, .repli summary { display: none; }
+  .repli[open] ul, .repli ul { display: block; }
+  .bandeau { border: 1px solid #000; }
+}
+</style>
+</head>
+<body>
+
+<header class="entete">
+  <div class="dedans">
+    <h1>Estimer mon installation</h1>
+    <p>Quatre questions, et vous savez ce qu'il vous faut et ce que cela coûte.
+      Sans engagement.</p>
+  </div>
+</header>
+
+<main class="dedans">
+
+  <p class="bandeau" id="bandeau-exemple" hidden>
+    <b>Tarif d'exemple.</b> Les montants affichés servent à illustrer le
+    fonctionnement de cette page et ne constituent pas une offre.
+  </p>
+
+  <section class="carte">
+    <h2>Votre site</h2>
+
+    <div class="questions">
+      <label>Quel type de site ?
+        <select id="q-type"></select>
+      </label>
+
+      <label>Combien d'accès ou de zones à couvrir ?
+        <input type="number" id="q-zones" min="1" max="32" step="1" value="3">
+        <small>Une entrée, un portail, une façade, une allée : comptez une
+          caméra par point à surveiller.</small>
+      </label>
+
+      <label>Combien de temps garder les images ?
+        <select id="q-jours">
+          <option value="7">7 jours</option>
+          <option value="15">15 jours</option>
+          <option value="30" selected>30 jours</option>
+          <option value="45">45 jours</option>
+          <option value="60">60 jours</option>
+          <option value="90">90 jours</option>
+        </select>
+        <small>Trente jours conviennent à la plupart des sites. Plus longtemps
+          demande un disque plus gros.</small>
+      </label>
+
+      <label>Enregistrement
+        <select id="q-heures">
+          <option value="24" selected>24 h/24</option>
+          <option value="14">Seulement la nuit et les heures de fermeture</option>
+        </select>
+      </label>
+
+      <label class="case">
+        <input type="checkbox" id="q-ecran"> Je veux un écran de supervision sur place
+      </label>
+
+      <label class="case">
+        <input type="checkbox" id="q-pose" checked> Installation et mise en service par NG Security 38
+      </label>
+    </div>
+  </section>
+
+  <section class="carte" id="resultat" hidden>
+    <h2>Ce qu'il vous faut</h2>
+    <p class="resume" id="resume"></p>
+
+    <div id="manques"></div>
+
+    <table id="table-devis">
+      <thead>
+        <tr><th>Désignation</th><th class="nombre">Qté</th>
+          <th class="nombre">PU HT</th><th class="nombre">Total HT</th></tr>
+      </thead>
+      <tbody id="lignes"></tbody>
+      <tfoot id="totaux"></tfoot>
+    </table>
+
+    <details class="repli">
+      <summary>Ce que cette estimation ne peut pas savoir</summary>
+      <ul id="reserves"></ul>
+    </details>
+
+    <div class="actions">
+      <button type="button" id="btn-imprimer" class="btn">Imprimer / enregistrer en PDF</button>
+      <a id="btn-contact" class="btn btn-plein" href="#">Demander une étude gratuite</a>
+    </div>
+  </section>
+
+  <p class="pied">
+    Estimation établie à partir de vos réponses, sans visite du site. Elle ne
+    vaut pas devis : seul un relevé technique permet d'arrêter le nombre de
+    caméras, leurs emplacements et le cheminement des câbles.
+  </p>
+</main>
+
+<script>window.__tarif={
+  "_lisez_moi": [
+    "Tarif utilisé par la page de devis client (devis-client.html).",
+    "C'est le SEUL fichier à modifier pour mettre les prix à jour : la page le",
+    "relit à chaque ouverture quand elle est servie depuis un site web.",
+    "",
+    "Champs par article :",
+    "  type       camera | switch | nvr | disque | ecran",
+    "  reference  ce que lira le client",
+    "  prixAchat  ce que vous payez, hors taxes",
+    "  prixVente  ce que vous facturez, hors taxes. S'il est renseigné, il",
+    "             s'impose et la marge ne s'applique pas.",
+    "  debit      Mbit/s (caméra) — sert à dimensionner le disque",
+    "  ports/portsPoe  (switch)   canaux (nvr)   capacite en Go (disque)",
+    "",
+    "Passez exemple à false une fois vos prix saisis : la page cessera",
+    "d'afficher l'avertissement de tarif non contractuel."
+  ],
+  "exemple": true,
+  "maj": "20/09/2026",
+  "marge": 0.25,
+  "tauxHoraire": 55,
+  "tva": 0.2,
+  "articles": [
+    {
+      "type": "camera",
+      "reference": "Hikvision DS-2CD2T86G2-4I — bullet 8 MP",
+      "prixAchat": 214.57,
+      "debit": 8,
+      "resH": 3840,
+      "resV": 2160,
+      "sourceAchat": { "type": "releve", "date": "20/09/2026", "source": "Getic.fr" }
+    },
+    {
+      "type": "switch",
+      "reference": "Hikvision DS-3E0310HP-E — 8 ports PoE, 120 W",
+      "prixAchat": 86.62,
+      "ports": 10,
+      "portsPoe": 8,
+      "sourceAchat": { "type": "releve", "date": "20/09/2026", "source": "Getic.fr" }
+    }
+  ]
+}
+;</script>
+<script>(function () {
+'use strict';
+
+/* ===== dom.js ===== */
+/** Raccourcis de sélection, partagés par les modules d'interface. */
+
+const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => [...document.querySelectorAll(sel)];
+
+/** Charge un script à la demande : les gros moteurs ne sont montés qu'au besoin. */
+function chargerScript(src) {
+  return new Promise((resoudre, rejeter) => {
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = resoudre;
+    s.onerror = () => rejeter(new Error(`Fichier introuvable : ${src}`));
+    document.head.append(s);
+  });
+}
+
+/* ===== format.js ===== */
+/** Mise en forme des nombres à la française, partagée par les modules. */
+
+const arrondir = (v, n = 1) => {
+  const f = 10 ** n;
+  return Math.round(v * f) / f;
+};
+
+/** « 6,4 » plutôt que « 6.4 » : ces valeurs sont lues sur le terrain. */
+const fr = (v, n = 1) => String(arrondir(v, n)).replace('.', ',');
+
+/** Idem, avec le signe explicite : un écart se lit « +2,4 » ou « −1,1 ». */
+const signe = (v, n = 1) => (v > 0 ? `+${fr(v, n)}` : fr(v, n));
+
+/**
+ * Grands nombres avec séparateur de milliers : « 15 552 » se lit d'un coup
+ * d'œil, « 15552 » se compte du doigt. L'espace est insécable, pour qu'un
+ * retour à la ligne ne coupe pas le nombre en deux.
+ */
+const frGroupe = (v, n = 0) => fr(v, n).replace(
+  /\d(?=(\d{3})+(,|$))/g, '$&\u202f',
+);
+
+/* ===== stockage.js ===== */
+/**
+ * Enregistrement et alimentation : stockage, budget PoE, contrôles d'ensemble.
+ *
+ * Trois questions que le client pose toujours, et qui se chiffrent :
+ *
+ * - « Combien de jours je garde les images ? » → capacité de l'enregistreur ;
+ * - « Le switch suffit ? » → nombre de ports et budget PoE ;
+ * - « Tout est bien branché ? » → canaux, adresses, alimentations.
+ *
+ * Les valeurs de débit sont **les vôtres** : celles de la fiche technique ou de
+ * l'étude. L'estimation fournie ici n'est qu'un ordre de grandeur pour démarrer,
+ * et l'outil le dit — un débit supposé faux se paie en téraoctets.
+ *
+ * Module pur (aucune dépendance au DOM), testé sous Node.
+ */
+
+
+/**
+ * Un mégabit par seconde pendant vingt-quatre heures.
+ *
+ * 1 Mbit/s × 86 400 s = 86 400 Mbit = 10 800 Mo = 10,8 Go. Les gigaoctets sont
+ * décimaux (10⁹ octets), comme les étiquettes des disques : c'est la seule
+ * convention qui permette de comparer un besoin à une référence du commerce.
+ */
+const GO_PAR_MBPS_JOUR = 10.8;
+
+/** Marge appliquée par défaut à la capacité calculée. */
+const MARGE_DEFAUT = 0.2;
+
+/**
+ * Compression : bits par pixel et par image, par codec.
+ *
+ * Ordres de grandeur, pas des valeurs de fiche technique. Ils servent à
+ * proposer un débit quand on n'en a aucun, jamais à contredire celui que porte
+ * l'étude.
+ */
+const BITS_PAR_PIXEL = { h264: 0.07, h265: 0.035, 'h265+': 0.025 };
+
+/** Codecs proposés, du plus ancien au plus économe. */
+const CODECS = [
+  { cle: 'h264', label: 'H.264' },
+  { cle: 'h265', label: 'H.265' },
+  { cle: 'h265+', label: 'H.265+ / Smart codec' },
+];
+
+/** Capacités de disques de vidéosurveillance couramment disponibles, en To. */
+const DISQUES = [1, 2, 3, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24];
+
+/**
+ * Débit estimé d'une caméra, en Mbit/s.
+ *
+ * @param {object} camera résolution, images par seconde, codec
+ * @returns {number} estimation, 0 si les données manquent
+ */
+function debitEstime({ resH, resV, ips = 25, codec = 'h265' }) {
+  const pixels = (resH || 0) * (resV || 0);
+  const bpp = BITS_PAR_PIXEL[codec] ?? BITS_PAR_PIXEL.h265;
+  if (!(pixels > 0) || !(ips > 0)) return 0;
+  return (pixels * ips * bpp) / 1e6;
+}
+
+/**
+ * Capacité nécessaire, en gigaoctets.
+ *
+ * @param {object} p
+ * @param {number} p.debitTotal somme des débits, en Mbit/s
+ * @param {number} p.jours durée de conservation
+ * @param {number} [p.heuresParJour=24] enregistrement continu ou sur plage
+ * @param {number} [p.marge=MARGE_DEFAUT] réserve de sécurité
+ * @returns {number} gigaoctets décimaux
+ */
+function capaciteNecessaire({ debitTotal, jours, heuresParJour = 24, marge = MARGE_DEFAUT }) {
+  if (!(debitTotal > 0) || !(jours > 0) || !(heuresParJour > 0)) return 0;
+  const parJour = debitTotal * GO_PAR_MBPS_JOUR * (Math.min(heuresParJour, 24) / 24);
+  return parJour * jours * (1 + marge);
+}
+
+/**
+ * Durée de conservation qu'une capacité donnée permet réellement.
+ * L'installateur raisonne souvent dans l'autre sens : « j'ai un 8 To, ça tient
+ * combien de jours ? »
+ */
+function joursTenus({ debitTotal, capaciteGo, heuresParJour = 24, marge = MARGE_DEFAUT }) {
+  if (!(debitTotal > 0) || !(capaciteGo > 0)) return 0;
+  const parJour = debitTotal * GO_PAR_MBPS_JOUR * (Math.min(heuresParJour, 24) / 24) * (1 + marge);
+  return capaciteGo / parJour;
+}
+
+/**
+ * Disques du commerce couvrant un besoin.
+ *
+ * Rendu en téraoctets décimaux, comme les étiquettes des fabricants. Un disque
+ * annoncé 8 To offre bien 8 × 10¹² octets ; c'est l'affichage du système, en
+ * Tio, qui montrera 7,3 — la différence est d'unité, pas de capacité perdue.
+ *
+ * @returns {{unitaire:number, nombre:number, total:number}|null}
+ */
+function disqueRecommande(go) {
+  if (!(go > 0)) return null;
+  const to = go / 1000;
+  // Un seul disque quand une capacité courante suffit.
+  const unique = DISQUES.find((d) => d >= to);
+  if (unique) return { unitaire: unique, nombre: 1, total: unique };
+  // Sinon, plusieurs du plus gros format courant.
+  const plusGros = DISQUES[DISQUES.length - 1];
+  const nombre = Math.ceil(to / plusGros);
+  return { unitaire: plusGros, nombre, total: plusGros * nombre };
+}
+
+/* --------------------------------------------------------------- PoE */
+
+/**
+ * Classes d'alimentation par Ethernet.
+ *
+ * La puissance utile au bout du câble est inférieure à celle fournie par le
+ * port : la différence part en échauffement du câble. Dimensionner un switch
+ * sur la puissance des caméras sans cette perte, c'est le sous-dimensionner.
+ */
+const CLASSES_POE = [
+  { cle: 'af', label: 'PoE (802.3af)', port: 15.4, appareil: 12.95 },
+  { cle: 'at', label: 'PoE+ (802.3at)', port: 30, appareil: 25.5 },
+  { cle: 'bt3', label: 'PoE++ type 3 (802.3bt)', port: 60, appareil: 51 },
+  { cle: 'bt4', label: 'PoE++ type 4 (802.3bt)', port: 100, appareil: 71 },
+];
+
+/** Classe PoE minimale capable d'alimenter un appareil, ou null si hors norme. */
+function classePour(watts) {
+  if (!(watts > 0)) return CLASSES_POE[0];
+  return CLASSES_POE.find((c) => watts <= c.appareil) || null;
+}
+
+/* -------------------------------------------------- contrôles d'ensemble */
+
+/** Adresse IPv4 bien formée ? */
+function ipValide(ip) {
+  const t = String(ip || '').trim();
+  if (!t) return true; // une adresse non renseignée n'est pas une adresse fausse
+  const m = t.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  return !!m && m.slice(1).every((x) => Number(x) <= 255 && String(Number(x)) === x);
+}
+
+/**
+ * Contrôles automatiques du dossier.
+ *
+ * Chaque anomalie porte un `niveau` : `bloquant` empêche l'installation de
+ * fonctionner, `avertissement` la rend fragile ou hors règle. Un contrôle ne
+ * dit jamais « peut-être » : s'il manque une donnée pour trancher, il se tait
+ * plutôt que d'alarmer à tort.
+ *
+ * @param {object} synoptique matériel et liaisons, cf. js/reseau.js
+ * @param {object} reglages jours, heures, marge, capacité installée
+ * @returns {object[]} anomalies, les bloquantes en tête
+ */
+function controler(synoptique, reglages = {}) {
+  const noeuds = synoptique?.noeuds || [];
+  const liens = synoptique?.liens || [];
+  const anomalies = [];
+  const ajouter = (niveau, texte) => anomalies.push({ niveau, texte });
+
+  const nom = (n) => n.nom || n.type;
+  const cameras = noeuds.filter((n) => n.type === 'camera');
+  const switches = noeuds.filter((n) => n.type === 'switch');
+  const enregistreurs = noeuds.filter((n) => n.type === 'nvr');
+
+  // --- adresses en double, adresses mal formées
+  const parIp = new Map();
+  for (const n of noeuds) {
+    const ip = String(n.ip || '').trim();
+    if (!ip) continue;
+    if (!ipValide(ip)) ajouter('bloquant', `${nom(n)} : « ${ip} » n'est pas une adresse IPv4.`);
+    if (!parIp.has(ip)) parIp.set(ip, []);
+    parIp.get(ip).push(n);
+  }
+  for (const [ip, liste] of parIp) {
+    if (liste.length > 1) {
+      ajouter('bloquant', `Adresse ${ip} attribuée à ${liste.length} appareils : `
+        + `${liste.map(nom).join(', ')}.`);
+    }
+  }
+
+  // --- ports et budget PoE de chaque switch
+  for (const sw of switches) {
+    const relies = liens
+      .filter((l) => l.de === sw.id || l.vers === sw.id)
+      .map((l) => noeuds.find((n) => n.id === (l.de === sw.id ? l.vers : l.de)))
+      .filter(Boolean);
+    const alimentes = relies.filter((n) => n.type === 'camera');
+
+    if (sw.ports > 0 && relies.length > sw.ports) {
+      ajouter('bloquant', `${nom(sw)} : ${relies.length} appareils raccordés pour `
+        + `${sw.ports} ports.`);
+    }
+    if (sw.portsPoe >= 0 && sw.portsPoe < alimentes.length) {
+      ajouter('bloquant', `${nom(sw)} : ${alimentes.length} caméras à alimenter pour `
+        + `${sw.portsPoe} port${sw.portsPoe > 1 ? 's' : ''} PoE.`);
+    }
+    const conso = alimentes.reduce((s, n) => s + (n.conso > 0 ? n.conso : 0), 0);
+    if (sw.budgetPoe > 0 && conso > sw.budgetPoe) {
+      ajouter('bloquant', `${nom(sw)} : budget PoE dépassé — ${fr(conso, 1)} W demandés `
+        + `pour ${fr(sw.budgetPoe, 0)} W disponibles.`);
+    }
+    for (const c of alimentes) {
+      if (c.conso > 0 && !classePour(c.conso)) {
+        ajouter('avertissement', `${nom(c)} demande ${c.conso} W : au-delà du PoE++ type 4. `
+          + 'Alimentation séparée à prévoir.');
+      }
+    }
+  }
+
+  // --- caméra raccordée à un matériel qui n'alimente pas
+  for (const c of cameras) {
+    const voisins = liens
+      .filter((l) => l.de === c.id || l.vers === c.id)
+      .map((l) => noeuds.find((n) => n.id === (l.de === c.id ? l.vers : l.de)))
+      .filter(Boolean);
+    if (!voisins.length) continue;
+    const alimentee = voisins.some((v) => v.type === 'switch' && (v.portsPoe ?? 1) > 0);
+    if (!alimentee && c.conso > 0) {
+      ajouter('avertissement', `${nom(c)} n'est raccordée à aucun port PoE : `
+        + 'injecteur ou alimentation locale à prévoir.');
+    }
+  }
+
+  // --- canaux de l'enregistreur
+  for (const nvr of enregistreurs) {
+    if (!(nvr.canaux > 0)) continue;
+    if (cameras.length > nvr.canaux) {
+      ajouter('bloquant', `${nom(nvr)} : ${cameras.length} caméras pour ${nvr.canaux} canaux.`);
+    }
+  }
+
+  // --- capacité installée face à la conservation demandée
+  const debitTotal = cameras.reduce((s, c) => s + (c.debit > 0 ? c.debit : 0), 0);
+  const { jours, heuresParJour = 24, marge = MARGE_DEFAUT, capaciteInstallee = 0 } = reglages;
+  if (debitTotal > 0 && jours > 0 && capaciteInstallee > 0) {
+    const besoin = capaciteNecessaire({ debitTotal, jours, heuresParJour, marge });
+    if (capaciteInstallee < besoin) {
+      const tenus = joursTenus({ debitTotal, capaciteGo: capaciteInstallee, heuresParJour, marge });
+      ajouter('bloquant', `Capacité installée insuffisante : ${frGroupe(capaciteInstallee)} Go `
+        + `pour ${frGroupe(besoin)} Go nécessaires — ${fr(tenus, 1)} jours tenus `
+        + `au lieu de ${jours}.`);
+    }
+  }
+  if (cameras.length && cameras.some((c) => !(c.debit > 0))) {
+    const sans = cameras.filter((c) => !(c.debit > 0)).length;
+    ajouter('avertissement', `${sans} caméra${sans > 1 ? 's' : ''} sans débit renseigné : `
+      + 'le stockage calculé est incomplet.');
+  }
+
+  const rang = { bloquant: 0, avertissement: 1 };
+  return anomalies.sort((a, b) => rang[a.niveau] - rang[b.niveau]);
+}
+
+/**
+ * Bilan d'enregistrement et d'alimentation, prêt à afficher.
+ */
+function bilan(synoptique, reglages = {}) {
+  const noeuds = synoptique?.noeuds || [];
+  const liens = synoptique?.liens || [];
+  const cameras = noeuds.filter((n) => n.type === 'camera');
+  const debitTotal = cameras.reduce((s, c) => s + (c.debit > 0 ? c.debit : 0), 0);
+
+  const { jours = 30, heuresParJour = 24, marge = MARGE_DEFAUT } = reglages;
+  const go = capaciteNecessaire({ debitTotal, jours, heuresParJour, marge });
+
+  const poe = noeuds.filter((n) => n.type === 'switch').map((sw) => {
+    const alimentes = liens
+      .filter((l) => l.de === sw.id || l.vers === sw.id)
+      .map((l) => noeuds.find((n) => n.id === (l.de === sw.id ? l.vers : l.de)))
+      .filter((n) => n && n.type === 'camera');
+    return {
+      noeud: sw,
+      alimentes: alimentes.length,
+      conso: alimentes.reduce((s, n) => s + (n.conso > 0 ? n.conso : 0), 0),
+      budget: sw.budgetPoe > 0 ? sw.budgetPoe : 0,
+    };
+  });
+
+  return {
+    cameras: cameras.length,
+    debitTotal,
+    jours,
+    heuresParJour,
+    marge,
+    capaciteGo: go,
+    disque: disqueRecommande(go),
+    poe,
+    anomalies: controler(synoptique, reglages),
+  };
+}
+
+/* ===== prix.js ===== */
+/**
+ * Chiffrage : prix du matériel, main-d'œuvre, devis.
+ *
+ * Un prix n'a de valeur que daté et sourcé. Trois provenances cohabitent, et
+ * elles ne se valent pas :
+ *
+ * - **vendu** : un prix que l'agence a réellement pratiqué, tiré de ses ventes ;
+ * - **relevé** : un prix vu chez un revendeur, un jour donné, qui aura bougé ;
+ * - **saisi** : un prix entré à la main, sous la responsabilité de l'agence.
+ *
+ * Le devis dit toujours de laquelle il tient chaque ligne. Un prix relevé il y a
+ * six mois et présenté comme ferme engage l'agence sur une marge qui n'existe
+ * plus.
+ *
+ * Module pur (aucune dépendance au DOM), testé sous Node.
+ */
+
+
+/** Taux normal de TVA en France. */
+const TVA_DEFAUT = 0.2;
+
+/** Marge commerciale appliquée par défaut au matériel. */
+const MARGE_COMMERCIALE = 0.25;
+
+/** Provenances d'un prix, de la plus sûre à la moins. */
+const PROVENANCES = {
+  vendu: { label: 'Prix pratiqué', marque: '✓' },
+  saisi: { label: 'Saisi par l\'agence', marque: '✓' },
+  releve: { label: 'Relevé chez un revendeur', marque: '~' },
+  aucune: { label: 'Prix à renseigner', marque: '⋯' },
+};
+
+/**
+ * Un nombre, jamais NaN, lu à la française.
+ *
+ * Les montants d'un export comptable arrivent écrits pour être lus :
+ * « 2 056,00 € », avec un séparateur de milliers qui peut être une espace
+ * ordinaire, insécable ou fine. `parseFloat` s'arrête au premier espace et lit
+ * 2 au lieu de 2 056 — une erreur d'un facteur mille, silencieuse.
+ */
+const montant = (v, defaut = 0) => {
+  const t = String(v ?? '')
+    .replace(/[\s\u00a0\u202f]/g, '')
+    .replace(/[€$£]/g, '')
+    .replace(',', '.');
+  const n = parseFloat(t);
+  return Number.isFinite(n) ? n : defaut;
+};
+
+/** Prix hors taxes à partir d'un prix toutes taxes comprises. */
+const htDepuisTtc = (ttc, tva = TVA_DEFAUT) => (tva > -1 ? ttc / (1 + tva) : ttc);
+
+/** Et l'inverse. */
+const ttcDepuisHt = (ht, tva = TVA_DEFAUT) => ht * (1 + tva);
+
+/**
+ * Prix unitaire tiré d'un relevé de ventes.
+ *
+ * Les rapports de place de marché donnent un chiffre d'affaires et un nombre
+ * d'unités : leur quotient est le prix réellement pratiqué. Sur une place de
+ * marché grand public il est **toutes taxes comprises**, ce que l'appelant doit
+ * savoir pour le ramener hors taxes avant de l'inscrire à un devis.
+ *
+ * @returns {number|null} prix unitaire, `null` si le quotient n'a pas de sens
+ */
+function prixDepuisVentes(ventes, unites) {
+  const ca = montant(ventes);
+  const n = montant(unites);
+  if (!(ca > 0) || !(n > 0)) return null;
+  return ca / n;
+}
+
+/**
+ * Prix d'un article, ramené hors taxes.
+ *
+ * `champ` vaut `prixAchat` ou `prixVente` : ce que l'agence paie, ou ce
+ * qu'elle facture. **Les confondre fausse la marge dans un sens ou dans
+ * l'autre** — un prix de vente relevé dans ses propres ventes, repris comme
+ * prix d'achat, se verrait appliquer une marge qu'il contient déjà.
+ *
+ * @param {object} article
+ * @param {string} [champ='prixAchat']
+ * @param {number} [tvaDefaut]
+ * @returns {number} prix hors taxes, 0 si ce prix-là n'est pas connu
+ */
+function prixHt(article, champ = 'prixAchat', tvaDefaut = TVA_DEFAUT) {
+  const p = montant(article?.[champ]);
+  if (!(p > 0)) return 0;
+  const ttc = champ === 'prixVente' ? article.venteTtc : article.achatTtc;
+  return ttc ? htDepuisTtc(p, montant(article.tva, tvaDefaut)) : p;
+}
+
+/**
+ * Provenance du prix retenu pour un article.
+ *
+ * Le prix de vente l'emporte quand il existe : c'est celui que l'agence
+ * pratique, et il n'a pas à être recalculé depuis un coût d'achat.
+ */
+function provenancePrix(article) {
+  const vente = montant(article?.prixVente);
+  const achat = montant(article?.prixAchat);
+  if (!(vente > 0) && !(achat > 0)) return 'aucune';
+  const source = vente > 0 ? article.sourceVente : article.sourceAchat;
+  const p = source?.type;
+  return PROVENANCES[p] ? p : 'saisi';
+}
+
+/**
+ * Une ligne de devis.
+ *
+ * @param {object} article référence du catalogue, prix compris
+ * @param {number} quantite
+ * @param {object} [options]
+ * @param {number} [options.marge] marge appliquée au prix d'achat
+ * @param {number} [options.tva]
+ */
+function ligne(article, quantite, options = {}) {
+  const marge = options.marge ?? MARGE_COMMERCIALE;
+  const achat = prixHt(article, 'prixAchat', options.tva);
+  const venteSaisie = prixHt(article, 'prixVente', options.tva);
+  // Un prix de vente connu s'impose ; sinon la marge le construit sur l'achat.
+  const vente = venteSaisie > 0 ? venteSaisie : achat * (1 + marge);
+  const q = Math.max(0, montant(quantite));
+  return {
+    article,
+    quantite: q,
+    achatHt: achat,
+    venteHt: vente,
+    totalHt: vente * q,
+    // Une marge n'a de sens que si l'on connaît le coût d'achat.
+    margeReelle: achat > 0 ? (vente - achat) / achat : null,
+    provenance: provenancePrix(article),
+  };
+}
+
+/**
+ * Devis complet.
+ *
+ * @param {object[]} lignes issues de `ligne()`
+ * @param {object} [reglages]
+ * @param {number} [reglages.heures] main-d'œuvre, en heures
+ * @param {number} [reglages.tauxHoraire] en euros hors taxes
+ * @param {number} [reglages.remise] part retirée du total matériel
+ * @param {number} [reglages.tva]
+ */
+function devis(lignes, reglages = {}) {
+  const tva = reglages.tva ?? TVA_DEFAUT;
+  const remise = Math.min(1, Math.max(0, montant(reglages.remise)));
+
+  const materielBrut = (lignes || []).reduce((s, l) => s + l.totalHt, 0);
+  const montantRemise = materielBrut * remise;
+  const materielHt = materielBrut - montantRemise;
+  const mainOeuvreHt = Math.max(0, montant(reglages.heures))
+    * Math.max(0, montant(reglages.tauxHoraire));
+
+  const totalHt = materielHt + mainOeuvreHt;
+  const montantTva = totalHt * tva;
+
+  // Ce qui manque pour que le devis soit complet : une ligne sans prix n'est
+  // pas une ligne à zéro euro, c'est une ligne qu'on a oublié de chiffrer.
+  const sansPrix = (lignes || []).filter((l) => l.provenance === 'aucune');
+  const releves = (lignes || []).filter((l) => l.provenance === 'releve');
+
+  return {
+    lignes: lignes || [],
+    materielBrut,
+    remise,
+    montantRemise,
+    materielHt,
+    mainOeuvreHt,
+    totalHt,
+    tva,
+    montantTva,
+    totalTtc: totalHt + montantTva,
+    sansPrix,
+    releves,
+    complet: sansPrix.length === 0,
+  };
+}
+
+/**
+ * Réserves à joindre au devis — vides quand tout est sourcé et chiffré.
+ */
+function reservesDevis(d) {
+  const reserves = [];
+  if (d.sansPrix.length) {
+    reserves.push(`${d.sansPrix.length} ligne${d.sansPrix.length > 1 ? 's' : ''} sans prix : `
+      + `${d.sansPrix.map((l) => l.article.reference || l.article.nom || '?').join(', ')}. `
+      + 'Le total ci-dessous est donc incomplet.');
+  }
+  if (d.releves.length) {
+    const dates = [...new Set(d.releves
+      .map((l) => (l.article.sourceVente || l.article.sourceAchat)?.date)
+      .filter(Boolean))];
+    reserves.push(`${d.releves.length} prix relevé${d.releves.length > 1 ? 's' : ''} chez un `
+      + `revendeur${dates.length ? ` (${dates.join(', ')})` : ''} : à confirmer auprès du `
+      + 'distributeur avant engagement — un tarif bouge.');
+  }
+  return reserves;
+}
+
+/** Montant en euros, à la française. */
+const euros = (v) => `${fr(v, 2)} €`;
+
+/* ===== offre.js ===== */
+/**
+ * Composition automatique d'une installation, à partir de ce qu'un client sait
+ * dire de son site.
+ *
+ * Un particulier ne connaît ni focale, ni budget PoE, ni codec. Il sait en
+ * revanche combien d'accès il veut couvrir, s'ils sont dehors, et combien de
+ * temps il veut garder les images. De ces trois réponses on tire une
+ * installation cohérente : les caméras, le switch qui les alimente,
+ * l'enregistreur qui les reçoit et le disque qui tient la durée demandée.
+ *
+ * Ce module **ne choisit rien qui ne soit au tarif**. S'il manque un switch
+ * assez grand ou un disque assez gros, il le dit au lieu de composer une
+ * installation qui ne se commande pas.
+ *
+ * Module pur (aucune dépendance au DOM), testé sous Node.
+ */
+
+
+/**
+ * Types de site proposés au client, avec ce qu'ils impliquent d'ordinaire.
+ *
+ * `zones` est une **suggestion de départ**, pas une règle : le client la
+ * corrige. `jours` reprend les durées de conservation habituelles — un
+ * commerce garde plus longtemps qu'un particulier.
+ */
+const TYPES_SITE = {
+  maison: { label: 'Maison', article: 'une', zones: 3, jours: 15, exterieur: true },
+  commerce: { label: 'Commerce', article: 'un', zones: 4, jours: 30, exterieur: false },
+  entrepot: { label: 'Entrepôt', article: 'un', zones: 6, jours: 30, exterieur: true },
+  parking: { label: 'Parking', article: 'un', zones: 4, jours: 30, exterieur: true },
+  copropriete: { label: 'Copropriété', article: 'une', zones: 6, jours: 30, exterieur: true },
+  chantier: { label: 'Chantier', article: 'un', zones: 4, jours: 15, exterieur: true },
+};
+
+/**
+ * Temps de pose, en heures.
+ *
+ * Une base pour le coffret, le réseau et la mise en service, puis un forfait
+ * par caméra — percement, fixation, tirage, réglage. Ces valeurs sont celles de
+ * l'agence et se règlent : elles ne sortent d'aucune norme.
+ */
+const POSE_DEFAUT = { base: 3, parCamera: 1.5 };
+
+/** Un port d'uplink est réservé sur le switch : il relie l'enregistreur. */
+const PORTS_RESERVES = 1;
+
+/** Articles d'un type donné, du moins cher au plus cher. */
+function candidats(tarif, type, filtre) {
+  return (tarif || [])
+    .filter((a) => a.type === type)
+    .filter((a) => (filtre ? filtre(a) : true))
+    .filter((a) => prixRepere(a) > 0)
+    .sort((a, b) => prixRepere(a) - prixRepere(b));
+}
+
+/** Prix servant au classement : celui de vente s'il existe, sinon l'achat. */
+const prixRepere = (a) => (a.prixVente > 0 ? a.prixVente : a.prixAchat || 0);
+
+/** Le moins cher qui convient, ou `null`. */
+const moinsCher = (tarif, type, filtre) => candidats(tarif, type, filtre)[0] || null;
+
+/**
+ * Compose une installation.
+ *
+ * @param {object} reponses ce que le client a indiqué
+ * @param {string} reponses.typeSite clé de TYPES_SITE
+ * @param {number} reponses.zones nombre d'accès à couvrir
+ * @param {number} reponses.jours durée de conservation
+ * @param {boolean} [reponses.ecran] poste de visualisation sur place
+ * @param {object[]} tarif articles disponibles, avec leurs prix
+ * @param {object} [options]
+ * @param {object} [options.pose] base et forfait par caméra, en heures
+ * @returns {{lignes: object[], heures: number, manques: string[], capaciteGo: number}}
+ */
+function composer(reponses = {}, tarif = [], options = {}) {
+  const type = TYPES_SITE[reponses.typeSite] ? reponses.typeSite : 'maison';
+  const defauts = TYPES_SITE[type];
+  const cameras = Math.max(1, Math.round(reponses.zones ?? defauts.zones));
+  const jours = Math.max(1, Math.round(reponses.jours ?? defauts.jours));
+  const heuresParJour = Math.min(24, Math.max(1, reponses.heuresParJour ?? 24));
+
+  const lignes = [];
+  const manques = [];
+
+  // --- la caméra : la moins chère du tarif, puisque c'est ce qu'on demande
+  const camera = moinsCher(tarif, 'camera');
+  if (camera) lignes.push({ article: camera, quantite: cameras, role: 'Caméras' });
+  else manques.push('Aucune caméra au tarif.');
+
+  // --- le switch : assez de ports PoE pour les caméras, plus l'uplink
+  const portsRequis = cameras + PORTS_RESERVES;
+  const sw = moinsCher(tarif, 'switch', (a) => a.portsPoe >= cameras && a.ports >= portsRequis);
+  if (sw) lignes.push({ article: sw, quantite: 1, role: 'Switch PoE' });
+  else if (candidats(tarif, 'switch').length) {
+    manques.push(`Aucun switch du tarif n'offre ${cameras} ports PoE `
+      + `et ${portsRequis} ports au total.`);
+  } else manques.push('Aucun switch au tarif.');
+
+  // --- l'enregistreur : assez de canaux
+  const nvr = moinsCher(tarif, 'nvr', (a) => a.canaux >= cameras);
+  if (nvr) lignes.push({ article: nvr, quantite: 1, role: 'Enregistreur' });
+  else if (candidats(tarif, 'nvr').length) {
+    manques.push(`Aucun enregistreur du tarif n'offre ${cameras} canaux.`);
+  } else manques.push('Aucun enregistreur au tarif.');
+
+  // --- le disque : dimensionné sur la durée demandée
+  const debit = camera?.debit > 0
+    ? camera.debit
+    : debitEstime({ resH: camera?.resH || 2560, resV: camera?.resV || 1440 });
+  const capaciteGo = capaciteNecessaire({ debitTotal: debit * cameras, jours, heuresParJour });
+  const disque = moinsCher(tarif, 'disque', (a) => a.capacite >= capaciteGo);
+  if (disque) lignes.push({ article: disque, quantite: 1, role: 'Disque de surveillance' });
+  else if (candidats(tarif, 'disque').length) {
+    manques.push(`Aucun disque du tarif ne couvre ${Math.round(capaciteGo)} Go.`);
+  } else manques.push('Aucun disque au tarif.');
+
+  // --- l'écran, si le client en veut un
+  if (reponses.ecran) {
+    const ecran = moinsCher(tarif, 'ecran');
+    if (ecran) lignes.push({ article: ecran, quantite: 1, role: 'Écran de supervision' });
+    else manques.push('Aucun écran au tarif.');
+  }
+
+  const pose = { ...POSE_DEFAUT, ...(options.pose || {}) };
+  return {
+    cameras,
+    jours,
+    heuresParJour,
+    capaciteGo,
+    debitTotal: debit * cameras,
+    lignes,
+    heures: reponses.pose === false ? 0 : pose.base + pose.parCamera * cameras,
+    manques,
+  };
+}
+
+/**
+ * Ce que l'installation composée ne saurait promettre.
+ *
+ * Une configuration tirée de trois réponses n'est pas une étude. Le dire au
+ * client n'affaiblit pas la proposition : cela évite qu'il découvre sur place
+ * qu'il faut une caméra de plus, et que l'écart lui soit reproché.
+ */
+const RESERVES = [
+  'Cette configuration est établie à partir de vos réponses, sans visite du '
+    + 'site. Le nombre de caméras et leur emplacement définitif sont arrêtés '
+    + 'lors du relevé technique.',
+  'Les angles de vue, les longueurs de câble et les obstacles (murs, portails, '
+    + 'végétation) ne peuvent être évalués à distance.',
+  'Les prix sont donnés hors taxes et sous réserve de disponibilité des '
+    + 'références au moment de la commande.',
+];
+
+/* ===== devis-client.js ===== */
+/**
+ * Page de devis client : le visiteur compose lui-même son installation.
+ *
+ * Elle partage les calculs de l'outil d'étude — dimensionnement du disque,
+ * marges, TVA — pour qu'un client et un technicien ne lisent jamais deux
+ * chiffres différents du même site.
+ *
+ * Aucun serveur : les prix viennent de `tarif.json`, posé à côté de la page.
+ * C'est le seul fichier à modifier pour mettre un tarif à jour.
+ */
+
+
+
+
+
+/**
+ * Où la demande d'étude est envoyée.
+ *
+ * À remplacer par l'adresse de l'agence avant mise en ligne. Laissée vide, le
+ * bouton propose simplement d'imprimer : mieux vaut pas de lien qu'un lien
+ * vers une adresse qui n'existe pas.
+ */
+const CONTACT = '';
+
+/** Tarif de repli, celui embarqué à la fabrication du fichier unique. */
+const TARIF_EMBARQUE = globalThis.__tarif || null;
+
+const etat = { tarif: null };
+
+/** Charge le tarif : celui posé à côté de la page, sinon celui embarqué. */
+async function chargerTarif() {
+  /*
+   * Depuis le disque, on ne tente même pas.
+   *
+   * Les navigateurs refusent `fetch` sur `file://`, et le refus s'inscrit dans
+   * la console quoi qu'on l'attrape. Sur une page publique, une erreur rouge
+   * inquiète sans rien apprendre : mieux vaut aller droit au tarif embarqué.
+   */
+  if (window.location.protocol !== 'file:') {
+    try {
+      const reponse = await fetch('tarif.json', { cache: 'no-store' });
+      if (reponse.ok) return await reponse.json();
+    } catch {
+      // Fichier absent à côté de la page : on se rabat sur l'embarqué.
+    }
+  }
+  return TARIF_EMBARQUE;
+}
+
+/** Réponses du formulaire. */
+const reponses = () => ({
+  typeSite: $('#q-type').value,
+  zones: parseInt($('#q-zones').value, 10),
+  jours: parseInt($('#q-jours').value, 10),
+  heuresParJour: parseInt($('#q-heures').value, 10),
+  ecran: $('#q-ecran').checked,
+  pose: $('#q-pose').checked,
+});
+
+/** Échappe le texte : le tarif est un fichier que l'agence édite à la main. */
+const ech = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => (
+  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+function calculer() {
+  const t = etat.tarif;
+  if (!t) return;
+
+  const r = reponses();
+  const offre = composer(r, t.articles || [], {});
+  const marge = t.marge ?? MARGE_COMMERCIALE;
+  const tva = t.tva ?? TVA_DEFAUT;
+
+  const lignes = offre.lignes.map((l) => ({
+    ...ligne(l.article, l.quantite, { marge, tva }),
+    role: l.role,
+  }));
+  const d = devis(lignes, {
+    heures: offre.heures,
+    tauxHoraire: t.tauxHoraire ?? 0,
+    tva,
+  });
+
+  $('#resultat').hidden = false;
+  $('#resume').textContent = resume(offre, r);
+  $('#manques').innerHTML = offre.manques.length
+    ? `<ul class="manques">${offre.manques.map((m) => `<li>${ech(m)}</li>`).join('')}
+        <li>Ces éléments seront chiffrés lors de l'étude.</li></ul>`
+    : '';
+
+  $('#lignes').innerHTML = lignes.map((l) => `<tr>
+      <td><b>${ech(l.role)}</b><br><span class="ref">${ech(l.article.reference)}</span></td>
+      <td class="nombre">${l.quantite}</td>
+      <td class="nombre">${euros(l.venteHt)}</td>
+      <td class="nombre">${euros(l.totalHt)}</td>
+    </tr>`).join('')
+    + (d.mainOeuvreHt > 0 ? `<tr>
+      <td><b>Installation et mise en service</b><br>
+        <span class="ref">Pose, raccordement, réglage des caméras, formation</span></td>
+      <td class="nombre">${fr(offre.heures, 1)} h</td>
+      <td class="nombre">${euros(t.tauxHoraire ?? 0)}</td>
+      <td class="nombre">${euros(d.mainOeuvreHt)}</td>
+    </tr>` : '');
+
+  $('#totaux').innerHTML = `
+    <tr><td colspan="3">Total HT</td><td class="nombre">${euros(d.totalHt)}</td></tr>
+    <tr><td colspan="3">TVA ${fr(tva * 100, 1)} %</td>
+      <td class="nombre">${euros(d.montantTva)}</td></tr>
+    <tr class="fort"><td colspan="3">Total TTC</td>
+      <td class="nombre">${euros(d.totalTtc)}</td></tr>`;
+
+  $('#reserves').innerHTML = RESERVES.map((x) => `<li>${ech(x)}</li>`).join('');
+  majContact(offre, r, d);
+}
+
+/** Résumé en français courant, avant le tableau. */
+function resume(offre, r) {
+  const t = TYPES_SITE[r.typeSite];
+  const type = t ? `${t.article} ${t.label.toLowerCase()}` : 'un site';
+  const duree = offre.heuresParJour >= 24
+    ? `${offre.jours} jours d'enregistrement continu`
+    : `${offre.jours} jours d'enregistrement, ${offre.heuresParJour} h par jour`;
+  return `Pour ${type} avec ${offre.cameras} caméra${offre.cameras > 1 ? 's' : ''} et `
+    + `${duree}, il faut environ ${fr(offre.capaciteGo / 1000, 1)} To de disque.`;
+}
+
+/** Prépare la demande d'étude, résumé compris. */
+function majContact(offre, r, d) {
+  const bouton = $('#btn-contact');
+  if (!CONTACT) {
+    bouton.hidden = true;
+    return;
+  }
+  const corps = [
+    'Bonjour,',
+    '',
+    'Je souhaite une étude pour l\'installation suivante :',
+    `- Type de site : ${TYPES_SITE[r.typeSite]?.label || r.typeSite}`,
+    `- Zones à couvrir : ${offre.cameras}`,
+    `- Conservation : ${offre.jours} jours, ${offre.heuresParJour} h/24`,
+    `- Écran de supervision : ${r.ecran ? 'oui' : 'non'}`,
+    `- Installation par vos soins : ${r.pose ? 'oui' : 'non'}`,
+    '',
+    `Estimation obtenue sur votre site : ${euros(d.totalTtc)} TTC.`,
+    '',
+    'Mes coordonnées :',
+    'Nom :',
+    'Adresse du site :',
+    'Téléphone :',
+  ].join('\n');
+  bouton.href = `mailto:${CONTACT}`
+    + `?subject=${encodeURIComponent('Demande d\'étude vidéosurveillance')}`
+    + `&body=${encodeURIComponent(corps)}`;
+  bouton.hidden = false;
+}
+
+async function demarrer() {
+  $('#q-type').innerHTML = Object.entries(TYPES_SITE)
+    .map(([cle, t]) => `<option value="${cle}">${ech(t.label)}</option>`).join('');
+
+  // Changer de type de site propose les valeurs habituelles de ce type, que le
+  // visiteur reste libre de corriger.
+  $('#q-type').addEventListener('change', () => {
+    const t = TYPES_SITE[$('#q-type').value];
+    if (t) {
+      $('#q-zones').value = t.zones;
+      $('#q-jours').value = t.jours;
+    }
+    calculer();
+  });
+
+  ['#q-zones', '#q-jours', '#q-heures', '#q-ecran', '#q-pose']
+    .forEach((id) => {
+      $(id).addEventListener('change', calculer);
+      $(id).addEventListener('input', calculer);
+    });
+
+  $('#btn-imprimer').addEventListener('click', () => window.print());
+
+  etat.tarif = await chargerTarif();
+  if (!etat.tarif) {
+    $('#resultat').hidden = false;
+    $('#resume').textContent = 'Tarif indisponible : le fichier tarif.json n\'a pas pu '
+      + 'être chargé. Contactez-nous, nous établirons l\'étude directement.';
+    return;
+  }
+  $('#bandeau-exemple').hidden = !etat.tarif.exemple;
+  calculer();
+}
+
+demarrer();
+
+}());</script>
+</body>
+</html>

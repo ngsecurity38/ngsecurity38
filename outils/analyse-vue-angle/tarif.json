@@ -1,0 +1,43 @@
+{
+  "_lisez_moi": [
+    "Tarif utilisé par la page de devis client (devis-client.html).",
+    "C'est le SEUL fichier à modifier pour mettre les prix à jour : la page le",
+    "relit à chaque ouverture quand elle est servie depuis un site web.",
+    "",
+    "Champs par article :",
+    "  type       camera | switch | nvr | disque | ecran",
+    "  reference  ce que lira le client",
+    "  prixAchat  ce que vous payez, hors taxes",
+    "  prixVente  ce que vous facturez, hors taxes. S'il est renseigné, il",
+    "             s'impose et la marge ne s'applique pas.",
+    "  debit      Mbit/s (caméra) — sert à dimensionner le disque",
+    "  ports/portsPoe  (switch)   canaux (nvr)   capacite en Go (disque)",
+    "",
+    "Passez exemple à false une fois vos prix saisis : la page cessera",
+    "d'afficher l'avertissement de tarif non contractuel."
+  ],
+  "exemple": true,
+  "maj": "20/09/2026",
+  "marge": 0.25,
+  "tauxHoraire": 55,
+  "tva": 0.2,
+  "articles": [
+    {
+      "type": "camera",
+      "reference": "Hikvision DS-2CD2T86G2-4I — bullet 8 MP",
+      "prixAchat": 214.57,
+      "debit": 8,
+      "resH": 3840,
+      "resV": 2160,
+      "sourceAchat": { "type": "releve", "date": "20/09/2026", "source": "Getic.fr" }
+    },
+    {
+      "type": "switch",
+      "reference": "Hikvision DS-3E0310HP-E — 8 ports PoE, 120 W",
+      "prixAchat": 86.62,
+      "ports": 10,
+      "portsPoe": 8,
+      "sourceAchat": { "type": "releve", "date": "20/09/2026", "source": "Getic.fr" }
+    }
+  ]
+}

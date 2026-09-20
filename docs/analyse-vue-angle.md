@@ -16,7 +16,7 @@ Un seul fichier à récupérer — deux versions au choix :
 | Version | Poids | Pour qui |
 | --- | --- | --- |
 | [`analyse-vue-angle.html`](../outils/analyse-vue-angle/dist/analyse-vue-angle.html) | 1,5 Mo | le cas courant : études reçues en PDF normal |
-| [`analyse-vue-angle-ocr.html`](../outils/analyse-vue-angle/dist/analyse-vue-angle-ocr.html) | 7,6 Mo | si vos études arrivent **scannées** (§ 10) |
+| [`analyse-vue-angle-ocr.html`](../outils/analyse-vue-angle/dist/analyse-vue-angle-ocr.html) | 7,6 Mo | si vos études arrivent **scannées** (§ 11) |
 
 Les deux sont le même outil. La seconde embarque en plus un moteur de
 reconnaissance de caractères, qui pèse à lui seul près de 5 Mo : inutile de le
@@ -76,7 +76,7 @@ caméra** : son repère, son optique, ses deux vues, ses zones, son analyse et s
 observations.
 
 Un seul fichier `.json` enregistre tout le dossier, et le procès-verbal couvre
-tout le chantier (§ 15).
+tout le chantier (§ 16).
 
 > Les fiches enregistrées avec la première version de l'outil s'ouvrent
 > toujours : elles deviennent un dossier d'une seule caméra, sans rien perdre.
@@ -180,7 +180,7 @@ Le bouton **Proposition client** produit le document à remettre :
    de jour, mise en œuvre soumise au relevé définitif ;
 5. les deux cadres de signature.
 
-C'est un document commercial, distinct du procès-verbal de réception (§ 15) :
+C'est un document commercial, distinct du procès-verbal de réception (§ 16) :
 l'un dit ce qui est proposé, l'autre constate ce qui a été posé.
 
 > Une proposition qui tait ses conditions de validité n'engage personne. Les
@@ -474,7 +474,72 @@ vend, l'autre constate ce qui a été posé.
 
 ---
 
-## 8. Concevoir un champ sur plan
+## 8. Devis client, en libre-service
+
+Une page à part, publique et légère (40 Ko), faite pour être posée sur le site
+de l'agence : `dist/devis-client.html`. Le visiteur répond à quatre questions et
+obtient sa configuration et son budget, sans vous déranger.
+
+### Ce qu'elle demande, ce qu'elle en tire
+
+| Question | Ce qu'elle commande |
+| --- | --- |
+| Type de site | les valeurs de départ : nombre d'accès, durée de conservation |
+| Accès à couvrir | le nombre de caméras, donc le switch et l'enregistreur |
+| Durée de conservation | la taille du disque |
+| Écran, pose | les lignes correspondantes du devis |
+
+Elle **partage les calculs de l'outil d'étude** — le même dimensionnement de
+disque, les mêmes marges, la même TVA. Un client et un technicien ne lisent
+donc jamais deux chiffres différents du même site.
+
+### Elle ne propose que ce qui est au tarif
+
+Si aucun switch n'a assez de ports PoE, aucun enregistreur assez de canaux,
+aucun disque assez de capacité, la page **le dit** : « Aucun enregistreur du
+tarif n'offre 8 canaux — ces éléments seront chiffrés lors de l'étude. » Elle
+ne compose jamais une installation qui ne se commande pas.
+
+Et elle écrit ses réserves : configuration établie sans visite, angles de vue
+et longueurs de câble non évaluables à distance, prix sous réserve de
+disponibilité.
+
+### Mettre les prix à jour
+
+Un seul fichier : **`tarif.json`**, posé à côté de la page. Elle le relit à
+chaque ouverture — pas de reconstruction, pas d'outil.
+
+```json
+{ "exemple": false, "marge": 0.25, "tauxHoraire": 55, "tva": 0.2,
+  "articles": [
+    { "type": "camera", "reference": "…", "prixAchat": 214.57, "debit": 8 },
+    { "type": "switch", "reference": "…", "prixAchat": 86.62, "ports": 10, "portsPoe": 8 },
+    { "type": "nvr",    "reference": "…", "prixAchat": 240,    "canaux": 8 },
+    { "type": "disque", "reference": "…", "prixAchat": 190,    "capacite": 8000 }
+  ] }
+```
+
+Le fichier livré porte ses propres explications, en tête. **Tant que
+`exemple` vaut `true`, la page affiche un bandeau** disant que les montants
+n'engagent personne : n'oubliez pas de le passer à `false` une fois vos prix
+saisis.
+
+Pour ne pas tout retaper, l'outil d'étude exporte ce fichier : repli **Devis**,
+bouton **Exporter le tarif client**. Il reprend le matériel du synoptique qui
+porte à la fois une référence et un prix. Les disques s'ajoutent à la main —
+l'outil d'étude ne les gère pas encore.
+
+### Avant la mise en ligne
+
+Une seule chose à faire dans le code : renseigner la constante `CONTACT` en
+tête de `js/devis-client.js` avec l'adresse qui doit recevoir les demandes,
+puis relancer `npm run build`. Laissée vide, le bouton « Demander une étude »
+reste masqué — mieux vaut pas de bouton qu'un lien vers une adresse qui
+n'existe pas.
+
+---
+
+## 9. Concevoir un champ sur plan
 
 L'outil sert dans les deux sens. Les sections suivantes vérifient qu'une caméra
 posée respecte l'étude ; celle-ci fait l'inverse : **tracer le champ voulu sur
@@ -606,7 +671,7 @@ pixels par mètre, hauteur — plus le plan annoté.
 
 ---
 
-## 9. Avant d'aller sur site
+## 10. Avant d'aller sur site
 
 Préparer la **vue demandée** : la référence contractuelle.
 
@@ -615,7 +680,7 @@ Préparer la **vue demandée** : la référence contractuelle.
 2. Renseigner le bloc **2 · Caméra et optique** : le repère de la caméra, puis
    capteur, focale, résolution, distance à la scène, hauteur de pose.
    Ajouter une caméra par poste prévu au chantier (§ 2).
-3. Charger la vue demandée dans le premier cadre du bloc **3** — voir le § 10
+3. Charger la vue demandée dans le premier cadre du bloc **3** — voir le § 11
    ci-dessous pour partir directement du PDF de l'étude.
 4. **Enregistrer la fiche** : un fichier `.json` est téléchargé. Il contient
    tout, images comprises. C'est ce fichier que le technicien emporte.
@@ -642,7 +707,7 @@ largeur à telle distance, il donne la focale à monter.
 
 ---
 
-## 10. Partir du PDF de l'étude
+## 11. Partir du PDF de l'étude
 
 C'est le cas le plus courant : le client a remis une étude au format PDF, avec
 le plan d'implantation et, caméra par caméra, la vue attendue.
@@ -699,7 +764,7 @@ tirée. L'outil ne devine pas : il montre sa source.
 Déplier **Texte lu par l'outil**, sous le tableau. On y voit, page par page, ce
 que l'outil a réellement extrait du PDF, les passages retenus surlignés en vert.
 Une ligne présente mais non surlignée, c'est une formulation qu'il ne sait pas
-encore lire ; une page vide, c'est un scan (§ 10).
+encore lire ; une page vide, c'est un scan (§ 11).
 
 Le bouton **Copier le texte** met ce contenu dans le presse-papiers. Le
 transmettre suffit à faire ajouter la formulation manquante — inutile de sortir
@@ -755,7 +820,7 @@ vérifications distinctes : le **matériel** correspond-il à l'étude, et le
 > visuel. Pour la comparaison de cadrage, il faut une **image** de la vue
 > attendue — capture validée ou photo de repérage. À défaut, le relevé du
 > matériel reste exploitable, et la partie cadrage se traite au recalage manuel
-> (§ 14) ou se réserve pour une visite ultérieure.
+> (§ 15) ou se réserve pour une visite ultérieure.
 
 ### Si l'étude est un scan
 
@@ -780,7 +845,7 @@ praticable, une étude ne comptant qu'une poignée de chiffres par caméra.
 
 ---
 
-## 11. Sur site, après la pose
+## 12. Sur site, après la pose
 
 1. Ouvrir la fiche (**Ouvrir une fiche…**).
 2. Prendre une capture de l'image de la caméra et la charger dans le second
@@ -794,7 +859,7 @@ Le verdict s'affiche en bas :
 - **Ajustement mineur** — reprise rapide, la consigne indique quoi faire.
 - **Non conforme** — le réglage est à refaire.
 - **Recalage non concluant** — l'outil n'a pas pu rapprocher les deux images
-  (voir le § 14).
+  (voir le § 15).
 
 Les consignes sont directement exploitables : « Pivoter la caméra de 6,4° vers
 la gauche », « Relever la caméra de 2,4° », « Élargir le champ de 12 % (focale
@@ -819,7 +884,7 @@ Trois cases complètent l'affichage :
 
 ---
 
-## 12. Zones d'intérêt
+## 13. Zones d'intérêt
 
 Pour vérifier qu'un point précis reste dans le champ (portail, caisse, quai de
 livraison, allée) :
@@ -833,7 +898,7 @@ couvert. Le seuil d'exigence se règle dans le bloc **4** (95 % par défaut).
 
 ---
 
-## 13. Tolérances de réception
+## 14. Tolérances de réception
 
 | Réglage | Défaut | Signification |
 | --- | --- | --- |
@@ -849,14 +914,14 @@ de parking. Ce sont elles qui décident du verdict : à fixer avec le client
 
 ---
 
-## 14. Quand le recalage automatique échoue
+## 15. Quand le recalage automatique échoue
 
 L'outil annonce « recalage non concluant » quand les deux images ne se
 ressemblent pas assez. Les causes habituelles :
 
 - la vue demandée est un **plan ou un croquis**, pas une photo ;
 - la page d'étude retenue porte du texte ou un cartouche : la recadrer sur la
-  seule image (§ 10) suffit souvent à débloquer la situation ;
+  seule image (§ 11) suffit souvent à débloquer la situation ;
 - les deux prises de vue ont été faites depuis **des emplacements différents** ;
 - la scène a **réellement changé** (chantier, saison, véhicules déplacés) ;
 - le décalage dépasse les trois quarts du champ : il ne reste presque plus rien
@@ -868,7 +933,7 @@ direct, et le rapport indique que le recalage a été fait à la main.
 
 ---
 
-## 15. Rapport et archivage
+## 16. Rapport et archivage
 
 **Rapport / Impression** ouvre la boîte d'impression du navigateur. Choisir
 « Enregistrer au format PDF » pour obtenir le procès-verbal du chantier :
@@ -896,7 +961,7 @@ contrôle annuel ou d'une contestation.
 
 ---
 
-## 16. Mettre l'outil en ligne sur le site
+## 17. Mettre l'outil en ligne sur le site
 
 Utile pour y accéder depuis une tablette sans rien installer.
 
@@ -955,7 +1020,7 @@ restreint, deux solutions côté hébergeur :
 
 ---
 
-## 17. Ce que l'outil ne fait pas
+## 18. Ce que l'outil ne fait pas
 
 - Il ne corrige pas la **distorsion** des objectifs très grand-angle. Les
   écarts restent justes au centre et se dégradent vers les bords de l'image.
@@ -964,13 +1029,13 @@ restreint, deux solutions côté hébergeur :
 - Il ne juge pas la qualité d'image (netteté, bruit, exposition) : uniquement le
   cadrage.
 - Il lit le texte des PDF ; les études scannées passent par la reconnaissance
-  de caractères (§ 10), plus faillible, d'où l'avertissement qui les accompagne.
+  de caractères (§ 11), plus faillible, d'où l'avertissement qui les accompagne.
 - Le relevé reconnaît les formulations courantes des études d'implantation et
   des fiches constructeur — « focale 3,6 mm », « f = 4 mm », « H : 102° »,
   « 1/2,8 pouce », « 1 920 x 1 080 », « 1080p », valeurs en colonnes sous leur
   en-tête. Une mise en page inhabituelle peut malgré tout lui échapper : chaque
   valeur est donc affichée avec sa page et son extrait, et le texte lu reste
-  consultable pour comprendre ce qui manque (§ 10).
+  consultable pour comprendre ce qui manque (§ 11).
 - Il ne vérifie pas les points non chiffrés d'un cahier des charges (indice de
   protection, alimentation, chemin de câbles, conformité RGPD de l'affichage).
 - Il calcule le **budget PoE** d'un switch et la **capacité** de l'enregistreur
@@ -990,7 +1055,7 @@ restreint, deux solutions côté hébergeur :
   et c'est le vôtre qui doit servir. L'outil ne sait pas non plus si un taux de
   TVA réduit s'applique à vos travaux.
 - Il ne tient pas à jour les catalogues constructeurs. Les références livrées
-  viennent de documents datés (§ 8) ; les tarifs, les disponibilités et les fins
+  viennent de documents datés (§ 9) ; les tarifs, les disponibilités et les fins
   de série ne sont pas de son ressort.
 - Il ne connaît pas le **format de capteur** des modèles du commerce : aucune
   brochure ne le publie. Les entrées concernées le disent (« ~ »), et la

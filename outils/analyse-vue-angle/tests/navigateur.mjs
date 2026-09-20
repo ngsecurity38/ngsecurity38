@@ -1705,6 +1705,96 @@ console.log('\nSynoptique de câblage');
   await page.close();
 }
 
+/* ------------------------------------------- 9. page de devis client */
+
+console.log('\nDevis client');
+{
+  const page = await contexte.newPage();
+  const erreurs = surveiller(page);
+  // Servie en HTTP, comme sur le site : la page doit alors lire tarif.json.
+  await page.goto(`${BASE}/devis-client.html`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(300);
+
+  const lire = () => page.evaluate(() => ({
+    resume: document.querySelector('#resume').textContent.trim(),
+    lignes: [...document.querySelectorAll('#lignes tr')]
+      .map((t) => t.textContent.replace(/\s+/g, ' ').trim()),
+    totalTtc: (document.querySelector('#totaux tr.fort') || {}).textContent || '',
+    manques: [...document.querySelectorAll('#manques li')]
+      .map((t) => t.textContent.replace(/\s+/g, ' ').trim()),
+  }));
+
+  await cas('la page s\'ouvre chiffrée, sans que le visiteur ait rien fait', async () => {
+    const r = await lire();
+    affirmer(/caméras/.test(r.resume), `résumé : ${r.resume}`);
+    affirmer(r.lignes.length >= 2, `des lignes doivent être proposées : ${r.lignes.length}`);
+    affirmer(/€/.test(r.totalTtc), `un total TTC : ${r.totalTtc}`);
+  });
+
+  await cas('le tarif d\'exemple est annoncé comme tel', async () => {
+    const visible = await page.evaluate(
+      () => !document.querySelector('#bandeau-exemple').hidden,
+    );
+    affirmer(visible, 'un tarif d\'exemple ne doit pas passer pour une offre');
+  });
+
+  await cas('changer de type de site propose d\'autres valeurs', async () => {
+    await page.selectOption('#q-type', 'entrepot');
+    await page.waitForTimeout(200);
+    const zones = await page.inputValue('#q-zones');
+    affirmer(zones === '6', `l'entrepôt propose 6 zones : ${zones}`);
+    const r = await lire();
+    affirmer(/entrepôt/.test(r.resume), r.resume);
+  });
+
+  await cas('plus de caméras, plus cher ; plus de jours, plus de disque', async () => {
+    const montant = async () => {
+      const r = await lire();
+      return parseFloat(r.totalTtc.replace(/[^\d,]/g, '').replace(',', '.'));
+    };
+    await page.fill('#q-zones', '2');
+    await page.dispatchEvent('#q-zones', 'change');
+    await page.waitForTimeout(200);
+    const petit = await montant();
+
+    await page.fill('#q-zones', '8');
+    await page.dispatchEvent('#q-zones', 'change');
+    await page.waitForTimeout(200);
+    const grand = await montant();
+    affirmer(grand > petit, `huit caméras coûtent plus que deux : ${grand} vs ${petit}`);
+
+    const disque = async () => {
+      const r = await lire();
+      return parseFloat((r.resume.match(/([\d,]+) To/) || [])[1].replace(',', '.'));
+    };
+    await page.selectOption('#q-jours', '7');
+    await page.waitForTimeout(200);
+    const court = await disque();
+    await page.selectOption('#q-jours', '90');
+    await page.waitForTimeout(200);
+    affirmer(await disque() > court, 'garder plus longtemps demande plus de disque');
+  });
+
+  await cas('ce qui manque au tarif est dit au visiteur', async () => {
+    // Le tarif livré ne porte ni enregistreur ni disque : la page doit le dire
+    // plutôt que de composer une installation qui ne se commande pas.
+    const r = await lire();
+    affirmer(r.manques.some((m) => /enregistreur/i.test(m)), JSON.stringify(r.manques));
+    affirmer(r.manques.some((m) => /disque/i.test(m)), JSON.stringify(r.manques));
+    affirmer(r.manques.some((m) => /chiffrés lors de l'étude/.test(m)), JSON.stringify(r.manques));
+  });
+
+  await cas('les réserves d\'une estimation à distance sont écrites', async () => {
+    const reserves = await page.evaluate(() => [...document.querySelectorAll('#reserves li')]
+      .map((t) => t.textContent.trim()));
+    affirmer(reserves.length >= 3, `${reserves.length} réserves`);
+    affirmer(reserves.some((x) => /sans visite du site/.test(x)), JSON.stringify(reserves));
+  });
+
+  await cas('aucune erreur de console', () => affirmer(!erreurs.length, erreurs.join(' | ')));
+  await page.close();
+}
+
 await navigateur.close();
 serveur.close();
 
