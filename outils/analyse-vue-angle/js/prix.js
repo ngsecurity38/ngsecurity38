@@ -15,7 +15,7 @@
  * Module pur (aucune dépendance au DOM), testé sous Node.
  */
 
-import { fr } from './format.js';
+import { arrondir } from './format.js';
 
 /** Taux normal de TVA en France. */
 export const TVA_DEFAUT = 0.2;
@@ -200,5 +200,16 @@ export function reservesDevis(d) {
   return reserves;
 }
 
-/** Montant en euros, à la française. */
-export const euros = (v) => `${fr(v, 2)} €`;
+/**
+ * Un montant s'écrit « 1 590,50 € ».
+ *
+ * Deux décimales toujours, la seconde fût-elle un zéro, et un séparateur de
+ * milliers insécable. « 1590,5 € » sur un devis se lit comme une saisie
+ * inachevée, et « 12345,67 € » se compte du doigt.
+ */
+export const euros = (v) => {
+  const n = arrondir(Number(v) || 0, 2);
+  const [entier, decimales] = Math.abs(n).toFixed(2).split('.');
+  const groupe = entier.replace(/\d(?=(\d{3})+$)/g, '$&\u202f');
+  return `${n < 0 ? '-' : ''}${groupe},${decimales} €`;
+};

@@ -179,3 +179,19 @@ client = injecter(client, '<head>', `<head>\n<!-- Devis client — NG Security 3
   + '     Pour changer les prix : éditer tarif.json, à côté de la page. -->');
 
 ecrire('devis-client.html', client);
+
+/*
+ * Dossier prêt à déposer sur le site, tel quel.
+ *
+ * La mise en ligne se fait à la main, par FTP : moins il y a d'étapes, moins
+ * il y a d'occasions de se tromper. `dist/site/devis/` contient exactement ce
+ * qu'il faut téléverser, aux bons noms — la page s'appelle `index.html` pour
+ * que l'adresse reste `/outils/devis/`, et `tarif.json` est à côté d'elle,
+ * faute de quoi la page se rabattrait en silence sur le tarif embarqué à la
+ * fabrication.
+ */
+const dossierSite = join(ici, 'dist', 'site', 'devis');
+mkdirSync(dossierSite, { recursive: true });
+writeFileSync(join(dossierSite, 'index.html'), client);
+writeFileSync(join(dossierSite, 'tarif.json'), lire('tarif.json'));
+console.log(`${dossierSite} — dossier à déposer tel quel sur le site`);

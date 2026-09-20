@@ -107,6 +107,14 @@ const SCENE = `(dec = ${DECALAGE}) => {
 const scene = (page, decalage) => page.evaluate(`(${SCENE})(${decalage === undefined ? DECALAGE : decalage})`);
 
 const enBuffer = (dataUrl) => Buffer.from(dataUrl.split(',')[1], 'base64');
+
+/**
+ * Texte sans aucune espace.
+ *
+ * Les montants portent une espace insécable aux milliers — « 1 072,85 € ».
+ * Elle est là pour l'œil du client ; une assertion n'a pas à s'en occuper.
+ */
+const serre = (t) => String(t || '').replace(/[\s\u00a0\u202f]/g, '');
 const nombre = (texte) => parseFloat(texte.replace(',', '.'));
 
 const navigateur = await chromium.launch();
@@ -1415,8 +1423,9 @@ console.log('\nSynoptique de câblage');
     const cam = lignes.find((l) => /DS-2CD2T86G2/.test(l));
     affirmer(/ 4 /.test(cam), `quantité groupée : ${cam}`);
     // 214,57 € relevés, majorés de 25 % : 268,21 € l'unité.
+    // Les milliers portent une espace insécable : on compare sans les espaces.
     affirmer(/268,21/.test(cam), `prix de vente attendu : ${cam}`);
-    affirmer(/1072,85/.test(cam), `total de la ligne : ${cam}`);
+    affirmer(/1072,85/.test(serre(cam)), `total de la ligne : ${cam}`);
   });
 
   await cas('un matériel sans prix laisse le devis incomplet, et le dit', async () => {
@@ -1445,10 +1454,10 @@ console.log('\nSynoptique de câblage');
     await page.waitForTimeout(200);
     const t = await totaux();
     // 1 072,85 + 108,28 = 1 181,13 HT de matériel, plus 10 h à 55 €.
-    affirmer(/1181,13/.test(t['Matériel HT'] || ''), `matériel : ${t['Matériel HT']}`);
-    affirmer(/550/.test(t["Main-d'œuvre HT"] || ''), `main-d'œuvre : ${t["Main-d'œuvre HT"]}`);
-    affirmer(/1731,13/.test(t['Total HT'] || ''), `total HT : ${t['Total HT']}`);
-    affirmer(/2077,35/.test(t['Total TTC'] || ''), `total TTC : ${t['Total TTC']}`);
+    affirmer(/1181,13/.test(serre(t['Matériel HT'])), `matériel : ${t['Matériel HT']}`);
+    affirmer(/550,00/.test(serre(t["Main-d'œuvre HT"])), `main-d'œuvre : ${t["Main-d'œuvre HT"]}`);
+    affirmer(/1731,13/.test(serre(t['Total HT'])), `total HT : ${t['Total HT']}`);
+    affirmer(/2077,35/.test(serre(t['Total TTC'])), `total TTC : ${t['Total TTC']}`);
 
     await page.fill('#devis-remise', '10');
     await page.dispatchEvent('#devis-remise', 'change');

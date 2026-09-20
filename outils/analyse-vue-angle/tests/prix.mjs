@@ -186,6 +186,10 @@ test('devis : la main-d\'œuvre seule se chiffre aussi', () => {
 /* ---------------------------------------------------------------- format */
 
 test('montants : deux décimales et virgule française', () => {
-  assert.equal(euros(1234.5), '1234,5 €');
-  assert.equal(euros(0), '0 €');
+  assert.equal(euros(1234.5), '1\u202f234,50 €', 'milliers séparés, deux décimales');
+  assert.equal(euros(0), '0,00 €');
+  assert.equal(euros(85), '85,00 €');
+  assert.equal(euros(999.999), '1\u202f000,00 €', 'l\'arrondi fait passer le millier');
+  assert.equal(euros(1234567.8), '1\u202f234\u202f567,80 €');
+  assert.equal(euros(-42.5), '-42,50 €');
 });

@@ -12,24 +12,30 @@ saisit, et les photos qu'il prend, restent sur son téléphone.
 
 ## 1. Ce qu'il faut envoyer sur le site
 
-Deux fichiers seulement :
+**Le dossier `dist/site/devis/` est prêt à être déposé tel quel.** Il contient
+les deux seuls fichiers nécessaires, déjà aux bons noms :
 
 | Fichier | Rôle |
 | --- | --- |
-| `dist/devis-client.html` | la page |
+| `index.html` | la page |
 | `tarif.json` | vos prix — le seul à retoucher ensuite |
 
-Mettez-les **dans le même dossier**, par exemple `/outils/devis/`.
+Ils doivent rester **dans le même dossier** : c'est à côté d'elle que la page
+va lire vos prix. Séparés, elle se rabat en silence sur le tarif embarqué le
+jour de la fabrication.
 
 ### Par FTP
 
 1. Ouvrir FileZilla et se connecter à l'hébergement.
 2. Aller dans le dossier du site : `public_html/` (ou `www/`).
-3. Créer un dossier `outils`, puis dedans un dossier `devis`.
-4. Y déposer `devis-client.html` (à renommer `index.html`) et `tarif.json`.
+3. Créer un dossier `outils`.
+4. Y glisser le dossier `devis` entier, tel qu'il sort de `dist/site/`.
 5. Vérifier dans un navigateur : `https://ngsecurity38.fr/outils/devis/`.
 
-En renommant la page `index.html`, l'adresse reste courte et se retient.
+La page s'appelle `index.html` pour que l'adresse reste courte et se retienne.
+
+> **Cette étape vous revient.** Personne d'autre n'a accès à votre hébergement :
+> tant que le dossier n'est pas déposé, rien n'est en ligne.
 
 ### Par l'admin WordPress
 
