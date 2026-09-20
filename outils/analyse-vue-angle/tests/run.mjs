@@ -10,6 +10,7 @@ import {
 } from '../js/optique.js';
 import { creerImage, estimerTransformation, correlation, redimensionner } from '../js/alignement.js';
 import { diagnostiquer, noter } from '../js/diagnostic.js';
+import { elider, fr, frGroupe } from '../js/format.js';
 
 const proche = (a, b, tol, message) => assert.ok(
   Math.abs(a - b) <= tol,
@@ -268,4 +269,19 @@ test('diagnostic : tolérances personnalisables', () => {
   const t = { tx: -0.02, ty: 0, echelle: 1, rotation: 0, zncc: 0.9, recouvrement: 0.9 };
   assert.equal(diagnostiquer(t, ANGLES, { tolerances: { angle: 3 } }).verdict, 'conforme');
   assert.notEqual(diagnostiquer(t, ANGLES, { tolerances: { angle: 0.3 } }).verdict, 'conforme');
+});
+
+/* ------------------------------------------------------------------- format */
+
+test('élision : « de reconnaître », mais « d\'identifier »', () => {
+  assert.equal(elider('reconnaître une personne'), 'de reconnaître une personne');
+  assert.equal(elider('repérer une présence'), 'de repérer une présence');
+  assert.equal(elider('identifier un inconnu'), "d'identifier un inconnu");
+  assert.equal(elider('observer ce qui se passe'), "d'observer ce qui se passe");
+  assert.equal(elider('Élargir'), "d'Élargir", 'la majuscule accentuée compte aussi');
+});
+
+test('nombres : virgule française et milliers insécables', () => {
+  assert.equal(fr(6.42), '6,4');
+  assert.equal(frGroupe(15552), '15\u202f552');
 });

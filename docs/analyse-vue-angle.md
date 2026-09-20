@@ -589,6 +589,21 @@ Si aucune caméra du tarif ne porte ses caractéristiques optiques (`focaleMin`,
 `focaleMax`, `resH`, `resV`), la page le dit et renvoie à l'étude plutôt que de
 désigner un modèle au hasard.
 
+### Le récapitulatif : ce que le client garde, ce qui nous revient
+
+Une seule photo est ouverte à la fois sur la page. Le devis, lui, porte
+**toutes** les zones étudiées, sous le résumé : chacune avec sa photo annotée
+(repères et rectangle compris), son angle, la distance du fond, la largeur,
+la hauteur de pose, la provenance du champ, et la caméra retenue avec son
+niveau d'exploitation.
+
+C'est ce bloc qui s'imprime. Sans lui, un client qui étudie trois angles n'en
+imprimerait qu'un — et nous n'en recevrions qu'un.
+
+La **demande d'étude** reprend les mêmes lignes en texte, zone par zone, et
+rappelle au visiteur de joindre son fichier `.json`. Le courriel ne peut pas
+emporter les photos ; il emporte au moins toutes les mesures.
+
 ### Enregistrer et reprendre
 
 Le projet — réponses, photos, repères, zones — est **mémorisé sur l'appareil du

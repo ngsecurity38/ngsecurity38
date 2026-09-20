@@ -1961,6 +1961,66 @@ console.log('\nDevis client');
     affirmer(apres < avant, `resserrer doit réduire l'angle : ${avant}° → ${apres}°`);
   });
 
+  await cas('chaque zone étudiée figure au récapitulatif', async () => {
+    /*
+     * Une seule photo est ouverte à la fois ; le devis, lui, les porte toutes.
+     * Sans ce récapitulatif, un client qui étudie trois angles n'en imprime
+     * qu'un, et nous n'en recevons qu'un.
+     */
+    const avant = await page.evaluate(
+      () => document.querySelectorAll('#recap-photos .zone-recap').length,
+    );
+    affirmer(avant === 1, `une zone étudiée, une entrée : ${avant}`);
+
+    const seconde = await page.evaluate(() => {
+      const c = document.createElement('canvas');
+      c.width = 1600; c.height = 900;
+      const g = c.getContext('2d');
+      g.fillStyle = '#93a7bd'; g.fillRect(0, 0, 1600, 340);
+      g.fillStyle = '#5d5a52'; g.fillRect(0, 340, 1600, 560);
+      return c.toDataURL('image/png');
+    });
+    await page.setInputFiles('#fichier-photo', {
+      name: 'parking.png', mimeType: 'image/png', buffer: enBuffer(seconde),
+    });
+    await page.waitForTimeout(600);
+
+    const toile = async () => {
+      const l = page.locator('#toile-photo');
+      await l.scrollIntoViewIfNeeded();
+      return l.boundingBox();
+    };
+    const b2 = await toile();
+    await page.mouse.click(b2.x + b2.width * 0.5, b2.y + b2.height * 0.78);
+    await page.waitForTimeout(150);
+    await page.click('[data-etape="zone"]');
+    const b3 = await toile();
+    await page.mouse.move(b3.x + b3.width * 0.25, b3.y + b3.height * 0.5);
+    await page.mouse.down();
+    await page.mouse.move(b3.x + b3.width * 0.75, b3.y + b3.height * 0.88, { steps: 8 });
+    await page.mouse.up();
+    await page.waitForTimeout(500);
+
+    const r = await page.evaluate(() => ({
+      entrees: [...document.querySelectorAll('#recap-photos .zone-recap')]
+        .map((f) => f.textContent.replace(/\s+/g, ' ').trim()),
+      images: [...document.querySelectorAll('#recap-photos img')].map((i) => i.src.slice(0, 15)),
+      cameras: (() => {
+        const l = [...document.querySelectorAll('#lignes tr')]
+          .find((t) => /Caméras/.test(t.textContent));
+        return l ? l.querySelectorAll('td')[1].textContent.trim() : null;
+      })(),
+    }));
+    affirmer(r.entrees.length === 2, `deux zones étudiées : ${r.entrees.length}`);
+    affirmer(r.entrees.every((t) => /de champ/.test(t) && /de large/.test(t)),
+      `chaque entrée porte ses mesures : ${JSON.stringify(r.entrees)}`);
+    affirmer(r.entrees.some((t) => /supposé d'après l'appareil/.test(t)),
+      `un seul repère sur la seconde : la supposition doit être dite — ${JSON.stringify(r.entrees)}`);
+    affirmer(r.images.length === 2 && r.images.every((x) => x.startsWith('data:image')),
+      `chaque zone porte sa photo annotée : ${JSON.stringify(r.images)}`);
+    affirmer(r.cameras === '2', `le devis suit : ${r.cameras} caméra(s)`);
+  });
+
   await cas('le projet s\'enregistre et se reprend', async () => {
     const memorise = await page.evaluate(
       () => !!window.localStorage.getItem('ngsecurity-devis-client'),
@@ -1971,8 +2031,8 @@ console.log('\nDevis client');
       () => JSON.parse(window.localStorage.getItem('ngsecurity-devis-client')),
     );
     affirmer(contenu.type === 'ng-devis-client', `type : ${contenu.type}`);
-    affirmer(contenu.zones.length === 1, `une zone enregistrée : ${contenu.zones.length}`);
-    affirmer(!!contenu.zones[0].dataUrl, 'la photo voyage avec le projet');
+    affirmer(contenu.zones.length === 2, `les deux zones enregistrées : ${contenu.zones.length}`);
+    affirmer(contenu.zones.every((z) => z.dataUrl), 'les photos voyagent avec le projet');
     affirmer(!!contenu.zones[0].zone, 'et la zone tracée aussi');
     affirmer(contenu.zones[0].img === undefined,
       'l\'image décodée n\'a pas à être enregistrée');

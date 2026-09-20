@@ -10,7 +10,8 @@
  */
 
 import { $, $$ } from './dom.js';
-import { fr } from './format.js';
+import { fr, elider } from './format.js';
+import { SEUILS_DORI } from './optique.js';
 import { TYPES_SITE, RESERVES, composer } from './offre.js';
 import { ligne, devis, euros, TVA_DEFAUT, MARGE_COMMERCIALE } from './prix.js';
 import {
@@ -100,6 +101,7 @@ function calculer() {
 
   $('#resultat').hidden = false;
   $('#resume').textContent = resume(offre, r);
+  majRecapPhotos();
   $('#manques').innerHTML = offre.manques.length
     ? `<ul class="manques">${offre.manques.map((m) => `<li>${ech(m)}</li>`).join('')}
         <li>Ces éléments seront chiffrés lors de l'étude.</li></ul>`
@@ -251,6 +253,7 @@ function majContact(offre, r, d) {
     `- Câble estimé : ${offre.metresCable} m`,
     `- Écran de supervision : ${r.ecran ? 'oui' : 'non'}`,
     `- Installation par vos soins : ${r.pose ? 'oui' : 'non'}`,
+    ...lignesEtude(),
     '',
     `Estimation obtenue sur votre site : ${euros(d.totalTtc)} TTC.`,
     '',
@@ -398,7 +401,7 @@ function conseil(m, propose, niveau) {
   const suite = niveau.verbe
     ? `Elle permet d'y <b>${ech(niveau.verbe)}</b> jusqu'au fond,
        soit ${fr(niveau.densite, 0)} pixels par mètre.
-       ${porteesLisibles(camera.resH || 0, couv)}`
+       ${porteesLisibles(camera.resH || 0, couv, niveau)}`
     : `La zone reste cependant trop large pour être exploitable
        (${fr(niveau.densite, 0)} pixels par mètre) : resserrez-la,
        ou prévoyez deux caméras.`;
@@ -407,16 +410,26 @@ function conseil(m, propose, niveau) {
     <b>${ech(camera.reference)}</b> convient à cette zone.${cadrage} ${suite}</p>`;
 }
 
-/** Jusqu'où l'image reste exploitable, en français courant. */
-function porteesLisibles(resolutionH, couv) {
+/**
+ * Ce que l'image permet de plus, plus près.
+ *
+ * Un niveau plus fin exige plus de pixels au mètre, donc se tient à distance
+ * plus courte — jamais plus loin. On n'énumère que les niveaux au-dessus de
+ * celui déjà tenu au fond de zone : redire celui-là ferait croire à une
+ * limite supplémentaire.
+ */
+function porteesLisibles(resolutionH, couv, niveau) {
+  const atteint = niveau.cle ? SEUILS_DORI[niveau.cle].ppm : 0;
   const lignes = [
     ['reconnaître une personne déjà connue', 'reconnaissance'],
     ['identifier un inconnu', 'identification'],
-  ].map(([texte, cle]) => {
+  ].filter(([, cle]) => SEUILS_DORI[cle].ppm > atteint).map(([texte, cle]) => {
     const d = porteeNiveau(couv, resolutionH, cle);
     return d > 0 ? `${texte} jusqu'à ${fr(d)} m` : null;
   }).filter(Boolean);
-  return lignes.length ? `Au-delà, elle permet encore de ${lignes.join(', et d\'')}.` : '';
+  return lignes.length
+    ? `Plus près, elle permet encore ${lignes.map(elider).join(', et ')}.`
+    : '';
 }
 
 /**
@@ -441,6 +454,81 @@ function cameraPour(m) {
   // Aucune ne couvre la zone entière : on garde la plus large, et on le dit.
   const choix = large.length ? large : candidats;
   return choix.reduce((meilleur, x) => (x.couv.angle < meilleur.couv.angle ? x : meilleur));
+}
+
+/**
+ * Ce qu'une zone photographiée a donné : mesure, caméra retenue, niveau.
+ *
+ * Une seule fonction pour l'écran, le récapitulatif imprimé et le courriel :
+ * trois endroits qui ne doivent jamais raconter trois choses différentes.
+ */
+function syntheseZone(z) {
+  const m = mesureZone(z);
+  if (!m) return null;
+  const propose = cameraPour(m);
+  return { m, propose, niveau: niveauAtteint(propose?.couv.densite || 0) };
+}
+
+/** Les zones mesurées, avec leur synthèse. */
+const zonesMesurees = () => etatPhotos.zones
+  .map((z) => ({ z, s: syntheseZone(z) }))
+  .filter((x) => x.s);
+
+/**
+ * Récapitulatif photo par photo, sous le résumé.
+ *
+ * Sur la page, seule la zone ouverte est visible ; à l'impression, aucune ne
+ * le serait. C'est pourtant ce récapitulatif que le client garde, et qui nous
+ * revient en PDF ou en pièce jointe.
+ */
+function majRecapPhotos() {
+  const mesurees = zonesMesurees();
+  if (!mesurees.length) { $('#recap-photos').innerHTML = ''; return; }
+
+  const toile = document.createElement('canvas');
+  $('#recap-photos').innerHTML = mesurees.map(({ z, s }) => {
+    dessiner(toile, z);
+    const { m, propose, niveau } = s;
+    const camera = propose && !propose.couv.serre && niveau.verbe
+      ? `${ech(propose.camera.reference)} — ${ech(niveau.label.toLowerCase())}, `
+        + `${fr(niveau.densite, 0)} pixels par mètre`
+      : 'modèle à arrêter lors de l\'étude';
+    return `<figure class="zone-recap">
+      <img src="${toile.toDataURL('image/jpeg', 0.75)}" alt="${ech(z.nom)}">
+      <figcaption>
+        <b>${ech(z.nom)}</b> — ${fr(m.angleRequis)} ° de champ,
+        jusqu'à ${fr(m.distanceMax)} m, ${fr(m.largeur)} m de large.
+        <span class="note-tuile">Champ de la photo ${fr(m.prise.angleH)} °,
+          ${m.prise.mesure ? 'mesuré sur deux repères' : 'supposé d\'après l\'appareil'}
+          — caméra à ${fr(z.hauteur)} m.</span>
+        <span class="note-tuile">${camera}</span>
+      </figcaption>
+    </figure>`;
+  }).join('');
+}
+
+/** Les zones étudiées, en texte, pour la demande d'étude. */
+function lignesEtude() {
+  const mesurees = zonesMesurees();
+  if (!mesurees.length) return [];
+  return [
+    '',
+    'Zones étudiées depuis mes photos :',
+    ...mesurees.map(({ z, s }) => {
+      const { m, propose, niveau } = s;
+      const camera = propose && !propose.couv.serre && niveau.verbe
+        ? `${propose.camera.reference} (${niveau.label.toLowerCase()}, `
+          + `${fr(niveau.densite, 0)} px/m)`
+        : 'modèle à arrêter';
+      return `- ${z.nom} : ${fr(m.angleRequis)} ° de champ, fond à `
+        + `${fr(m.distanceMax)} m, ${fr(m.largeur)} m de large, caméra à `
+        + `${fr(z.hauteur)} m — ${camera}. Champ de la photo `
+        + `${m.prise.mesure ? 'mesuré sur deux repères' : 'supposé d\'après l\'appareil'}.`;
+    }),
+    '',
+    'J\'ai enregistré mon projet depuis la page : le fichier .json joint '
+      + 'contient mes photos, mes repères et mes zones.',
+  ];
 }
 
 /* --------------------------------------------------------- interactions */

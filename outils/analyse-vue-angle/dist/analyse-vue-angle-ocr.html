@@ -1330,6 +1330,20 @@ const frGroupe = (v, n = 0) => fr(v, n).replace(
   /\d(?=(\d{3})+(,|$))/g, '$&\u202f',
 );
 
+/**
+ * Élide « de » devant une voyelle : « de reconnaître », mais « d'identifier ».
+ *
+ * Les textes de la page se composent à partir de listes de verbes, et l'un
+ * d'eux commence par une voyelle une fois sur deux. Écrire « de identifier »
+ * dans un document remis à un client se remarque immédiatement.
+ *
+ * Le h aspiré (« de hauteur » ne s'élide pas, « d'habitude » si) n'est pas
+ * traité : aucun mot de nos listes ne commence par un h.
+ */
+const elider = (mot) => (
+  /^[aeiouyàâäéèêëîïôöùûü]/i.test(mot) ? `d'${mot}` : `de ${mot}`
+);
+
 /* ===== optique.js ===== */
 /**
  * Calculs optiques pour l'analyse de vue d'angle.
