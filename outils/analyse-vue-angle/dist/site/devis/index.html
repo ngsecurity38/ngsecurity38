@@ -250,6 +250,14 @@ tfoot tr.fort td { font-size: 19px; font-weight: 700; border-top: 2px solid var(
 @media (max-width: 560px) {
   .marque .retour { flex-direction: column; gap: 6px; }
 }
+
+/* Les liens de sortie, en pied : le site, l'autre outil, la boutique.
+   Une page d'outil sans porte de sortie est une impasse. */
+.liens-pied { margin-top: 10px; }
+.liens-pied a { color: var(--doux); }
+.liens-pied a:hover { color: var(--rouge); }
+
+@media print { .liens-pied { display: none; } }
 </style>
 </head>
 <body>
@@ -424,6 +432,12 @@ tfoot tr.fort td { font-size: 19px; font-weight: 700; border-top: 2px solid var(
     Estimation établie à partir de vos réponses, sans visite du site. Elle ne
     vaut pas devis : seul un relevé technique permet d'arrêter le nombre de
     caméras, leurs emplacements et le cheminement des câbles.
+  </p>
+
+  <p class="pied liens-pied">
+    <a href="/">ngsecurity38.fr</a>
+    · <a href="/outils/etude/">Quelle caméra vous faut-il&nbsp;?</a>
+    · <a href="https://ngsecurity38.com/">La boutique</a>
   </p>
 </main>
 

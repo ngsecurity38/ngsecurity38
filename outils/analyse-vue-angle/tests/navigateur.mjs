@@ -2048,6 +2048,21 @@ console.log('\nDevis client');
       'l\'image décodée n\'a pas à être enregistrée');
   });
 
+  await cas('le pied offre trois portes de sortie, dont la boutique', async () => {
+    /*
+     * Une page d'outil posée sous /outils/ ne porte pas le menu du site.
+     * Sans lien de sortie, le visiteur qui a fini son estimation ferme
+     * l'onglet au lieu d'aller voir les caméras.
+     */
+    const liens = await page.evaluate(() => [...document.querySelectorAll('.liens-pied a')]
+      .map((a) => [a.textContent.replace(/\s+/g, ' ').trim(), a.getAttribute('href')]));
+    affirmer(liens.length === 3, `trois liens : ${JSON.stringify(liens)}`);
+    const vers = Object.fromEntries(liens.map(([t, h]) => [h, t]));
+    affirmer(vers['/'], 'le site');
+    affirmer(vers['/outils/etude/'], 'l\'autre outil');
+    affirmer(vers['https://ngsecurity38.com/'], `la boutique : ${JSON.stringify(liens)}`);
+  });
+
   await cas('la demande d\'étude part vers l\'agence, dossier compris', async () => {
     const lien = await page.evaluate(() => {
       const b = document.querySelector('#btn-contact');
@@ -2178,12 +2193,19 @@ console.log('\nPage de présentation (boutique)');
       pied: [...document.querySelectorAll('#pied-liens a')]
         .map((a) => [a.textContent.trim(), a.getAttribute('href')]),
     }));
+    /*
+     * L'étude doit rester RELATIVE : les deux pages se trouvent ainsi qu'elles
+     * soient à la racine d'un domaine, sous un sous-dossier ou dans un cadre.
+     * La boutique, elle, est sur un autre domaine — son adresse est donc
+     * complète, et c'est voulu.
+     */
     affirmer(liens.outil === '../devis/', `étude : ${liens.outil}`);
     affirmer(liens.bas === liens.outil, 'les deux boutons mènent au même endroit');
-    affirmer(liens.boutique === '/', `boutique : ${liens.boutique}`);
-    // Relatif, sous toutes ses formes : rien qui parte vers un autre domaine.
-    affirmer(liens.pied.length === 2 && liens.pied.every(([, h]) => !/^[a-z]+:/i.test(h)),
-      `le pied reste relatif : ${JSON.stringify(liens.pied)}`);
+    affirmer(/^https:\/\/ngsecurity38\.com\//.test(liens.boutique),
+      `boutique : ${liens.boutique}`);
+    affirmer(liens.pied.length === 2, `deux liens au pied : ${JSON.stringify(liens.pied)}`);
+    affirmer(liens.pied.some(([, h]) => h === liens.outil),
+      `le pied mène à l'étude : ${JSON.stringify(liens.pied)}`);
   });
 
   await cas('le catalogue livré s\'affiche, chiffré et sans réserve', async () => {

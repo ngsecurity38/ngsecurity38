@@ -240,3 +240,11 @@ tfoot tr.fort td { font-size: 19px; font-weight: 700; border-top: 2px solid var(
 @media (max-width: 560px) {
   .marque .retour { flex-direction: column; gap: 6px; }
 }
+
+/* Les liens de sortie, en pied : le site, l'autre outil, la boutique.
+   Une page d'outil sans porte de sortie est une impasse. */
+.liens-pied { margin-top: 10px; }
+.liens-pied a { color: var(--doux); }
+.liens-pied a:hover { color: var(--rouge); }
+
+@media print { .liens-pied { display: none; } }
