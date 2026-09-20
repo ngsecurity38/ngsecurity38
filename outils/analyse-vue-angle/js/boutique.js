@@ -51,31 +51,51 @@ export function focales(produit) {
 }
 
 /**
- * Ce qu'un produit permet de voir, calculé sur son optique.
+ * Ce qu'un produit permet de voir.
  *
- * @returns {object|null} null tant que focale et définition ne sont pas toutes
- *   deux connues — auquel cas la page n'annonce aucun chiffre.
+ * L'angle de champ vient du constructeur dès qu'il est renseigné, et c'est
+ * toujours préférable : un grand-angle n'est pas rectiligne. Dahua annonce
+ * 95° pour son 2,8 mm quand le calcul en donne 83, Axis 130° pour un 2,4 mm
+ * quand le calcul en donne 98. Calculer à sa place resserrerait le champ sur
+ * le papier, donc gonflerait les pixels par mètre — et la caméra posée au mur
+ * démentirait la page.
+ *
+ * Faute d'angle déclaré, il est calculé depuis la focale et le capteur, et
+ * `angleCalcule` le dit.
+ *
+ * @returns {object|null} null tant que la définition, et soit l'angle soit la
+ *   focale, ne sont pas connues — auquel cas la page n'annonce aucun chiffre.
  */
 export function capacites(produit) {
-  const f = focales(produit);
   const resH = nombre(produit?.resH);
-  if (!f || !resH) return null;
+  if (!resH) return null;
+
+  const f = focales(produit);
+  const declareLarge = nombre(produit?.angleH);
+  const declareSerre = nombre(produit?.angleHTele);
+  if (!declareLarge && !f) return null;
 
   const nomCapteur = produit.capteur && CAPTEURS[produit.capteur]
     ? produit.capteur : CAPTEUR_DEFAUT;
   const capteur = CAPTEURS[nomCapteur];
+  const calcule = (focale) => anglesDeChamp(capteur, focale).horizontal;
 
   // Au grand angle pour la largeur embrassée, au téléobjectif pour la portée :
   // c'est ainsi que le produit sera réglé selon ce qu'on lui demande.
-  const angleLarge = anglesDeChamp(capteur, f.min).horizontal;
-  const angleSerre = anglesDeChamp(capteur, f.max).horizontal;
+  const angleLarge = declareLarge || calcule(f.min);
+  // Le téléobjectif : l'angle déclaré s'il existe, sinon le calcul sur la
+  // focale longue, sinon l'objectif est fixe et le champ ne bouge pas.
+  const angleSerre = declareSerre
+    || (f && f.max > f.min ? calcule(f.max) : angleLarge);
 
   return {
-    reglable: f.max > f.min,
-    focaleMin: f.min,
-    focaleMax: f.max,
+    reglable: angleSerre < angleLarge - 0.5,
+    focaleMin: f ? f.min : null,
+    focaleMax: f ? f.max : null,
     capteur: nomCapteur,
-    estSuppose: !produit.capteur || !CAPTEURS[produit.capteur],
+    // L'angle vient-il du constructeur, ou d'un calcul sur un capteur supposé ?
+    angleCalcule: !declareLarge,
+    estSuppose: !declareLarge && (!produit.capteur || !CAPTEURS[produit.capteur]),
     angleLarge,
     angleSerre,
     largeurA: (d = DISTANCE_VITRINE) => couverture(angleLarge, d),
@@ -96,9 +116,7 @@ export function argumentaire(produit) {
   const c = capacites(produit);
   if (!c) return null;
   const largeur = c.largeurA(DISTANCE_VITRINE);
-  const optique = c.reglable
-    ? `objectif réglable de ${arr(c.focaleMin)} à ${arr(c.focaleMax)} mm`
-    : `objectif ${arr(c.focaleMin)} mm`;
+  const optique = optiqueEnClair(c);
   return {
     optique,
     largeur,
@@ -108,6 +126,20 @@ export function argumentaire(produit) {
     reconnaissance: c.portees.reconnaissance,
     identification: c.portees.identification,
   };
+}
+
+/**
+ * L'objectif, dit en clair.
+ *
+ * La focale parle au professionnel ; l'angle parle à tout le monde. On donne
+ * les deux quand on a les deux, l'angle seul sinon.
+ */
+function optiqueEnClair(c) {
+  if (!c.focaleMin) return `champ de ${arr(c.angleLarge)} °`;
+  if (c.reglable && c.focaleMax > c.focaleMin) {
+    return `objectif réglable de ${arr(c.focaleMin)} à ${arr(c.focaleMax)} mm`;
+  }
+  return `objectif ${arr(c.focaleMin)} mm, ${arr(c.angleLarge)} ° de champ`;
 }
 
 /** Arrondi à une décimale, sans zéro inutile : 4 et non 4,0. */
@@ -145,8 +177,9 @@ export function reservesCatalogue(catalogue) {
   const sansOptique = affichables.filter((p) => !capacites(p));
   if (sansOptique.length) {
     reserves.push(`${sansOptique.length} produit${sansOptique.length > 1 ? 's' : ''} sans `
-      + 'focale ni définition : présenté sans portée annoncée. '
-      + 'Renseignez focale et resH pour que la page les calcule.');
+      + 'optique renseignée : présenté sans portée annoncée. '
+      + 'Renseignez resH, puis angleH (l\'angle du constructeur) ou à défaut '
+      + 'focale, pour que la page les calcule.');
   }
   return reserves;
 }

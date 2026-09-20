@@ -104,30 +104,56 @@ export function mesureZone(zone) {
  * `mesureZone` donne la focale *idéale* : celle qui cadrerait la zone au
  * pixel près. Une caméra réelle a la focale qu'elle a — fixe, ou variable
  * entre deux bornes. Elle cadre donc presque toujours plus large, et ses
- * pixels se répartissent sur cette largeur-là. Annoncer la densité de la
- * focale idéale promettrait une image que le matériel ne donnera pas.
+ * pixels se répartissent sur cette largeur-là.
+ *
+ * Son champ se lit d'abord sur la fiche du constructeur (`angleH`), qui seul
+ * tient compte de la distorsion du grand-angle. À défaut il est calculé sur
+ * la focale et le capteur — et le capteur lui-même est souvent supposé. Sur
+ * un DS-2CD2T86G2-4I, cette double approximation annonçait 63 pixels par
+ * mètre là où le champ réel n'en donne que 43 : de quoi promettre une
+ * observation quand la caméra ne fera que repérer une présence.
  *
  * @param {object} m mesure de la zone
- * @param {object} camera article du tarif, avec focaleMin/focaleMax et resH
+ * @param {object} camera article du tarif : resH, et angleH ou focaleMin/Max
  */
 export function couvertureReelle(m, camera) {
   if (!m || !(m.distanceMax > 0) || !camera) return null;
+
+  const declareLarge = camera.angleH > 0 ? camera.angleH : 0;
+  const declareSerre = camera.angleHTele > 0 ? camera.angleHTele : 0;
   const min = camera.focaleMin > 0 ? camera.focaleMin : camera.focaleMax;
   const max = camera.focaleMax > 0 ? camera.focaleMax : camera.focaleMin;
-  if (!(min > 0) || !(max > 0)) return null;
+  const aFocale = min > 0 && max > 0;
+  if (!declareLarge && !aFocale) return null;
 
-  // Le capteur n'est pas toujours au tarif ; à défaut c'est celui qui a servi
-  // à traduire l'angle en focale, faute de quoi les deux ne se compareraient
-  // même pas.
   const capteur = CAPTEURS[camera.capteur] || CAPTEUR_REFERENCE;
-  const focale = Math.min(max, Math.max(min, m.focale));
-  const angle = anglesDeChamp(capteur, focale).horizontal;
+  const calcule = (f) => anglesDeChamp(capteur, f).horizontal;
+
+  let focale = null;
+  let angle;
+  if (aFocale) {
+    focale = Math.min(max, Math.max(min, m.focale));
+    if (declareLarge && declareSerre && max > min) {
+      // Objectif variable dont les deux bouts sont annoncés : on interpole sur
+      // la position réelle de l'objectif, pas sur un capteur supposé.
+      const part = (focale - min) / (max - min);
+      angle = declareLarge + part * (declareSerre - declareLarge);
+    } else if (declareLarge && max === min) {
+      angle = declareLarge;
+    } else {
+      angle = calcule(focale);
+    }
+  } else {
+    angle = declareLarge;
+  }
 
   return {
     focale,
     angle,
     reglable: max > min,
-    capteurSuppose: !CAPTEURS[camera.capteur],
+    // Le chiffre vient-il de la fiche, ou d'un calcul sur un capteur supposé ?
+    angleDeclare: !!declareLarge,
+    capteurSuppose: !declareLarge && !CAPTEURS[camera.capteur],
     largeur: couverture(angle, m.distanceMax),
     densite: pixelsParMetre(camera.resH || 0, angle, m.distanceMax),
     // Plus serrée que demandé : la zone déborde du champ, il en manque un

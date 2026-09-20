@@ -2165,7 +2165,7 @@ console.log('\nPage de présentation (boutique)');
     const nu = r.vignettes.find((v) => /Sans optique/.test(v.texte));
     affirmer(!/jusqu'à/.test(nu.texte),
       `aucune portée ne doit être annoncée sans optique : ${nu.texte}`);
-    affirmer(r.reserves.some((x) => /sans focale ni définition/.test(x)),
+    affirmer(r.reserves.some((x) => /sans optique renseignée/.test(x)),
       `la lacune doit être dite : ${JSON.stringify(r.reserves)}`);
     affirmer(r.reserves.some((x) => /sans référence ou sans adresse/.test(x)),
       `le produit écarté aussi : ${JSON.stringify(r.reserves)}`);

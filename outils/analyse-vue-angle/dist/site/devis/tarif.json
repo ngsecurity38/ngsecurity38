@@ -23,13 +23,21 @@
   "tva": 0.2,
   "_optique": [
     "Pour qu'une caméra soit proposée sur une étude photo, elle doit porter",
-    "focaleMin et focaleMax (en mm, égales si l'objectif est fixe) ainsi que",
-    "resH et resV. Sans elles, la page dit que le modèle sera arrêté lors de",
-    "l'étude plutôt que d'en désigner un au hasard.",
+    "resH et resV, plus son champ de vision. Sans cela, la page dit que le",
+    "modèle sera arrêté lors de l'étude plutôt que d'en désigner un au hasard.",
     "",
-    "capteur est facultatif : au format 1/2.8\" (guillemet compris). Il sert à",
-    "calculer le champ réel de l'objectif, donc les pixels par mètre annoncés",
-    "au client. Absent, le 1/2.8\" est supposé — courant en 4K, mais supposé."
+    "LE CHAMP, DANS L'ORDRE DE PRÉFÉRENCE :",
+    "  angleH     angle horizontal ANNONCÉ PAR LE CONSTRUCTEUR, en degrés.",
+    "             C'est de loin le meilleur : un grand-angle est distordu, et",
+    "             le calcul rectiligne le resserre. Hikvision annonce 87° pour",
+    "             le 4 mm ci-dessous quand le calcul en donnait 66 — soit 63",
+    "             pixels par mètre promis au lieu des 43 réels.",
+    "  angleHTele idem au téléobjectif, pour un objectif variable.",
+    "  focaleMin  et focaleMax (en mm, égales si l'objectif est fixe) : sert",
+    "             à choisir la caméra, et à calculer le champ À DÉFAUT",
+    "             d'angleH.",
+    "  capteur    au format 1/1.8\" (guillemet compris). N'intervient que",
+    "             faute d'angleH. Absent, le 1/2.8\" est supposé."
   ],
   "articles": [
     {
@@ -41,8 +49,11 @@
       "resV": 2160,
       "focaleMin": 4,
       "focaleMax": 4,
+      "capteur": "1/1.8\"",
+      "angleH": 87,
       "conso": 12,
-      "sourceAchat": { "type": "releve", "date": "20/09/2026", "source": "Getic.fr" }
+      "sourceAchat": { "type": "releve", "date": "20/09/2026", "source": "Getic.fr" },
+      "sourceOptique": "Fiche technique Hikvision DS-2CD2T86G2-2I/4I (C), éd. 06/08/2024 — capteur 1/1.8\", champ horizontal 87° à 4 mm"
     },
     {
       "type": "switch",

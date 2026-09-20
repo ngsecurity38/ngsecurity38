@@ -67,10 +67,47 @@ test('un zoom embrasse large au grand angle et porte loin au téléobjectif', ()
 });
 
 test('sans optique renseignée, aucun chiffre n\'est produit', () => {
-  assert.equal(capacites({ reference: 'X', url: 'u', resH: 3840 }), null, 'pas de focale');
+  assert.equal(capacites({ reference: 'X', url: 'u', resH: 3840 }), null,
+    'ni angle ni focale');
   assert.equal(capacites({ reference: 'X', url: 'u', focale: 4 }), null, 'pas de définition');
+  assert.equal(capacites({ reference: 'X', url: 'u', angleH: 95 }), null, 'pas de définition');
   assert.equal(capacites({ reference: 'X', url: 'u', focale: 4, resH: 0 }), null);
   assert.equal(argumentaire({ reference: 'X', url: 'u' }), null);
+});
+
+/* ------------------------------------------- angle déclaré par le fabricant */
+
+test('l\'angle du constructeur l\'emporte sur le calcul', () => {
+  // Dahua IPC-HFW2441S-S : 2,8 mm sur 1/2.9", annoncé à 95° quand le calcul
+  // rectiligne en donne 83. Un grand-angle est distordu ; calculer à la place
+  // du constructeur resserre le champ sur le papier et gonfle les px/m.
+  const declare = capacites({ resH: 2688, focale: 2.8, capteur: '1/2.9"', angleH: 95 });
+  const calcule = capacites({ resH: 2688, focale: 2.8, capteur: '1/2.9"' });
+  proche(declare.angleLarge, 95, 1e-9, 'l\'angle annoncé est repris tel quel');
+  proche(calcule.angleLarge, 83.5, 1, 'le calcul rectiligne, à défaut');
+  assert.equal(declare.angleCalcule, false);
+  assert.equal(calcule.angleCalcule, true);
+  // Champ plus large annoncé : moins de pixels au mètre, donc portée moindre.
+  assert.ok(declare.portees.reconnaissance < calcule.portees.reconnaissance,
+    'le champ réel, plus large, rapproche la portée utile');
+  assert.ok(declare.largeurA(10) > calcule.largeurA(10));
+});
+
+test('un angle déclaré dispense de connaître le capteur', () => {
+  const c = capacites({ resH: 2688, angleH: 130 });
+  assert.ok(c, 'l\'angle seul suffit, avec la définition');
+  assert.equal(c.estSuppose, false, 'aucun capteur n\'a été supposé');
+  assert.equal(c.focaleMin, null);
+  assert.equal(c.reglable, false);
+  assert.match(argumentaire({ resH: 2688, angleH: 130 }).optique, /champ de 130 °/);
+});
+
+test('un zoom peut déclarer ses deux angles', () => {
+  const c = capacites({ resH: 2688, focaleMin: 2.7, focaleMax: 13.5, angleH: 108, angleHTele: 30 });
+  assert.equal(c.reglable, true);
+  proche(c.angleLarge, 108, 1e-9);
+  proche(c.angleSerre, 30, 1e-9, 'la portée se calcule au téléobjectif');
+  assert.ok(c.portees.identification > 0);
 });
 
 /* --------------------------------------------------------- argumentaire */
@@ -114,7 +151,7 @@ test('les réserves disent ce qui manque, plutôt que de laisser une grille vide
       { reference: 'Sans optique', url: 'https://exemple/z' }],
   });
   assert.ok(incomplet.some((r) => /sans référence ou sans adresse/.test(r)));
-  assert.ok(incomplet.some((r) => /sans focale ni définition/.test(r)));
+  assert.ok(incomplet.some((r) => /sans optique renseignée/.test(r)));
 
   assert.deepEqual(reservesCatalogue({ produits: [FIXE] }), [],
     'un catalogue complet ne porte aucune réserve');
