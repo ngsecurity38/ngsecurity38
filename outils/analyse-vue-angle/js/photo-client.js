@@ -12,7 +12,9 @@
  */
 
 import { fr } from './format.js';
-import { CAPTEURS, SEUILS_DORI } from './optique.js';
+import {
+  CAPTEURS, SEUILS_DORI, anglesDeChamp, couverture, pixelsParMetre,
+} from './optique.js';
 import {
   APPAREILS, calibrerDeuxPoints, champVertical, inclinaisonPourDistance,
   dimensionnerDepuisPhoto, porteeUtile,
@@ -97,17 +99,53 @@ export function mesureZone(zone) {
 }
 
 /**
- * Niveau d'exploitation atteint à une définition donnée.
+ * Ce que la caméra du tarif couvrira réellement sur cette zone.
+ *
+ * `mesureZone` donne la focale *idéale* : celle qui cadrerait la zone au
+ * pixel près. Une caméra réelle a la focale qu'elle a — fixe, ou variable
+ * entre deux bornes. Elle cadre donc presque toujours plus large, et ses
+ * pixels se répartissent sur cette largeur-là. Annoncer la densité de la
+ * focale idéale promettrait une image que le matériel ne donnera pas.
+ *
  * @param {object} m mesure de la zone
- * @param {number} resolutionH définition horizontale de la caméra envisagée
+ * @param {object} camera article du tarif, avec focaleMin/focaleMax et resH
  */
-export function niveauAtteint(m, resolutionH) {
-  if (!m || !(m.largeur > 0)) return null;
-  const densite = resolutionH / m.largeur;
-  const ordre = ['identification', 'reconnaissance', 'observation', 'detection'];
-  const cle = ordre.find((k) => densite >= SEUILS_DORI[k].ppm);
+export function couvertureReelle(m, camera) {
+  if (!m || !(m.distanceMax > 0) || !camera) return null;
+  const min = camera.focaleMin > 0 ? camera.focaleMin : camera.focaleMax;
+  const max = camera.focaleMax > 0 ? camera.focaleMax : camera.focaleMin;
+  if (!(min > 0) || !(max > 0)) return null;
+
+  // Le capteur n'est pas toujours au tarif ; à défaut c'est celui qui a servi
+  // à traduire l'angle en focale, faute de quoi les deux ne se compareraient
+  // même pas.
+  const capteur = CAPTEURS[camera.capteur] || CAPTEUR_REFERENCE;
+  const focale = Math.min(max, Math.max(min, m.focale));
+  const angle = anglesDeChamp(capteur, focale).horizontal;
+
   return {
-    densite,
+    focale,
+    angle,
+    reglable: max > min,
+    capteurSuppose: !CAPTEURS[camera.capteur],
+    largeur: couverture(angle, m.distanceMax),
+    densite: pixelsParMetre(camera.resH || 0, angle, m.distanceMax),
+    // Plus serrée que demandé : la zone déborde du champ, il en manque un
+    // morceau. C'est le seul cas où la caméra ne convient pas.
+    serre: angle < m.angleRequis - 0.5,
+    ecart: angle - m.angleRequis,
+  };
+}
+
+/**
+ * Niveau d'exploitation tenu à une densité de pixels donnée.
+ * @param {number} densite pixels par mètre effectivement portés sur la zone
+ */
+export function niveauAtteint(densite) {
+  const ordre = ['identification', 'reconnaissance', 'observation', 'detection'];
+  const cle = densite > 0 ? ordre.find((k) => densite >= SEUILS_DORI[k].ppm) : undefined;
+  return {
+    densite: densite > 0 ? densite : 0,
     cle,
     label: cle ? SEUILS_DORI[cle].label : null,
     // Le verbe se lit mieux que le nom dans une phrase : « elle permet
@@ -124,9 +162,14 @@ const VERBES = {
   identification: 'identifier une personne inconnue',
 };
 
-/** Portée à laquelle une caméra donnée tient encore un niveau d'exploitation. */
-export const porteeNiveau = (m, resolutionH, cle) => (
-  m ? porteeUtile(resolutionH, m.angleRequis, SEUILS_DORI[cle].ppm) : 0
+/**
+ * Portée à laquelle la caméra retenue tient encore un niveau d'exploitation.
+ *
+ * Calculée sur le champ réel de la caméra, pas sur l'angle demandé : c'est
+ * l'objectif posé au mur qui décide jusqu'où l'image reste exploitable.
+ */
+export const porteeNiveau = (couv, resolutionH, cle) => (
+  couv ? porteeUtile(resolutionH, couv.angle, SEUILS_DORI[cle].ppm) : 0
 );
 
 /* ------------------------------------------------------------- dessin */

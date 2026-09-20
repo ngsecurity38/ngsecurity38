@@ -1908,6 +1908,21 @@ console.log('\nDevis client');
       `le champ doit être annoncé mesuré : ${JSON.stringify(r.notes)}`);
     affirmer(/DS-2CD2T86G2/.test(r.conseil), `une caméra doit être nommée : ${r.conseil}`);
     affirmer(/pixels par mètre/.test(r.conseil), r.conseil);
+
+    /*
+     * La densité annoncée doit être celle de l'objectif posé au mur, pas
+     * celle d'une caméra idéale qui cadrerait la zone au pixel près. Un
+     * 4 mm voit plus large que les 60 ° demandés ; promettre les pixels du
+     * cadrage idéal surestimerait l'image d'un bon cinquième.
+     */
+    const ppm = parseFloat((r.conseil.match(/soit\s+(\d+)\s+pixels/) || [])[1]);
+    const angle = nombre(r.tuiles['Angle de vue nécessaire']);
+    const distance = nombre(r.tuiles['Zone la plus éloignée']);
+    const ideale = 3840 / (2 * distance * Math.tan((angle * Math.PI) / 360));
+    affirmer(Number.isFinite(ppm), `densité illisible : ${r.conseil}`);
+    affirmer(ppm < ideale - 2,
+      `${ppm} px/m annoncés alors que le cadrage idéal en donnerait ${ideale.toFixed(0)} : `
+      + 'la densité doit venir du champ réel de la caméra');
   });
 
   await cas('la photo commande le nombre de caméras du devis', async () => {

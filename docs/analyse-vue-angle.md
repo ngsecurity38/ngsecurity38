@@ -550,11 +550,36 @@ photographie **depuis l'endroit où il veut poser la caméra**, dans la directio
 L'outil affiche alors l'angle de vue nécessaire, la distance du fond de zone, la
 largeur à couvrir, et **nomme la caméra du tarif** qui y répond — avec ce
 qu'elle permettra : « elle permet d'y observer ce qui se passe jusqu'au fond,
-soit 80 pixels par mètre. Au-delà, elle permet encore de reconnaître une
-personne déjà connue jusqu'à 28,5 m. »
+soit 63 pixels par mètre. Au-delà, elle permet encore de reconnaître une
+personne déjà connue jusqu'à 23,7 m. »
 
 Ce sont exactement les calculs de l'outil d'étude : les mêmes fonctions, pas une
 approximation faite pour le grand public.
+
+#### Ces chiffres sont ceux de l'objectif, pas du cadrage idéal
+
+La zone entourée appelle une focale précise — disons 4,4 mm. La caméra du tarif
+a la focale qu'elle a : un 4 mm fixe. Elle cadre donc **plus large** que la
+zone, et ses pixels se répartissent sur cette largeur-là. Les pixels par mètre
+et les portées annoncés sont calculés sur le **champ réel de la caméra
+proposée** ; les annoncer d'après le cadrage idéal les surestimerait d'un bon
+cinquième, et le client découvrirait l'écart une fois la caméra au mur.
+
+Deux conséquences visibles sur la page :
+
+- quand le champ de la caméra dépasse de plus de 8 ° celui demandé, elle
+  prévient qu'on verra un peu plus large que la zone entourée ;
+- quand **aucune** caméra du tarif n'est assez ouverte, elle ne prétend pas
+  qu'une convient : elle annonce qu'il en faudra deux, ou qu'il faut resserrer
+  la zone.
+
+Entre plusieurs caméras qui couvrent la zone, c'est la **plus serrée** qui est
+retenue : à définition égale, c'est elle qui pose le plus de pixels dessus.
+
+Le capteur, lui, reste supposé en 1/2.8" tant que le tarif ne porte pas de
+champ `capteur` — c'est le format courant des caméras 4K de ce genre, et c'est
+celui qui a servi à traduire l'angle en focale, de sorte que les deux se
+comparent.
 
 > **Dès qu'une photo est étudiée, c'est elle qui commande le devis** : le nombre
 > de zones photographiées l'emporte sur le nombre déclaré plus haut. Une zone

@@ -25,7 +25,11 @@
     "Pour qu'une caméra soit proposée sur une étude photo, elle doit porter",
     "focaleMin et focaleMax (en mm, égales si l'objectif est fixe) ainsi que",
     "resH et resV. Sans elles, la page dit que le modèle sera arrêté lors de",
-    "l'étude plutôt que d'en désigner un au hasard."
+    "l'étude plutôt que d'en désigner un au hasard.",
+    "",
+    "capteur est facultatif : au format 1/2.8\" (guillemet compris). Il sert à",
+    "calculer le champ réel de l'objectif, donc les pixels par mètre annoncés",
+    "au client. Absent, le 1/2.8\" est supposé — courant en 4K, mais supposé."
   ],
   "articles": [
     {

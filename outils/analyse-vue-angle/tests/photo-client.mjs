@@ -9,8 +9,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
-  priseDeVue, mesureZone, niveauAtteint, porteeNiveau, priseSous, transformer,
-  appareilsClient,
+  priseDeVue, mesureZone, couvertureReelle, niveauAtteint, porteeNiveau,
+  priseSous, transformer, appareilsClient,
 } from '../js/photo-client.js';
 
 const proche = (a, b, tol, m) => assert.ok(
@@ -86,39 +86,96 @@ test('sans zone tracée, aucune mesure', () => {
   assert.equal(mesureZone(zoneDeBase({ zone: { u1: 0.2, v1: 0.3, u2: 0.8, v2: 0.5 }, hauteur: 0 })), null);
 });
 
-/* ------------------------------------------------- niveau d'exploitation */
+/* ------------------------------------------- ce que la caméra donne vraiment */
 
-test('le niveau atteint suit la définition de la caméra', () => {
+/** Caméra 4K à objectif fixe 4 mm, comme au tarif d'exemple. */
+const FIXE_4MM = { resH: 3840, focaleMin: 4, focaleMax: 4 };
+
+test('la densité annoncée est celle du champ réel, pas du champ idéal', () => {
   const m = mesureZone(zoneDeBase({ zone: { u1: 0.35, v1: 0.32, u2: 0.65, v2: 0.5 } }));
-  const hd = niveauAtteint(m, 1920);
-  const quatreK = niveauAtteint(m, 3840);
-  assert.ok(quatreK.densite > hd.densite, 'plus de pixels, plus de densité');
-  const ordre = ['detection', 'observation', 'reconnaissance', 'identification'];
-  assert.ok(ordre.indexOf(quatreK.cle) >= ordre.indexOf(hd.cle),
-    `${quatreK.cle} doit valoir au moins ${hd.cle}`);
+  const couv = couvertureReelle(m, FIXE_4MM);
+  assert.ok(couv, 'la couverture doit se calculer');
+  // La zone est plus serrée que 4 mm ne cadre : la caméra voit plus large,
+  // donc pose moins de pixels au mètre que la focale idéale ne le laissait
+  // croire.
+  assert.ok(couv.angle > m.angleRequis, `${couv.angle}° devrait dépasser ${m.angleRequis}°`);
+  assert.ok(couv.largeur > m.largeur, 'elle embrasse plus large que la zone');
+  // `m.densite` est celle d'une caméra idéale à 1920 px ; à définition égale,
+  // c'est la largeur embrassée qui fait la différence.
+  const ideale = FIXE_4MM.resH / m.largeur;
+  assert.ok(couv.densite < ideale,
+    `densité réelle ${couv.densite} : elle doit rester sous ${ideale}`);
+  assert.equal(couv.focale, 4, 'un objectif fixe ne se règle pas');
+  assert.equal(couv.serre, false);
 });
 
-test('une zone trop large pour la définition ne tient aucun niveau', () => {
-  const m = { largeur: 500, angleRequis: 60 };
-  const n = niveauAtteint(m, 1920);
+test('un objectif variable se règle sur la focale demandée, dans ses bornes', () => {
+  const m = mesureZone(zoneDeBase({ zone: { u1: 0.35, v1: 0.32, u2: 0.65, v2: 0.5 } }));
+  const large = couvertureReelle(m, { resH: 3840, focaleMin: 2.8, focaleMax: 12 });
+  assert.ok(large.reglable);
+  proche(large.focale, m.focale, 1e-9, 'la focale demandée tient dans les bornes');
+  proche(large.angle, m.angleRequis, 0.01, 'il cadre alors exactement la zone');
+
+  // Bornes dépassées : on se règle au plus près, pas au-delà.
+  const bride = couvertureReelle(m, { resH: 3840, focaleMin: 2.8, focaleMax: 3 });
+  assert.equal(bride.focale, 3);
+});
+
+test('une caméra trop serrée pour la zone est signalée comme telle', () => {
+  const m = mesureZone(zoneDeBase({ zone: { u1: 0.1, v1: 0.3, u2: 0.9, v2: 0.5 } }));
+  const tele = couvertureReelle(m, { resH: 3840, focaleMin: 25, focaleMax: 25 });
+  assert.equal(tele.serre, true, 'un 25 mm ne couvre pas une zone large');
+  assert.ok(tele.ecart < 0);
+});
+
+test('sans optique au tarif, rien n\'est calculé', () => {
+  const m = mesureZone(zoneDeBase({ zone: { u1: 0.3, v1: 0.3, u2: 0.7, v2: 0.5 } }));
+  assert.equal(couvertureReelle(m, { resH: 3840 }), null);
+  assert.equal(couvertureReelle(m, null), null);
+  assert.equal(couvertureReelle(null, FIXE_4MM), null);
+});
+
+/* ------------------------------------------------- niveau d'exploitation */
+
+test('le niveau atteint suit la densité de pixels', () => {
+  const ordre = ['detection', 'observation', 'reconnaissance', 'identification'];
+  const hd = niveauAtteint(70);
+  const fin = niveauAtteint(300);
+  assert.equal(hd.cle, 'observation');
+  assert.equal(fin.cle, 'identification');
+  assert.ok(ordre.indexOf(fin.cle) > ordre.indexOf(hd.cle));
+});
+
+test('sous 25 pixels par mètre, aucun niveau n\'est tenu', () => {
+  const n = niveauAtteint(12);
   assert.equal(n.cle, undefined, 'moins de 25 px/m : aucun niveau');
   assert.equal(n.label, null);
   assert.equal(n.verbe, null);
+  assert.equal(niveauAtteint(0).densite, 0);
 });
 
 test('chaque niveau se dit avec un verbe, pour tenir dans une phrase', () => {
-  const m = { largeur: 8, angleRequis: 40 };
-  const n = niveauAtteint(m, 3840);
+  const n = niveauAtteint(400);
   assert.ok(n.verbe, 'un verbe doit être proposé');
   assert.ok(!/^[A-Z]/.test(n.verbe), 'il s\'insère au fil du texte, sans majuscule');
 });
 
 test('la portée d\'un niveau décroît quand on l\'exige plus fin', () => {
   const m = mesureZone(zoneDeBase({ zone: { u1: 0.3, v1: 0.3, u2: 0.7, v2: 0.5 } }));
-  const detection = porteeNiveau(m, 3840, 'detection');
-  const identification = porteeNiveau(m, 3840, 'identification');
+  const couv = couvertureReelle(m, FIXE_4MM);
+  const detection = porteeNiveau(couv, 3840, 'detection');
+  const identification = porteeNiveau(couv, 3840, 'identification');
   assert.ok(detection > identification, 'on détecte plus loin qu\'on n\'identifie');
   assert.equal(porteeNiveau(null, 3840, 'detection'), 0);
+});
+
+test('une caméra au champ plus large ne porte pas aussi loin', () => {
+  const m = mesureZone(zoneDeBase({ zone: { u1: 0.3, v1: 0.3, u2: 0.7, v2: 0.5 } }));
+  const grandAngle = couvertureReelle(m, { resH: 3840, focaleMin: 2.8, focaleMax: 2.8 });
+  const serree = couvertureReelle(m, { resH: 3840, focaleMin: 8, focaleMax: 8 });
+  assert.ok(porteeNiveau(serree, 3840, 'reconnaissance')
+    > porteeNiveau(grandAngle, 3840, 'reconnaissance'),
+  'à définition égale, le champ étroit reconnaît plus loin');
 });
 
 /* ----------------------------------------------------- gestes sur la zone */

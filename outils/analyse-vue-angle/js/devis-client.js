@@ -14,8 +14,8 @@ import { fr } from './format.js';
 import { TYPES_SITE, RESERVES, composer } from './offre.js';
 import { ligne, devis, euros, TVA_DEFAUT, MARGE_COMMERCIALE } from './prix.js';
 import {
-  etatPhotos, zoneCourante, reduire, mesureZone, niveauAtteint, porteeNiveau,
-  position, dessiner, priseSous, transformer, appareilsClient,
+  etatPhotos, zoneCourante, reduire, mesureZone, couvertureReelle, niveauAtteint,
+  porteeNiveau, position, dessiner, priseSous, transformer, appareilsClient,
 } from './photo-client.js';
 
 /**
@@ -353,9 +353,8 @@ function majResultatPhoto(z) {
   const m = mesureZone(z);
   if (!m) { $('#photo-resultat').innerHTML = ''; return; }
 
-  const camera = cameraPour(m);
-  const res = camera?.resH || 3840;
-  const niveau = niveauAtteint(m, res);
+  const propose = cameraPour(m);
+  const niveau = niveauAtteint(propose?.couv.densite || 0);
 
   $('#photo-resultat').innerHTML = `<div class="mesures-client">
       ${tuile('Angle de vue nécessaire', `${fr(m.angleRequis)} °`)}
@@ -364,56 +363,84 @@ function majResultatPhoto(z) {
       ${tuile('Champ de la photo', `${fr(m.prise.angleH)} °`,
     m.prise.mesure ? 'mesuré sur vos deux repères' : 'supposé d\'après l\'appareil')}
     </div>
-    ${camera ? `<p class="conseil-client">
-      <b>${ech(camera.reference)}</b> convient à cette zone.
-      ${niveau.verbe
-    ? `Elle permet d'y <b>${ech(niveau.verbe)}</b> jusqu'au fond, `
-      + `soit ${fr(niveau.densite, 0)} pixels par mètre.`
-    : `La zone est cependant trop large pour être exploitable `
-      + `(${fr(niveau.densite, 0)} pixels par mètre) : resserrez-la, `
-      + 'ou prévoyez deux caméras.'}
-      ${porteesLisibles(m, res)}
-    </p>` : `<p class="conseil-client">Aucune caméra du tarif ne porte ses
-      caractéristiques optiques : le modèle sera arrêté lors de l'étude.</p>`}`;
+    ${conseil(m, propose, niveau)}`;
 }
 
 const tuile = (cle, valeur, note = '') => `<div class="tuile">
   <span class="cle">${ech(cle)}</span><span class="val">${ech(valeur)}</span>
   ${note ? `<span class="note-tuile">${ech(note)}</span>` : ''}</div>`;
 
+/**
+ * Ce que la caméra retenue donnera sur cette zone, en français courant.
+ *
+ * Tout y est dit de la caméra réelle : son champ est rarement celui qu'on
+ * demande, et c'est ce champ-là qui décide du nombre de pixels au mètre.
+ */
+function conseil(m, propose, niveau) {
+  if (!propose) {
+    return `<p class="conseil-client">Aucune caméra du tarif ne porte ses
+      caractéristiques optiques : le modèle sera arrêté lors de l'étude.</p>`;
+  }
+  const { camera, couv } = propose;
+
+  if (couv.serre) {
+    return `<p class="conseil-client">Cette zone demande ${fr(m.angleRequis)} °
+      de champ. La caméra la plus ouverte du tarif
+      (<b>${ech(camera.reference)}</b>) n'en couvre que ${fr(couv.angle)} ° :
+      il en faudra <b>deux</b> pour la voir entière, ou resserrer la zone.</p>`;
+  }
+
+  const cadrage = couv.ecart > 8
+    ? ` Son champ de ${fr(couv.angle)} ° dépasse les ${fr(m.angleRequis)} °
+      demandés : vous verrez un peu plus large que la zone entourée.`
+    : '';
+
+  const suite = niveau.verbe
+    ? `Elle permet d'y <b>${ech(niveau.verbe)}</b> jusqu'au fond,
+       soit ${fr(niveau.densite, 0)} pixels par mètre.
+       ${porteesLisibles(camera.resH || 0, couv)}`
+    : `La zone reste cependant trop large pour être exploitable
+       (${fr(niveau.densite, 0)} pixels par mètre) : resserrez-la,
+       ou prévoyez deux caméras.`;
+
+  return `<p class="conseil-client">
+    <b>${ech(camera.reference)}</b> convient à cette zone.${cadrage} ${suite}</p>`;
+}
+
 /** Jusqu'où l'image reste exploitable, en français courant. */
-function porteesLisibles(m, res) {
+function porteesLisibles(resolutionH, couv) {
   const lignes = [
     ['reconnaître une personne déjà connue', 'reconnaissance'],
     ['identifier un inconnu', 'identification'],
   ].map(([texte, cle]) => {
-    const d = porteeNiveau(m, res, cle);
+    const d = porteeNiveau(couv, resolutionH, cle);
     return d > 0 ? `${texte} jusqu'à ${fr(d)} m` : null;
   }).filter(Boolean);
   return lignes.length ? `Au-delà, elle permet encore de ${lignes.join(', et d\'')}.` : '';
 }
 
 /**
- * La caméra du tarif qui couvre la focale demandée.
+ * La caméra du tarif qui couvre le mieux la zone, et ce qu'elle y donnera.
+ *
+ * On écarte d'abord celles dont le champ est trop étroit : elles laisseraient
+ * un morceau de la zone dehors. Parmi les autres, la plus serrée l'emporte —
+ * c'est elle qui pose le plus de pixels sur la zone.
  *
  * Faute d'optique renseignée au tarif, on ne désigne personne : proposer un
  * modèle au hasard parce qu'il est le moins cher tromperait le client sur le
  * seul point qui compte ici.
  */
 function cameraPour(m) {
-  const cameras = (etat.tarif?.articles || []).filter((a) => a.type === 'camera'
-    && (a.focaleMin > 0 || a.focaleMax > 0));
-  if (!cameras.length) return null;
-  const dans = cameras.filter((a) => m.focale >= (a.focaleMin || 0) - 0.05
-    && m.focale <= (a.focaleMax || a.focaleMin) + 0.05);
-  const choix = dans.length ? dans : cameras;
-  return choix.reduce((meilleur, a) => {
-    const ecart = (x) => Math.min(
-      Math.abs(m.focale - (x.focaleMin || 0)),
-      Math.abs(m.focale - (x.focaleMax || x.focaleMin || 0)),
-    );
-    return ecart(a) < ecart(meilleur) ? a : meilleur;
-  });
+  const candidats = (etat.tarif?.articles || [])
+    .filter((a) => a.type === 'camera')
+    .map((camera) => ({ camera, couv: couvertureReelle(m, camera) }))
+    .filter((x) => x.couv);
+  if (!candidats.length) return null;
+
+  const large = candidats.filter((x) => !x.couv.serre);
+  // Aucune ne couvre la zone entière : on garde la plus large, et on le dit.
+  const choix = large.length ? large : candidats;
+  return choix.reduce((meilleur, x) => (x.couv.angle < meilleur.couv.angle ? x : meilleur));
 }
 
 /* --------------------------------------------------------- interactions */
