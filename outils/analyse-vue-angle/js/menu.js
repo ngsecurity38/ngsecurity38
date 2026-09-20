@@ -28,7 +28,8 @@ export const MENU_DEFAUT = {
   liens: [
     { texte: 'Nos produits', href: '/' },
     { texte: 'Quelle caméra vous faut-il ?', href: '/outils/etude/' },
-    { texte: 'Estimer mon installation', href: '/outils/devis/' },
+    { texte: 'Estimer mes caméras', href: '/outils/devis/' },
+    { texte: 'Protéger ma maison', href: '/outils/alarme/' },
   ],
   ailleurs: { texte: 'La boutique .com', href: 'https://ngsecurity38.com/' },
 };

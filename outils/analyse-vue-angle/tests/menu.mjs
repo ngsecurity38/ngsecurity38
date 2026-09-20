@@ -46,7 +46,7 @@ test('le menu par défaut ne mène qu\'à des adresses vérifiées', () => {
    * produirait un lien mort dans un menu, ce qui coûte plus cher que son
    * absence. Seules l'accueil et les deux outils sont sûrs.
    */
-  const connues = new Set(['/', '/outils/etude/', '/outils/devis/']);
+  const connues = new Set(['/', '/outils/etude/', '/outils/devis/', '/outils/alarme/']);
   for (const l of MENU_DEFAUT.liens) {
     assert.ok(connues.has(l.href), `adresse non vérifiée au menu : ${l.href}`);
     assert.ok(l.texte.trim().length > 0, 'entrée sans libellé');

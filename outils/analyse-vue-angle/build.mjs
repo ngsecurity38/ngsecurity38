@@ -226,6 +226,36 @@ presentation = injecter(presentation, '<head>', `<head>\n<!-- Présentation — 
 
 ecrire('presentation.html', presentation);
 
+
+/*
+ * Page d'étude alarme.
+ *
+ * Même facture que le devis vidéo, même feuille de style : les deux pages
+ * sont servies côte à côte et un client qui passe de l'une à l'autre ne doit
+ * pas croire avoir changé de site. Elle n'embarque ni PDF.js ni OCR.
+ */
+const MODULES_ALARME = ['dom.js', 'format.js', 'menu.js', 'prix.js', 'alarme.js',
+  'alarme-client.js'];
+verifierListe(MODULES_ALARME);
+
+const paquetAlarme = `(function () {\n'use strict';\n\n`
+  + `${MODULES_ALARME.map((nom) => `/* ===== ${nom} ===== */\n`
+    + deModuliser(lire('js', nom)).trim()).join('\n\n')}\n\n}());`;
+
+let alarme = marque(lire('alarme-client.html'));
+alarme = injecter(alarme, '<link rel="stylesheet" href="devis-client.css">',
+  `<style>${inerte(lire('devis-client.css'))}</style>`);
+alarme = injecter(alarme, '<link rel="stylesheet" href="menu.css">',
+  `<style>${inerte(feuilleMenu)}</style>`);
+alarme = injecter(alarme, '<script type="module" src="js/alarme-client.js"></script>',
+  `<script>window.__tarifAlarme=${inerte(lire('tarif-alarme.json'))};</script>\n`
+  + `<script>${inerte(paquetAlarme)}</script>`);
+alarme = injecter(alarme, '<head>', `<head>\n<!-- Étude alarme — NG Security 38.\n`
+  + `     Fichier unique produit par build.mjs le ${new Date().toISOString().slice(0, 10)}.\n`
+  + '     Pour changer les prix : éditer tarif-alarme.json, à côté de la page. -->');
+
+ecrire('alarme-client.html', alarme);
+
 /*
  * Dossier prêt à déposer sur le site, tel quel.
  *
@@ -248,6 +278,7 @@ const aDeposer = (nom, page, donnees, fichierDonnees) => {
 // alors à l'étude sans qu'aucune adresse ait à être écrite.
 aDeposer('devis', client, lire('tarif.json'), 'tarif.json');
 aDeposer('etude', presentation, lire('catalogue.json'), 'catalogue.json');
+aDeposer('alarme', alarme, lire('tarif-alarme.json'), 'tarif-alarme.json');
 
 /*
  * Le menu, un cran au-dessus des deux dossiers.
@@ -333,6 +364,7 @@ const dossierPages = join(ici, '..', '..', 'docs', 'outils');
 for (const [nom, page, donnees, fichier] of [
   ['devis', client, lire('tarif.json'), 'tarif.json'],
   ['etude', presentation, lire('catalogue.json'), 'catalogue.json'],
+  ['alarme', alarme, lire('tarif-alarme.json'), 'tarif-alarme.json'],
 ]) {
   const d = join(dossierPages, nom);
   mkdirSync(d, { recursive: true });

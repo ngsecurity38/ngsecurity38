@@ -198,15 +198,32 @@ docker compose -f deploiement/docker-compose.yml restart
 ```
 
 Les prix, le catalogue et le menu se changent **sans redémarrer** : ils sont
-dans `docs/outils/devis/tarif.json`, `docs/outils/etude/catalogue.json` et
-`docs/outils/menu.json`, servis sans cache. Un `git pull` suffit, ou une
-édition directe du fichier.
+dans `docs/outils/devis/tarif.json`, `docs/outils/etude/catalogue.json`,
+`docs/outils/alarme/tarif-alarme.json` et `docs/outils/menu.json`, servis sans
+cache. Un `git pull` suffit, ou une édition directe du fichier.
 
-Le menu est **commun aux deux pages** — un seul fichier, un cran au-dessus
+Le menu est **commun aux trois pages** — un seul fichier, un cran au-dessus
 d'elles. Pour y ajouter une rubrique du site (Alarme Ajax, Mon compte,
 Contact…), relevez son adresse exacte dans la barre du navigateur depuis le
 site, et ajoutez-la à la liste `liens`. Rien n'y a été inventé : une adresse
 devinée ferait un lien mort dans un menu.
+
+### Le tarif alarme est volontairement vide
+
+`docs/outils/alarme/tarif-alarme.json` ne porte **aucun prix**. Un prix Ajax se
+relève chez votre distributeur, il ne se devine pas — et un montant inventé sur
+une page publique vous engagerait. Tant qu'il est vide, la page compose quand
+même le matériel, les quantités et le raisonnement, et affiche « à chiffrer »
+en face de chaque ligne.
+
+Pour la chiffrer : ouvrez le fichier, ajoutez `"prixAchat": 00.00` (hors taxes)
+à chaque article, puis passez `"exemple"` à `false`. Deux champs facultatifs
+font en plus travailler la page :
+
+| Champ | Sur quel article | Ce qu'il change |
+| --- | --- | --- |
+| `capacite` | la centrale | la page refuse une centrale trop petite au lieu de la proposer |
+| `immuniteAnimaux` | un détecteur de mouvement | sans lui, la page prévient que l'animal déclenchera |
 
 ---
 
@@ -220,6 +237,7 @@ devinée ferait un lien mort dans un menu.
 | `/outils/etude/` | la présentation, logo affiché, 12 fiches |
 | `/outils/devis/` | l'étude, chiffrée à 1 590,50 € TTC |
 | `/outils/devis/tarif.json` | relu depuis le fichier voisin |
+| `/outils/alarme/` | l'étude alarme, matériel composé, prix à renseigner |
 
 Aucune erreur de console, et le bouton « Lancer l'étude » mène bien d'une
 page à l'autre.

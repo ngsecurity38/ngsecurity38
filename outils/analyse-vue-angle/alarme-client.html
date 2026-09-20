@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Protéger ma maison — étude d'alarme anti-intrusion — NG Security 38</title>
+<meta name="description" content="Combien de détecteurs vous faut-il, où, et pourquoi ? Répondez sur vos portes, vos fenêtres, votre garage et vos animaux : l'étude se fait sous vos yeux.">
+<link rel="stylesheet" href="devis-client.css">
+<link rel="stylesheet" href="menu.css">
+</head>
+<body>
+
+<nav class="site-menu" id="site-menu" aria-label="Menu du site" hidden></nav>
+
+<div class="marque">
+  <div class="dedans">
+    <a class="retour" href="/">
+      <img src="img/logo.png" width="352" height="300"
+        alt="NG Security 38 — Envie d'être rassuré et zen">
+      <span>&#8592; Retour au site</span>
+    </a>
+  </div>
+</div>
+
+<header class="entete">
+  <div class="dedans">
+    <h1>Protéger ma maison</h1>
+    <p>Combien de détecteurs, à quels endroits, et pourquoi. Répondez sur vos
+      portes, vos fenêtres et vos animaux&nbsp;: l'étude se fait sous vos yeux.
+      Sans inscription, sans engagement.</p>
+  </div>
+</header>
+
+<main class="dedans">
+
+  <p class="bandeau" id="bandeau-exemple" hidden>
+    <b>Tarif non renseigné.</b> Le matériel et les quantités ci-dessous sont
+    établis&nbsp;; les montants restent à compléter par l'agence.
+  </p>
+
+  <section class="carte">
+    <h2>Votre logement</h2>
+    <div class="questions">
+      <label>De quoi s'agit-il&nbsp;?
+        <select id="a-type"></select>
+      </label>
+
+      <label>Surface habitable (m²)
+        <input type="number" id="a-surface" min="10" max="600" step="5" value="100">
+        <small>Au plus juste&nbsp;: c'est elle qui décide du nombre de détecteurs
+          de mouvement.</small>
+      </label>
+
+      <label>Nombre de niveaux occupés
+        <select id="a-niveaux">
+          <option value="1">Un seul (plain-pied)</option>
+          <option value="2">Deux</option>
+          <option value="3">Trois ou plus</option>
+        </select>
+        <small>Sous-sol aménagé et combles habités compris.</small>
+      </label>
+
+      <label>Combien de personnes doivent pouvoir mettre en marche&nbsp;?
+        <input type="number" id="a-occupants" min="0" max="12" step="1" value="2">
+        <small>Une télécommande chacun. Le clavier reste utilisable par tous.</small>
+      </label>
+    </div>
+  </section>
+
+  <section class="carte">
+    <h2>Par où peut-on entrer</h2>
+    <p class="aide">C'est la partie qui compte. Un détecteur sur une ouverture
+      prévient <b>avant</b> que l'intrus soit chez vous — et permet de garder
+      l'alarme en marche pendant que vous dormez.</p>
+
+    <div class="questions">
+      <label>Portes donnant sur l'extérieur
+        <input type="number" id="a-portes" min="0" max="20" step="1" value="2">
+        <small>Entrée, porte de service, porte-fenêtre servant d'accès, porte
+          de cave extérieure.</small>
+      </label>
+
+      <label>Fenêtres accessibles sans échelle
+        <input type="number" id="a-fenetres" min="0" max="40" step="1" value="4">
+        <small>De plain-pied, ou au-dessus d'un garage, d'une véranda, d'un
+          appentis — tout ce sur quoi on peut monter.</small>
+      </label>
+
+      <label>Dont grandes surfaces vitrées (baies, vérandas)
+        <input type="number" id="a-baies" min="0" max="20" step="1" value="1">
+        <small>Une vitre se casse sans que le battant s'ouvre&nbsp;: elles
+          appellent un détecteur de bris.</small>
+      </label>
+
+      <label>Fenêtres en étage, inaccessibles sans échelle
+        <input type="number" id="a-hautes" min="0" max="40" step="1" value="0">
+        <small>Elles ne seront pas équipées&nbsp;: nous vous dirons ce que cela
+          laisse passer.</small>
+      </label>
+
+      <label>Garage
+        <select id="a-garage"></select>
+      </label>
+
+      <label class="case">
+        <input type="checkbox" id="a-dependance"> J'ai une dépendance à protéger
+        (atelier, abri de jardin)
+      </label>
+    </div>
+  </section>
+
+  <section class="carte">
+    <h2>Votre quotidien</h2>
+    <div class="questions">
+      <label>Animaux
+        <select id="a-animaux"></select>
+        <small>La question qui change le plus une installation&nbsp;: nous vous
+          expliquons pourquoi plus bas.</small>
+      </label>
+
+      <label>Internet sur place
+        <select id="a-internet">
+          <option value="box" selected>Oui, j'ai une box</option>
+          <option value="aucun">Non, ou pas de façon fiable</option>
+        </select>
+        <small>Sans box, les alertes passent par le réseau mobile&nbsp;: il faut
+          une carte SIM.</small>
+      </label>
+
+      <label class="case">
+        <input type="checkbox" id="a-present" checked> Je veux pouvoir garder
+        l'alarme en marche pendant que je suis chez moi
+      </label>
+
+      <label class="case">
+        <input type="checkbox" id="a-photo"> Je veux une photo de ce qui a
+        déclenché l'alarme
+      </label>
+
+      <label class="case">
+        <input type="checkbox" id="a-sirene" checked> Je veux une sirène
+        extérieure
+      </label>
+
+      <label class="case">
+        <input type="checkbox" id="a-pose" checked> Installation et mise en
+        service par NG Security 38
+      </label>
+    </div>
+  </section>
+
+  <section class="carte" id="resultat" hidden>
+    <h2>Ce qu'il vous faut</h2>
+    <p class="resume" id="a-resume"></p>
+
+    <figure class="synoptique">
+      <figcaption>Les trois lignes de défense, dans l'ordre où l'intrus les rencontre</figcaption>
+      <div id="a-schema"></div>
+    </figure>
+
+    <div id="a-explications"></div>
+
+    <div id="a-manques"></div>
+
+    <table id="table-devis">
+      <thead>
+        <tr><th>Désignation</th><th class="nombre">Qté</th>
+          <th class="nombre">PU HT</th><th class="nombre">Total HT</th></tr>
+      </thead>
+      <tbody id="a-lignes"></tbody>
+      <tfoot id="a-totaux"></tfoot>
+    </table>
+
+    <details class="repli">
+      <summary>Ce que cette étude ne peut pas savoir</summary>
+      <ul id="a-reserves"></ul>
+    </details>
+
+    <div class="actions">
+      <button type="button" id="a-enregistrer" class="btn">Enregistrer mon projet</button>
+      <button type="button" id="a-reprendre" class="btn">Reprendre un projet</button>
+      <input type="file" id="a-fichier" accept=".json,application/json" hidden>
+      <button type="button" id="a-imprimer" class="btn">Imprimer / enregistrer en PDF</button>
+      <a id="a-contact" class="btn btn-plein" href="#">Demander une étude gratuite</a>
+    </div>
+  </section>
+
+  <p class="pied">
+    Étude établie à partir de vos réponses, sans visite du domicile. Elle ne
+    vaut pas devis&nbsp;: seul un relevé sur place permet d'arrêter le nombre de
+    détecteurs et leurs emplacements.
+  </p>
+
+  <p class="pied liens-pied">
+    <a href="/">ngsecurity38.fr</a>
+    · <a href="/outils/etude/">Quelle caméra vous faut-il&nbsp;?</a>
+    · <a href="https://ngsecurity38.com/">La boutique</a>
+  </p>
+</main>
+
+<script type="module" src="js/alarme-client.js"></script>
+</body>
+</html>

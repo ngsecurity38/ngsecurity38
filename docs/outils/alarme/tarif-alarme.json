@@ -1,0 +1,95 @@
+{
+  "_lisez_moi": [
+    "Tarif de la page d'étude alarme (alarme-client.html).",
+    "C'est le SEUL fichier à modifier pour mettre les prix à jour : la page le",
+    "relit à chaque ouverture quand elle est servie depuis un site web.",
+    "",
+    "AUCUN PRIX N'EST RENSEIGNÉ ICI, ET C'EST VOULU. Un prix Ajax se relève",
+    "chez votre distributeur, il ne se devine pas. Tant qu'ils manquent, la",
+    "page établit quand même le matériel, les quantités et le raisonnement —",
+    "elle signale seulement que les montants sont à compléter.",
+    "",
+    "Champs par article :",
+    "  type       hub | ouverture | mouvement | mouvementPhoto | brisVitre |",
+    "             clavier | telecommande | sireneInt | sireneExt | relais",
+    "  reference  ce que lira le client",
+    "  prixAchat  ce que vous payez, hors taxes",
+    "  prixVente  ce que vous facturez, hors taxes. S'il est renseigné, il",
+    "             s'impose et la marge ne s'applique pas.",
+    "",
+    "Deux champs facultatifs font travailler la page :",
+    "  capacite          (hub) nombre d'appareils acceptés. Renseigné, la page",
+    "                    refuse une centrale trop petite au lieu de la proposer.",
+    "  immuniteAnimaux   (mouvement) true si le détecteur est annoncé immunisé.",
+    "                    Sans au moins un détecteur immunisé au tarif, la page",
+    "                    prévient que l'animal déclenchera.",
+    "",
+    "Les désignations ci-dessous sont celles du catalogue Ajax Systems. Les",
+    "capacités et les seuils d'immunité ne sont PAS repris ici : relevez-les",
+    "sur la fiche du modèle que vous commandez, puis inscrivez-les.",
+    "",
+    "Passez exemple à false une fois vos prix saisis : la page cessera",
+    "d'afficher l'avertissement de tarif non contractuel."
+  ],
+  "exemple": true,
+  "maj": "20/09/2026",
+  "marge": 0.25,
+  "tauxHoraire": 55,
+  "tva": 0.2,
+  "articles": [
+    {
+      "type": "hub",
+      "reference": "Ajax Hub 2 Plus — centrale avec vérification photo",
+      "_a_renseigner": "prixAchat, et capacite (nombre d'appareils acceptés)"
+    },
+    {
+      "type": "ouverture",
+      "reference": "Ajax DoorProtect — détecteur d'ouverture porte et fenêtre",
+      "_a_renseigner": "prixAchat"
+    },
+    {
+      "type": "mouvement",
+      "reference": "Ajax MotionProtect — détecteur de mouvement à immunité animale",
+      "immuniteAnimaux": true,
+      "_source": "Immunité animale annoncée par Ajax Systems. LE SEUIL EXACT (masse et hauteur au garrot) est à relever sur la fiche du modèle commandé : c'est lui qui décide si le chien du client déclenche ou non.",
+      "_a_renseigner": "prixAchat"
+    },
+    {
+      "type": "mouvementPhoto",
+      "reference": "Ajax MotionCam — détecteur de mouvement avec photo à l'alerte",
+      "immuniteAnimaux": true,
+      "_source": "Immunité animale annoncée par Ajax Systems. Seuil exact à relever sur la fiche.",
+      "_a_renseigner": "prixAchat"
+    },
+    {
+      "type": "brisVitre",
+      "reference": "Ajax GlassProtect — détecteur de bris de vitre",
+      "_a_renseigner": "prixAchat"
+    },
+    {
+      "type": "clavier",
+      "reference": "Ajax KeyPad — clavier de commande",
+      "_a_renseigner": "prixAchat"
+    },
+    {
+      "type": "telecommande",
+      "reference": "Ajax SpaceControl — télécommande quatre boutons",
+      "_a_renseigner": "prixAchat"
+    },
+    {
+      "type": "sireneInt",
+      "reference": "Ajax HomeSiren — sirène intérieure",
+      "_a_renseigner": "prixAchat"
+    },
+    {
+      "type": "sireneExt",
+      "reference": "Ajax StreetSiren — sirène extérieure",
+      "_a_renseigner": "prixAchat"
+    },
+    {
+      "type": "relais",
+      "reference": "Ajax ReX — relais de portée radio",
+      "_a_renseigner": "prixAchat"
+    }
+  ]
+}

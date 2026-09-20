@@ -2444,7 +2444,202 @@ console.log('\nPage de présentation (boutique)');
   await page.close();
 }
 
-/* ------------------------------ 11. blocs collés dans une page existante */
+/* ------------------------------------ 11. page d'étude alarme intrusion */
+
+console.log('\nPage d\'étude alarme');
+{
+  const page = await contexte.newPage();
+  const erreurs = surveiller(page);
+  await page.goto(`${BASE}/alarme-client.html`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(300);
+
+  /** Les lignes du devis, par rôle : « Détecteurs d'ouverture » → quantité. */
+  const quantites = () => page.evaluate(() => Object.fromEntries(
+    [...document.querySelectorAll('#a-lignes tr')].map((tr) => [
+      tr.children[0].firstChild.textContent.trim(),
+      Number(tr.children[1].textContent.trim()),
+    ]),
+  ));
+
+  /** Remplit le formulaire et attend le recalcul. */
+  const repondre = async (champs) => {
+    for (const [sel, v] of Object.entries(champs)) {
+      const balise = await page.evaluate((s) => document.querySelector(s).tagName, sel);
+      if (balise === 'SELECT') await page.selectOption(sel, v);
+      else if (typeof v === 'boolean') await page.setChecked(sel, v);
+      else await page.fill(sel, String(v));
+    }
+    await page.waitForTimeout(150);
+  };
+
+  await cas('l\'étude s\'affiche sans qu\'on ait rien à valider', async () => {
+    /*
+     * Pas de bouton « calculer ». Un visiteur qui doit chercher comment
+     * lancer l'étude referme la page : le résultat doit être là dès l'arrivée,
+     * et se corriger à chaque réponse.
+     */
+    const r = await page.evaluate(() => ({
+      visible: !document.querySelector('#resultat').hidden,
+      resume: document.querySelector('#a-resume').textContent,
+      pastilles: document.querySelectorAll('#a-schema circle').length,
+      lignes: document.querySelectorAll('#a-lignes tr').length,
+    }));
+    affirmer(r.visible, 'le résultat doit être affiché d\'emblée');
+    affirmer(/détecteurs/.test(r.resume), `résumé : ${r.resume}`);
+    affirmer(r.pastilles === 3, `les trois lignes de défense : ${r.pastilles}`);
+    affirmer(r.lignes >= 6, `${r.lignes} lignes de matériel`);
+  });
+
+  await cas('chaque ouverture déclarée se retrouve au matériel', async () => {
+    await repondre({
+      '#a-type': 'plainPied', '#a-portes': 3, '#a-fenetres': 6, '#a-baies': 0,
+      '#a-hautes': 0, '#a-garage': 'aucun', '#a-animaux': 'aucun', '#a-occupants': 2,
+    });
+    const q = await quantites();
+    affirmer(q['Détecteurs d\'ouverture'] === 9,
+      `trois portes et six fenêtres : ${JSON.stringify(q)}`);
+    affirmer(q['Télécommandes'] === 2, `une par occupant : ${JSON.stringify(q)}`);
+    affirmer(q['Détecteurs de bris de vitre'] === undefined,
+      'aucune baie déclarée : pas de détecteur de bris');
+  });
+
+  await cas('un garage communicant ajoute deux ouvertures, pas une', async () => {
+    /*
+     * La porte de garage ET la porte intérieure. N'équiper que la première
+     * laisse l'intrus entrer dans la maison par une porte nue ; n'équiper que
+     * la seconde lui laisse le garage.
+     */
+    const avant = (await quantites())['Détecteurs d\'ouverture'];
+    await repondre({ '#a-garage': 'communicant' });
+    const apres = (await quantites())['Détecteurs d\'ouverture'];
+    affirmer(apres === avant + 2, `${avant} puis ${apres}`);
+  });
+
+  await cas('une baie appelle un détecteur de bris, et la page dit pourquoi', async () => {
+    await repondre({ '#a-baies': 2 });
+    const q = await quantites();
+    affirmer(q['Détecteurs de bris de vitre'] >= 1, JSON.stringify(q));
+    const texte = await page.evaluate(() => document.querySelector('#a-explications').textContent);
+    affirmer(/vitre a été cassée/.test(texte), `l'explication manque : ${texte.slice(0, 300)}`);
+  });
+
+  await cas('un chat fait basculer la détection sur le périmètre', async () => {
+    /*
+     * L'immunité animale des détecteurs suppose que l'animal reste au sol.
+     * C'est le genre de nuance qu'un argumentaire tait et qu'une étude doit
+     * dire : sinon le client découvre le problème après la pose, en désarmant
+     * son système tous les soirs.
+     */
+    const avant = (await quantites())['Détecteurs de mouvement'];
+    await repondre({ '#a-animaux': 'chat' });
+    const apres = (await quantites())['Détecteurs de mouvement'];
+    affirmer(apres < avant, `le volumétrique doit se réduire : ${avant} puis ${apres}`);
+
+    const texte = await page.evaluate(() => document.querySelector('#a-explications').textContent);
+    affirmer(/reste au sol/.test(texte), `l'explication manque : ${texte.slice(0, 400)}`);
+
+    const reserves = await page.evaluate(() => [...document.querySelectorAll('#a-reserves li')]
+      .map((t) => t.textContent));
+    affirmer(reserves.some((x) => /reste au sol/.test(x)), JSON.stringify(reserves));
+  });
+
+  await cas('ce qui n\'est pas protégé est écrit, pas tu', async () => {
+    await repondre({ '#a-animaux': 'aucun', '#a-hautes': 4 });
+    const texte = await page.evaluate(() => document.querySelector('#a-explications').textContent);
+    affirmer(/Ce qui n'est pas couvert/.test(texte), texte.slice(0, 400));
+    affirmer(/4 ouvertures d'étage/.test(texte), texte.slice(0, 400));
+
+    const reserves = await page.evaluate(() => [...document.querySelectorAll('#a-reserves li')]
+      .map((t) => t.textContent));
+    affirmer(reserves.some((x) => /n'empêche pas d'entrer/.test(x)),
+      `la limite d'une alarme doit être dite : ${JSON.stringify(reserves)}`);
+    affirmer(reserves.some((x) => /A2P/.test(x)),
+      `la question de l'assureur doit être posée : ${JSON.stringify(reserves)}`);
+  });
+
+  await cas('aucun prix n\'est inventé tant que le tarif n\'est pas rempli', async () => {
+    /*
+     * Le fichier livré ne porte aucun prix : ils se relèvent chez le
+     * distributeur. La page doit alors composer le matériel ET annoncer que
+     * les montants manquent — jamais afficher un total de zéro euro, qui
+     * passerait pour une offre.
+     */
+    const r = await page.evaluate(() => ({
+      bandeau: !document.querySelector('#bandeau-exemple').hidden,
+      cellules: [...document.querySelectorAll('#a-lignes tr')]
+        .map((tr) => tr.children[3].textContent.trim()),
+      resume: document.querySelector('#a-resume').textContent,
+      references: [...document.querySelectorAll('#a-lignes tr small')]
+        .map((s) => s.textContent.trim()),
+    }));
+    affirmer(r.bandeau, 'l\'avertissement de tarif non renseigné doit être visible');
+    affirmer(r.cellules.every((c) => c === 'à chiffrer'),
+      `aucun montant ne doit être affiché : ${JSON.stringify(r.cellules)}`);
+    affirmer(/montants restent à compléter/.test(r.resume), r.resume);
+    affirmer(!/0,00 €/.test(r.resume), `un total à zéro passerait pour une offre : ${r.resume}`);
+    affirmer(r.references.every((x) => x.length > 3),
+      `chaque ligne reste désignée : ${JSON.stringify(r.references)}`);
+  });
+
+  await cas('la demande part vers l\'agence avec le relevé complet', async () => {
+    const lien = await page.evaluate(() => {
+      const b = document.querySelector('#a-contact');
+      return { cache: b.hidden, href: b.getAttribute('href') || '' };
+    });
+    affirmer(!lien.cache, 'le bouton doit être proposé');
+    affirmer(/^mailto:contact@ngsecurity38\.com\?/.test(lien.href),
+      `adresse de l'agence : ${lien.href.slice(0, 80)}`);
+    const corps = decodeURIComponent((lien.href.match(/[&?]body=([^&]*)/) || [])[1] || '');
+    affirmer(/Portes extérieures/.test(corps) && /Animaux/.test(corps), corps.slice(0, 300));
+    affirmer(/Garage/.test(corps), corps.slice(0, 300));
+    affirmer(/Matériel proposé/.test(corps), corps.slice(0, 400));
+  });
+
+  await cas('le projet se mémorise et se retrouve au retour', async () => {
+    /*
+     * Une quinzaine de réponses, dont plusieurs à compter sur les doigts en
+     * faisant le tour de la maison. Les perdre en rafraîchissant la page
+     * revient à demander au visiteur de tout recommencer.
+     */
+    await repondre({ '#a-portes': 5, '#a-fenetres': 9, '#a-animaux': 'grandChien' });
+    const contenu = await page.evaluate(
+      () => JSON.parse(window.localStorage.getItem('ngsecurity-etude-alarme')),
+    );
+    affirmer(contenu.type === 'ng-etude-alarme', `type : ${contenu.type}`);
+    affirmer(contenu.reponses.portes === 5 && contenu.reponses.animaux === 'grandChien',
+      JSON.stringify(contenu.reponses));
+
+    await page.reload({ waitUntil: 'networkidle' });
+    await page.waitForTimeout(300);
+    const repris = await page.evaluate(() => ({
+      portes: document.querySelector('#a-portes').value,
+      animaux: document.querySelector('#a-animaux').value,
+      ouvertures: [...document.querySelectorAll('#a-lignes tr')]
+        .filter((tr) => /ouverture/i.test(tr.children[0].textContent))
+        .map((tr) => Number(tr.children[1].textContent))[0],
+    }));
+    affirmer(repris.portes === '5' && repris.animaux === 'grandChien',
+      JSON.stringify(repris));
+    affirmer(repris.ouvertures >= 14, `et l'étude est refaite dessus : ${repris.ouvertures}`);
+  });
+
+  await cas('la page porte le menu du site et ses portes de sortie', async () => {
+    const r = await page.evaluate(() => ({
+      menu: [...document.querySelectorAll('#site-menu .pages a')].map((a) => a.getAttribute('href')),
+      ailleurs: (document.querySelector('#site-menu .ailleurs') || {}).href || '',
+      pied: [...document.querySelectorAll('.liens-pied a')].map((a) => a.getAttribute('href')),
+    }));
+    affirmer(r.menu.includes('/outils/etude/') && r.menu.includes('/outils/devis/'),
+      `les deux autres outils : ${JSON.stringify(r.menu)}`);
+    affirmer(/^https:\/\/ngsecurity38\.com\//.test(r.ailleurs), `la boutique : ${r.ailleurs}`);
+    affirmer(r.pied.length === 3, `trois liens au pied : ${JSON.stringify(r.pied)}`);
+  });
+
+  await cas('aucune erreur de console', () => affirmer(!erreurs.length, erreurs.join(' | ')));
+  await page.close();
+}
+
+/* ------------------------------ 12. blocs collés dans une page existante */
 
 console.log('\nBlocs à coller (WordPress)');
 {
