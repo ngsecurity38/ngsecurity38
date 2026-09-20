@@ -194,7 +194,16 @@ aux variables de nginx.
 Et `.env` est bien ignoré par git : vérifié en en créant un, faux, et en
 constatant que `git status` ne le voit pas.
 
-**Pas vérifié** — le conteneur lui-même n'a pas pu être lancé : l'environnement
-où ces fichiers ont été écrits n'a pas de démon Docker. La configuration nginx
-et le fichier compose n'ont donc pas tourné pour de vrai. Si `docker compose
-up` proteste, envoyez-moi le message.
+**Vérifié sur le VPS, le 20/09/2026** — `docker-compose.proxy.yml` a bien
+démarré le conteneur `ngs-outils` sur le réseau `deploy_default`, et le Caddy
+en place le joint :
+
+```
+docker exec deploy-caddy-1 wget -qO- http://ngs-outils/outils/etude/
+<!doctype html>
+<html lang="fr">
+<!-- Présentation — NG Sécurité 38. -->
+```
+
+Reste la règle de routage dans le Caddyfile, qui demande de connaître le
+domaine visé.
