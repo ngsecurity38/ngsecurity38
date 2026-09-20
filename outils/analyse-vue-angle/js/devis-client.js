@@ -22,11 +22,11 @@ import {
 /**
  * Où la demande d'étude est envoyée.
  *
- * À remplacer par l'adresse de l'agence avant mise en ligne. Laissée vide, le
- * bouton propose simplement d'imprimer : mieux vaut pas de lien qu'un lien
- * vers une adresse qui n'existe pas.
+ * L'adresse publique de l'agence, et elle seule : cette page est servie en
+ * clair, et l'adresse y sera moissonnée. Laissée vide, le bouton disparaît —
+ * mieux vaut pas de lien qu'un lien vers une adresse qui n'existe pas.
  */
-const CONTACT = '';
+const CONTACT = 'contact@ngsecurity38.com';
 
 /** Tarif de repli, celui embarqué à la fabrication du fichier unique. */
 const TARIF_EMBARQUE = globalThis.__tarif || null;

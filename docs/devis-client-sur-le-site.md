@@ -49,15 +49,25 @@ faire la même chose depuis l'admin.
 
 ### L'adresse qui reçoit les demandes
 
-Dans `js/devis-client.js`, en tête du fichier :
+Elle est réglée sur **`contact@ngsecurity38.com`**, la seule boîte de votre
+hébergement Hostinger. Pour en changer, dans `js/devis-client.js` :
 
 ```js
-const CONTACT = '';
+const CONTACT = 'contact@ngsecurity38.com';
 ```
 
-Mettre l'adresse qui doit recevoir les demandes d'étude, puis relancer
-`npm run build`. **Laissée vide, le bouton « Demander une étude » n'apparaît
-pas** — mieux vaut pas de bouton qu'un lien vers une adresse qui n'existe pas.
+puis relancer `npm run build`. **Laissée vide, le bouton « Demander une
+étude » n'apparaît pas** — mieux vaut pas de bouton qu'un lien vers une
+adresse qui n'existe pas.
+
+N'y mettez jamais une adresse personnelle : la page est servie en clair et
+l'adresse y sera moissonnée par les robots.
+
+La demande qui vous parvient contient le type de site, la durée de
+conservation, le métrage de câble estimé, le total, **et zone par zone ce que
+la photo a mesuré** — angle, distance du fond, largeur, hauteur de pose,
+caméra retenue. Elle invite aussi le visiteur à joindre son fichier `.json`,
+que vous rouvrez dans la page pour retrouver ses photos et ses tracés.
 
 ### Vos prix
 

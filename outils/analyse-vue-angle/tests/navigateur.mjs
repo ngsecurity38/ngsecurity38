@@ -2047,6 +2047,23 @@ console.log('\nDevis client');
       'l\'image décodée n\'a pas à être enregistrée');
   });
 
+  await cas('la demande d\'étude part vers l\'agence, dossier compris', async () => {
+    const lien = await page.evaluate(() => {
+      const b = document.querySelector('#btn-contact');
+      return { cache: b.hidden, href: b.getAttribute('href') || '' };
+    });
+    affirmer(!lien.cache, 'le bouton doit être proposé une fois l\'adresse réglée');
+    affirmer(/^mailto:contact@ngsecurity38\.com\?/.test(lien.href),
+      `adresse de l'agence : ${lien.href.slice(0, 80)}`);
+
+    const corps = decodeURIComponent((lien.href.match(/[&?]body=([^&]*)/) || [])[1] || '');
+    affirmer(/Zones étudiées depuis mes photos/.test(corps),
+      `l'étude photo doit voyager avec la demande : ${corps.slice(0, 200)}`);
+    affirmer(/fichier \.json joint/.test(corps),
+      'le visiteur doit être invité à joindre son projet');
+    affirmer(/Type de site/.test(corps) && /Conservation/.test(corps), corps.slice(0, 200));
+  });
+
   await cas('les réserves d\'une estimation à distance sont écrites', async () => {
     const reserves = await page.evaluate(() => [...document.querySelectorAll('#reserves li')]
       .map((t) => t.textContent.trim()));
