@@ -175,7 +175,9 @@ tfoot tr.fort td { font-size: 19px; font-weight: 700; border-top: 2px solid var(
   margin: 0; padding: 12px 14px; border-radius: 8px;
   background: #eaf2ff; border: 1px solid #c3d9f7; font-size: 14px;
 }
-.questions.serre { gap: 12px; }
+/* Les réglages viennent après les mesures : l'image et ses chiffres doivent
+   se toucher sur un téléphone. */
+.questions.serre { gap: 12px; margin-top: 18px; }
 .etapes { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
 .btn-petit { padding: 8px 14px; font-size: 14px; }
 .btn.actif { border-color: var(--rouge); color: var(--rouge); }
@@ -291,6 +293,15 @@ tfoot tr.fort td { font-size: 19px; font-weight: 700; border-top: 2px solid var(
       <p class="consigne" id="photo-consigne"></p>
       <canvas id="toile-photo"></canvas>
 
+      <div class="etapes">
+        <button type="button" class="btn btn-petit" data-etape="r1">1 · Repère proche</button>
+        <button type="button" class="btn btn-petit" data-etape="r2">2 · Repère lointain</button>
+        <button type="button" class="btn btn-petit" data-etape="zone">3 · Entourer la zone</button>
+        <button type="button" class="btn btn-petit" id="photo-supprimer">Supprimer la photo</button>
+      </div>
+
+      <div id="photo-resultat"></div>
+
       <div class="questions serre">
         <label>Hauteur de pose prévue (m)
           <input type="number" id="p-hauteur" value="3" min="1" max="15" step="0.1">
@@ -306,15 +317,6 @@ tfoot tr.fort td { font-size: 19px; font-weight: 700; border-top: 2px solid var(
           <select id="p-appareil"></select>
         </label>
       </div>
-
-      <div class="etapes">
-        <button type="button" class="btn btn-petit" data-etape="r1">1 · Repère proche</button>
-        <button type="button" class="btn btn-petit" data-etape="r2">2 · Repère lointain</button>
-        <button type="button" class="btn btn-petit" data-etape="zone">3 · Entourer la zone</button>
-        <button type="button" class="btn btn-petit" id="photo-supprimer">Supprimer la photo</button>
-      </div>
-
-      <div id="photo-resultat"></div>
     </div>
   </section>
 

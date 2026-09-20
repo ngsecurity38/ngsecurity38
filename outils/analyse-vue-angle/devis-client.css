@@ -165,7 +165,9 @@ tfoot tr.fort td { font-size: 19px; font-weight: 700; border-top: 2px solid var(
   margin: 0; padding: 12px 14px; border-radius: 8px;
   background: #eaf2ff; border: 1px solid #c3d9f7; font-size: 14px;
 }
-.questions.serre { gap: 12px; }
+/* Les réglages viennent après les mesures : l'image et ses chiffres doivent
+   se toucher sur un téléphone. */
+.questions.serre { gap: 12px; margin-top: 18px; }
 .etapes { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
 .btn-petit { padding: 8px 14px; font-size: 14px; }
 .btn.actif { border-color: var(--rouge); color: var(--rouge); }

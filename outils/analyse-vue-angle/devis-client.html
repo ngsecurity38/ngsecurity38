@@ -102,6 +102,15 @@
       <p class="consigne" id="photo-consigne"></p>
       <canvas id="toile-photo"></canvas>
 
+      <div class="etapes">
+        <button type="button" class="btn btn-petit" data-etape="r1">1 · Repère proche</button>
+        <button type="button" class="btn btn-petit" data-etape="r2">2 · Repère lointain</button>
+        <button type="button" class="btn btn-petit" data-etape="zone">3 · Entourer la zone</button>
+        <button type="button" class="btn btn-petit" id="photo-supprimer">Supprimer la photo</button>
+      </div>
+
+      <div id="photo-resultat"></div>
+
       <div class="questions serre">
         <label>Hauteur de pose prévue (m)
           <input type="number" id="p-hauteur" value="3" min="1" max="15" step="0.1">
@@ -117,15 +126,6 @@
           <select id="p-appareil"></select>
         </label>
       </div>
-
-      <div class="etapes">
-        <button type="button" class="btn btn-petit" data-etape="r1">1 · Repère proche</button>
-        <button type="button" class="btn btn-petit" data-etape="r2">2 · Repère lointain</button>
-        <button type="button" class="btn btn-petit" data-etape="zone">3 · Entourer la zone</button>
-        <button type="button" class="btn btn-petit" id="photo-supprimer">Supprimer la photo</button>
-      </div>
-
-      <div id="photo-resultat"></div>
     </div>
   </section>
 
