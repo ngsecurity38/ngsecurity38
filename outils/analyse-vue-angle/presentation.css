@@ -103,6 +103,8 @@ main { padding-bottom: 40px; }
   text-decoration: none; color: inherit; background: #fff;
 }
 .produit:hover { border-color: var(--rouge); }
+/* Sans fiche produit derrière, la carte informe sans appeler le clic. */
+.produit.sans-lien:hover { border-color: var(--bord); }
 .produit img {
   display: block; width: 100%; height: 130px; object-fit: contain;
   background: var(--fond); border-radius: 8px; margin-bottom: 4px;

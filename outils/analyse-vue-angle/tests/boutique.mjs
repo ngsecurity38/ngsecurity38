@@ -127,18 +127,19 @@ test('un zoom s\'annonce comme réglable', () => {
 
 /* ------------------------------------------------------------ catalogue */
 
-test('un produit sans référence ou sans adresse n\'est pas affiché', () => {
+test('seule la référence est exigée ; l\'adresse est un plus', () => {
   const catalogue = {
     produits: [
       FIXE,
+      // Sans fiche produit derrière : la caractéristique renseigne quand même.
       { reference: 'Sans adresse', resH: 3840, focale: 4 },
       { url: 'https://exemple/x', resH: 3840, focale: 4 },
       { reference: '   ', url: 'https://exemple/y' },
     ],
   };
   const gardes = produitsAffichables(catalogue);
-  assert.equal(gardes.length, 1);
-  assert.equal(gardes[0].reference, FIXE.reference);
+  assert.equal(gardes.length, 2, 'la fiche sans adresse reste affichable');
+  assert.equal(gardes[1].reference, 'Sans adresse');
   assert.equal(produitsAffichables(null).length, 0);
 });
 
@@ -147,10 +148,10 @@ test('les réserves disent ce qui manque, plutôt que de laisser une grille vide
   assert.match(reservesCatalogue(null)[0], /Aucun produit/);
 
   const incomplet = reservesCatalogue({
-    produits: [FIXE, { reference: 'Sans adresse' },
+    produits: [FIXE, { url: 'https://exemple/y' },
       { reference: 'Sans optique', url: 'https://exemple/z' }],
   });
-  assert.ok(incomplet.some((r) => /sans référence ou sans adresse/.test(r)));
+  assert.ok(incomplet.some((r) => /sans référence/.test(r)));
   assert.ok(incomplet.some((r) => /sans optique renseignée/.test(r)));
 
   assert.deepEqual(reservesCatalogue({ produits: [FIXE] }), [],
@@ -202,4 +203,29 @@ test('chaque modèle de la bibliothèque tient debout', async () => {
         `${ou} : ${c.angleLarge}° annoncés, très au-delà des ${calc.toFixed(1)}° calculés`);
     }
   }
+});
+
+/*
+ * `catalogue.json` part en ligne tel quel : une faute de frappe y serait
+ * visible par les visiteurs avant de l'être par nous.
+ */
+test('le catalogue livré tient debout', async () => {
+  const { readFileSync } = await import('node:fs');
+  const cat = JSON.parse(readFileSync(
+    new URL('../catalogue.json', import.meta.url), 'utf8',
+  ));
+  const produits = produitsAffichables(cat);
+  assert.ok(produits.length >= 8, `${produits.length} produits`);
+
+  for (const p of produits) {
+    const c = capacites(p);
+    assert.ok(c, `${p.reference} : optique inexploitable`);
+    assert.equal(c.angleCalcule, false,
+      `${p.reference} : l'angle doit venir du constructeur`);
+    assert.ok(p._source, `${p.reference} : une caractéristique sans source ne vaut rien`);
+    // Aucun prix ne doit partir en ligne sans avoir été relevé chez nous.
+    assert.equal(p.prixTtc, undefined, `${p.reference} : prix non relevé`);
+  }
+  assert.deepEqual(reservesCatalogue(cat), [],
+    'le catalogue livré ne doit porter aucune réserve');
 });

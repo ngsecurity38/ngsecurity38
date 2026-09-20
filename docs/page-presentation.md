@@ -81,7 +81,9 @@ complètes (`https://…`) seulement si les deux pages sont sur deux domaines.
 | Champ | Obligatoire | Rôle |
 | --- | --- | --- |
 | `reference` | oui | ce que lit le client |
-| `url` | oui | la fiche produit — sans elle, le produit n'est pas affiché |
+| `url` | non | la fiche produit. Sans elle, la fiche s'affiche mais ne mène nulle part — c'est légitime sur l'espace professionnel, où il n'y a pas de boutique derrière |
+| `angleH` | recommandé | l'angle horizontal **annoncé par le constructeur** |
+| `angleHTele` | | idem au téléobjectif, pour un objectif motorisé |
 | `image` | non | photo du produit |
 | `prixTtc` | non | prix de vente TTC |
 | `focale` | non | en mm, objectif fixe |
@@ -93,9 +95,9 @@ complètes (`https://…`) seulement si les deux pages sont sur deux domaines.
 page ne calcule rien qu'elle ne puisse justifier, et elle vous signale en bas
 de la grille ce qu'il lui manque pour mieux faire.
 
-Un produit sans `url` n'est pas affiché : une vignette sur laquelle on ne
-peut pas cliquer ne sert personne, et la page vous dit combien elle en a
-écartés.
+La page est livrée avec **neuf fiches AcuSense déjà renseignées** — les
+angles viennent des fiches Hikvision, avec leur date. Il ne vous reste qu'à
+ajouter vos `url` et vos `prixTtc` quand les pages produits existeront.
 
 ---
 

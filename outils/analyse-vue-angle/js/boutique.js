@@ -148,12 +148,13 @@ const arr = (v) => String(Math.round(v * 10) / 10).replace('.', ',');
 /**
  * Produits retenus pour la page, dans l'ordre du fichier.
  *
- * Un produit sans référence n'est pas affichable : le client n'aurait rien à
- * demander. Un produit sans adresse ne l'est pas davantage sur une boutique —
- * une vignette sur laquelle on ne peut pas cliquer ne sert personne.
+ * Seule la référence est exigée : sans elle le visiteur n'aurait rien à
+ * demander. L'adresse d'une fiche produit, elle, est facultative — sur
+ * l'espace professionnel il n'y a pas de boutique derrière, et une fiche qui
+ * annonce un champ et une portée renseigne même sans lien marchand.
  */
 export const produitsAffichables = (catalogue) => (catalogue?.produits || [])
-  .filter((p) => p && typeof p.reference === 'string' && p.reference.trim() && p.url);
+  .filter((p) => p && typeof p.reference === 'string' && p.reference.trim());
 
 /**
  * Réserves à afficher sous le catalogue.
@@ -170,8 +171,8 @@ export function reservesCatalogue(catalogue) {
     reserves.push('Aucun produit n\'est encore inscrit à cette page.');
   } else if (affichables.length < bruts.length) {
     const n = bruts.length - affichables.length;
-    reserves.push(`${n} produit${n > 1 ? 's' : ''} sans référence ou sans adresse de `
-      + 'fiche : non affiché, faute de quoi le visiteur ne saurait pas quoi demander.');
+    reserves.push(`${n} produit${n > 1 ? 's' : ''} sans référence : non affiché, `
+      + 'faute de quoi le visiteur ne saurait pas quoi demander.');
   }
 
   const sansOptique = affichables.filter((p) => !capacites(p));

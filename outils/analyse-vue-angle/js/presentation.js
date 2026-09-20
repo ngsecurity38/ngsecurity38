@@ -41,11 +41,16 @@ const CATALOGUE_EMBARQUE = globalThis.__catalogue || null;
 /**
  * Caméra servant d'exemple à l'échelle des paliers.
  *
- * Elle n'est pas présentée comme un produit : elle sert à montrer l'ordre de
- * grandeur, et la légende dit laquelle c'est. Sans cela, les distances
- * affichées ne voudraient rien dire.
+ * C'est une caméra réelle, avec son champ annoncé par Hikvision : le
+ * DS-2CD2T86G2-4I, le 4 K AcuSense le plus courant. L'illustration figure
+ * au-dessus des fiches produits, et un exemple calculé sur un capteur
+ * supposé y annoncerait d'autres distances que la fiche du même modèle,
+ * trois centimètres plus bas.
  */
-const EXEMPLE = { reference: 'exemple', url: '#', resH: 3840, focale: 4 };
+const EXEMPLE = {
+  reference: 'Hikvision DS-2CD2T86G2-4I', modele: '4 K AcuSense à objectif 4 mm',
+  resH: 3840, capteur: '1/1.8"', focale: 4, angleH: 87,
+};
 
 const ech = (t) => String(t ?? '').replace(/[&<>"']/g, (c) => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
@@ -109,8 +114,8 @@ function dessinerEchelle() {
   </svg>`;
 
   const a = argumentaire(EXEMPLE);
-  $('#legende-dori').textContent = 'Distances pour une caméra 4K à '
-    + `${a.optique}, l'exemple le plus courant — elle embrasse `
+  $('#legende-dori').textContent = `Distances pour un ${EXEMPLE.modele} `
+    + `(${EXEMPLE.reference}), le plus courant — il embrasse `
     + `${fr(a.largeur)} m de large à ${DISTANCE_VITRINE} m. Une caméra plus `
     + 'ouverte voit plus large mais moins loin ; une caméra plus serrée, '
     + 'l\'inverse. C\'est tout le travail de l\'étude que de trancher.';
@@ -131,7 +136,12 @@ function afficherProduits(catalogue) {
   $('#produits').innerHTML = produits.map((p) => {
     const a = argumentaire(p);
     const c = capacites(p);
-    return `<a class="produit" href="${ech(p.url)}">
+    // Une fiche sans adresse reste une fiche : elle informe, elle ne mène
+    // nulle part. Un lien vide, lui, déçoit le clic.
+    const [ouvre, ferme] = p.url
+      ? [`<a class="produit" href="${ech(p.url)}">`, '</a>']
+      : ['<div class="produit sans-lien">', '</div>'];
+    return `${ouvre}
       ${p.image ? `<img src="${ech(p.image)}" alt="" loading="lazy">` : ''}
       <span class="nom">${ech(p.reference)}</span>
       ${a ? `<span class="optique">${ech(a.champ)}</span>
@@ -140,7 +150,7 @@ function afficherProduits(catalogue) {
           <b>${ech(fr(a.identification))} m</b>${c.estSuppose ? '*' : ''}</span>`
     : '<span class="optique">Caractéristiques optiques sur la fiche produit.</span>'}
       ${p.prixTtc > 0 ? `<span class="prix">${ech(euros(p.prixTtc))} TTC</span>` : ''}
-    </a>`;
+    ${ferme}`;
   }).join('');
 
   const reserves = reservesCatalogue(catalogue);

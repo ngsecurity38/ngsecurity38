@@ -2080,8 +2080,24 @@ console.log('\nPage de présentation (boutique)');
     affirmer(m.length === 4, `quatre distances : ${JSON.stringify(m)}`);
     affirmer(m[0] > m[1] && m[1] > m[2] && m[2] > m[3],
       `décroissantes : ${JSON.stringify(m)}`);
-    affirmer(/4K/.test(r.legende) && /4 mm/.test(r.legende),
-      `la légende doit dire de quelle caméra il s'agit : ${r.legende}`);
+    affirmer(/DS-2CD2T86G2-4I/.test(r.legende) && /4 mm/.test(r.legende),
+      `la légende doit nommer la caméra : ${r.legende}`);
+
+    /*
+     * L'échelle surplombe les fiches produits : elle doit annoncer, pour ce
+     * modèle-là, exactement ce que sa fiche annonce trois centimètres plus
+     * bas. Deux chiffres différents pour une même caméra sur un même écran,
+     * et la page perd toute crédibilité.
+     */
+    const fiche = await page.evaluate(() => {
+      const f = [...document.querySelectorAll('.produit')]
+        .find((x) => /DS-2CD2T86G2-4I/.test(x.textContent));
+      return f ? f.textContent.replace(/\s+/g, ' ') : '';
+    });
+    const surFiche = (fiche.match(/Reconnaît une personne jusqu'à ([\d,]+) m/) || [])[1];
+    affirmer(surFiche, `fiche du modèle d'exemple introuvable : ${fiche}`);
+    affirmer(new RegExp(`${surFiche.replace(',', ',')} m`).test(r.texte),
+      `l'échelle dit ${JSON.stringify(m)} là où la fiche dit ${surFiche} m`);
   });
 
   await cas('sans réglage, les liens restent sur le site qui sert la page', async () => {
@@ -2104,17 +2120,27 @@ console.log('\nPage de présentation (boutique)');
       `le pied reste relatif : ${JSON.stringify(liens.pied)}`);
   });
 
-  await cas('un catalogue vide le dit, au lieu d\'une grille vide', async () => {
+  await cas('le catalogue livré s\'affiche, chiffré et sans réserve', async () => {
     const r = await page.evaluate(() => ({
-      produits: document.querySelectorAll('.produit').length,
+      produits: [...document.querySelectorAll('.produit')]
+        .map((x) => x.textContent.replace(/\s+/g, ' ').trim()),
+      sansLien: document.querySelectorAll('.produit.sans-lien').length,
       intro: document.querySelector('#intro-produits').textContent,
       reserves: [...document.querySelectorAll('#reserves-produits li')]
         .map((t) => t.textContent),
     }));
-    affirmer(r.produits === 0, `aucun produit au catalogue livré : ${r.produits}`);
-    affirmer(/en cours de constitution/.test(r.intro), r.intro);
-    affirmer(r.reserves.some((x) => /Aucun produit/.test(x)),
-      `l'absence doit être dite : ${JSON.stringify(r.reserves)}`);
+    affirmer(r.produits.length >= 8, `la gamme AcuSense : ${r.produits.length} fiches`);
+    // Aucune fiche produit n'existe encore sur le site : elles informent sans
+    // mener nulle part, et c'est légitime sur l'espace professionnel.
+    affirmer(r.sansLien === r.produits.length,
+      `${r.sansLien} fiches sans lien sur ${r.produits.length}`);
+    affirmer(r.produits.every((t) => /de large à 10 m/.test(t)),
+      `chaque fiche annonce son champ : ${JSON.stringify(r.produits.slice(0, 2))}`);
+    affirmer(!r.reserves.length,
+      `le catalogue livré ne doit rien avoir à signaler : ${JSON.stringify(r.reserves)}`);
+    // Un angle constructeur partout : plus d'astérisque « capteur supposé ».
+    affirmer(!r.produits.some((t) => /\*/.test(t)),
+      'aucun capteur ne devrait être supposé');
   });
 
   await cas('un catalogue rempli donne des vignettes cliquables et chiffrées', async () => {
@@ -2126,7 +2152,8 @@ console.log('\nPage de présentation (boutique)');
         { reference: 'Bullet 4K 4 mm', url: 'https://exemple.test/p/1', resH: 3840, focale: 4, prixTtc: 289.9 },
         { reference: 'Dôme zoom 2.8-12', url: 'https://exemple.test/p/2', resH: 2560, focaleMin: 2.8, focaleMax: 12 },
         { reference: 'Sans optique', url: 'https://exemple.test/p/3' },
-        { reference: 'Sans adresse' },
+        { reference: 'Sans adresse', resH: 2688, angleH: 90 },
+        { url: 'https://exemple.test/p/5', resH: 3840, focale: 4 },
       ],
     };
     await page.route('**/catalogue.json', (r) => r.fulfill({
@@ -2139,7 +2166,7 @@ console.log('\nPage de présentation (boutique)');
 
     const r = await page.evaluate(() => ({
       vignettes: [...document.querySelectorAll('.produit')].map((a) => ({
-        href: a.getAttribute('href'),
+        href: a.getAttribute('href') || '',
         texte: a.textContent.replace(/\s+/g, ' ').trim(),
       })),
       reserves: [...document.querySelectorAll('#reserves-produits li')].map((t) => t.textContent),
@@ -2147,10 +2174,16 @@ console.log('\nPage de présentation (boutique)');
       boutique: document.querySelector('#lien-boutique').getAttribute('href'),
     }));
 
-    affirmer(r.vignettes.length === 3,
-      `trois produits affichables sur quatre : ${JSON.stringify(r.vignettes.map((v) => v.texte))}`);
-    affirmer(r.vignettes.every((v) => /^https:\/\/exemple\.test\/p\//.test(v.href)),
-      `chaque vignette mène à sa fiche : ${JSON.stringify(r.vignettes.map((v) => v.href))}`);
+    affirmer(r.vignettes.length === 4,
+      `quatre produits nommés sur cinq : ${JSON.stringify(r.vignettes.map((v) => v.texte))}`);
+    affirmer(r.vignettes.filter((v) => v.href).every((v) => /^https:\/\/exemple\.test\/p\//.test(v.href)),
+      `chaque vignette liée mène à sa fiche : ${JSON.stringify(r.vignettes.map((v) => v.href))}`);
+
+    // Celle sans adresse s'affiche, chiffrée, mais ne mène nulle part.
+    const orpheline = r.vignettes.find((v) => /Sans adresse/.test(v.texte));
+    affirmer(orpheline && !orpheline.href, `elle ne doit porter aucun lien : ${JSON.stringify(orpheline)}`);
+    affirmer(/de large à 10 m/.test(orpheline.texte),
+      `et rester chiffrée : ${orpheline.texte}`);
 
     const bullet = r.vignettes.find((v) => /Bullet/.test(v.texte));
     affirmer(/objectif 4 mm/.test(bullet.texte), bullet.texte);
@@ -2167,7 +2200,7 @@ console.log('\nPage de présentation (boutique)');
       `aucune portée ne doit être annoncée sans optique : ${nu.texte}`);
     affirmer(r.reserves.some((x) => /sans optique renseignée/.test(x)),
       `la lacune doit être dite : ${JSON.stringify(r.reserves)}`);
-    affirmer(r.reserves.some((x) => /sans référence ou sans adresse/.test(x)),
+    affirmer(r.reserves.some((x) => /sans référence/.test(x)),
       `le produit écarté aussi : ${JSON.stringify(r.reserves)}`);
     affirmer(r.reserves.some((x) => /capteur 1\/2.8/.test(x)),
       `le capteur supposé doit être signalé : ${JSON.stringify(r.reserves)}`);
