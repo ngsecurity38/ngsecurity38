@@ -1,0 +1,13 @@
+# Dépendances
+node_modules/
+
+# Secrets — ne doivent jamais entrer dans un dépôt public.
+# .env est le fichier où logent mots de passe et clés d'API : il reste sur la
+# machine. Seul .env.exemple est versionné, et il ne contient aucune valeur
+# sensible.
+.env
+.env.*
+!.env.exemple
+*.pem
+*.key
+id_rsa*

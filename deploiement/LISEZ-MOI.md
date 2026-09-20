@@ -13,20 +13,37 @@ docker ps
 ss -tlnp | grep -E ':(80|443|8080) '
 ```
 
-Si le port 8080 est pris, changez-le dans `docker-compose.yml` (ligne
-`"8080:80"` → `"8081:80"` par exemple).
+Si le port 8080 est pris, changez `PORT` dans `.env`.
 
 ---
 
-## La mise en ligne, trois commandes
+## La mise en ligne, quatre commandes
 
 Le dépôt est public : aucun identifiant n'est nécessaire.
 
 ```bash
 git clone https://github.com/ngsecurity38/ngsecurity38.git
 cd ngsecurity38 && git checkout claude/beautiful-gauss-ycyex1
+cp deploiement/.env.exemple deploiement/.env    # puis ajuster PORT et DOMAINE
 docker compose -f deploiement/docker-compose.yml up -d
 ```
+
+### Le fichier `.env`
+
+Deux réglages, et rien d'autre :
+
+| Variable | Rôle | Défaut |
+| --- | --- | --- |
+| `PORT` | port ouvert sur le VPS | `8080` |
+| `DOMAINE` | nom servi, pour le `server_name` de nginx | `_` |
+
+**`.env` n'est pas versionné** — la règle est dans `.gitignore`, et elle est
+vérifiée. C'est le fichier où l'on met un jour un mot de passe : il reste sur
+le serveur. Seul `.env.exemple` est dans le dépôt, et il ne contient aucune
+valeur sensible.
+
+> **Ne collez jamais un `.env` réel dans une conversation**, ici ou ailleurs.
+> Si c'est arrivé, changez les identifiants qu'il contenait.
 
 Vérifier :
 
@@ -42,8 +59,8 @@ Un `200 OK` et c'est en ligne, à `http://72.62.24.92:8080/outils/etude/`.
 
 Deux façons, selon ce qui tourne déjà.
 
-**Rien devant.** Changez `"8080:80"` en `"80:80"`, relancez, et faites
-pointer un sous-domaine (`outils.ngsecurity38.fr`) sur 72.62.24.92 par un
+**Rien devant.** Mettez `PORT=80` dans `.env`, relancez, et faites pointer
+un sous-domaine (`outils.ngsecurity38.fr`) sur 72.62.24.92 par un
 enregistrement DNS de type A.
 
 **Un proxy devant (nginx, Traefik, Caddy).** Ajoutez une règle vers
@@ -87,6 +104,14 @@ sans cache. Un `git pull` suffit, ou une édition directe du fichier.
 
 Aucune erreur de console, et le bouton « Lancer l'étude » mène bien d'une
 page à l'autre.
+
+La substitution du domaine dans le gabarit nginx a été simulée : seul
+`${DOMAINE}` est remplacé, `$uri` reste intact — un filtre explicite
+(`NGINX_ENVSUBST_FILTER`) l'impose, sans quoi envsubst s'en prendrait aussi
+aux variables de nginx.
+
+Et `.env` est bien ignoré par git : vérifié en en créant un, faux, et en
+constatant que `git status` ne le voit pas.
 
 **Pas vérifié** — le conteneur lui-même n'a pas pu être lancé : l'environnement
 où ces fichiers ont été écrits n'a pas de démon Docker. La configuration nginx

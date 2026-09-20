@@ -12,12 +12,18 @@ services:
     # 8080 pour ne rien bousculer : le port 80 sert sans doute déjà quelque
     # chose. À placer derrière votre proxy, ou à changer ici.
     ports:
-      - "8080:80"
+      - "${PORT:-8080}:80"
+    environment:
+      # L'image nginx substitue les variables dans les gabarits au démarrage.
+      # Le filtre est explicite : sans lui, envsubst s'en prendrait aussi à
+      # $$uri et $$host, qui appartiennent à nginx et non à l'environnement.
+      DOMAINE: ${DOMAINE:-_}
+      NGINX_ENVSUBST_FILTER: DOMAINE
     volumes:
       # En lecture seule : le conteneur n'a aucune raison d'écrire dans le
       # dépôt, et une image publique n'a pas à pouvoir le faire.
       - ../docs/outils:/usr/share/nginx/html/outils:ro
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./templates:/etc/nginx/templates:ro
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost/outils/etude/"]
       interval: 30s
