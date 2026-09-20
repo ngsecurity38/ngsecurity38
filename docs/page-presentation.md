@@ -177,81 +177,84 @@ l'appelle — un 2,8–12 mm est un ×4, pas un ×4,3 — et `porteeMax`.
 
 ---
 
-## 3 quater. Sans FTP : coller la page dans WordPress
+## 3 quater. Trois façons de mettre les pages en ligne
 
-Si le téléversement vous rebute, il existe un chemin qui ne demande **aucun
-fichier à envoyer**. La fabrication produit deux blocs :
+Selon ce qui fait tourner votre site, une seule de ces trois voies s'applique
+vraiment.
 
-| Fichier | À coller dans |
-| --- | --- |
-| `dist/site/wordpress/etude.html` | une page « Quelle caméra me faut-il ? » |
-| `dist/site/wordpress/devis.html` | une page « Estimer mon installation » |
+### A. Le site est fait de fichiers (hébergement mutualisé, VPS)
 
-1. Admin WordPress → **Pages** → **Ajouter**
-2. Titre de la page, puis bloc **HTML personnalisé** (le `+`, chercher « HTML »)
-3. Ouvrir le fichier dans un éditeur de texte, **tout copier**, **tout coller**
-   dans le bloc
-4. **Publier**
+C'est le §2 : déposer le dossier `outils/` dans la racine web
+(`public_html/`, `/var/www/html/`…). Les deux pages se trouvent l'une
+l'autre, le logo est là, rien à régler. **C'est la voie la plus propre.**
 
-C'est tout. Pas de FTP, pas de gestionnaire de fichiers.
+### B. Le site est fait avec un créateur de pages
 
-### Pourquoi ça ne casse pas votre thème
+Créateur de site Hostinger, Wix, Webflow… On n'y dépose pas de fichiers, et
+l'élément « Code intégré » a ses limites — Hostinger, par exemple, **refuse
+les images en `data:`** et répond « embed code is too large ».
 
-Le bloc monte la page dans une **racine d'ombre** : une bulle que le style du
-site n'atteint pas, et d'où le nôtre ne sort pas. Sans elle, nos classes
-`.carte`, `.btn`, `.produit` — des noms trop courants pour être uniques —
-écraseraient celles de votre thème, et les siennes nous défigureraient.
+La solution : **héberger les pages ailleurs, et n'insérer qu'un cadre.**
 
-Un test le vérifie à chaque construction, sur une page hôte volontairement
-hostile : fond vert, titres magenta, police cursive, et un `display:none` sur
-`.produit`. La page collée en sort intacte, et le thème aussi.
+1. Dans le dépôt GitHub, **Settings → Pages**
+2. Source : *Deploy from a branch* — branche `claude/beautiful-gauss-ycyex1`,
+   dossier **`/docs`** → **Save**
+3. Après une minute, les pages sont à
+   `https://ngsecurity38.github.io/ngsecurity38/outils/etude/` et
+   `…/outils/devis/`
+4. Dans l'éditeur du site, poser un élément **Code intégré** et y coller
+   `dist/site/cadre-a-coller.html` (quatre lignes), avec la bonne adresse
 
-### Relier les deux pages
+Le cadre isole totalement : aucun conflit de style possible, aucun plafond de
+taille, et la page reste entière — logo compris. Ajustez `height` si la page
+est coupée.
+
+C'est aussi réversible : le jour où vous passez à la méthode A, vous
+remplacez le cadre par un lien.
+
+### C. Coller la page elle-même dans le site
+
+`dist/site/wordpress/etude.html` et `devis.html` sont des blocs autonomes à
+coller dans un champ « HTML personnalisé ». Ils montent la page dans une
+**racine d'ombre** : le style du site ne les atteint pas, le leur ne déborde
+pas. Un test le vérifie sur une page hôte volontairement hostile.
+
+Leurs limites, à connaître avant d'essayer : 50 Ko et 103 Ko de code à
+coller, et **pas de logo** — ces blocs le retirent, faute de pouvoir
+l'embarquer. Le site qui les accueille porte déjà sa marque, de toute façon.
 
 Une fois les deux pages publiées, relevez leurs adresses et corrigez les
-**deux lignes en tête** du bloc de la présentation — elles y sont isolées et
-commentées, impossible de les manquer :
+**deux lignes en tête** du bloc de la présentation :
 
 ```js
-window.__ngsOutil = 'https://ngsecurity38.fr/estimer-mon-installation/';
-window.__ngsBoutique = 'https://ngsecurity38.fr/nos-cameras/';
+window.__ngsOutil = '../devis/';   /* → l'adresse de la page d'étude   */
+window.__ngsBoutique = '/';        /* → l'adresse de vos caméras       */
 ```
 
-Elles priment sur tout le reste. Inutile d'aller fouiller le catalogue, qui
-tient sur une seule ligne de plusieurs dizaines de milliers de caractères.
+Elles y sont isolées et commentées, dans les six premières lignes. Elles
+priment sur tout le reste. **Ce ne sont pas des commandes à exécuter** :
+elles se modifient dans un éditeur de texte, à l'intérieur du fichier, avant
+de coller.
 
 ### Changer les produits, ensuite
 
 Le bloc porte ses données avec lui. La ligne `window.__catalogue={…}`, visible
-dans le bloc, se modifie directement dans l'éditeur WordPress — c'est le même
-contenu que `catalogue.json`.
-
-### Ce que cette méthode coûte
-
-- Le bloc pèse 48 Ko (présentation) et 102 Ko (étude). C'est du texte, il se
-  charge vite, mais il alourdit la page WordPress.
-- Les deux pages doivent se pointer l'une l'autre par leur **adresse
-  WordPress** : une fois publiées, relevez les deux URL et corrigez `outil` et
-  `boutique` dans le bloc de la présentation.
-- Le déposer en fichiers, comme au §2, reste plus propre : mises à jour
-  séparées, page plus légère. La méthode WordPress est là pour commencer sans
-  attendre.
+dans le bloc, se modifie directement dans l'éditeur — c'est le même contenu
+que `catalogue.json`.
 
 ---
 
 ## 4. Le lien dans le menu
 
-Admin WordPress → **Apparence > Menus** → **Liens personnalisés** :
+Dans le menu de votre site, ajouter une entrée pointant vers l'adresse
+retenue au §3 quater :
 
-- URL : `https://ngsecurity38.fr/outils/etude/`
 - Texte : `Quelle caméra me faut-il ?`
+- URL : l'adresse de la page
 
-Pour l'intégrer dans une page existante plutôt que seule :
-
-```html
-<iframe src="/outils/etude/" style="width:100%;height:2400px;border:0"
-        title="Quelle caméra vous faut-il ?"></iframe>
-```
+Chaque outil a son propre chemin pour cela — « Liens personnalisés » sous
+WordPress, l'éditeur de navigation chez un créateur de pages. Le principe
+est le même.
 
 ---
 

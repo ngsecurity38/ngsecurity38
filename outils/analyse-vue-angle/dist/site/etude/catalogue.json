@@ -43,7 +43,7 @@
     "             le terrain dément : un 25× « reconnaît » à 677 m sur le",
     "             papier, quand son infrarouge s'arrête à 200 m."
   ],
-  "outil": "/outils/devis/",
+  "outil": "../devis/",
   "boutique": "/",
   "produits": [
     {

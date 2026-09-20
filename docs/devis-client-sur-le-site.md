@@ -37,11 +37,16 @@ La page s'appelle `index.html` pour que l'adresse reste courte et se retienne.
 > **Cette étape vous revient.** Personne d'autre n'a accès à votre hébergement :
 > tant que le dossier n'est pas déposé, rien n'est en ligne.
 
-### Par l'admin WordPress
+### Par le gestionnaire de fichiers de l'hébergeur
 
-WordPress refuse les fichiers `.html` et `.json` par défaut. Le FTP reste le
-chemin le plus simple. À défaut, l'extension **WP File Manager** permet de
-faire la même chose depuis l'admin.
+Chez Hostinger : **hPanel → Fichiers → Gestionnaire de fichiers**. Entrer
+dans `public_html`, **Téléverser** l'archive, puis clic droit → **Extraire**.
+Plus simple que FileZilla, et sans rien installer.
+
+> **Si votre site est fait avec un créateur de pages** (créateur Hostinger,
+> Wix, Webflow…), cette méthode ne s'applique pas : ces sites ne servent pas
+> de fichiers que vous déposez. Voir la notice de la page de présentation,
+> § « Trois façons de mettre les pages en ligne ».
 
 ---
 
@@ -102,11 +107,11 @@ personne. À passer à `false` **une fois vos prix saisis**, pas avant.
 
 ## 3. Le lien dans le menu
 
-1. Admin WordPress → **Apparence > Menus**.
-2. Déplier **Liens personnalisés**.
-3. URL : `https://ngsecurity38.fr/outils/devis/`
-   Texte : `Estimer mon installation`
-4. **Ajouter au menu**, placer l'entrée, **Enregistrer le menu**.
+Ajouter une entrée pointant vers `https://ngsecurity38.fr/outils/devis/`,
+intitulée `Estimer mon installation`.
+
+Chaque outil a son chemin : **Apparence > Menus > Liens personnalisés** sous
+WordPress, l'éditeur de navigation chez un créateur de pages.
 
 ---
 
@@ -114,8 +119,8 @@ personne. À passer à `false` **une fois vos prix saisis**, pas avant.
 
 Pour que l'outil apparaisse *dans* une page du site plutôt que seul :
 
-1. Créer une page WordPress (par exemple « Estimer mon installation »).
-2. Ajouter un bloc **HTML personnalisé**.
+1. Créer une page (par exemple « Estimer mon installation »).
+2. Y poser un bloc **HTML personnalisé** ou **Code intégré**.
 3. Y coller :
 
 ```html

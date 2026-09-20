@@ -258,6 +258,15 @@ aDeposer('etude', presentation, lire('catalogue.json'), 'catalogue.json');
 function pourWordpress(page, feuille, paquet, donnees, id, adresses = '') {
   const corps = page.slice(page.indexOf('<body>') + 6, page.indexOf('</body>'))
     .replace(/<script[\s\S]*?<\/script>/g, '')
+    /*
+     * Le logo s'en va.
+     *
+     * Les créateurs de site refusent les images en `data:` dans un code
+     * intégré — Hostinger répond « embed code is too large ». Et il serait
+     * de toute façon redondant : le bloc est collé DANS un site qui porte
+     * déjà son en-tête et sa marque.
+     */
+    .replace(/<div class="marque">[\s\S]*?<\/div>\s*<\/div>/, '')
     .trim();
 
   /*
@@ -288,6 +297,44 @@ ${adresses}<script>
 <script>${paquet}</script>`;
 }
 
+/*
+ * Copie servie par GitHub Pages.
+ *
+ * C'est la voie la plus sûre pour un site bâti avec un créateur de pages :
+ * on n'y dépose pas de fichiers, et le code intégré plafonne. Les deux pages
+ * vivent donc ailleurs, et le site n'en montre qu'un cadre de deux lignes.
+ *
+ * `.nojekyll` évite que GitHub ne tente de traiter le dossier comme un blog,
+ * ce qui écarterait les fichiers commençant par un tiret bas.
+ */
+const dossierPages = join(ici, '..', '..', 'docs', 'outils');
+for (const [nom, page, donnees, fichier] of [
+  ['devis', client, lire('tarif.json'), 'tarif.json'],
+  ['etude', presentation, lire('catalogue.json'), 'catalogue.json'],
+]) {
+  const d = join(dossierPages, nom);
+  mkdirSync(d, { recursive: true });
+  writeFileSync(join(d, 'index.html'), page);
+  writeFileSync(join(d, fichier), donnees);
+}
+writeFileSync(join(ici, '..', '..', 'docs', '.nojekyll'), '');
+console.log(`${dossierPages} — servi par GitHub Pages`);
+
+/*
+ * Le cadre à coller, quand les pages sont servies ailleurs.
+ *
+ * Deux lignes : aucun plafond de taille à craindre, aucun conflit de style
+ * possible, et la page gardée entière — logo compris.
+ */
+writeFileSync(join(ici, 'dist', 'site', 'cadre-a-coller.html'), `<!-- NG Security 38 — à coller dans un élément « Code intégré ».
+     Remplacez l'adresse ci-dessous par celle de la page publiée. -->
+<iframe src="https://ngsecurity38.github.io/ngsecurity38/outils/etude/"
+        title="Quelle caméra vous faut-il ?"
+        style="width:100%;height:2600px;border:0;display:block"
+        loading="lazy"></iframe>
+`);
+console.log(`${join(ici, 'dist', 'site', 'cadre-a-coller.html')} — deux lignes à coller`);
+
 const dossierWp = join(ici, 'dist', 'site', 'wordpress');
 mkdirSync(dossierWp, { recursive: true });
 /*
@@ -304,7 +351,7 @@ const adressesEnTete = `<script>
    Remplacez-les par l'adresse complète de chacune, par exemple
    'https://ngsecurity38.fr/estimer-mon-installation/'.
    ———————————————————————————————————————————————————————————— */
-window.__ngsOutil = '/outils/devis/';     /* « Lancer l'étude »     */
+window.__ngsOutil = '../devis/';          /* « Lancer l'étude »     */
 window.__ngsBoutique = '/';               /* « Voir nos caméras »   */
 </${'script'}>
 `;

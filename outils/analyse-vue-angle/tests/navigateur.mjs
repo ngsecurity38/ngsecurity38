@@ -2159,10 +2159,11 @@ console.log('\nPage de présentation (boutique)');
       pied: [...document.querySelectorAll('#pied-liens a')]
         .map((a) => [a.textContent.trim(), a.getAttribute('href')]),
     }));
-    affirmer(liens.outil === '/outils/devis/', `étude : ${liens.outil}`);
+    affirmer(liens.outil === '../devis/', `étude : ${liens.outil}`);
     affirmer(liens.bas === liens.outil, 'les deux boutons mènent au même endroit');
     affirmer(liens.boutique === '/', `boutique : ${liens.boutique}`);
-    affirmer(liens.pied.length === 2 && liens.pied.every(([, h]) => h.startsWith('/')),
+    // Relatif, sous toutes ses formes : rien qui parte vers un autre domaine.
+    affirmer(liens.pied.length === 2 && liens.pied.every(([, h]) => !/^[a-z]+:/i.test(h)),
       `le pied reste relatif : ${JSON.stringify(liens.pied)}`);
   });
 
@@ -2339,7 +2340,6 @@ console.log('\nBlocs à coller (WordPress)');
         produits: o.querySelectorAll('.produit').length,
         barres: o.querySelectorAll('#schema-dori rect').length,
         logo: (o.querySelector('.marque img') || {}).src,
-        logoCharge: (o.querySelector('.marque img') || {}).naturalWidth > 0,
         // Le thème masque .produit : si nos fiches se voient, l'isolation tient.
         visible: o.querySelector('.produit').getBoundingClientRect().height > 20,
         couleur: getComputedStyle(o.querySelector('.entete h1')).color,
@@ -2347,9 +2347,12 @@ console.log('\nBlocs à coller (WordPress)');
       };
     });
     affirmer(r.ombre, 'le bloc doit monter une racine d\'ombre');
-    affirmer(r.logo && r.logo.startsWith('data:image/'),
-      'collé dans un site, le bloc n\'a aucun fichier voisin : le logo doit y être embarqué');
-    affirmer(r.logoCharge, 'et se décoder');
+    /*
+     * Pas de logo dans un bloc collé, et surtout aucune image en `data:` :
+     * les créateurs de site les refusent — Hostinger répond « embed code is
+     * too large ». Le site qui accueille le bloc porte déjà sa marque.
+     */
+    affirmer(!r.logo, 'le bloc ne doit pas porter le logo');
     affirmer(/Quelle caméra/.test(r.titre), `titre : ${r.titre}`);
     affirmer(r.produits >= 12, `les douze fiches : ${r.produits}`);
     affirmer(r.barres === 4, `l'échelle : ${r.barres} paliers`);
@@ -2357,6 +2360,16 @@ console.log('\nBlocs à coller (WordPress)');
     affirmer(r.couleur === 'rgb(255, 255, 255)',
       `le rose fluo du thème ne doit pas passer : ${r.couleur}`);
     affirmer(!/cursive/.test(r.police), `ni sa police : ${r.police}`);
+  });
+
+  await cas('aucune image « data: » dans un bloc collé', async () => {
+    for (const nom of ['etude.html', 'devis.html']) {
+      const bloc = await readFile(join(racine, 'dist', 'site', 'wordpress', nom), 'utf8');
+      affirmer(!/data:image\//.test(bloc),
+        `${nom} : un créateur de site refuserait ce code intégré`);
+      affirmer(bloc.length < 120000,
+        `${nom} : ${Math.round(bloc.length / 1024)} Ko, à surveiller`);
+    }
   });
 
   await cas('les deux adresses en tête du bloc l\'emportent', async () => {
@@ -2368,14 +2381,14 @@ console.log('\nBlocs à coller (WordPress)');
      * qui doivent primer.
      */
     const bloc = await readFile(join(racine, 'dist', 'site', 'wordpress', 'etude.html'), 'utf8');
-    affirmer(/window\.__ngsOutil = '\/outils\/devis\/';/.test(bloc),
+    affirmer(/window\.__ngsOutil = '\.\.\/devis\/';/.test(bloc),
       'les deux lignes doivent figurer en clair, en tête du bloc');
     const tete = bloc.slice(0, bloc.indexOf('window.__ngsOutil'));
     affirmer(tete.length < 700,
       `elles doivent sauter aux yeux, pas se cacher après ${tete.length} caractères`);
 
     const regle = bloc
-      .replace("window.__ngsOutil = '/outils/devis/';",
+      .replace("window.__ngsOutil = '../devis/';",
         () => "window.__ngsOutil = 'https://exemple.test/mon-etude/';")
       .replace("window.__ngsBoutique = '/';",
         () => "window.__ngsBoutique = 'https://exemple.test/nos-cameras/';");

@@ -27,12 +27,12 @@ import {
 /**
  * Adresses par défaut, relatives à la racine du site.
  *
- * Ainsi la page fonctionne telle quelle sur un site unique, sans rien
- * éditer. Quand la boutique et l'espace professionnel sont sur deux domaines
- * distincts, `catalogue.json` — posé à côté de la page et relu à chaque
- * ouverture — porte les adresses complètes.
+ * Relatives, et non ancrées à la racine : les deux pages se trouvent ainsi
+ * qu'elles soient sur le domaine, sous un sous-dossier d'hébergement de
+ * pages, ou dans un cadre. `catalogue.json` — posé à côté de la page et relu
+ * à chaque ouverture — porte les adresses complètes quand il le faut.
  */
-const OUTIL = '/outils/devis/';
+const OUTIL = '../devis/';
 const BOUTIQUE = '/';
 
 /** Catalogue de secours, embarqué à la fabrication. */
