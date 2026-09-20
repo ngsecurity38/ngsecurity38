@@ -60,7 +60,22 @@ Un `200 OK` et c'est en ligne, à `http://72.62.24.92:8080/outils/etude/`.
 
 ---
 
-## Derrière un proxy qui tourne déjà
+## Le plus simple : une seule commande
+
+```bash
+sh deploiement/brancher.sh
+```
+
+Le script trouve le proxy, lit son réseau, écrit `.env`, démarre le
+conteneur des pages et vérifie que le proxy les voit. Il **ne touche pas au
+Caddyfile** : celui-ci sert vos autres applications, et sa modification
+reste un geste volontaire. Il vous donne les trois lignes à y ajouter.
+
+En cas d'échec, il dit à quelle étape et affiche les journaux du conteneur.
+
+---
+
+## Le même chemin, à la main
 
 C'est le cas de ce VPS : un `caddy:2-alpine` tient 80 et 443, devant un
 backend et un Postgres.
@@ -78,7 +93,10 @@ docker inspect deploy-caddy-1 \
 nano deploiement/.env
 
 # 3. Lancer la variante « derrière un proxy »
-docker compose -f deploiement/docker-compose.proxy.yml up -d
+#    --env-file explicite : selon la version de Compose, un .env rangé
+#    ailleurs que dans le dossier courant n'est pas lu.
+docker compose --env-file deploiement/.env \
+  -f deploiement/docker-compose.proxy.yml up -d
 
 # 4. Vérifier depuis le conteneur Caddy lui-même
 docker exec deploy-caddy-1 wget -qO- http://ngs-outils/outils/etude/ | head -3
