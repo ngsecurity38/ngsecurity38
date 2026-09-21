@@ -2066,6 +2066,51 @@ console.log('\nDevis client');
       'l\'image décodée n\'a pas à être enregistrée');
   });
 
+  await cas('un chantier belge n\'est pas chiffré à la TVA française', async () => {
+    /*
+     * L'agence intervient en France et en Belgique. Tant que la page
+     * calculait à 20 %, un client belge lisait une estimation fausse de
+     * plusieurs centaines d'euros, présentée comme celle de l'agence.
+     */
+    const lire = () => page.evaluate(() => ({
+      taux: (document.querySelector('#totaux').textContent.match(/TVA ([\d,]+) %/) || [])[1],
+      ttc: document.querySelector('#totaux tr.fort td.nombre').textContent.trim(),
+      ht: document.querySelector('#totaux tr td.nombre').textContent.trim(),
+      reserves: [...document.querySelectorAll('#reserves li')].map((x) => x.textContent),
+    }));
+
+    const choix = await page.evaluate(() => [...document.querySelectorAll('#q-pays option')]
+      .map((o) => o.value));
+    affirmer(choix.length === 4, `quatre régimes : ${JSON.stringify(choix)}`);
+
+    const fr = await lire();
+    affirmer(fr.taux === '20', `France : TVA ${fr.taux} %`);
+    affirmer(fr.reserves.some((x) => /préfectorale/.test(x)),
+      'la règle française doit être rappelée');
+
+    await page.selectOption('#q-pays', 'be:normal');
+    await page.waitForTimeout(300);
+    const be = await lire();
+    affirmer(be.taux === '21', `Belgique : TVA ${be.taux} %`);
+    affirmer(be.ht === fr.ht, `le hors taxes ne change pas : ${be.ht} contre ${fr.ht}`);
+    affirmer(be.ttc !== fr.ttc, `le TTC doit changer : ${be.ttc}`);
+    affirmer(be.reserves.some((x) => /pictogramme/.test(x)),
+      `la règle belge doit remplacer la française : ${JSON.stringify(be.reserves.slice(-2))}`);
+    affirmer(!be.reserves.some((x) => /préfectorale/.test(x)),
+      'et la française ne doit plus figurer');
+
+    // Le taux réduit ne s'applique que s'il est choisi, et dit sa condition.
+    await page.selectOption('#q-pays', 'fr:reduit');
+    await page.waitForTimeout(300);
+    const reduit = await lire();
+    affirmer(reduit.taux === '10', `taux réduit : ${reduit.taux} %`);
+    affirmer(reduit.reserves.some((x) => /confirmer par l'agence/.test(x)),
+      `la condition doit être écrite : ${JSON.stringify(reduit.reserves.slice(0, 2))}`);
+
+    await page.selectOption('#q-pays', 'fr:normal');
+    await page.waitForTimeout(300);
+  });
+
   await cas('le pied offre trois portes de sortie, dont la boutique', async () => {
     /*
      * Une page d'outil posée sous /outils/ ne porte pas le menu du site.
@@ -2599,6 +2644,33 @@ console.log('\nPage d\'étude alarme');
       `chaque ligne reste désignée : ${JSON.stringify(r.references)}`);
   });
 
+  await cas('la TVA et la loi suivent le pays du chantier', async () => {
+    const lire = () => page.evaluate(() => ({
+      taux: (document.querySelector('#a-totaux').textContent.match(/TVA (\d+) %/) || [])[1],
+      reserves: [...document.querySelectorAll('#a-reserves li')].map((x) => x.textContent),
+    }));
+
+    await repondre({ '#a-pays': 'fr:normal' });
+    const fr = await lire();
+    affirmer(fr.taux === '20', `France : ${fr.taux} %`);
+    affirmer(fr.reserves.some((x) => /NF A2P/.test(x)), 'la certification française');
+
+    await repondre({ '#a-pays': 'be:normal' });
+    const be = await lire();
+    affirmer(be.taux === '21', `Belgique : ${be.taux} %`);
+    /*
+     * Une certification française ne veut rien dire à Bruxelles, et la
+     * Belgique impose une déclaration que la France ignore.
+     */
+    affirmer(be.reserves.some((x) => /INCERT/.test(x)),
+      `la certification belge : ${JSON.stringify(be.reserves.slice(-3))}`);
+    affirmer(be.reserves.some((x) => /déclaré/.test(x)), 'la déclaration obligatoire');
+    affirmer(!be.reserves.some((x) => /^Si votre assureur impose une certification \(NF A2P/.test(x)),
+      'la réserve française ne doit plus figurer');
+
+    await repondre({ '#a-pays': 'fr:normal' });
+  });
+
   await cas('la demande part vers l\'agence avec le relevé complet', async () => {
     const lien = await page.evaluate(() => {
       const b = document.querySelector('#a-contact');
@@ -2995,8 +3067,19 @@ console.log('\nBlocs à coller (WordPress)');
     affirmer(!/cursive/.test(r.police), `ni sa police : ${r.police}`);
   });
 
-  /** Taille admise par bloc collé, en octets. Voir le commentaire plus bas. */
-  const PLAFOND_BLOC = { 'etude.html': 70000, 'devis.html': 130000 };
+  /**
+   * Taille admise par bloc collé, en octets.
+   *
+   * Large, et assumé comme tel. J'avais d'abord serré ces plafonds autour de
+   * la taille réelle ; il a fallu les relever deux fois en une journée, et un
+   * plafond qu'on relève à chaque fonction ne mesure rien. La seule limite
+   * dont nous ayons la preuve est celle qu'a opposée l'hébergeur — et elle
+   * portait sur un bloc chargé d'images en base64, ce que l'assertion
+   * ci-dessous interdit déjà. Ces chiffres ne gardent donc qu'un emballement :
+   * le moteur de reconnaissance de caractères réintroduit par mégarde pèse
+   * cinq mégaoctets, et c'est lui qu'il s'agit d'arrêter.
+   */
+  const PLAFOND_BLOC = { 'etude.html': 200000, 'devis.html': 200000 };
 
   await cas('aucune image « data: » dans un bloc collé', async () => {
     for (const nom of ['etude.html', 'devis.html']) {

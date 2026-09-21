@@ -614,9 +614,12 @@ export function reservesAlarme(inv) {
   r.push('Le nombre de détecteurs et leurs emplacements définitifs sont arrêtés lors '
     + 'du relevé sur place : la disposition des lieux et les habitudes des occupants '
     + 'les déplacent toujours un peu.');
-  r.push('Si votre assureur impose une certification (NF A2P, grade 2), demandez-la '
-    + 'expressément : elle porte sur des références précises et conditionne la prise '
-    + 'en charge.');
+  /*
+   * La certification exigée par les assureurs n'est PAS écrite ici : elle
+   * dépend du pays. La NF A2P ne veut rien dire à Bruxelles, où c'est INCERT
+   * qui sert de référence et où le système doit en outre être déclaré. Voir
+   * `pays.js`, qui ajoute la réserve du pays retenu.
+   */
 
   return r;
 }

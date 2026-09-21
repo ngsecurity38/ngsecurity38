@@ -25,6 +25,7 @@ import {
   composerAlarme, reservesAlarme, couches,
 } from './alarme.js';
 import { ligne, devis, euros, reservesDevis, TVA_DEFAUT, MARGE_COMMERCIALE } from './prix.js';
+import { choixTva, lireChoix, tauxTva, reservesPays } from './pays.js';
 
 /** Où la demande part. L'adresse publique de l'agence, et elle seule. */
 const CONTACT = 'contact@ngsecurity38.com';
@@ -130,6 +131,21 @@ function appliquerFamille() {
   $('#i-occupants').textContent = i.occupants;
 }
 
+/**
+ * Les pays et leurs taux, tirés du tarif.
+ *
+ * Garnie APRÈS le chargement du tarif : les taux y sont modifiables sans
+ * reconstruction, et une liste dressée avant afficherait ceux embarqués à la
+ * fabrication. La sélection en cours est conservée — sinon reprendre un
+ * projet belge le ramènerait en France sans prévenir.
+ */
+function garnirPays(tarif) {
+  const avant = $('#a-pays').value;
+  $('#a-pays').innerHTML = choixTva(tarif?.tauxParPays)
+    .map((c) => `<option value="${echapper(c.valeur)}">${echapper(c.label)}</option>`).join('');
+  if (avant) $('#a-pays').value = avant;
+}
+
 const nombre = (sel, defaut = 0) => {
   const v = Number($(sel).value);
   return Number.isFinite(v) ? v : defaut;
@@ -139,6 +155,7 @@ const nombre = (sel, defaut = 0) => {
 function reponsesAlarme() {
   return {
     typeSite: $('#a-type').value,
+    pays: $('#a-pays').value,
     surface: nombre('#a-surface', 100),
     niveaux: nombre('#a-niveaux', 1),
     occupants: nombre('#a-occupants', 2),
@@ -441,7 +458,7 @@ function resumer(inv, d) {
     + `${repartition}, ${commande}.${prix}`;
 }
 
-function majContact(inv, d, ensemble) {
+function majContact(inv, d, ensemble, regime) {
   const bouton = $('#a-contact');
   if (!CONTACT) {
     bouton.hidden = true;
@@ -452,6 +469,7 @@ function majContact(inv, d, ensemble) {
     '',
     'Je souhaite une étude pour la protection de mon site :',
     `- Site : ${inv.labelSite}, ${inv.surface} m², ${inv.niveaux} niveau(x)`,
+    `- Pays du chantier : ${regime.pays.label} (${regime.label})`,
     `- Portes extérieures : ${inv.portes}`,
     `- Fenêtres accessibles : ${inv.fenetres}, dont ${inv.baies} grande(s) surface(s) vitrée(s)`,
     `- Ouvertures en hauteur non équipées : ${inv.fenetresHautes}`,
@@ -508,7 +526,13 @@ function calculerAlarme() {
   const r = reponsesAlarme();
   const tarif = etatAlarme.tarif;
   const offre = composerAlarme(r, tarif.articles || [], {});
-  const options = { marge: tarif.marge ?? MARGE_COMMERCIALE, tva: tarif.tva ?? TVA_DEFAUT };
+  // Le pays décide de la TVA : 21 % en Belgique, 20 % en France.
+  const choix = lireChoix($('#a-pays').value);
+  const regime = tauxTva(choix.pays, choix.taux, tarif.tauxParPays);
+  const options = {
+    marge: tarif.marge ?? MARGE_COMMERCIALE,
+    tva: regime.taux ?? tarif.tva ?? TVA_DEFAUT,
+  };
   const lignes = offre.lignes.map((l) => ({
     ...ligne(l.article, l.quantite, options), role: l.role,
   }));
@@ -527,8 +551,11 @@ function calculerAlarme() {
   $('#a-manques').innerHTML = offre.manques
     .map((m) => `<p class="bandeau">${echapper(m)}</p>`).join('');
 
-  $('#a-reserves').innerHTML = [...reservesAlarme(offre.inv), ...reservesDevis(d)]
-    .map((x) => `<li>${echapper(x)}</li>`).join('');
+  $('#a-reserves').innerHTML = [
+    ...reservesAlarme(offre.inv),
+    ...reservesPays(choix.pays, 'alarme', regime),
+    ...reservesDevis(d),
+  ].map((x) => `<li>${echapper(x)}</li>`).join('');
 
   // Le projet complet : l'autre volet, s'il a déjà été étudié.
   const ensemble = afficherEnsemble('alarme', {
@@ -544,7 +571,7 @@ function calculerAlarme() {
     chiffre: d.complet && d.totalTtc > 0,
   });
 
-  majContact(offre.inv, d, ensemble);
+  majContact(offre.inv, d, ensemble, regime);
   memoriserAlarme();
 }
 
@@ -565,7 +592,8 @@ function memoriserAlarme() {
 function restaurerAlarme(contenu) {
   if (!contenu || contenu.type !== 'ng-etude-alarme') return false;
   const r = contenu.reponses || {};
-  for (const [sel, cle] of [['#a-type', 'typeSite'], ['#a-surface', 'surface'],
+  for (const [sel, cle] of [['#a-type', 'typeSite'], ['#a-pays', 'pays'],
+    ['#a-surface', 'surface'],
     ['#a-niveaux', 'niveaux'], ['#a-occupants', 'occupants'], ['#a-entrees', 'entrees'],
     ['#a-portes', 'portes'], ['#a-fenetres', 'fenetresAccessibles'], ['#a-baies', 'baies'],
     ['#a-hautes', 'fenetresHautes'], ['#a-garage', 'garage'], ['#a-animaux', 'animaux'],
@@ -635,7 +663,8 @@ async function demarrerAlarme() {
   });
   $$('#a-surface, #a-niveaux, #a-occupants, #a-portes, #a-fenetres, #a-baies, #a-hautes, '
     + '#a-garage, #a-animaux, #a-internet, #a-dependance, #a-present, #a-photo, #a-sirene, '
-    + '#a-pose, #a-entrees, #a-vitrines, #a-rideau, #a-reserve, #a-agression, #a-immeuble, '
+    + '#a-pose, #a-pays, #a-entrees, #a-vitrines, #a-rideau, #a-reserve, #a-agression, '
+    + '#a-immeuble, '
     + '#a-local, #a-quais, #a-hauteur, #a-metallique, #a-basesvie, #a-acces, #a-electricite')
     .forEach((n) => {
     n.addEventListener('change', calculerAlarme);
@@ -644,7 +673,9 @@ async function demarrerAlarme() {
 
   $('#a-imprimer').addEventListener('click', () => window.print());
 
+  garnirPays(null);
   etatAlarme.tarif = await chargerTarifAlarme();
+  garnirPays(etatAlarme.tarif);
   if (!etatAlarme.tarif) {
     $('#resultat').hidden = false;
     $('#a-resume').textContent = 'Tarif indisponible : le fichier tarif-alarme.json n\'a pas '

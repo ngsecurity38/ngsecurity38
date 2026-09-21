@@ -7,7 +7,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Alarme anti-intrusion : de quoi ai-je besoin ? — NG Security 38</title>
-<meta name="description" content="Combien de détecteurs vous faut-il, où, et pourquoi ? Maison, magasin, bureaux, dépôt ou chantier : répondez sur vos portes, vos fenêtres, votre vitrine ou vos quais, l'étude se fait sous vos yeux.">
+<meta name="description" content="Combien de détecteurs vous faut-il, où, et pourquoi ? Maison, magasin, bureaux, dépôt ou chantier : l'étude se fait sous vos yeux, au fil de vos réponses. France et Belgique.">
 
 <!-- Référencement.
 
@@ -24,13 +24,13 @@
 <meta property="og:locale" content="fr_FR">
 <meta property="og:url" content="https://ngsecurity38.fr/outils/alarme/">
 <meta property="og:title" content="Alarme anti-intrusion : de quoi ai-je besoin ? — NG Security 38">
-<meta property="og:description" content="Combien de détecteurs vous faut-il, où, et pourquoi ? Maison, magasin, bureaux, dépôt ou chantier : répondez sur vos portes, vos fenêtres, votre vitrine ou vos quais, l'étude se fait sous vos yeux.">
+<meta property="og:description" content="Combien de détecteurs vous faut-il, où, et pourquoi ? Maison, magasin, bureaux, dépôt ou chantier : l'étude se fait sous vos yeux, au fil de vos réponses. France et Belgique.">
 <meta property="og:image" content="https://ngsecurity38.fr/outils/og-alarme.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 
-<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://ngsecurity38.fr/#agence","name":"NG Security 38","url":"https://ngsecurity38.fr/","logo":"https://ngsecurity38.fr/outils/og-alarme.png"},{"@type":"WebPage","@id":"https://ngsecurity38.fr/outils/alarme/#page","url":"https://ngsecurity38.fr/outils/alarme/","name":"Alarme anti-intrusion : de quoi ai-je besoin ? — NG Security 38","description":"Combien de détecteurs vous faut-il, où, et pourquoi ? Maison, magasin, bureaux, dépôt ou chantier : répondez sur vos portes, vos fenêtres, votre vitrine ou vos quais, l'étude se fait sous vos yeux.","inLanguage":"fr-FR","isPartOf":{"@type":"WebSite","@id":"https://ngsecurity38.fr/#site","url":"https://ngsecurity38.fr/","name":"NG Security 38","inLanguage":"fr-FR"},"publisher":{"@id":"https://ngsecurity38.fr/#agence"},"breadcrumb":{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Accueil","item":"https://ngsecurity38.fr/"},{"@type":"ListItem","position":2,"name":"Outils","item":"https://ngsecurity38.fr/outils/"},{"@type":"ListItem","position":3,"name":"Alarme anti-intrusion"}]}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://ngsecurity38.fr/#agence","name":"NG Security 38","areaServed":[{"@type":"Country","name":"France"},{"@type":"Country","name":"Belgique"}],"url":"https://ngsecurity38.fr/","logo":"https://ngsecurity38.fr/outils/og-alarme.png"},{"@type":"WebPage","@id":"https://ngsecurity38.fr/outils/alarme/#page","url":"https://ngsecurity38.fr/outils/alarme/","name":"Alarme anti-intrusion : de quoi ai-je besoin ? — NG Security 38","description":"Combien de détecteurs vous faut-il, où, et pourquoi ? Maison, magasin, bureaux, dépôt ou chantier : l'étude se fait sous vos yeux, au fil de vos réponses. France et Belgique.","inLanguage":"fr-FR","isPartOf":{"@type":"WebSite","@id":"https://ngsecurity38.fr/#site","url":"https://ngsecurity38.fr/","name":"NG Security 38","inLanguage":"fr-FR"},"publisher":{"@id":"https://ngsecurity38.fr/#agence"},"breadcrumb":{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Accueil","item":"https://ngsecurity38.fr/"},{"@type":"ListItem","position":2,"name":"Outils","item":"https://ngsecurity38.fr/outils/"},{"@type":"ListItem","position":3,"name":"Alarme anti-intrusion"}]}}]}</script>
 
 <style>/* Devis client — NG Security 38.
    Page publique : lisible sur téléphone d'abord, imprimable ensuite. */
@@ -436,6 +436,12 @@ tfoot tr.fort td { font-size: 19px; font-weight: 700; border-top: 2px solid var(
           pas la même, et les questions non plus.</small>
       </label>
 
+      <label>Où se trouve le chantier&nbsp;?
+        <select id="a-pays"></select>
+        <small>La TVA n'est pas la même en France et en Belgique&nbsp;: c'est elle
+          qui décide du montant toutes taxes comprises.</small>
+      </label>
+
       <label><span id="i-surface">Surface habitable (m²)</span>
         <input type="number" id="a-surface" min="10" max="20000" step="5" value="100">
         <small id="s-surface">Au plus juste&nbsp;: c'est elle qui décide du nombre
@@ -707,6 +713,20 @@ tfoot tr.fort td { font-size: 19px; font-weight: 700; border-top: 2px solid var(
   "marge": 0.25,
   "tauxHoraire": 55,
   "tva": 0.2,
+  "_tva_par_pays": [
+    "Les taux appliqués selon le pays du chantier, modifiables ici sans",
+    "reconstruction : un taux de TVA change par décision publique.",
+    "  normal  taux plein",
+    "  reduit  taux des travaux — il n'est JAMAIS retenu d'office : son",
+    "          éligibilité dépend de conditions que la page ne peut pas",
+    "          vérifier (ancienneté du logement, attestation du client).",
+    "Ces taux sont ceux en vigueur au relevé ci-dessus. À confirmer avec",
+    "votre comptable, en France comme en Belgique."
+  ],
+  "tauxParPays": {
+    "fr": { "normal": 0.2, "reduit": 0.1 },
+    "be": { "normal": 0.21, "reduit": 0.06 }
+  },
   "articles": [
     {
       "type": "hub",
@@ -1224,6 +1244,158 @@ const euros = (v) => {
   const groupe = entier.replace(/\d(?=(\d{3})+$)/g, '$&\u202f');
   return `${n < 0 ? '-' : ''}${groupe},${decimales} €`;
 };
+
+/* ===== pays.js ===== */
+/**
+ * Le pays du chantier : la TVA, et ce que la loi y demande.
+ *
+ * L'agence intervient en France et en Belgique. Tant que les pages
+ * calculaient à 20 %, un client belge recevait une estimation fausse de
+ * plusieurs centaines d'euros — sur une page publique, présentée comme une
+ * estimation de l'agence.
+ *
+ * Deux choses changent avec le pays, et elles ne sont pas du même ordre :
+ *
+ * - **le taux de TVA**, qui est un chiffre. Il se règle dans le fichier de
+ *   tarif, comme les prix : un taux change par décision publique, pas par
+ *   reconstruction d'une page ;
+ * - **ce que la loi demande**, qui est une réserve. Elle n'est pas du même
+ *   texte d'un pays à l'autre — une certification française ne veut rien dire
+ *   à Bruxelles, et la Belgique impose des démarches que la France ignore.
+ *
+ * CE MODULE NE DONNE PAS D'AVIS JURIDIQUE. Il pose les questions qu'il faut
+ * poser, en nommant le texte ou l'organisme, et en disant qu'il faut vérifier.
+ * Les taux réduits, en particulier, dépendent de conditions que seule la
+ * comptabilité de l'agence peut trancher.
+ *
+ * Module pur (aucune dépendance au DOM), testé sous Node.
+ */
+
+/**
+ * Les pays servis, leurs taux et leurs obligations.
+ *
+ * `taux` : le premier est celui qui s'applique par défaut. Un taux réduit
+ * n'est jamais choisi automatiquement — il dépend de conditions que la page
+ * ne peut pas vérifier, et l'annoncer d'office ferait une estimation trop
+ * basse que l'agence devrait ensuite reprendre.
+ */
+const PAYS = {
+  fr: {
+    cle: 'fr',
+    label: 'France',
+    taux: [
+      { cle: 'normal', taux: 0.20, label: 'TVA 20 % — taux normal' },
+      {
+        cle: 'reduit',
+        taux: 0.10,
+        label: 'TVA 10 % — logement de plus de deux ans',
+        condition: 'Le taux réduit suppose un local d\'habitation achevé depuis '
+          + 'plus de deux ans et une attestation signée par le client. '
+          + 'L\'éligibilité est à confirmer par l\'agence : elle ne se déduit '
+          + 'pas de vos réponses.',
+      },
+    ],
+    /** Réserves propres au pays, page par page. */
+    alarme: [
+      'Si votre assureur impose une certification (NF A2P, grade 2), demandez-la '
+        + 'expressément : elle porte sur des références précises et conditionne la '
+        + 'prise en charge.',
+    ],
+    video: [
+      'Une caméra qui filme au-delà de votre propriété — trottoir, voie publique, '
+        + 'partie commune — relève d\'une autorisation préfectorale. Sur un lieu '
+        + 'ouvert au public, l\'information des visiteurs et celle des salariés '
+        + 'obéissent à des règles distinctes. À cadrer avant la pose.',
+    ],
+  },
+  be: {
+    cle: 'be',
+    label: 'Belgique',
+    taux: [
+      { cle: 'normal', taux: 0.21, label: 'TVA 21 % — taux normal' },
+      {
+        cle: 'reduit',
+        taux: 0.06,
+        label: 'TVA 6 % — habitation de plus de dix ans',
+        condition: 'Le taux réduit suppose une habitation privée achevée depuis '
+          + 'plus de dix ans et une facture mentionnant les conditions. '
+          + 'L\'éligibilité est à confirmer par l\'agence : elle ne se déduit '
+          + 'pas de vos réponses.',
+      },
+    ],
+    alarme: [
+      'En Belgique, un système d\'alarme installé dans une habitation doit être '
+        + 'déclaré aux autorités, et l\'installateur doit être une entreprise de '
+        + 'sécurité agréée. Les assureurs s\'appuient couramment sur la '
+        + 'certification INCERT plutôt que sur la NF A2P française. Ces points '
+        + 'sont à vérifier pour votre situation avant la commande.',
+    ],
+    video: [
+      'En Belgique, l\'installation de caméras de surveillance fait l\'objet '
+        + 'd\'une déclaration et d\'un pictogramme réglementaire à l\'entrée des '
+        + 'lieux filmés. Les règles diffèrent selon qu\'il s\'agit d\'un lieu '
+        + 'fermé accessible au public, d\'un lieu fermé non accessible ou d\'un '
+        + 'lieu ouvert. À cadrer avant la pose.',
+    ],
+  },
+};
+
+/** Le pays demandé, jamais indéfini. */
+const pays = (cle) => PAYS[cle] || PAYS.fr;
+
+/**
+ * Le taux applicable.
+ *
+ * `tauxParPays`, s'il vient du fichier de tarif, l'emporte : un taux de TVA
+ * change par décision publique, et l'agence doit pouvoir le corriger sans
+ * attendre une reconstruction des pages.
+ */
+function tauxTva(clePays, cleTaux, tauxParPays) {
+  const p = pays(clePays);
+  const choisi = p.taux.find((t) => t.cle === cleTaux) || p.taux[0];
+  /*
+   * La surcharge doit être un taux plausible, strictement positif.
+   *
+   * `Number(null)` vaut 0 : un champ vidé par mégarde dans le fichier de
+   * tarif passerait pour une TVA à 0 %, et la page annoncerait un total
+   * toutes taxes égal au hors taxes sans que rien ne cloche à l'œil.
+   */
+  const taux = Number(tauxParPays?.[p.cle]?.[choisi.cle]);
+  const admis = Number.isFinite(taux) && taux > 0 && taux < 1;
+  return { pays: p, ...choisi, taux: admis ? taux : choisi.taux };
+}
+
+/** Les choix à proposer : « France — TVA 20 % », etc. */
+const choixTva = (tauxParPays) => Object.values(PAYS).flatMap(
+  (p) => p.taux.map((t) => {
+    const r = tauxTva(p.cle, t.cle, tauxParPays);
+    return {
+      valeur: `${p.cle}:${t.cle}`,
+      label: `${p.label} — ${r.label.replace(/^TVA \d+(?:,\d+)? % — /, '')} `
+        + `(${(r.taux * 100).toString().replace('.', ',')} %)`,
+    };
+  }),
+);
+
+/** Décode la valeur d'une liste déroulante : « be:reduit ». */
+function lireChoix(valeur) {
+  const [p, t] = String(valeur || '').split(':');
+  return { pays: PAYS[p] ? p : 'fr', taux: t || 'normal' };
+}
+
+/**
+ * Les réserves du pays pour une page donnée.
+ *
+ * @param {string} clePays
+ * @param {'video'|'alarme'} page
+ * @param {object} [choix] le taux retenu, pour y joindre sa condition
+ */
+function reservesPays(clePays, page, choix) {
+  const p = pays(clePays);
+  const r = [...(p[page] || [])];
+  if (choix && choix.condition) r.unshift(choix.condition);
+  return r;
+}
 
 /* ===== ensemble.js ===== */
 /**
@@ -2143,9 +2315,12 @@ function reservesAlarme(inv) {
   r.push('Le nombre de détecteurs et leurs emplacements définitifs sont arrêtés lors '
     + 'du relevé sur place : la disposition des lieux et les habitudes des occupants '
     + 'les déplacent toujours un peu.');
-  r.push('Si votre assureur impose une certification (NF A2P, grade 2), demandez-la '
-    + 'expressément : elle porte sur des références précises et conditionne la prise '
-    + 'en charge.');
+  /*
+   * La certification exigée par les assureurs n'est PAS écrite ici : elle
+   * dépend du pays. La NF A2P ne veut rien dire à Bruxelles, où c'est INCERT
+   * qui sert de référence et où le système doit en outre être déclaré. Voir
+   * `pays.js`, qui ajoute la réserve du pays retenu.
+   */
 
   return r;
 }
@@ -2215,6 +2390,7 @@ function couches(inv) {
  * corrige ce qu'il a mal déclaré — une baie oubliée, un chat passé sous
  * silence.
  */
+
 
 
 
@@ -2327,6 +2503,21 @@ function appliquerFamille() {
   $('#i-occupants').textContent = i.occupants;
 }
 
+/**
+ * Les pays et leurs taux, tirés du tarif.
+ *
+ * Garnie APRÈS le chargement du tarif : les taux y sont modifiables sans
+ * reconstruction, et une liste dressée avant afficherait ceux embarqués à la
+ * fabrication. La sélection en cours est conservée — sinon reprendre un
+ * projet belge le ramènerait en France sans prévenir.
+ */
+function garnirPays(tarif) {
+  const avant = $('#a-pays').value;
+  $('#a-pays').innerHTML = choixTva(tarif?.tauxParPays)
+    .map((c) => `<option value="${echapper(c.valeur)}">${echapper(c.label)}</option>`).join('');
+  if (avant) $('#a-pays').value = avant;
+}
+
 const nombre = (sel, defaut = 0) => {
   const v = Number($(sel).value);
   return Number.isFinite(v) ? v : defaut;
@@ -2336,6 +2527,7 @@ const nombre = (sel, defaut = 0) => {
 function reponsesAlarme() {
   return {
     typeSite: $('#a-type').value,
+    pays: $('#a-pays').value,
     surface: nombre('#a-surface', 100),
     niveaux: nombre('#a-niveaux', 1),
     occupants: nombre('#a-occupants', 2),
@@ -2638,7 +2830,7 @@ function resumer(inv, d) {
     + `${repartition}, ${commande}.${prix}`;
 }
 
-function majContact(inv, d, ensemble) {
+function majContact(inv, d, ensemble, regime) {
   const bouton = $('#a-contact');
   if (!CONTACT) {
     bouton.hidden = true;
@@ -2649,6 +2841,7 @@ function majContact(inv, d, ensemble) {
     '',
     'Je souhaite une étude pour la protection de mon site :',
     `- Site : ${inv.labelSite}, ${inv.surface} m², ${inv.niveaux} niveau(x)`,
+    `- Pays du chantier : ${regime.pays.label} (${regime.label})`,
     `- Portes extérieures : ${inv.portes}`,
     `- Fenêtres accessibles : ${inv.fenetres}, dont ${inv.baies} grande(s) surface(s) vitrée(s)`,
     `- Ouvertures en hauteur non équipées : ${inv.fenetresHautes}`,
@@ -2705,7 +2898,13 @@ function calculerAlarme() {
   const r = reponsesAlarme();
   const tarif = etatAlarme.tarif;
   const offre = composerAlarme(r, tarif.articles || [], {});
-  const options = { marge: tarif.marge ?? MARGE_COMMERCIALE, tva: tarif.tva ?? TVA_DEFAUT };
+  // Le pays décide de la TVA : 21 % en Belgique, 20 % en France.
+  const choix = lireChoix($('#a-pays').value);
+  const regime = tauxTva(choix.pays, choix.taux, tarif.tauxParPays);
+  const options = {
+    marge: tarif.marge ?? MARGE_COMMERCIALE,
+    tva: regime.taux ?? tarif.tva ?? TVA_DEFAUT,
+  };
   const lignes = offre.lignes.map((l) => ({
     ...ligne(l.article, l.quantite, options), role: l.role,
   }));
@@ -2724,8 +2923,11 @@ function calculerAlarme() {
   $('#a-manques').innerHTML = offre.manques
     .map((m) => `<p class="bandeau">${echapper(m)}</p>`).join('');
 
-  $('#a-reserves').innerHTML = [...reservesAlarme(offre.inv), ...reservesDevis(d)]
-    .map((x) => `<li>${echapper(x)}</li>`).join('');
+  $('#a-reserves').innerHTML = [
+    ...reservesAlarme(offre.inv),
+    ...reservesPays(choix.pays, 'alarme', regime),
+    ...reservesDevis(d),
+  ].map((x) => `<li>${echapper(x)}</li>`).join('');
 
   // Le projet complet : l'autre volet, s'il a déjà été étudié.
   const ensemble = afficherEnsemble('alarme', {
@@ -2741,7 +2943,7 @@ function calculerAlarme() {
     chiffre: d.complet && d.totalTtc > 0,
   });
 
-  majContact(offre.inv, d, ensemble);
+  majContact(offre.inv, d, ensemble, regime);
   memoriserAlarme();
 }
 
@@ -2762,7 +2964,8 @@ function memoriserAlarme() {
 function restaurerAlarme(contenu) {
   if (!contenu || contenu.type !== 'ng-etude-alarme') return false;
   const r = contenu.reponses || {};
-  for (const [sel, cle] of [['#a-type', 'typeSite'], ['#a-surface', 'surface'],
+  for (const [sel, cle] of [['#a-type', 'typeSite'], ['#a-pays', 'pays'],
+    ['#a-surface', 'surface'],
     ['#a-niveaux', 'niveaux'], ['#a-occupants', 'occupants'], ['#a-entrees', 'entrees'],
     ['#a-portes', 'portes'], ['#a-fenetres', 'fenetresAccessibles'], ['#a-baies', 'baies'],
     ['#a-hautes', 'fenetresHautes'], ['#a-garage', 'garage'], ['#a-animaux', 'animaux'],
@@ -2832,7 +3035,8 @@ async function demarrerAlarme() {
   });
   $$('#a-surface, #a-niveaux, #a-occupants, #a-portes, #a-fenetres, #a-baies, #a-hautes, '
     + '#a-garage, #a-animaux, #a-internet, #a-dependance, #a-present, #a-photo, #a-sirene, '
-    + '#a-pose, #a-entrees, #a-vitrines, #a-rideau, #a-reserve, #a-agression, #a-immeuble, '
+    + '#a-pose, #a-pays, #a-entrees, #a-vitrines, #a-rideau, #a-reserve, #a-agression, '
+    + '#a-immeuble, '
     + '#a-local, #a-quais, #a-hauteur, #a-metallique, #a-basesvie, #a-acces, #a-electricite')
     .forEach((n) => {
     n.addEventListener('change', calculerAlarme);
@@ -2841,7 +3045,9 @@ async function demarrerAlarme() {
 
   $('#a-imprimer').addEventListener('click', () => window.print());
 
+  garnirPays(null);
   etatAlarme.tarif = await chargerTarifAlarme();
+  garnirPays(etatAlarme.tarif);
   if (!etatAlarme.tarif) {
     $('#resultat').hidden = false;
     $('#a-resume').textContent = 'Tarif indisponible : le fichier tarif-alarme.json n\'a pas '

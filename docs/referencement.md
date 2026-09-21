@@ -65,19 +65,24 @@ Gratuite, à remplir une fois : zone d'intervention, horaires, photos, avis.
 
 ---
 
-## Un point à trancher
+## Votre zone : France et Belgique
 
-Vos titres ne portent **aucune ville**, et c'est volontaire : je ne devine pas.
+Tranché. Les descriptions et les données structurées annoncent désormais
+`France` et `Belgique` comme zone desservie, et **aucune ville ne figure nulle
+part** — ce serait faux.
 
-L'entreprise s'appelle **NG Security 38** — le 38, c'est l'Isère. Mais la page
-d'accueil de votre site annonce une zone dans l'**Yonne (89)** : Sens, Auxerre,
-Joigny, Migennes.
+Ce que cela implique, et qu'il faut regarder en face : vous renoncez au
+référencement local, qui est le plus facile à gagner. « Devis alarme Auxerre »
+s'atteint ; « devis alarme » se dispute avec tout le pays et les comparateurs.
 
-Les deux ne peuvent pas être vrais en même temps pour le référencement local.
-Dites-moi quelle est votre vraie zone d'intervention, et j'ajoute la ville aux
-titres et aux descriptions — c'est ce qui fait la différence entre « devis
-alarme » (invendable, tout le monde s'y bat) et « devis alarme Auxerre »
-(atteignable).
+Votre angle n'est donc pas la ville, c'est **ce que font vos outils**. Personne
+d'autre ne propose de photographier sa façade pour savoir quelle caméra
+acheter. Les requêtes à viser ressemblent à « combien de caméras pour une
+maison », « quelle focale pour un portail », « combien de détecteurs pour un
+magasin » — longues, précises, et sans concurrence sérieuse.
+
+Si vous avez malgré tout une ville d'attache commerciale, dites-le : une page
+locale en plus ne coûte rien et ne gêne pas le reste.
 
 ---
 

@@ -7,7 +7,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Estimer son installation de vidéosurveillance — NG Security 38</title>
-<meta name="description" content="Estimez en une minute le matériel et le budget d'une installation de vidéosurveillance : caméras, enregistreur, stockage, réseau et pose. Sans inscription, sans engagement.">
+<meta name="description" content="Estimez en une minute le matériel et le budget d'une installation de vidéosurveillance : caméras, enregistreur, stockage, réseau et pose. Sans engagement. France et Belgique.">
 
 <!-- Référencement.
 
@@ -24,13 +24,13 @@
 <meta property="og:locale" content="fr_FR">
 <meta property="og:url" content="https://ngsecurity38.fr/outils/devis/">
 <meta property="og:title" content="Estimer son installation de vidéosurveillance — NG Security 38">
-<meta property="og:description" content="Estimez en une minute le matériel et le budget d'une installation de vidéosurveillance : caméras, enregistreur, stockage, réseau et pose. Sans inscription, sans engagement.">
+<meta property="og:description" content="Estimez en une minute le matériel et le budget d'une installation de vidéosurveillance : caméras, enregistreur, stockage, réseau et pose. Sans engagement. France et Belgique.">
 <meta property="og:image" content="https://ngsecurity38.fr/outils/og-devis.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 
-<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://ngsecurity38.fr/#agence","name":"NG Security 38","url":"https://ngsecurity38.fr/","logo":"https://ngsecurity38.fr/outils/og-devis.png"},{"@type":"WebPage","@id":"https://ngsecurity38.fr/outils/devis/#page","url":"https://ngsecurity38.fr/outils/devis/","name":"Estimer son installation de vidéosurveillance — NG Security 38","description":"Estimez en une minute le matériel et le budget d'une installation de vidéosurveillance : caméras, enregistreur, stockage, réseau et pose. Sans inscription, sans engagement.","inLanguage":"fr-FR","isPartOf":{"@type":"WebSite","@id":"https://ngsecurity38.fr/#site","url":"https://ngsecurity38.fr/","name":"NG Security 38","inLanguage":"fr-FR"},"publisher":{"@id":"https://ngsecurity38.fr/#agence"},"breadcrumb":{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Accueil","item":"https://ngsecurity38.fr/"},{"@type":"ListItem","position":2,"name":"Outils","item":"https://ngsecurity38.fr/outils/"},{"@type":"ListItem","position":3,"name":"Estimer mes caméras"}]}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://ngsecurity38.fr/#agence","name":"NG Security 38","areaServed":[{"@type":"Country","name":"France"},{"@type":"Country","name":"Belgique"}],"url":"https://ngsecurity38.fr/","logo":"https://ngsecurity38.fr/outils/og-devis.png"},{"@type":"WebPage","@id":"https://ngsecurity38.fr/outils/devis/#page","url":"https://ngsecurity38.fr/outils/devis/","name":"Estimer son installation de vidéosurveillance — NG Security 38","description":"Estimez en une minute le matériel et le budget d'une installation de vidéosurveillance : caméras, enregistreur, stockage, réseau et pose. Sans engagement. France et Belgique.","inLanguage":"fr-FR","isPartOf":{"@type":"WebSite","@id":"https://ngsecurity38.fr/#site","url":"https://ngsecurity38.fr/","name":"NG Security 38","inLanguage":"fr-FR"},"publisher":{"@id":"https://ngsecurity38.fr/#agence"},"breadcrumb":{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Accueil","item":"https://ngsecurity38.fr/"},{"@type":"ListItem","position":2,"name":"Outils","item":"https://ngsecurity38.fr/outils/"},{"@type":"ListItem","position":3,"name":"Estimer mes caméras"}]}}]}</script>
 
 <style>/* Devis client — NG Security 38.
    Page publique : lisible sur téléphone d'abord, imprimable ensuite. */
@@ -434,6 +434,12 @@ tfoot tr.fort td { font-size: 19px; font-weight: 700; border-top: 2px solid var(
         <select id="q-type"></select>
       </label>
 
+      <label>Où se trouve le chantier&nbsp;?
+        <select id="q-pays"></select>
+        <small>La TVA n'est pas la même en France et en Belgique&nbsp;: c'est elle
+          qui décide du montant toutes taxes comprises.</small>
+      </label>
+
       <label>Combien d'accès ou de zones à couvrir ?
         <input type="number" id="q-zones" min="1" max="32" step="1" value="3">
         <small>Une entrée, un portail, une façade, une allée : comptez une
@@ -612,6 +618,20 @@ tfoot tr.fort td { font-size: 19px; font-weight: 700; border-top: 2px solid var(
   "marge": 0.25,
   "tauxHoraire": 55,
   "tva": 0.2,
+  "_tva_par_pays": [
+    "Les taux appliqués selon le pays du chantier, modifiables ici sans",
+    "reconstruction : un taux de TVA change par décision publique.",
+    "  normal  taux plein",
+    "  reduit  taux des travaux — il n'est JAMAIS retenu d'office : son",
+    "          éligibilité dépend de conditions que la page ne peut pas",
+    "          vérifier (ancienneté du logement, attestation du client).",
+    "Ces taux sont ceux en vigueur au relevé ci-dessus. À confirmer avec",
+    "votre comptable, en France comme en Belgique."
+  ],
+  "tauxParPays": {
+    "fr": { "normal": 0.2, "reduit": 0.1 },
+    "be": { "normal": 0.21, "reduit": 0.06 }
+  },
   "_optique": [
     "Pour qu'une caméra soit proposée sur une étude photo, elle doit porter",
     "resH et resV, plus son champ de vision. Sans cela, la page dit que le",
@@ -2172,6 +2192,158 @@ const euros = (v) => {
   return `${n < 0 ? '-' : ''}${groupe},${decimales} €`;
 };
 
+/* ===== pays.js ===== */
+/**
+ * Le pays du chantier : la TVA, et ce que la loi y demande.
+ *
+ * L'agence intervient en France et en Belgique. Tant que les pages
+ * calculaient à 20 %, un client belge recevait une estimation fausse de
+ * plusieurs centaines d'euros — sur une page publique, présentée comme une
+ * estimation de l'agence.
+ *
+ * Deux choses changent avec le pays, et elles ne sont pas du même ordre :
+ *
+ * - **le taux de TVA**, qui est un chiffre. Il se règle dans le fichier de
+ *   tarif, comme les prix : un taux change par décision publique, pas par
+ *   reconstruction d'une page ;
+ * - **ce que la loi demande**, qui est une réserve. Elle n'est pas du même
+ *   texte d'un pays à l'autre — une certification française ne veut rien dire
+ *   à Bruxelles, et la Belgique impose des démarches que la France ignore.
+ *
+ * CE MODULE NE DONNE PAS D'AVIS JURIDIQUE. Il pose les questions qu'il faut
+ * poser, en nommant le texte ou l'organisme, et en disant qu'il faut vérifier.
+ * Les taux réduits, en particulier, dépendent de conditions que seule la
+ * comptabilité de l'agence peut trancher.
+ *
+ * Module pur (aucune dépendance au DOM), testé sous Node.
+ */
+
+/**
+ * Les pays servis, leurs taux et leurs obligations.
+ *
+ * `taux` : le premier est celui qui s'applique par défaut. Un taux réduit
+ * n'est jamais choisi automatiquement — il dépend de conditions que la page
+ * ne peut pas vérifier, et l'annoncer d'office ferait une estimation trop
+ * basse que l'agence devrait ensuite reprendre.
+ */
+const PAYS = {
+  fr: {
+    cle: 'fr',
+    label: 'France',
+    taux: [
+      { cle: 'normal', taux: 0.20, label: 'TVA 20 % — taux normal' },
+      {
+        cle: 'reduit',
+        taux: 0.10,
+        label: 'TVA 10 % — logement de plus de deux ans',
+        condition: 'Le taux réduit suppose un local d\'habitation achevé depuis '
+          + 'plus de deux ans et une attestation signée par le client. '
+          + 'L\'éligibilité est à confirmer par l\'agence : elle ne se déduit '
+          + 'pas de vos réponses.',
+      },
+    ],
+    /** Réserves propres au pays, page par page. */
+    alarme: [
+      'Si votre assureur impose une certification (NF A2P, grade 2), demandez-la '
+        + 'expressément : elle porte sur des références précises et conditionne la '
+        + 'prise en charge.',
+    ],
+    video: [
+      'Une caméra qui filme au-delà de votre propriété — trottoir, voie publique, '
+        + 'partie commune — relève d\'une autorisation préfectorale. Sur un lieu '
+        + 'ouvert au public, l\'information des visiteurs et celle des salariés '
+        + 'obéissent à des règles distinctes. À cadrer avant la pose.',
+    ],
+  },
+  be: {
+    cle: 'be',
+    label: 'Belgique',
+    taux: [
+      { cle: 'normal', taux: 0.21, label: 'TVA 21 % — taux normal' },
+      {
+        cle: 'reduit',
+        taux: 0.06,
+        label: 'TVA 6 % — habitation de plus de dix ans',
+        condition: 'Le taux réduit suppose une habitation privée achevée depuis '
+          + 'plus de dix ans et une facture mentionnant les conditions. '
+          + 'L\'éligibilité est à confirmer par l\'agence : elle ne se déduit '
+          + 'pas de vos réponses.',
+      },
+    ],
+    alarme: [
+      'En Belgique, un système d\'alarme installé dans une habitation doit être '
+        + 'déclaré aux autorités, et l\'installateur doit être une entreprise de '
+        + 'sécurité agréée. Les assureurs s\'appuient couramment sur la '
+        + 'certification INCERT plutôt que sur la NF A2P française. Ces points '
+        + 'sont à vérifier pour votre situation avant la commande.',
+    ],
+    video: [
+      'En Belgique, l\'installation de caméras de surveillance fait l\'objet '
+        + 'd\'une déclaration et d\'un pictogramme réglementaire à l\'entrée des '
+        + 'lieux filmés. Les règles diffèrent selon qu\'il s\'agit d\'un lieu '
+        + 'fermé accessible au public, d\'un lieu fermé non accessible ou d\'un '
+        + 'lieu ouvert. À cadrer avant la pose.',
+    ],
+  },
+};
+
+/** Le pays demandé, jamais indéfini. */
+const pays = (cle) => PAYS[cle] || PAYS.fr;
+
+/**
+ * Le taux applicable.
+ *
+ * `tauxParPays`, s'il vient du fichier de tarif, l'emporte : un taux de TVA
+ * change par décision publique, et l'agence doit pouvoir le corriger sans
+ * attendre une reconstruction des pages.
+ */
+function tauxTva(clePays, cleTaux, tauxParPays) {
+  const p = pays(clePays);
+  const choisi = p.taux.find((t) => t.cle === cleTaux) || p.taux[0];
+  /*
+   * La surcharge doit être un taux plausible, strictement positif.
+   *
+   * `Number(null)` vaut 0 : un champ vidé par mégarde dans le fichier de
+   * tarif passerait pour une TVA à 0 %, et la page annoncerait un total
+   * toutes taxes égal au hors taxes sans que rien ne cloche à l'œil.
+   */
+  const taux = Number(tauxParPays?.[p.cle]?.[choisi.cle]);
+  const admis = Number.isFinite(taux) && taux > 0 && taux < 1;
+  return { pays: p, ...choisi, taux: admis ? taux : choisi.taux };
+}
+
+/** Les choix à proposer : « France — TVA 20 % », etc. */
+const choixTva = (tauxParPays) => Object.values(PAYS).flatMap(
+  (p) => p.taux.map((t) => {
+    const r = tauxTva(p.cle, t.cle, tauxParPays);
+    return {
+      valeur: `${p.cle}:${t.cle}`,
+      label: `${p.label} — ${r.label.replace(/^TVA \d+(?:,\d+)? % — /, '')} `
+        + `(${(r.taux * 100).toString().replace('.', ',')} %)`,
+    };
+  }),
+);
+
+/** Décode la valeur d'une liste déroulante : « be:reduit ». */
+function lireChoix(valeur) {
+  const [p, t] = String(valeur || '').split(':');
+  return { pays: PAYS[p] ? p : 'fr', taux: t || 'normal' };
+}
+
+/**
+ * Les réserves du pays pour une page donnée.
+ *
+ * @param {string} clePays
+ * @param {'video'|'alarme'} page
+ * @param {object} [choix] le taux retenu, pour y joindre sa condition
+ */
+function reservesPays(clePays, page, choix) {
+  const p = pays(clePays);
+  const r = [...(p[page] || [])];
+  if (choix && choix.condition) r.unshift(choix.condition);
+  return r;
+}
+
 /* ===== ensemble.js ===== */
 /**
  * Le projet complet : la vidéosurveillance et l'alarme, ensemble.
@@ -2704,6 +2876,7 @@ const RESERVES = [
 
 
 
+
 /**
  * Où la demande d'étude est envoyée.
  *
@@ -2744,6 +2917,7 @@ async function chargerTarif() {
 /** Réponses du formulaire. */
 const reponses = () => ({
   typeSite: $('#q-type').value,
+  pays: $('#q-pays').value,
   zones: parseInt($('#q-zones').value, 10),
   jours: parseInt($('#q-jours').value, 10),
   heuresParJour: parseInt($('#q-heures').value, 10),
@@ -2775,7 +2949,14 @@ function calculer() {
   const parPhotos = etatPhotos.zones.filter((z) => mesureZone(z)).length;
   const offre = composer(parPhotos ? { ...r, zones: parPhotos } : r, t.articles || [], {});
   const marge = t.marge ?? MARGE_COMMERCIALE;
-  const tva = t.tva ?? TVA_DEFAUT;
+  /*
+   * Le pays décide de la TVA. Calculer 20 % pour un chantier belge donnait
+   * une estimation fausse de plusieurs centaines d'euros, présentée comme
+   * celle de l'agence.
+   */
+  const choix = lireChoix($('#q-pays').value);
+  const regime = tauxTva(choix.pays, choix.taux, t.tauxParPays);
+  const tva = regime.taux ?? t.tva ?? TVA_DEFAUT;
 
   const lignes = offre.lignes.map((l) => ({
     ...ligne(l.article, l.quantite, { marge, tva }),
@@ -2817,7 +2998,10 @@ function calculer() {
       <td class="nombre">${euros(d.totalTtc)}</td></tr>`;
 
   dessinerSchema(offre, r);
-  $('#reserves').innerHTML = RESERVES.map((x) => `<li>${ech(x)}</li>`).join('');
+  $('#reserves').innerHTML = [
+    ...RESERVES,
+    ...reservesPays(choix.pays, 'video', regime),
+  ].map((x) => `<li>${ech(x)}</li>`).join('');
   /*
    * Le projet complet.
    *
@@ -2836,7 +3020,7 @@ function calculer() {
     chiffre: d.complet && d.totalTtc > 0,
   });
 
-  majContact(offre, r, d, ensemble);
+  majContact(offre, r, d, ensemble, regime);
 }
 
 /**
@@ -2942,7 +3126,7 @@ function resume(offre, r) {
 }
 
 /** Prépare la demande d'étude, résumé compris. */
-function majContact(offre, r, d, ensemble) {
+function majContact(offre, r, d, ensemble, regime) {
   const bouton = $('#btn-contact');
   if (!CONTACT) {
     bouton.hidden = true;
@@ -2953,6 +3137,7 @@ function majContact(offre, r, d, ensemble) {
     '',
     'Je souhaite une étude pour l\'installation suivante :',
     `- Type de site : ${TYPES_SITE[r.typeSite]?.label || r.typeSite}`,
+    `- Pays du chantier : ${regime.pays.label} (${regime.label})`,
     `- Zones à couvrir : ${offre.cameras}`,
     `- Conservation : ${offre.jours} jours, ${offre.heuresParJour} h/24`,
     `- Extension prévue : ${offre.prevues - offre.cameras} caméra(s)`,
@@ -3401,7 +3586,7 @@ async function restaurer(contenu) {
   etatPhotos.courante = etatPhotos.zones.length - 1;
 
   const r = contenu.reponses || {};
-  for (const [id, cle] of [['#q-type', 'typeSite'], ['#q-zones', 'zones'],
+  for (const [id, cle] of [['#q-type', 'typeSite'], ['#q-pays', 'pays'], ['#q-zones', 'zones'],
     ['#q-jours', 'jours'], ['#q-heures', 'heuresParJour'], ['#q-extension', 'extension']]) {
     if (r[cle] !== undefined) $(id).value = r[cle];
   }
@@ -3445,6 +3630,21 @@ async function poserLeMenu() {
   poserMenu($('#site-menu'), await chargerMenu(), globalThis.location?.pathname);
 }
 
+/**
+ * Les pays et leurs taux, tirés du tarif.
+ *
+ * Garnie APRÈS le chargement du tarif : les taux y sont modifiables sans
+ * reconstruction, et une liste dressée avant afficherait ceux embarqués à la
+ * fabrication. La sélection en cours est conservée — sinon reprendre un
+ * projet belge le ramènerait en France sans prévenir.
+ */
+function garnirPays(tarif) {
+  const avant = $('#q-pays').value;
+  $('#q-pays').innerHTML = choixTva(tarif?.tauxParPays)
+    .map((c) => `<option value="${ech(c.valeur)}">${ech(c.label)}</option>`).join('');
+  if (avant) $('#q-pays').value = avant;
+}
+
 async function demarrer() {
   $('#q-type').innerHTML = Object.entries(TYPES_SITE)
     .map(([cle, t]) => `<option value="${cle}">${ech(t.label)}</option>`).join('');
@@ -3460,7 +3660,8 @@ async function demarrer() {
     calculer();
   });
 
-  ['#q-zones', '#q-jours', '#q-heures', '#q-extension', '#q-ecran', '#q-routeur', '#q-pose']
+  ['#q-pays', '#q-zones', '#q-jours', '#q-heures', '#q-extension', '#q-ecran',
+    '#q-routeur', '#q-pose']
     .forEach((id) => {
       $(id).addEventListener('change', calculer);
       $(id).addEventListener('input', calculer);
@@ -3476,7 +3677,9 @@ async function demarrer() {
   // revenir sur la page ne doit pas effacer un quart d'heure de travail.
   document.addEventListener('change', memoriser);
 
+  garnirPays(null);
   etat.tarif = await chargerTarif();
+  garnirPays(etat.tarif);
   if (!etat.tarif) {
     $('#resultat').hidden = false;
     $('#resume').textContent = 'Tarif indisponible : le fichier tarif.json n\'a pas pu '

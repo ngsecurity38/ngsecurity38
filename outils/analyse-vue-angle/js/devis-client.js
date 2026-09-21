@@ -16,6 +16,7 @@ import { chargerMenu, poserMenu } from './menu.js';
 import { texteEnsemble } from './ensemble.js';
 import { afficherEnsemble } from './ensemble-vue.js';
 import { TYPES_SITE, RESERVES, composer } from './offre.js';
+import { choixTva, lireChoix, tauxTva, reservesPays } from './pays.js';
 import { ligne, devis, euros, TVA_DEFAUT, MARGE_COMMERCIALE } from './prix.js';
 import {
   etatPhotos, zoneCourante, reduire, mesureZone, couvertureReelle, niveauAtteint,
@@ -62,6 +63,7 @@ async function chargerTarif() {
 /** Réponses du formulaire. */
 const reponses = () => ({
   typeSite: $('#q-type').value,
+  pays: $('#q-pays').value,
   zones: parseInt($('#q-zones').value, 10),
   jours: parseInt($('#q-jours').value, 10),
   heuresParJour: parseInt($('#q-heures').value, 10),
@@ -93,7 +95,14 @@ function calculer() {
   const parPhotos = etatPhotos.zones.filter((z) => mesureZone(z)).length;
   const offre = composer(parPhotos ? { ...r, zones: parPhotos } : r, t.articles || [], {});
   const marge = t.marge ?? MARGE_COMMERCIALE;
-  const tva = t.tva ?? TVA_DEFAUT;
+  /*
+   * Le pays décide de la TVA. Calculer 20 % pour un chantier belge donnait
+   * une estimation fausse de plusieurs centaines d'euros, présentée comme
+   * celle de l'agence.
+   */
+  const choix = lireChoix($('#q-pays').value);
+  const regime = tauxTva(choix.pays, choix.taux, t.tauxParPays);
+  const tva = regime.taux ?? t.tva ?? TVA_DEFAUT;
 
   const lignes = offre.lignes.map((l) => ({
     ...ligne(l.article, l.quantite, { marge, tva }),
@@ -135,7 +144,10 @@ function calculer() {
       <td class="nombre">${euros(d.totalTtc)}</td></tr>`;
 
   dessinerSchema(offre, r);
-  $('#reserves').innerHTML = RESERVES.map((x) => `<li>${ech(x)}</li>`).join('');
+  $('#reserves').innerHTML = [
+    ...RESERVES,
+    ...reservesPays(choix.pays, 'video', regime),
+  ].map((x) => `<li>${ech(x)}</li>`).join('');
   /*
    * Le projet complet.
    *
@@ -154,7 +166,7 @@ function calculer() {
     chiffre: d.complet && d.totalTtc > 0,
   });
 
-  majContact(offre, r, d, ensemble);
+  majContact(offre, r, d, ensemble, regime);
 }
 
 /**
@@ -260,7 +272,7 @@ function resume(offre, r) {
 }
 
 /** Prépare la demande d'étude, résumé compris. */
-function majContact(offre, r, d, ensemble) {
+function majContact(offre, r, d, ensemble, regime) {
   const bouton = $('#btn-contact');
   if (!CONTACT) {
     bouton.hidden = true;
@@ -271,6 +283,7 @@ function majContact(offre, r, d, ensemble) {
     '',
     'Je souhaite une étude pour l\'installation suivante :',
     `- Type de site : ${TYPES_SITE[r.typeSite]?.label || r.typeSite}`,
+    `- Pays du chantier : ${regime.pays.label} (${regime.label})`,
     `- Zones à couvrir : ${offre.cameras}`,
     `- Conservation : ${offre.jours} jours, ${offre.heuresParJour} h/24`,
     `- Extension prévue : ${offre.prevues - offre.cameras} caméra(s)`,
@@ -719,7 +732,7 @@ async function restaurer(contenu) {
   etatPhotos.courante = etatPhotos.zones.length - 1;
 
   const r = contenu.reponses || {};
-  for (const [id, cle] of [['#q-type', 'typeSite'], ['#q-zones', 'zones'],
+  for (const [id, cle] of [['#q-type', 'typeSite'], ['#q-pays', 'pays'], ['#q-zones', 'zones'],
     ['#q-jours', 'jours'], ['#q-heures', 'heuresParJour'], ['#q-extension', 'extension']]) {
     if (r[cle] !== undefined) $(id).value = r[cle];
   }
@@ -763,6 +776,21 @@ async function poserLeMenu() {
   poserMenu($('#site-menu'), await chargerMenu(), globalThis.location?.pathname);
 }
 
+/**
+ * Les pays et leurs taux, tirés du tarif.
+ *
+ * Garnie APRÈS le chargement du tarif : les taux y sont modifiables sans
+ * reconstruction, et une liste dressée avant afficherait ceux embarqués à la
+ * fabrication. La sélection en cours est conservée — sinon reprendre un
+ * projet belge le ramènerait en France sans prévenir.
+ */
+function garnirPays(tarif) {
+  const avant = $('#q-pays').value;
+  $('#q-pays').innerHTML = choixTva(tarif?.tauxParPays)
+    .map((c) => `<option value="${ech(c.valeur)}">${ech(c.label)}</option>`).join('');
+  if (avant) $('#q-pays').value = avant;
+}
+
 async function demarrer() {
   $('#q-type').innerHTML = Object.entries(TYPES_SITE)
     .map(([cle, t]) => `<option value="${cle}">${ech(t.label)}</option>`).join('');
@@ -778,7 +806,8 @@ async function demarrer() {
     calculer();
   });
 
-  ['#q-zones', '#q-jours', '#q-heures', '#q-extension', '#q-ecran', '#q-routeur', '#q-pose']
+  ['#q-pays', '#q-zones', '#q-jours', '#q-heures', '#q-extension', '#q-ecran',
+    '#q-routeur', '#q-pose']
     .forEach((id) => {
       $(id).addEventListener('change', calculer);
       $(id).addEventListener('input', calculer);
@@ -794,7 +823,9 @@ async function demarrer() {
   // revenir sur la page ne doit pas effacer un quart d'heure de travail.
   document.addEventListener('change', memoriser);
 
+  garnirPays(null);
   etat.tarif = await chargerTarif();
+  garnirPays(etat.tarif);
   if (!etat.tarif) {
     $('#resultat').hidden = false;
     $('#resume').textContent = 'Tarif indisponible : le fichier tarif.json n\'a pas pu '

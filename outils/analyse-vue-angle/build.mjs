@@ -175,8 +175,8 @@ ecrire('analyse-vue-angle-ocr.html', injecter(html, '</head>', `${ocr}\n</head>`
  * outil ni reconstruction.
  */
 const MODULES_CLIENT = ['dom.js', 'format.js', 'menu.js', 'optique.js', 'photo.js',
-  'photo-client.js', 'stockage.js', 'prix.js', 'ensemble.js', 'ensemble-vue.js',
-  'offre.js', 'devis-client.js'];
+  'photo-client.js', 'stockage.js', 'prix.js', 'pays.js', 'ensemble.js',
+  'ensemble-vue.js', 'offre.js', 'devis-client.js'];
 verifierListe(MODULES_CLIENT);
 
 const paquetClient = `(function () {\n'use strict';\n\n`
@@ -235,8 +235,8 @@ ecrire('presentation.html', presentation);
  * sont servies côte à côte et un client qui passe de l'une à l'autre ne doit
  * pas croire avoir changé de site. Elle n'embarque ni PDF.js ni OCR.
  */
-const MODULES_ALARME = ['dom.js', 'format.js', 'menu.js', 'prix.js', 'ensemble.js',
-  'ensemble-vue.js', 'alarme.js', 'alarme-client.js'];
+const MODULES_ALARME = ['dom.js', 'format.js', 'menu.js', 'prix.js', 'pays.js',
+  'ensemble.js', 'ensemble-vue.js', 'alarme.js', 'alarme-client.js'];
 verifierListe(MODULES_ALARME);
 
 const paquetAlarme = `(function () {\n'use strict';\n\n`

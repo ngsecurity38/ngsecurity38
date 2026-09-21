@@ -37,6 +37,20 @@
   "marge": 0.25,
   "tauxHoraire": 55,
   "tva": 0.2,
+  "_tva_par_pays": [
+    "Les taux appliqués selon le pays du chantier, modifiables ici sans",
+    "reconstruction : un taux de TVA change par décision publique.",
+    "  normal  taux plein",
+    "  reduit  taux des travaux — il n'est JAMAIS retenu d'office : son",
+    "          éligibilité dépend de conditions que la page ne peut pas",
+    "          vérifier (ancienneté du logement, attestation du client).",
+    "Ces taux sont ceux en vigueur au relevé ci-dessus. À confirmer avec",
+    "votre comptable, en France comme en Belgique."
+  ],
+  "tauxParPays": {
+    "fr": { "normal": 0.2, "reduit": 0.1 },
+    "be": { "normal": 0.21, "reduit": 0.06 }
+  },
   "articles": [
     {
       "type": "hub",

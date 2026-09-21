@@ -250,7 +250,12 @@ test('les réserves disent ce que CETTE installation laisse passer', () => {
   const r = reservesAlarme(inventaire(MAISON));
   assert.ok(r.some((x) => /3 ouvertures en hauteur/.test(x)), JSON.stringify(r));
   assert.ok(r.some((x) => /n'empêche pas d'entrer/.test(x)), 'la limite d\'une alarme');
-  assert.ok(r.some((x) => /A2P/.test(x)), 'la question de l\'assureur');
+  /*
+   * La certification exigée par l'assureur n'est plus ici : elle dépend du
+   * pays — NF A2P en France, INCERT en Belgique. Voir tests/pays.mjs.
+   */
+  assert.ok(!r.some((x) => /A2P|INCERT/.test(x)),
+    `la certification appartient au pays, pas à l'inventaire : ${JSON.stringify(r)}`);
 
   const chien = reservesAlarme(inventaire({ ...MAISON, animaux: 'grandChien' }));
   assert.ok(chien.some((x) => new RegExp(`${MASSE_IMMUNITE} kg`).test(x)), JSON.stringify(chien));
