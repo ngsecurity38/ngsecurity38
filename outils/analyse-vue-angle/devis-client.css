@@ -243,6 +243,31 @@ tfoot tr.fort td { font-size: 19px; font-weight: 700; border-top: 2px solid var(
 
 /* Les liens de sortie, en pied : le site, l'autre outil, la boutique.
    Une page d'outil sans porte de sortie est une impasse. */
+/* --------------------------------------------------- le projet complet
+
+   Les deux études réunies. Le montant absent n'est pas un montant à zéro :
+   il s'écrit en toutes lettres, en gris, pour qu'on ne le lise pas comme
+   une gratuité. */
+/* `.apercu` et non `.resume` : cette feuille donne déjà à `.resume` un encadré
+   à filet rouge, celui du résumé principal de la page. Réemployer le nom ici
+   habillait chaque volet en gros bandeau. */
+.volets { display: grid; gap: 12px; margin: 0 0 16px; }
+.volet {
+  display: grid; gap: 3px; padding: 14px;
+  border: 1px solid var(--bord); border-radius: 10px; background: #fff;
+}
+.volet .apercu { font-size: 14px; color: var(--doux); }
+.volet .montant { font-weight: 700; color: var(--rouge); }
+.volet .montant.absent { color: var(--doux); font-weight: 600; font-style: italic; }
+.volet .age { font-size: 13px; color: #8a5a00; }
+
+.ensemble-total {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+  margin: 0 0 12px; padding-top: 12px;
+  border-top: 2px solid var(--encre); font-size: 18px;
+}
+.ensemble-total .intitule { font-weight: 600; }
+
 .liens-pied { margin-top: 10px; }
 .liens-pied a { color: var(--doux); }
 .liens-pied a:hover { color: var(--rouge); }

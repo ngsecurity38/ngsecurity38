@@ -13,6 +13,8 @@ import { $, $$ } from './dom.js';
 import { fr, elider } from './format.js';
 import { SEUILS_DORI } from './optique.js';
 import { chargerMenu, poserMenu } from './menu.js';
+import { texteEnsemble } from './ensemble.js';
+import { afficherEnsemble } from './ensemble-vue.js';
 import { TYPES_SITE, RESERVES, composer } from './offre.js';
 import { ligne, devis, euros, TVA_DEFAUT, MARGE_COMMERCIALE } from './prix.js';
 import {
@@ -134,7 +136,25 @@ function calculer() {
 
   dessinerSchema(offre, r);
   $('#reserves').innerHTML = RESERVES.map((x) => `<li>${ech(x)}</li>`).join('');
-  majContact(offre, r, d);
+  /*
+   * Le projet complet.
+   *
+   * Déposé ici plutôt qu'à l'enregistrement : le visiteur qui remplit la
+   * page et s'en va sans rien enregistrer a quand même fait une étude, et
+   * l'autre page doit pouvoir la retrouver.
+   */
+  const ensemble = afficherEnsemble('video', {
+    // Un résumé court, composé pour ce bloc : le texte de l'écran porte déjà
+    // sa propre phrase de prix, qui ferait doublon avec le montant affiché.
+    resume: `${offre.cameras} caméra${offre.cameras > 1 ? 's' : ''}, `
+      + `${offre.jours} jours d'enregistrement`,
+    lignes: lignes.map((l) => ({ role: l.role, quantite: l.quantite })),
+    totalHt: d.totalHt,
+    totalTtc: d.totalTtc,
+    chiffre: d.complet && d.totalTtc > 0,
+  });
+
+  majContact(offre, r, d, ensemble);
 }
 
 /**
@@ -240,7 +260,7 @@ function resume(offre, r) {
 }
 
 /** Prépare la demande d'étude, résumé compris. */
-function majContact(offre, r, d) {
+function majContact(offre, r, d, ensemble) {
   const bouton = $('#btn-contact');
   if (!CONTACT) {
     bouton.hidden = true;
@@ -258,6 +278,8 @@ function majContact(offre, r, d) {
     `- Écran de supervision : ${r.ecran ? 'oui' : 'non'}`,
     `- Installation par vos soins : ${r.pose ? 'oui' : 'non'}`,
     ...lignesEtude(),
+    // Le second volet, s'il existe : une seule demande pour tout le chantier.
+    ...(ensemble && ensemble.volets.length > 1 ? texteEnsemble(ensemble) : []),
     '',
     `Estimation obtenue sur votre site : ${euros(d.totalTtc)} TTC.`,
     '',

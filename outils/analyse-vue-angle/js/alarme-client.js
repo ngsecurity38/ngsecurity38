@@ -18,6 +18,8 @@
 import { $, $$ } from './dom.js';
 import { fr, frGroupe } from './format.js';
 import { chargerMenu, poserMenu } from './menu.js';
+import { texteEnsemble } from './ensemble.js';
+import { afficherEnsemble } from './ensemble-vue.js';
 import {
   SITES, ANIMAUX, GARAGES, MASSE_IMMUNITE, HAUTEUR_COURANTE, profil,
   composerAlarme, reservesAlarme, couches,
@@ -439,7 +441,7 @@ function resumer(inv, d) {
     + `${repartition}, ${commande}.${prix}`;
 }
 
-function majContact(inv, d) {
+function majContact(inv, d, ensemble) {
   const bouton = $('#a-contact');
   if (!CONTACT) {
     bouton.hidden = true;
@@ -483,6 +485,8 @@ function majContact(inv, d) {
     '',
     'Matériel proposé par votre page :',
     ...d.lignes.map((l) => `- ${l.quantite} × ${l.role} (${l.article.reference || ''})`),
+    // Le second volet, s'il existe : une seule demande pour tout le chantier.
+    ...(ensemble && ensemble.volets.length > 1 ? texteEnsemble(ensemble) : []),
     '',
     d.complet && d.totalTtc > 0
       ? `Estimation obtenue sur votre site : ${euros(d.totalTtc)} TTC.`
@@ -526,7 +530,21 @@ function calculerAlarme() {
   $('#a-reserves').innerHTML = [...reservesAlarme(offre.inv), ...reservesDevis(d)]
     .map((x) => `<li>${echapper(x)}</li>`).join('');
 
-  majContact(offre.inv, d);
+  // Le projet complet : l'autre volet, s'il a déjà été étudié.
+  const ensemble = afficherEnsemble('alarme', {
+    // Idem : court, et sans la phrase de prix que porte déjà le résumé affiché.
+    resume: (() => {
+      const i = offre.inv;
+      const n = i.ouvertures + i.brisVitre + i.mouvements + i.exterieurs;
+      return `${n} détecteur${n > 1 ? 's' : ''} pour ${i.article} ${i.nomCourt}`;
+    })(),
+    lignes: d.lignes.map((l) => ({ role: l.role, quantite: l.quantite })),
+    totalHt: d.totalHt,
+    totalTtc: d.totalTtc,
+    chiffre: d.complet && d.totalTtc > 0,
+  });
+
+  majContact(offre.inv, d, ensemble);
   memoriserAlarme();
 }
 

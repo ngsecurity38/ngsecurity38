@@ -2753,7 +2753,118 @@ console.log('\nPage d\'étude alarme');
   await page.close();
 }
 
-/* ---------------------------- 12. l'accueil des outils, porte d'entrée */
+/* ------------------------------ 12. le projet complet, d'une page à l'autre */
+
+console.log('\nProjet complet (caméras + alarme)');
+{
+  /*
+   * Un contexte neuf : le rangement du navigateur doit partir vide, sinon le
+   * test hérite des études laissées par les sections précédentes et vérifie
+   * autre chose que ce qu'il croit.
+   */
+  const propre = await navigateur.newContext();
+  const page = await propre.newPage();
+  const erreurs = surveiller(page);
+
+  const bloc = () => page.evaluate(() => {
+    const h = document.querySelector('#ensemble');
+    return {
+      visible: !h.hidden,
+      intro: document.querySelector('#ensemble-intro').textContent,
+      volets: [...h.querySelectorAll('.volet')].map((v) => ({
+        titre: v.querySelector('b').textContent.trim(),
+        apercu: (v.querySelector('.apercu') || {}).textContent || '',
+        montant: v.querySelector('.montant').textContent.trim(),
+        absent: v.querySelector('.montant').classList.contains('absent'),
+      })),
+      total: document.querySelector('#ensemble-total').hidden
+        ? null : document.querySelector('#ensemble-total').textContent.replace(/\s+/g, ' ').trim(),
+      reserve: document.querySelector('#ensemble-reserve').hidden
+        ? '' : document.querySelector('#ensemble-reserve').textContent,
+      invitations: [...document.querySelectorAll('#ensemble-actions a')]
+        .map((a) => a.getAttribute('href')),
+    };
+  });
+
+  await cas('une seule étude : la page propose l\'autre volet', async () => {
+    await page.goto(`${BASE}/alarme-client.html`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(400);
+    const r = await bloc();
+    affirmer(r.visible, 'le bloc doit s\'afficher dès la première étude');
+    affirmer(r.volets.length === 1, JSON.stringify(r.volets));
+    affirmer(r.volets[0].titre === 'Alarme anti-intrusion', JSON.stringify(r.volets[0]));
+    affirmer(r.total === null, `aucun total sous une seule étude : ${r.total}`);
+    /*
+     * L'adresse doit rester relative : les deux pages se trouvent qu'elles
+     * soient servies à la racine d'un domaine, sous un sous-dossier ou dans
+     * un cadre.
+     */
+    affirmer(r.invitations.length === 1 && r.invitations[0] === '../devis/',
+      `invitation vers l'étude caméras : ${JSON.stringify(r.invitations)}`);
+  });
+
+  await cas('la seconde étude retrouve la première, faite sur l\'autre page', async () => {
+    await page.goto(`${BASE}/devis-client.html`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(600);
+    const r = await bloc();
+    affirmer(r.volets.length === 2, JSON.stringify(r.volets));
+    const titres = r.volets.map((v) => v.titre);
+    affirmer(titres.includes('Vidéosurveillance') && titres.includes('Alarme anti-intrusion'),
+      JSON.stringify(titres));
+    affirmer(r.invitations.length === 0, 'plus rien à proposer');
+    affirmer(r.volets.every((v) => v.apercu.length > 5),
+      `chaque volet doit se résumer : ${JSON.stringify(r.volets)}`);
+  });
+
+  await cas('un total partiel est annoncé comme tel, jamais comme le prix du projet', async () => {
+    /*
+     * Le tarif alarme est volontairement vide tant que les prix ne sont pas
+     * relevés chez le distributeur. Additionner la partie chiffrée et
+     * présenter la somme comme le total ferait croire au client qu'il connaît
+     * son budget — il découvrirait l'autre moitié à la facture.
+     */
+    const r = await bloc();
+    const alarme = r.volets.find((v) => /Alarme/.test(v.titre));
+    affirmer(alarme.absent, `le volet non chiffré doit être marqué : ${JSON.stringify(alarme)}`);
+    affirmer(/non chiffré/.test(alarme.montant), alarme.montant);
+    affirmer(!/0,00/.test(alarme.montant), 'un prix absent n\'est pas un prix nul');
+
+    affirmer(/Total partiel/.test(r.total || ''), `total : ${r.total}`);
+    affirmer(/reste à chiffrer/.test(r.reserve), `réserve : ${r.reserve}`);
+  });
+
+  await cas('la demande part en une fois, avec les deux volets', async () => {
+    const corps = await page.evaluate(() => decodeURIComponent(
+      (document.querySelector('#btn-contact').getAttribute('href')
+        .match(/[&?]body=([^&]*)/) || [])[1] || '',
+    ));
+    affirmer(/PROJET COMPLET/.test(corps), corps.slice(0, 300));
+    affirmer(/Vidéosurveillance/.test(corps) && /Alarme anti-intrusion/.test(corps),
+      corps.slice(-500));
+    affirmer(/Total partiel/.test(corps), corps.slice(-400));
+    /*
+     * Le courriel et l'écran doivent porter le MÊME montant : `toFixed(2)` sur
+     * le flottant brut écrivait 1590,49 € là où l'écran affichait 1 590,50 €.
+     */
+    const ecran = (await bloc()).total.match(/([\d\s\u202f]+,\d\d) €/)[1].replace(/\s|\u202f/g, '');
+    const courriel = corps.match(/Total partiel : ([\d\s\u202f]+,\d\d) €/)[1].replace(/\s|\u202f/g, '');
+    affirmer(ecran === courriel, `écran ${ecran} contre courriel ${courriel}`);
+  });
+
+  await cas('refaire une étude ne perd pas l\'autre volet', async () => {
+    await page.fill('#q-zones', '6');
+    await page.waitForTimeout(400);
+    const r = await bloc();
+    affirmer(r.volets.length === 2, `l'étude alarme doit survivre : ${JSON.stringify(r.volets)}`);
+    affirmer(/6 caméras/.test(r.volets.find((v) => /Vidéo/.test(v.titre)).apercu),
+      JSON.stringify(r.volets));
+  });
+
+  await cas('aucune erreur de console', () => affirmer(!erreurs.length, erreurs.join(' | ')));
+  await propre.close();
+}
+
+/* ---------------------------- 13. l'accueil des outils, porte d'entrée */
 
 console.log('\nAccueil des outils');
 {
@@ -2884,13 +2995,34 @@ console.log('\nBlocs à coller (WordPress)');
     affirmer(!/cursive/.test(r.police), `ni sa police : ${r.police}`);
   });
 
+  /** Taille admise par bloc collé, en octets. Voir le commentaire plus bas. */
+  const PLAFOND_BLOC = { 'etude.html': 70000, 'devis.html': 130000 };
+
   await cas('aucune image « data: » dans un bloc collé', async () => {
     for (const nom of ['etude.html', 'devis.html']) {
       const bloc = await readFile(join(racine, 'dist', 'site', 'wordpress', nom), 'utf8');
       affirmer(!/data:image\//.test(bloc),
         `${nom} : un créateur de site refuserait ce code intégré`);
-      affirmer(bloc.length < 120000,
-        `${nom} : ${Math.round(bloc.length / 1024)} Ko, à surveiller`);
+      /*
+       * Ni le bloc « projet complet » : il renvoie d'un outil à l'autre par
+       * des adresses relatives, qui ne mènent nulle part depuis une page de
+       * site quelconque.
+       */
+      affirmer(!/id="ensemble"/.test(bloc), `${nom} : le projet complet doit être retiré`);
+      /*
+       * Un plafond PAR FICHIER, et serré autour de la taille réelle.
+       *
+       * Ce n'est pas une limite d'hébergeur — nous ne la connaissons pas ;
+       * le seul refus observé (Hostinger, « embed code is too large »)
+       * portait sur un bloc chargé d'images en base64. C'est une sentinelle
+       * contre la dérive : un plafond commun et large laisserait doubler la
+       * page d'étude sans que rien ne bronche. Relevé une fois, en
+       * connaissance de cause, quand le projet complet a ajouté 6 Ko au
+       * devis.
+       */
+      affirmer(bloc.length < PLAFOND_BLOC[nom],
+        `${nom} : ${Math.round(bloc.length / 1024)} Ko pour un plafond de `
+        + `${Math.round(PLAFOND_BLOC[nom] / 1024)} Ko`);
     }
   });
 

@@ -175,7 +175,8 @@ ecrire('analyse-vue-angle-ocr.html', injecter(html, '</head>', `${ocr}\n</head>`
  * outil ni reconstruction.
  */
 const MODULES_CLIENT = ['dom.js', 'format.js', 'menu.js', 'optique.js', 'photo.js',
-  'photo-client.js', 'stockage.js', 'prix.js', 'offre.js', 'devis-client.js'];
+  'photo-client.js', 'stockage.js', 'prix.js', 'ensemble.js', 'ensemble-vue.js',
+  'offre.js', 'devis-client.js'];
 verifierListe(MODULES_CLIENT);
 
 const paquetClient = `(function () {\n'use strict';\n\n`
@@ -234,8 +235,8 @@ ecrire('presentation.html', presentation);
  * sont servies côte à côte et un client qui passe de l'une à l'autre ne doit
  * pas croire avoir changé de site. Elle n'embarque ni PDF.js ni OCR.
  */
-const MODULES_ALARME = ['dom.js', 'format.js', 'menu.js', 'prix.js', 'alarme.js',
-  'alarme-client.js'];
+const MODULES_ALARME = ['dom.js', 'format.js', 'menu.js', 'prix.js', 'ensemble.js',
+  'ensemble-vue.js', 'alarme.js', 'alarme-client.js'];
 verifierListe(MODULES_ALARME);
 
 const paquetAlarme = `(function () {\n'use strict';\n\n`
@@ -372,6 +373,15 @@ function pourWordpress(page, feuille, paquet, donnees, id, adresses = '') {
      * l'un au-dessus de l'autre sur la même page désorientent au lieu d'aider.
      */
     .replace(/<nav class="site-menu"[\s\S]*?<\/nav>/, '')
+    /*
+     * Et le projet complet.
+     *
+     * Il renvoie d'une page d'outil à l'autre par des adresses relatives
+     * (`../devis/`). Collé dans une page de site, à une adresse quelconque,
+     * ce lien ne mène nulle part — et rien ne dit que l'autre outil soit
+     * collé quelque part. Un bloc vaut pour lui seul.
+     */
+    .replace(/<section class="carte" id="ensemble"[\s\S]*?<\/section>/, '')
     .trim();
 
   /*

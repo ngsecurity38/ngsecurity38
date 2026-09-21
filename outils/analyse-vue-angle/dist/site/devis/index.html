@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <!-- Devis client — NG Security 38.
-     Fichier unique produit par build.mjs le 2026-09-20.
+     Fichier unique produit par build.mjs le 2026-09-21.
      Pour changer les prix : éditer tarif.json, à côté de la page. -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -277,6 +277,31 @@ tfoot tr.fort td { font-size: 19px; font-weight: 700; border-top: 2px solid var(
 
 /* Les liens de sortie, en pied : le site, l'autre outil, la boutique.
    Une page d'outil sans porte de sortie est une impasse. */
+/* --------------------------------------------------- le projet complet
+
+   Les deux études réunies. Le montant absent n'est pas un montant à zéro :
+   il s'écrit en toutes lettres, en gris, pour qu'on ne le lise pas comme
+   une gratuité. */
+/* `.apercu` et non `.resume` : cette feuille donne déjà à `.resume` un encadré
+   à filet rouge, celui du résumé principal de la page. Réemployer le nom ici
+   habillait chaque volet en gros bandeau. */
+.volets { display: grid; gap: 12px; margin: 0 0 16px; }
+.volet {
+  display: grid; gap: 3px; padding: 14px;
+  border: 1px solid var(--bord); border-radius: 10px; background: #fff;
+}
+.volet .apercu { font-size: 14px; color: var(--doux); }
+.volet .montant { font-weight: 700; color: var(--rouge); }
+.volet .montant.absent { color: var(--doux); font-weight: 600; font-style: italic; }
+.volet .age { font-size: 13px; color: #8a5a00; }
+
+.ensemble-total {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+  margin: 0 0 12px; padding-top: 12px;
+  border-top: 2px solid var(--encre); font-size: 18px;
+}
+.ensemble-total .intitule { font-weight: 600; }
+
 .liens-pied { margin-top: 10px; }
 .liens-pied a { color: var(--doux); }
 .liens-pied a:hover { color: var(--rouge); }
@@ -540,6 +565,15 @@ tfoot tr.fort td { font-size: 19px; font-weight: 700; border-top: 2px solid var(
       <button type="button" id="btn-imprimer" class="btn">Imprimer / enregistrer en PDF</button>
       <a id="btn-contact" class="btn btn-plein" href="#">Demander une étude gratuite</a>
     </div>
+  </section>
+
+  <section class="carte" id="ensemble" hidden>
+    <h2>Votre projet complet</h2>
+    <p class="aide" id="ensemble-intro"></p>
+    <div class="volets" id="ensemble-volets"></div>
+    <p class="ensemble-total" id="ensemble-total" hidden></p>
+    <p class="bandeau" id="ensemble-reserve" hidden></p>
+    <p class="actions" id="ensemble-actions"></p>
   </section>
 
   <p class="pied">
@@ -2138,6 +2172,307 @@ const euros = (v) => {
   return `${n < 0 ? '-' : ''}${groupe},${decimales} €`;
 };
 
+/* ===== ensemble.js ===== */
+/**
+ * Le projet complet : la vidéosurveillance et l'alarme, ensemble.
+ *
+ * Les deux études vivent sur deux pages, et c'est juste — les questions n'ont
+ * rien à voir. Mais le client, lui, n'a qu'un seul projet : il protège un
+ * lieu. Tant que les deux pages s'ignorent, il remplit deux formulaires, en
+ * ressort avec deux estimations séparées, et l'agence reçoit deux demandes au
+ * lieu d'un chantier.
+ *
+ * Ce module les recoud. Chaque page dépose son résultat dans un rangement
+ * commun ; celle qui s'ouvre ensuite y trouve l'autre volet et propose le
+ * total des deux.
+ *
+ * DEUX RÈGLES D'HONNÊTETÉ, tenues par `combiner()` :
+ *
+ * - un volet non chiffré ne disparaît pas du total, il le rend PARTIEL, et
+ *   le dire est obligatoire. Additionner ce qui est chiffré et présenter la
+ *   somme comme le prix du projet serait un mensonge par omission ;
+ * - une étude vieille de plusieurs semaines est signalée. Un client qui
+ *   revient en février sur une estimation d'octobre doit savoir qu'elle date,
+ *   sinon il la croit valable et l'agence hérite du malentendu.
+ *
+ * Rien ne quitte l'appareil du visiteur : le rangement est celui du
+ * navigateur, et les deux pages y accèdent parce qu'elles sont servies par le
+ * même domaine.
+ *
+ * Module pur (aucune dépendance au DOM), testé sous Node.
+ */
+
+/*
+ * Le même formateur que les deux devis.
+ *
+ * `toFixed(2)` sur le flottant brut donnait 1590,49 € au courriel là où
+ * l'écran affichait 1 590,50 € : deux chiffres différents pour la même
+ * estimation, dans le même envoi. Un client qui le remarque a raison de
+ * douter du reste.
+ */
+
+/** Le rangement commun aux deux pages. */
+const CLE_ENSEMBLE = 'ngsecurity-projet-complet';
+
+/**
+ * Les deux volets d'un projet.
+ *
+ * `page` est relative : les deux pages se trouvent qu'elles soient servies à
+ * la racine d'un domaine, sous un sous-dossier ou dans un cadre.
+ */
+const VOLETS = {
+  video: {
+    cle: 'video',
+    label: 'Vidéosurveillance',
+    page: '../devis/',
+    invitation: 'Savoir combien de caméras il vous faut, et ce que cela coûte',
+  },
+  alarme: {
+    cle: 'alarme',
+    label: 'Alarme anti-intrusion',
+    page: '../alarme/',
+    invitation: 'Savoir combien de détecteurs il vous faut, et à quels endroits',
+  },
+};
+
+/** Au-delà, une étude enregistrée mérite d'être refaite. */
+const JOURS_PEREMPTION = 30;
+
+/** Âge d'une étude, en jours. `null` si la date est absente ou illisible. */
+function anciennete(volet, maintenant = Date.now()) {
+  const t = Date.parse(volet?.enregistreLe || '');
+  if (!Number.isFinite(t)) return null;
+  return Math.max(0, Math.floor((maintenant - t) / 86400000));
+}
+
+/**
+ * Réunit les volets connus.
+ *
+ * @param {object} volets rangement { video, alarme }
+ * @returns {{volets: object[], manquants: object[], totalHt: number,
+ *   totalTtc: number, chiffre: boolean, partiel: boolean, nonChiffres: string[]}}
+ */
+function combiner(volets = {}, maintenant = Date.now()) {
+  const liste = Object.keys(VOLETS)
+    .map((cle) => volets?.[cle])
+    .filter((v) => v && VOLETS[v.cle])
+    .map((v) => ({ ...v, jours: anciennete(v, maintenant) }));
+
+  const chiffres = liste.filter((v) => v.chiffre && v.totalTtc > 0);
+  const nonChiffres = liste.filter((v) => !(v.chiffre && v.totalTtc > 0));
+
+  return {
+    volets: liste,
+    // Ce qu'il reste à faire — c'est ce qui se propose au visiteur.
+    manquants: Object.values(VOLETS).filter((d) => !liste.some((v) => v.cle === d.cle)),
+    totalHt: chiffres.reduce((s, v) => s + (Number(v.totalHt) || 0), 0),
+    totalTtc: chiffres.reduce((s, v) => s + (Number(v.totalTtc) || 0), 0),
+    /** Tous les volets présents portent un prix. */
+    chiffre: liste.length > 0 && nonChiffres.length === 0,
+    /** Une partie seulement est chiffrée : le total ne vaut pas pour le projet. */
+    partiel: chiffres.length > 0 && nonChiffres.length > 0,
+    nonChiffres: nonChiffres.map((v) => VOLETS[v.cle].label),
+    /** Les études qui ont pris de l'âge. */
+    anciens: liste.filter((v) => v.jours !== null && v.jours > JOURS_PEREMPTION),
+    /** Les deux volets sont là : c'est un projet, plus une estimation. */
+    complet: liste.length >= Object.keys(VOLETS).length,
+  };
+}
+
+/**
+ * Le récapitulatif à joindre à une demande.
+ *
+ * Une seule demande pour les deux volets : l'agence voit le chantier entier,
+ * et le client n'écrit qu'une fois.
+ */
+function texteEnsemble(ens) {
+  if (!ens || !ens.volets.length) return [];
+  const lignes = ['', 'PROJET COMPLET'];
+  for (const v of ens.volets) {
+    lignes.push(`- ${VOLETS[v.cle].label} : ${v.resume || 'étude enregistrée'}`);
+    if (v.chiffre && v.totalTtc > 0) {
+      lignes.push(`  estimation : ${euros(v.totalTtc)} TTC`);
+    } else {
+      lignes.push('  estimation : non chiffrée sur le site');
+    }
+    if (v.jours !== null && v.jours > JOURS_PEREMPTION) {
+      lignes.push(`  (étude enregistrée il y a ${v.jours} jours)`);
+    }
+  }
+  /*
+   * Pas de total quand il n'y a qu'un volet : « total des deux volets » sous
+   * une seule étude se lit comme une erreur de calcul, et la ligne du volet
+   * porte déjà son montant.
+   */
+  if (ens.volets.length < 2) return lignes;
+  if (ens.chiffre) {
+    lignes.push(`Total des deux volets : ${euros(ens.totalTtc)} TTC.`);
+  } else if (ens.partiel) {
+    lignes.push(`Total partiel : ${euros(ens.totalTtc)} TTC — `
+      + `${ens.nonChiffres.join(' et ')} restant à chiffrer.`);
+  }
+  return lignes;
+}
+
+/* ------------------------------------------------------- le rangement */
+
+/**
+ * Lit le rangement commun.
+ *
+ * Il peut être inaccessible — navigation privée, cookies bloqués — ou
+ * contenir n'importe quoi : c'est une donnée que l'on n'a pas écrite soi-même
+ * dans cette page. Une lecture qui échoue rend un projet vide, jamais une
+ * erreur : la page doit fonctionner sans.
+ */
+function lireVolets(rangement = globalThis.localStorage) {
+  try {
+    const brut = rangement?.getItem(CLE_ENSEMBLE);
+    if (!brut) return {};
+    const lu = JSON.parse(brut);
+    return lu && typeof lu === 'object' && !Array.isArray(lu) ? lu : {};
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Dépose le volet de la page courante, sans toucher à l'autre.
+ *
+ * @returns {object} le rangement tel qu'il vient d'être écrit
+ */
+function noterVolet(cle, volet, rangement = globalThis.localStorage) {
+  if (!VOLETS[cle]) return lireVolets(rangement);
+  const tout = lireVolets(rangement);
+  tout[cle] = {
+    cle,
+    resume: String(volet?.resume || '').slice(0, 400),
+    lignes: (volet?.lignes || []).slice(0, 40)
+      .map((l) => ({ role: String(l.role || ''), quantite: Number(l.quantite) || 0 })),
+    totalHt: Number(volet?.totalHt) || 0,
+    totalTtc: Number(volet?.totalTtc) || 0,
+    chiffre: !!volet?.chiffre,
+    enregistreLe: new Date().toISOString(),
+  };
+  try {
+    rangement?.setItem(CLE_ENSEMBLE, JSON.stringify(tout));
+  } catch {
+    // Rangement plein ou refusé : la page marche, le rapprochement non.
+  }
+  return tout;
+}
+
+/* ===== ensemble-vue.js ===== */
+/**
+ * Affichage du projet complet, partagé par les deux pages d'estimation.
+ *
+ * Le calcul est dans `ensemble.js` ; ici, seulement ce qui se voit. Les deux
+ * pages montrent exactement le même bloc : un client qui passe de l'une à
+ * l'autre ne doit pas croire avoir changé d'outil.
+ *
+ * Construit avec les fonctions du document plutôt qu'en assemblant du HTML :
+ * les résumés viennent d'un rangement de navigateur, écrit par l'AUTRE page.
+ * C'est une donnée qu'on ne maîtrise pas au moment où on l'affiche, et une
+ * apostrophe de travers n'a pas à pouvoir devenir du balisage.
+ */
+
+
+
+
+const noeud = (balise, classe, texte) => {
+  const n = document.createElement(balise);
+  if (classe) n.className = classe;
+  if (texte !== undefined) n.textContent = texte;
+  return n;
+};
+
+/** Une ligne de récapitulatif par volet. */
+function ligneVolet(v) {
+  const d = VOLETS[v.cle];
+  const bloc = noeud('div', 'volet');
+  bloc.append(noeud('b', null, d.label));
+  if (v.resume) bloc.append(noeud('span', 'apercu', v.resume));
+
+  const chiffre = v.chiffre && v.totalTtc > 0;
+  bloc.append(noeud('span', chiffre ? 'montant' : 'montant absent',
+    chiffre ? `${euros(v.totalTtc)} TTC` : 'non chiffré sur le site'));
+
+  if (v.jours !== null && v.jours > JOURS_PEREMPTION) {
+    bloc.append(noeud('span', 'age',
+      `Étude enregistrée il y a ${v.jours} jours — à refaire si votre projet a changé.`));
+  }
+  return bloc;
+}
+
+/**
+ * Dépose le volet de la page courante et affiche le projet complet.
+ *
+ * @param {string} cleCourante 'video' ou 'alarme'
+ * @param {object} volet résumé de l'estimation de cette page
+ * @returns {object|null} le projet réuni, pour la demande par courriel
+ */
+function afficherEnsemble(cleCourante, volet) {
+  const hote = $('#ensemble');
+  if (!hote) return null;
+
+  const ens = combiner(noterVolet(cleCourante, volet));
+  const liste = $('#ensemble-volets');
+  liste.replaceChildren(...ens.volets.map(ligneVolet));
+
+  /*
+   * Un seul volet : la page ne récapitule rien, elle propose l'autre étude.
+   * Deux volets : elle additionne, et dit tout de suite si le total est
+   * partiel — une somme présentée comme le prix du projet quand une moitié
+   * n'est pas chiffrée serait un mensonge par omission.
+   */
+  const intro = $('#ensemble-intro');
+  if (ens.complet) {
+    intro.textContent = ens.chiffre
+      ? 'Vos deux études réunies. Une seule demande suffit : nous recevrons '
+        + 'le projet entier.'
+      : 'Vos deux études réunies. Une seule demande suffit pour les deux.';
+  } else {
+    intro.textContent = 'Protéger un lieu, c\'est souvent les deux : voir sans '
+      + 'être vu ne sert à rien si personne n\'est prévenu, et une alarme qui '
+      + 'sonne ne dit pas qui est entré.';
+  }
+
+  const total = $('#ensemble-total');
+  const montrerTotal = ens.volets.length > 1 && ens.totalTtc > 0;
+  total.hidden = !montrerTotal;
+  if (montrerTotal) {
+    total.replaceChildren(
+      noeud('span', 'intitule', ens.chiffre ? 'Total des deux volets' : 'Total partiel'),
+      noeud('b', null, `${euros(ens.totalTtc)} TTC`),
+    );
+  }
+
+  const reserve = $('#ensemble-reserve');
+  const notes = [];
+  if (ens.partiel) {
+    notes.push(`Ce total ne couvre pas ${ens.nonChiffres.join(' ni ')} : `
+      + 'cette partie reste à chiffrer par l\'agence.');
+  }
+  if (ens.anciens.length) {
+    notes.push('Une de vos études a plus d\'un mois. Vérifiez qu\'elle correspond '
+      + 'toujours à votre projet avant de l\'envoyer.');
+  }
+  reserve.textContent = notes.join(' ');
+  reserve.hidden = notes.length === 0;
+
+  const actions = $('#ensemble-actions');
+  actions.replaceChildren(...ens.manquants.map((d) => {
+    const a = noeud('a', 'btn', d.invitation);
+    a.href = d.page;
+    return a;
+  }));
+
+  hote.hidden = false;
+  return ens;
+}
+
+/** Le projet réuni, sans rien y déposer — pour qui veut seulement lire. */
+const projetReuni = () => combiner(lireVolets());
+
 /* ===== offre.js ===== */
 /**
  * Composition automatique d'une installation, à partir de ce qu'un client sait
@@ -2367,6 +2702,8 @@ const RESERVES = [
 
 
 
+
+
 /**
  * Où la demande d'étude est envoyée.
  *
@@ -2481,7 +2818,25 @@ function calculer() {
 
   dessinerSchema(offre, r);
   $('#reserves').innerHTML = RESERVES.map((x) => `<li>${ech(x)}</li>`).join('');
-  majContact(offre, r, d);
+  /*
+   * Le projet complet.
+   *
+   * Déposé ici plutôt qu'à l'enregistrement : le visiteur qui remplit la
+   * page et s'en va sans rien enregistrer a quand même fait une étude, et
+   * l'autre page doit pouvoir la retrouver.
+   */
+  const ensemble = afficherEnsemble('video', {
+    // Un résumé court, composé pour ce bloc : le texte de l'écran porte déjà
+    // sa propre phrase de prix, qui ferait doublon avec le montant affiché.
+    resume: `${offre.cameras} caméra${offre.cameras > 1 ? 's' : ''}, `
+      + `${offre.jours} jours d'enregistrement`,
+    lignes: lignes.map((l) => ({ role: l.role, quantite: l.quantite })),
+    totalHt: d.totalHt,
+    totalTtc: d.totalTtc,
+    chiffre: d.complet && d.totalTtc > 0,
+  });
+
+  majContact(offre, r, d, ensemble);
 }
 
 /**
@@ -2587,7 +2942,7 @@ function resume(offre, r) {
 }
 
 /** Prépare la demande d'étude, résumé compris. */
-function majContact(offre, r, d) {
+function majContact(offre, r, d, ensemble) {
   const bouton = $('#btn-contact');
   if (!CONTACT) {
     bouton.hidden = true;
@@ -2605,6 +2960,8 @@ function majContact(offre, r, d) {
     `- Écran de supervision : ${r.ecran ? 'oui' : 'non'}`,
     `- Installation par vos soins : ${r.pose ? 'oui' : 'non'}`,
     ...lignesEtude(),
+    // Le second volet, s'il existe : une seule demande pour tout le chantier.
+    ...(ensemble && ensemble.volets.length > 1 ? texteEnsemble(ensemble) : []),
     '',
     `Estimation obtenue sur votre site : ${euros(d.totalTtc)} TTC.`,
     '',
