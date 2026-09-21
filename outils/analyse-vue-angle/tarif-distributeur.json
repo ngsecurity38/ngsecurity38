@@ -34,72 +34,447 @@
   "releve": "21/09/2026",
   "devise": "EUR",
   "colonnePrix": "PVP",
+  "horsTaxes": true,
+  "_horsTaxes_source": "Confirmé par l'agence le 21/09/2026.",
+  "_optiques_relevees": [
+    "FIABILITÉ MOINDRE QUE references-optiques.json, ET C'EST DÉLIBÉRÉ.",
+    "",
+    "Les chiffres ci-dessous viennent d'une recherche web. Les fiches",
+    "constructeur elles-mêmes n'ont PAS pu être ouvertes : l'accès réseau de",
+    "l'atelier bloque assets.hikvision.com, hikvision.com, visiotechsecurity.com",
+    "et les autres hôtes qui les hébergent.",
+    "",
+    "Aucun de ces chiffres ne doit passer dans tarif.json en l'état. Ouvrez la",
+    "fiche nommée en source, vérifiez l'angle horizontal de la focale exacte,",
+    "puis recopiez dans references-optiques.json avec la date de la fiche.",
+    "C'est cette vérification-là qui a déjà évité d'annoncer 63 pixels par",
+    "mètre pour 43 réels sur une autre caméra."
+  ],
   "_a_confirmer": [
-    "PVP = prix d'achat agence, ou prix de vente conseillé ?",
-    "Montants hors taxes ou toutes taxes comprises ?"
+    "PVP = prix d'ACHAT agence, ou prix de VENTE conseillé ? Seule question encore ouverte, et elle décide de tout : inscrit en prixAchat, le devis ajoute 25 % de marge ; inscrit en prixVente, il n'en ajoute aucune."
   ],
   "articles": [
-    { "reference": "DS-2CD1043G0-I(2.8mm)(C)", "designation": "Caméra bullet IP Hikvision", "pvp": 117.64, "pourLesOutils": true, "type": "camera", "optiqueConnue": false },
-    { "reference": "DS-2CD1143G0-I(2.8mm)(C)", "designation": "Caméra dôme IP Hikvision", "pvp": 120.14, "pourLesOutils": true, "type": "camera", "optiqueConnue": false },
-    { "reference": "DS-2CD20166G3-IUY/SL(2.8mm)(eF)", "designation": "Caméra bullet IP AcuSense, lumière stroboscopique et avertissement sonore", "pvp": 589.52, "pourLesOutils": true, "type": "camera", "optiqueConnue": false, "_reserve": "La liste annonce « 16MP » et une référence en DS-2CD20166G3 : la gamme DS-2CD2xx6G3 est en 6 MP. Référence et définition à vérifier sur la fiche avant toute reprise." },
-    { "reference": "IPC-B140HA-LUC(4mm)", "designation": "Caméra bullet IP Hilook", "pvp": 68.44, "pourLesOutils": true, "type": "camera", "optiqueConnue": false },
-    { "reference": "IPC-B141H-C(4mm)", "designation": "Caméra bullet IP Hilook", "pvp": 49.18, "pourLesOutils": true, "type": "camera", "optiqueConnue": false },
-    { "reference": "SF-IPB585ZA-8I1", "designation": "Safire Smart — bullet", "pvp": 276.0, "pourLesOutils": true, "type": "camera", "optiqueConnue": false },
-    { "reference": "SF-IPD540ZA-4E1", "designation": "Safire Smart — dôme", "pvp": 210.0, "pourLesOutils": true, "type": "camera", "optiqueConnue": false },
-    { "reference": "SF-B080-2B1", "designation": "Safire Smart", "pvp": 35.5, "pourLesOutils": false, "_reserve": "Désignation trop courte pour savoir de quoi il s'agit." },
-    { "reference": "IMOU-IPC-V7E-U-6X0S2/FSP008", "designation": "Kit caméra AOV PT Plus 6 MP", "pvp": 172.0, "pourLesOutils": false, "_reserve": "Kit autonome sur batterie : hors de la chaîne PoE que composent les pages." },
-    { "reference": "IPC-S2EP-3R0T-EU-IMOU", "designation": "Caméra motorisée Ranger 2 Pro 3 MP", "pvp": 78.0, "pourLesOutils": false, "_reserve": "Caméra d'intérieur grand public." },
-    { "reference": "EZ-CS-W2D-B2", "designation": "Kit Duo Pack Ezviz", "pvp": 330.0, "pourLesOutils": false },
-
-    { "reference": "DS-7732NI-I4(B)", "designation": "Enregistreur réseau Hikvision 32 voies", "pvp": 1299.0, "pourLesOutils": true, "type": "nvr", "canaux": 32, "_source_canaux": "Déduit de la référence DS-7732NI : 32 voies. À confirmer sur la fiche." },
-    { "reference": "iDS-7108HQHI-M1/S(E)", "designation": "Enregistreur 5-en-1 Hikvision, gamme CORE", "pvp": 152.52, "pourLesOutils": false, "_reserve": "Enregistreur analogique HD (DVR). Les pages composent une installation IP : un DVR ne s'y raccorde pas." },
-    { "reference": "iDS-7216HUHI-M2/P(C)/4A+4/1ALM", "designation": "Enregistreur 5-en-1 PoC Hikvision", "pvp": 986.33, "pourLesOutils": false, "_reserve": "DVR PoC, hors chaîne IP." },
-    { "reference": "iDS-7216HUHI-M2/X", "designation": "Enregistreur 5-en-1 Hikvision 16 voies, gamme PRO", "pvp": 648.04, "pourLesOutils": false, "_reserve": "DVR, hors chaîne IP." },
-
-    { "reference": "RG-ES206GC-P", "designation": "Switch PoE Ruijie Reyee L2 infonuagique", "pvp": 89.46, "pourLesOutils": true, "type": "switch", "_a_relever": "ports, portsPoe, budgetPoe — indispensables pour que la page refuse un switch trop petit." },
-    { "reference": "ER603WP-4G-Outdoor", "designation": "Routeur 4G Cat4, jusqu'à 150 Mbit/s", "pvp": 311.12, "pourLesOutils": true, "type": "routeur" },
-
-    { "reference": "AK-C313W-W", "designation": "Moniteur Linux pour portier vidéo", "pvp": 150.0, "pourLesOutils": false },
-    { "reference": "AK-MR01", "designation": "Radar de détection de présence et de chute", "pvp": 434.0, "pourLesOutils": false, "_reserve": "Détection de chute : relève de l'assistance à la personne, pas de l'anti-intrusion." },
-    { "reference": "AK-R20K-LTE", "designation": "Portier vidéo IP en saillie", "pvp": 728.0, "pourLesOutils": false },
-    { "reference": "DS-K1T502DBWX-CE1", "designation": "Contrôle d'accès avec caméra PoE IP65 IK09", "pvp": 346.0, "pourLesOutils": false },
-    { "reference": "DS-K1T502DBWX-E1", "designation": "Contrôle d'accès IP65 IK09", "pvp": 276.0, "pourLesOutils": false },
-    { "reference": "DS-KAB323-W1", "designation": "Boîtier de saillie", "pvp": 14.0, "pourLesOutils": false },
-    { "reference": "SF-AC3121MFD-IPC", "designation": "Contrôle d'accès", "pvp": 300.0, "pourLesOutils": false },
-
-    { "reference": "SF-65WF35-4K", "designation": "Moniteur haute luminosité 65 pouces", "pvp": 3142.0, "pourLesOutils": false },
-    { "reference": "SF-75WF35-4K", "designation": "Moniteur haute luminosité 75 pouces", "pvp": 4336.0, "pourLesOutils": false },
-    { "reference": "SF-SOLARCABLE-Y", "designation": "Câble de panneau solaire", "pvp": 30.0, "pourLesOutils": false },
-    { "reference": "SF-SOLARCABLE-Y4PIN", "designation": "Câble de panneau solaire", "pvp": 30.0, "pourLesOutils": false },
-
-    { "reference": "AQ-HM-G03D", "designation": "Aqara Hub M200", "pvp": 113.4, "pourLesOutils": false, "_reserve": "Domotique Aqara : ce n'est pas une centrale d'alarme certifiée." },
-    { "reference": "AQ-WS-K02D", "designation": "Aqara interrupteur à écran V1 EU", "pvp": 146.8, "pourLesOutils": false },
-    { "reference": "AQ-WS-K07D", "designation": "Aqara interrupteur mural H2", "pvp": 68.0, "pourLesOutils": false },
-    { "reference": "AQ-WS-K08D", "designation": "Aqara interrupteur mural H2", "pvp": 73.0, "pourLesOutils": false },
-
-    { "reference": "ANK-110-10K-B", "designation": "Anker batterie externe légère", "pvp": 42.0, "pourLesOutils": false },
-    { "reference": "ANK-110-10K-W", "designation": "Anker batterie externe légère", "pvp": 42.0, "pourLesOutils": false },
-    { "reference": "ANK-110-20K-B", "designation": "Anker batterie externe légère", "pvp": 60.0, "pourLesOutils": false },
-    { "reference": "ANK-110-20K-W", "designation": "Anker batterie externe légère", "pvp": 60.0, "pourLesOutils": false },
-    { "reference": "ANK-110-26K-B", "designation": "Anker batterie externe", "pvp": 270.0, "pourLesOutils": false },
-    { "reference": "ANK-110-B", "designation": "Anker batterie externe", "pvp": 200.0, "pourLesOutils": false },
-    { "reference": "ANK-1638-10K-B", "designation": "Anker batterie externe Mini", "pvp": 74.0, "pourLesOutils": false },
-    { "reference": "ANK-1638-10K-W", "designation": "Anker batterie externe Mini", "pvp": 74.0, "pourLesOutils": false },
-    { "reference": "ANK-2337-30W1C-W", "designation": "Anker", "pvp": 26.0, "pourLesOutils": false },
-
-    { "reference": "TS-SGATE801-600", "designation": "Tourniquet d'accès bidirectionnel", "pvp": 4360.0, "pourLesOutils": false },
-    { "reference": "TS-SGATE801-800", "designation": "Tourniquet d'accès bidirectionnel", "pvp": 4360.0, "pourLesOutils": false },
-    { "reference": "TS-SGATE801-900", "designation": "Tourniquet d'accès bidirectionnel", "pvp": 4360.0, "pourLesOutils": false },
-    { "reference": "TS-SGATE801-DOOR600", "designation": "Porte pour tourniquet", "pvp": 190.0, "pourLesOutils": false },
-    { "reference": "TS-SGATE801-DOOR900", "designation": "Porte pour tourniquet", "pvp": 190.0, "pourLesOutils": false },
-    { "reference": "TS-SGATE801-L", "designation": "Meuble esclave de tourniquet bidirectionnel", "pvp": 1990.0, "pourLesOutils": false },
-    { "reference": "TS-SGATE801-R", "designation": "Meuble maître de tourniquet bidirectionnel", "pvp": 1990.0, "pourLesOutils": false },
-    { "reference": "TS-SGATE801-M", "designation": "Tourniquet bidirectionnel double", "pvp": 2990.0, "pourLesOutils": false },
-    { "reference": "TS-SGATE801-M-600", "designation": "Tourniquet bidirectionnel double", "pvp": 3370.0, "pourLesOutils": false },
-    { "reference": "TS-SGATE801-M-800", "designation": "Tourniquet bidirectionnel double", "pvp": 3370.0, "pourLesOutils": false },
-    { "reference": "TS-SGATE801-M-900", "designation": "Tourniquet bidirectionnel double", "pvp": 3370.0, "pourLesOutils": false },
-    { "reference": "TS-SGATE804-600", "designation": "Tourniquet d'accès bidirectionnel", "pvp": 5220.0, "pourLesOutils": false },
-    { "reference": "TS-SGATE804-800", "designation": "Tourniquet d'accès bidirectionnel", "pvp": 5220.0, "pourLesOutils": false },
-    { "reference": "TS-SGATE804-900", "designation": "Tourniquet d'accès bidirectionnel", "pvp": 5220.0, "pourLesOutils": false }
+    {
+      "reference": "DS-2CD1043G0-I(2.8mm)(C)",
+      "designation": "Caméra bullet IP Hikvision",
+      "pvp": 117.64,
+      "pourLesOutils": true,
+      "type": "camera",
+      "optiqueConnue": false,
+      "optique": {
+        "resH": 2560,
+        "resV": 1440,
+        "capteur": "1/3\"",
+        "focale": 2.8,
+        "angleH": null,
+        "_conflit": "98° sur la page produit Hikvision, 100° sur d'autres versions de la fiche. L'écart déplace la portée d'identification : à trancher sur la fiche de la révision (C) livrée.",
+        "_source": "Recherche web, septembre 2026. Fiche non consultée : DS-2CD1043G0-I-C_Datasheet_20250617.pdf"
+      }
+    },
+    {
+      "reference": "DS-2CD1143G0-I(2.8mm)(C)",
+      "designation": "Caméra dôme IP Hikvision",
+      "pvp": 120.14,
+      "pourLesOutils": true,
+      "type": "camera",
+      "optiqueConnue": false,
+      "optique": {
+        "resH": 2560,
+        "resV": 1440,
+        "capteur": "1/3\"",
+        "focale": 2.8,
+        "angleH": 98,
+        "porteeIr": 30,
+        "_source": "Recherche web, septembre 2026. Fiche non consultée : DS-2CD1143G0-I-C_Datasheet_20250617.pdf"
+      }
+    },
+    {
+      "reference": "DS-2CD20166G3-IUY/SL(2.8mm)(eF)",
+      "designation": "Caméra bullet IP AcuSense, lumière stroboscopique et avertissement sonore",
+      "pvp": 589.52,
+      "pourLesOutils": true,
+      "type": "camera",
+      "optiqueConnue": false,
+      "optique": {
+        "resH": null,
+        "angleH": null,
+        "_note": "Référence et définition CONFIRMÉES : Hikvision publie une fiche DS-2CD20166G3-IUY/S(L)(RB) du 29/10/2025, et un modèle voisin en 12 MP (DS-2CD20126G3-IUY/SL). La lecture « 16 MP » de la liste est donc juste. Champ de vision non trouvé : à relever."
+      }
+    },
+    {
+      "reference": "IPC-B140HA-LUC(4mm)",
+      "designation": "Caméra bullet IP Hilook",
+      "pvp": 68.44,
+      "pourLesOutils": true,
+      "type": "camera",
+      "optiqueConnue": false,
+      "optique": {
+        "resH": 2560,
+        "resV": 1440,
+        "capteur": "1/2.8\"",
+        "focale": 4,
+        "angleH": 82,
+        "angleV": 45,
+        "_note": "En 2,8 mm le même modèle annonce 104°. La liste porte la version 4 mm.",
+        "_source": "Recherche web, septembre 2026. Fiche non consultée : IPC-B140HA-LUC_Datasheet_20240703.pdf"
+      }
+    },
+    {
+      "reference": "IPC-B141H-C(4mm)",
+      "designation": "Caméra bullet IP Hilook",
+      "pvp": 49.18,
+      "pourLesOutils": true,
+      "type": "camera",
+      "optiqueConnue": false,
+      "optique": {
+        "resH": 2560,
+        "resV": 1440,
+        "capteur": "1/2.8\"",
+        "focale": 4,
+        "angleH": 82,
+        "angleV": 45,
+        "_source": "Recherche web, septembre 2026. Fiche non consultée : IPC-B141H-C_Datasheet_20260409.pdf"
+      }
+    },
+    {
+      "reference": "SF-IPB585ZA-8I1",
+      "designation": "Safire Smart — bullet",
+      "pvp": 276.0,
+      "pourLesOutils": true,
+      "type": "camera",
+      "optiqueConnue": false,
+      "optique": {
+        "resH": 3840,
+        "resV": 2160,
+        "focaleMin": 2.8,
+        "focaleMax": 12,
+        "porteeIr": 70,
+        "angleH": null,
+        "_source": "Recherche web, septembre 2026. Champ de vision NON TROUVÉ : objectif motorisé, il faut les deux angles (grand-angle et téléobjectif)."
+      }
+    },
+    {
+      "reference": "SF-IPD540ZA-4E1",
+      "designation": "Safire Smart — dôme",
+      "pvp": 210.0,
+      "pourLesOutils": true,
+      "type": "camera",
+      "optiqueConnue": false
+    },
+    {
+      "reference": "SF-B080-2B1",
+      "designation": "Safire Smart",
+      "pvp": 35.5,
+      "pourLesOutils": false,
+      "_reserve": "Désignation trop courte pour savoir de quoi il s'agit."
+    },
+    {
+      "reference": "IMOU-IPC-V7E-U-6X0S2/FSP008",
+      "designation": "Kit caméra AOV PT Plus 6 MP",
+      "pvp": 172.0,
+      "pourLesOutils": false,
+      "_reserve": "Kit autonome sur batterie : hors de la chaîne PoE que composent les pages."
+    },
+    {
+      "reference": "IPC-S2EP-3R0T-EU-IMOU",
+      "designation": "Caméra motorisée Ranger 2 Pro 3 MP",
+      "pvp": 78.0,
+      "pourLesOutils": false,
+      "_reserve": "Caméra d'intérieur grand public."
+    },
+    {
+      "reference": "EZ-CS-W2D-B2",
+      "designation": "Kit Duo Pack Ezviz",
+      "pvp": 330.0,
+      "pourLesOutils": false
+    },
+    {
+      "reference": "DS-7732NI-I4(B)",
+      "designation": "Enregistreur réseau Hikvision 32 voies",
+      "pvp": 1299.0,
+      "pourLesOutils": true,
+      "type": "nvr",
+      "canaux": 32,
+      "_source_canaux": "Déduit de la référence DS-7732NI : 32 voies. À confirmer sur la fiche.",
+      "optique": {
+        "canaux": 32,
+        "_source": "Déduit de la référence DS-7732NI. À confirmer sur la fiche."
+      },
+      "optiqueConnue": false
+    },
+    {
+      "reference": "iDS-7108HQHI-M1/S(E)",
+      "designation": "Enregistreur 5-en-1 Hikvision, gamme CORE",
+      "pvp": 152.52,
+      "pourLesOutils": false,
+      "_reserve": "Enregistreur analogique HD (DVR). Les pages composent une installation IP : un DVR ne s'y raccorde pas."
+    },
+    {
+      "reference": "iDS-7216HUHI-M2/P(C)/4A+4/1ALM",
+      "designation": "Enregistreur 5-en-1 PoC Hikvision",
+      "pvp": 986.33,
+      "pourLesOutils": false,
+      "_reserve": "DVR PoC, hors chaîne IP."
+    },
+    {
+      "reference": "iDS-7216HUHI-M2/X",
+      "designation": "Enregistreur 5-en-1 Hikvision 16 voies, gamme PRO",
+      "pvp": 648.04,
+      "pourLesOutils": false,
+      "_reserve": "DVR, hors chaîne IP."
+    },
+    {
+      "reference": "RG-ES206GC-P",
+      "designation": "Switch PoE Ruijie Reyee L2 infonuagique",
+      "pvp": 89.46,
+      "pourLesOutils": true,
+      "type": "switch",
+      "_a_relever": "ports, portsPoe, budgetPoe — indispensables pour que la page refuse un switch trop petit.",
+      "optique": {
+        "ports": 6,
+        "portsPoe": 4,
+        "budgetPoe": 54,
+        "_note": "Quatre ports PoE et 54 W : ce switch ne tient que quatre caméras, et moins si elles consomment plus de 13 W. La page le refusera d'elle-même au-delà.",
+        "_source": "Recherche web, septembre 2026. Fiche constructeur non consultée."
+      },
+      "optiqueConnue": false
+    },
+    {
+      "reference": "ER603WP-4G-Outdoor",
+      "designation": "Routeur 4G Cat4, jusqu'à 150 Mbit/s",
+      "pvp": 311.12,
+      "pourLesOutils": true,
+      "type": "routeur"
+    },
+    {
+      "reference": "AK-C313W-W",
+      "designation": "Moniteur Linux pour portier vidéo",
+      "pvp": 150.0,
+      "pourLesOutils": false
+    },
+    {
+      "reference": "AK-MR01",
+      "designation": "Radar de détection de présence et de chute",
+      "pvp": 434.0,
+      "pourLesOutils": false,
+      "_reserve": "Détection de chute : relève de l'assistance à la personne, pas de l'anti-intrusion."
+    },
+    {
+      "reference": "AK-R20K-LTE",
+      "designation": "Portier vidéo IP en saillie",
+      "pvp": 728.0,
+      "pourLesOutils": false
+    },
+    {
+      "reference": "DS-K1T502DBWX-CE1",
+      "designation": "Contrôle d'accès avec caméra PoE IP65 IK09",
+      "pvp": 346.0,
+      "pourLesOutils": false
+    },
+    {
+      "reference": "DS-K1T502DBWX-E1",
+      "designation": "Contrôle d'accès IP65 IK09",
+      "pvp": 276.0,
+      "pourLesOutils": false
+    },
+    {
+      "reference": "DS-KAB323-W1",
+      "designation": "Boîtier de saillie",
+      "pvp": 14.0,
+      "pourLesOutils": false
+    },
+    {
+      "reference": "SF-AC3121MFD-IPC",
+      "designation": "Contrôle d'accès",
+      "pvp": 300.0,
+      "pourLesOutils": false
+    },
+    {
+      "reference": "SF-65WF35-4K",
+      "designation": "Moniteur haute luminosité 65 pouces",
+      "pvp": 3142.0,
+      "pourLesOutils": false
+    },
+    {
+      "reference": "SF-75WF35-4K",
+      "designation": "Moniteur haute luminosité 75 pouces",
+      "pvp": 4336.0,
+      "pourLesOutils": false
+    },
+    {
+      "reference": "SF-SOLARCABLE-Y",
+      "designation": "Câble de panneau solaire",
+      "pvp": 30.0,
+      "pourLesOutils": false
+    },
+    {
+      "reference": "SF-SOLARCABLE-Y4PIN",
+      "designation": "Câble de panneau solaire",
+      "pvp": 30.0,
+      "pourLesOutils": false
+    },
+    {
+      "reference": "AQ-HM-G03D",
+      "designation": "Aqara Hub M200",
+      "pvp": 113.4,
+      "pourLesOutils": false,
+      "_reserve": "Domotique Aqara : ce n'est pas une centrale d'alarme certifiée."
+    },
+    {
+      "reference": "AQ-WS-K02D",
+      "designation": "Aqara interrupteur à écran V1 EU",
+      "pvp": 146.8,
+      "pourLesOutils": false
+    },
+    {
+      "reference": "AQ-WS-K07D",
+      "designation": "Aqara interrupteur mural H2",
+      "pvp": 68.0,
+      "pourLesOutils": false
+    },
+    {
+      "reference": "AQ-WS-K08D",
+      "designation": "Aqara interrupteur mural H2",
+      "pvp": 73.0,
+      "pourLesOutils": false
+    },
+    {
+      "reference": "ANK-110-10K-B",
+      "designation": "Anker batterie externe légère",
+      "pvp": 42.0,
+      "pourLesOutils": false
+    },
+    {
+      "reference": "ANK-110-10K-W",
+      "designation": "Anker batterie externe légère",
+      "pvp": 42.0,
+      "pourLesOutils": false
+    },
+    {
+      "reference": "ANK-110-20K-B",
+      "designation": "Anker batterie externe légère",
+      "pvp": 60.0,
+      "pourLesOutils": false
+    },
+    {
+      "reference": "ANK-110-20K-W",
+      "designation": "Anker batterie externe légère",
+      "pvp": 60.0,
+      "pourLesOutils": false
+    },
+    {
+      "reference": "ANK-110-26K-B",
+      "designation": "Anker batterie externe",
+      "pvp": 270.0,
+      "pourLesOutils": false
+    },
+    {
+      "reference": "ANK-110-B",
+      "designation": "Anker batterie externe",
+      "pvp": 200.0,
+      "pourLesOutils": false
+    },
+    {
+      "reference": "ANK-1638-10K-B",
+      "designation": "Anker batterie externe Mini",
+      "pvp": 74.0,
+      "pourLesOutils": false
+    },
+    {
+      "reference": "ANK-1638-10K-W",
+      "designation": "Anker batterie externe Mini",
+      "pvp": 74.0,
+      "pourLesOutils": false
+    },
+    {
+      "reference": "ANK-2337-30W1C-W",
+      "designation": "Anker",
+      "pvp": 26.0,
+      "pourLesOutils": false
+    },
+    {
+      "reference": "TS-SGATE801-600",
+      "designation": "Tourniquet d'accès bidirectionnel",
+      "pvp": 4360.0,
+      "pourLesOutils": false
+    },
+    {
+      "reference": "TS-SGATE801-800",
+      "designation": "Tourniquet d'accès bidirectionnel",
+      "pvp": 4360.0,
+      "pourLesOutils": false
+    },
+    {
+      "reference": "TS-SGATE801-900",
+      "designation": "Tourniquet d'accès bidirectionnel",
+      "pvp": 4360.0,
+      "pourLesOutils": false
+    },
+    {
+      "reference": "TS-SGATE801-DOOR600",
+      "designation": "Porte pour tourniquet",
+      "pvp": 190.0,
+      "pourLesOutils": false
+    },
+    {
+      "reference": "TS-SGATE801-DOOR900",
+      "designation": "Porte pour tourniquet",
+      "pvp": 190.0,
+      "pourLesOutils": false
+    },
+    {
+      "reference": "TS-SGATE801-L",
+      "designation": "Meuble esclave de tourniquet bidirectionnel",
+      "pvp": 1990.0,
+      "pourLesOutils": false
+    },
+    {
+      "reference": "TS-SGATE801-R",
+      "designation": "Meuble maître de tourniquet bidirectionnel",
+      "pvp": 1990.0,
+      "pourLesOutils": false
+    },
+    {
+      "reference": "TS-SGATE801-M",
+      "designation": "Tourniquet bidirectionnel double",
+      "pvp": 2990.0,
+      "pourLesOutils": false
+    },
+    {
+      "reference": "TS-SGATE801-M-600",
+      "designation": "Tourniquet bidirectionnel double",
+      "pvp": 3370.0,
+      "pourLesOutils": false
+    },
+    {
+      "reference": "TS-SGATE801-M-800",
+      "designation": "Tourniquet bidirectionnel double",
+      "pvp": 3370.0,
+      "pourLesOutils": false
+    },
+    {
+      "reference": "TS-SGATE801-M-900",
+      "designation": "Tourniquet bidirectionnel double",
+      "pvp": 3370.0,
+      "pourLesOutils": false
+    },
+    {
+      "reference": "TS-SGATE804-600",
+      "designation": "Tourniquet d'accès bidirectionnel",
+      "pvp": 5220.0,
+      "pourLesOutils": false
+    },
+    {
+      "reference": "TS-SGATE804-800",
+      "designation": "Tourniquet d'accès bidirectionnel",
+      "pvp": 5220.0,
+      "pourLesOutils": false
+    },
+    {
+      "reference": "TS-SGATE804-900",
+      "designation": "Tourniquet d'accès bidirectionnel",
+      "pvp": 5220.0,
+      "pourLesOutils": false
+    }
   ]
 }

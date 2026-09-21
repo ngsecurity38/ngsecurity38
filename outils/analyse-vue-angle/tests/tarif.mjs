@@ -58,8 +58,16 @@ test('le relevé distributeur ne s\'est pas déversé dans le tarif', () => {
         `${a.reference} vient du relevé et porte un prix sans source`);
     }
   }
-  assert.ok(releve._a_confirmer.length >= 2,
-    'les questions en suspens doivent rester écrites dans le fichier');
+  /*
+   * Tant qu'une question reste ouverte, elle reste écrite dans le fichier.
+   * Le hors taxes a été confirmé ; achat ou vente ne l'est pas, et c'est
+   * celle-là qui décide si le devis ajoute 25 % de marge ou aucune.
+   */
+  assert.equal(releve.horsTaxes, true, 'le hors taxes est tranché');
+  assert.ok(releve._a_confirmer.length >= 1,
+    'la question encore ouverte doit rester écrite dans le fichier');
+  assert.ok(releve._a_confirmer.some((q) => /ACHAT.*VENTE|achat.*vente/.test(q)),
+    `la question qui bloque : ${JSON.stringify(releve._a_confirmer)}`);
 });
 
 test('le relevé est complet et daté', () => {
@@ -80,6 +88,25 @@ test('le relevé est complet et daté', () => {
     assert.ok(!vues.has(a.reference), `référence en double : ${a.reference}`);
     vues.add(a.reference);
   }
+});
+
+test('une optique trouvée par recherche ne vaut pas une fiche constructeur', () => {
+  /*
+   * Les fiches elles-mêmes n'ont pas pu être ouvertes : l'accès réseau de
+   * l'atelier bloque les hôtes qui les hébergent. Ce qui a été trouvé
+   * autrement reste dans le relevé, marqué comme non vérifié — c'est cette
+   * exigence qui a déjà évité d'annoncer 63 pixels par mètre pour 43 réels.
+   */
+  const avecOptique = releve.articles.filter((a) => a.optique);
+  assert.ok(avecOptique.length > 0);
+  for (const a of avecOptique) {
+    assert.equal(a.optiqueConnue, false,
+      `${a.reference} : une recherche web ne vaut pas relevé sur la fiche`);
+    assert.ok(a.optique._source || a.optique._note,
+      `${a.reference} : d'où vient le chiffre ?`);
+  }
+  assert.ok(releve._optiques_relevees.join(' ').includes('FIABILITÉ MOINDRE'),
+    'le fichier doit dire ce que valent ces chiffres');
 });
 
 test('une caméra sans optique relevée est signalée comme telle', () => {
