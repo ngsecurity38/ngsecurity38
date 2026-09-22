@@ -401,7 +401,7 @@ const VUES = [
         + 'et le talus ne sont pas un obstacle. Le portail protège du véhicule, '
         + 'pas du piéton.',
     ],
-    cameras: ['C1', 'C2'],
+    cameras: ['P1'],
   },
   {
     cle: 'cour',
@@ -417,7 +417,7 @@ const VUES = [
       'Éclairage nocturne non constaté. Au-delà de la portée de l\'infrarouge, '
         + 'une caméra ne voit rien la nuit, quels que soient ses pixels.',
     ],
-    cameras: ['C3', 'C4'],
+    cameras: ['P2', 'P4'],
   },
   {
     cle: 'quai',
@@ -435,7 +435,7 @@ const VUES = [
       'Un projecteur est déjà fixé en façade, au-dessus de la porte : point '
         + 'd\'alimentation possible, à vérifier.',
     ],
-    cameras: ['C5', 'C6'],
+    cameras: ['P3'],
   },
   {
     cle: 'halle',
@@ -455,7 +455,7 @@ const VUES = [
         + 'remontés, ils couperont les champs : l\'implantation doit être '
         + 'arrêtée sur le plan de stockage définitif, pas sur une halle vide.',
     ],
-    cameras: ['C7'],
+    cameras: [],
   },
   {
     cle: 'stock',
@@ -477,7 +477,7 @@ const VUES = [
       'La charpente métallique et le bandeau technique en partie haute offrent des '
         + 'appuis et un cheminement de câble déjà en place, à vérifier.',
     ],
-    cameras: ['C9'],
+    cameras: ['P7'],
   },
   {
     cle: 'rideau',
@@ -493,7 +493,7 @@ const VUES = [
       'Racks en cours de montage sur la droite : ils définiront les allées, '
         + 'donc les seuls axes où une caméra voit quelque chose.',
     ],
-    cameras: ['C8', 'C9'],
+    cameras: [],
   },
   {
     cle: 'sas',
@@ -519,8 +519,8 @@ const VUES = [
         + 'la température et la condensation conditionnent le choix du matériel '
         + 'et sa fixation — à relever.',
     ],
-    cameras: [],
-    manque: 'Aucune des neuf caméras ne couvre ce sas ni son issue de secours. '
+    cameras: ['P10'],
+    manqueRetire: 'Aucune des neuf caméras ne couvre ce sas ni son issue de secours. '
       + 'C\'est une lacune, pas un oubli de rédaction : le parc a été arrêté sur '
       + 'cinq vues, et cette zone n\'en faisait pas partie.',
   },
@@ -545,7 +545,7 @@ const VUES = [
         + 'allées éclairées et le dessous des racks, qui reste sombre en plein jour.',
     ],
     cameras: [],
-    manque: 'Ni le parc de chariots ni les allées de racks ne sont couverts.',
+    manque: 'Le parc de chariots et les allées de racks n\'ont pas de caméra dédiée au plan.',
   },
   {
     cle: 'volumeArriere',
@@ -568,7 +568,7 @@ const VUES = [
         + 'extrémité ne rendra compte que du premier tiers.',
     ],
     cameras: [],
-    manque: 'Le second rideau métallique et le volume arrière ne sont pas couverts.',
+    manque: 'Le second rideau métallique n\'a pas de caméra dédiée au plan.',
   },
   {
     cle: 'porteVitree',
@@ -589,7 +589,7 @@ const VUES = [
         + 'L\'implantation définitive doit attendre l\'état final des racks.',
     ],
     cameras: [],
-    manque: 'L\'allée de racks et la porte vitrée de fond ne sont pas couvertes.',
+    manque: 'L\'allée de racks et la porte vitrée de fond n\'ont pas de caméra dédiée au plan.',
   },
 ];
 
@@ -601,174 +601,89 @@ const VUES = [
  */
 const CAMERAS = [
   {
-    cle: 'C1',
-    vue: 'entree',
-    modele: 'varifocal',
-    tele: true,
+    cle: 'P1', vue: 'entree', modele: 'varifocal', tele: true, hauteur: 4,
     role: 'Identification à l\'entrée',
-    pose: 'Angle du bâtiment, à 4 m environ, orientée vers le portail',
+    pose: 'En cour, à l\'extrémité du quai, 4 m, orientée vers le portail',
     bande: 0.5,
-    attendu: 'Plaque d\'immatriculation et conducteur. C\'est la seule caméra du '
-      + 'parc capable d\'identifier au-delà de cinq mètres : elle doit être '
-      + 'réglée au téléobjectif et tenue sur cet axe.',
+    attendu: 'Plaque d\'immatriculation et conducteur. Réglée au téléobjectif, '
+      + 'elle identifie jusqu\'à vingt-huit mètres et sept — au-delà, elle '
+      + 'voit un véhicule sans le nommer.',
   },
   {
-    cle: 'C2',
-    vue: 'entree',
-    modele: 'turret',
-    role: 'Contexte de l\'entrée',
-    pose: 'Même support, à 3 m, champ large',
+    cle: 'P2', vue: 'cour', modele: 'varifocal', tele: true, hauteur: 4,
+    role: 'Limite arrière — rideau d\'arbres',
+    pose: 'En cour, 4 m, orientée vers la limite boisée',
     bande: 0.5,
-    attendu: 'Le contexte : qui accompagne le véhicule, dans quel sens, à quelle '
-      + 'heure. Elle ne remplace pas C1 — au-delà de 4,5 m elle ne permet plus '
-      + 'd\'identifier qui que ce soit.',
+    attendu: 'Le point faible du site : la limite arrière n\'a pas de clôture '
+      + 'continue. Au téléobjectif, elle tient l\'axe d\'approche plutôt que '
+      + 'la largeur.',
   },
   {
-    cle: 'C3',
-    vue: 'cour',
-    modele: 'varifocal',
-    tele: false,
-    role: 'Surveillance générale de la cour',
-    pose: 'En façade, 4 à 5 m, champ large',
+    cle: 'P3', vue: 'quai', modele: 'panoramique', hauteur: 3.5,
+    role: 'Quai de chargement — balayage 180°',
+    pose: 'En façade du quai, 3,5 m, balayage 180° sur la cour',
     bande: 0.5,
-    attendu: 'La présence et le trajet. Réglée au grand-angle elle couvre '
-      + 'largement mais ne reconnaît personne au-delà d\'une douzaine de mètres.',
+    attendu: 'Tout le linéaire du quai d\'un seul appareil, et la dissuasion : '
+      + 'stroboscope et message sonore sur détection humaine. Caméra de '
+      + 'contexte — elle n\'identifie pas au-delà de trois mètres.',
   },
   {
-    cle: 'C4',
-    vue: 'cour',
-    modele: 'panoramique',
-    role: 'Limite arrière et dissuasion',
-    pose: 'Sur mât ou angle de bâtiment, 3,5 m, face au bois',
+    cle: 'P4', vue: 'cour', modele: 'panoramique', hauteur: 3.5,
+    role: 'Balayage de la cour',
+    pose: 'À l\'angle du bâtiment, 3,5 m, balayage 180° sur la cour',
     bande: 0.5,
-    attendu: 'Couvrir d\'un seul appareil l\'angle mort du fond, et dissuader : '
-      + 'stroboscope et message sonore se déclenchent sur détection humaine. '
-      + 'Caméra de contexte — elle n\'identifie pas au-delà de trois mètres.',
+    attendu: 'La moitié de cour que le quai ne voit pas, et la dissuasion à '
+      + 'l\'autre extrémité du site.',
   },
   {
-    cle: 'C5',
-    vue: 'quai',
-    modele: 'varifocal',
-    tele: true,
-    role: 'Abords du quai',
-    pose: 'En façade, 4 m, orientée vers la rampe',
+    cle: 'P5', vue: null, modele: 'turret', hauteur: 3,
+    role: 'Volume intérieur — extrémité droite',
+    pose: 'Sous charpente, 3 m',
     bande: 0.5,
-    attendu: 'Reconnaître les personnes qui approchent du quai et lire les '
-      + 'plaques des véhicules à la rampe.',
+    attendu: 'Détecter une présence et suivre un déplacement. Identification '
+      + 'limitée à quatre mètres et demi : elle vaut au passage d\'un seuil, '
+      + 'pas au milieu d\'un volume.',
   },
   {
-    cle: 'C6',
-    vue: 'quai',
-    modele: 'turret',
-    role: 'Porte de quai',
-    pose: 'Au-dessus de la porte, 3 m, plongée sur le seuil',
+    cle: 'P6', vue: null, modele: 'turret', hauteur: 3,
+    role: 'Volume intérieur — circulation centrale',
+    pose: 'Sous charpente, 3 m, dans l\'axe de l\'allée',
     bande: 0.5,
-    attendu: 'Identifier au passage du seuil. Elle doit être À L\'APLOMB de la '
-      + 'porte : à quinze mètres elle ne ferait plus que de la détection.',
+    attendu: 'La circulation principale. Même réserve : au-delà de quatre '
+      + 'mètres et demi, plus de lecture de visage.',
   },
   {
-    cle: 'C7',
-    vue: 'halle',
-    modele: 'turret',
-    role: 'Volume de la halle',
-    pose: 'Sous charpente, 4 m, dans l\'axe de l\'allée',
-    bande: 0.5,
-    attendu: 'Détecter une présence et suivre un déplacement dans le volume. '
-      + 'Pas de lecture de visage à cette distance.',
-  },
-  {
-    cle: 'C8',
-    vue: 'rideau',
-    modele: 'turret',
-    role: 'Rideau métallique',
-    pose: 'À l\'aplomb du rideau, 3 m, vers l\'intérieur',
-    bande: 0.5,
-    attendu: 'Identifier au franchissement. Même règle que C6 : à l\'aplomb, '
-      + 'sinon elle perd tout intérêt.',
-  },
-  {
-    cle: 'C9',
-    vue: 'stock',
-    modele: 'turret',
+    cle: 'P7', vue: 'stock', modele: 'turret', hauteur: 3,
     role: 'Angle de travail et stock',
-    pose: 'En angle des deux murs, 3 m, bissectrice — emplacement exact à confirmer',
+    pose: 'En angle des deux murs, 3 m, bissectrice',
     bande: 0.5,
-    attendu: 'Couvrir les deux directions d\'un seul appareil et tenir le rayonnage '
-      + 'à portée d\'identification. Posée en angle à trois mètres, elle identifie '
-      + 'jusqu\'à quatre mètres et demi : le rayonnage doit se trouver dans cette '
-      + 'distance, sinon elle ne fera que reconnaître.',
+    attendu: 'L\'angle de travail et le stock qui s\'y adosse. Position la '
+      + 'mieux tenue du parc intérieur : deux murs la calent.',
   },
-
-  /*
-   * EXTENSION PROPOSÉE — elle ne fait pas partie du parc déclaré.
-   *
-   * Cinq caméras pour les quatre zones relevées sans couverture. Elles
-   * reprennent les mêmes références que le parc initial : une ligne de plus
-   * au bon de commande, pas un second matériel à apprendre et à maintenir.
-   *
-   * Leurs emplacements disent LA ZONE, pas le point de fixation : aucun relevé
-   * intérieur n'a été fait, et la position exacte dépend des racks, des
-   * portes ouvertes et des alimentations disponibles.
-   */
   {
-    cle: 'C10',
-    vue: 'sas',
-    modele: 'turret',
-    extension: true,
+    cle: 'P8', vue: null, modele: 'turret', hauteur: 3,
+    role: 'Volume intérieur — extrémité gauche',
+    pose: 'Sous charpente, 3 m',
+    bande: 0.5,
+    attendu: 'Le fond gauche du volume, que rien d\'autre ne couvre.',
+  },
+  {
+    cle: 'P9', vue: null, modele: 'turret', hauteur: 3,
+    role: 'Volume intérieur — allée centrale',
+    pose: 'En tête d\'allée, 3 m',
+    bande: 0.5,
+    attendu: 'L\'allée centrale sur sa longueur. Chaque rack est un mur : ce '
+      + 'qui se passe dans l\'allée voisine ne s\'y voit pas.',
+  },
+  {
+    cle: 'P10', vue: 'sas', modele: 'turret', hauteur: 2.8,
     role: 'Sas et issue de secours',
     pose: 'En plafond du sas, 2,8 m, dans l\'axe du couloir',
     bande: 0.5,
-    attendu: 'Identifier au passage. Un couloir force le passage dans un goulot '
-      + 'étroit et à courte distance : c\'est la zone du site où le 2,8 mm est le '
-      + 'plus à son aise. À poser portes ouvertes, pour qu\'un battant ne la masque pas.',
-  },
-  {
-    cle: 'C11',
-    vue: 'chariots',
-    modele: 'varifocal',
-    tele: true,
-    extension: true,
-    role: 'Parc de chariots élévateurs',
-    pose: 'Sur poteau ou charpente, 4 m, dans l\'axe de la rangée',
-    bande: 0.5,
-    attendu: 'Identifier qui approche des chariots. C\'est la concentration de '
-      + 'valeur la plus évidente du site, et la seule optique du parc capable '
-      + 'd\'identifier au-delà de cinq mètres est le motorisé au téléobjectif.',
-  },
-  {
-    cle: 'C12',
-    vue: 'chariots',
-    modele: 'turret',
-    extension: true,
-    role: 'Allée de manutention',
-    pose: 'En tête d\'allée, 3,5 m, vers le fond',
-    bande: 0.5,
-    attendu: 'Rendre compte de la circulation dans l\'allée principale. Chaque '
-      + 'rack est un mur : cette caméra ne voit QUE cette allée, et les autres '
-      + 'resteront sans image tant qu\'on n\'en équipe pas chacune.',
-  },
-  {
-    cle: 'C13',
-    vue: 'volumeArriere',
-    modele: 'turret',
-    extension: true,
-    role: 'Second rideau métallique',
-    pose: 'À l\'aplomb du rideau, 3 m, vers l\'intérieur',
-    bande: 0.5,
-    attendu: 'Identifier au franchissement du second accès véhicule. Même règle '
-      + 'que pour le premier rideau : à l\'aplomb, sinon elle ne fait plus que '
-      + 'de la détection.',
-  },
-  {
-    cle: 'C14',
-    vue: 'porteVitree',
-    modele: 'turret',
-    extension: true,
-    role: 'Porte vitrée de fond',
-    pose: 'Au-dessus de la porte, 3 m, vers l\'allée',
-    bande: 0.5,
-    attendu: 'Identifier au franchissement. Le vitrage impose de la traiter aussi '
-      + 'côté alarme : un contact d\'ouverture ne voit pas une vitre cassée.',
+    attendu: 'Identifier au passage. Un couloir force le passage dans un '
+      + 'goulot étroit et à courte distance : les quatre mètres et demi y '
+      + 'suffisent largement. À poser PORTES OUVERTES, pour qu\'un battant '
+      + 'ne la masque pas.',
   },
 ];
 
@@ -886,12 +801,20 @@ function bandeSurPhoto(vue, cam) {
  * en découle : les proportions, elles, viennent bien de la vue aérienne.
  */
 const SITE = {
-  longueurBatiment: 75,
+  /*
+   * Communiquée par l'agence le 22/09/2026. Elle remplace les 75 m supposés
+   * sur lesquels tout le plan reposait jusque-là : l'échelle, les longueurs
+   * de câble, les distances de pose et le rapport entre ce que couvrent les
+   * caméras et l'étendue du site. Le plan cesse d'être un schéma de
+   * principe sur sa dimension la plus structurante.
+   */
+  longueurBatiment: 100,
   profondeurBatiment: 22,
   annexe: { longueur: 18, profondeur: 10 },
   cour: { profondeur: 62 },
   marge: 12,
-  estime: true,
+  // Longueur communiquée par l'agence ; la profondeur reste supposée.
+  estime: false,
 };
 
 /** Repère du plan : mètres, origine en haut à gauche du terrain. */
@@ -930,22 +853,18 @@ const PLAN = (() => {
  * caméra posée sur le portail même ne verrait que des toits de voiture.
  */
 const IMPLANTATION = {
-  C1: { x: PLAN.portail.x + 16, y: PLAN.portail.y - 22, azimut: 180 },
-  C2: { x: PLAN.portail.x + 24, y: PLAN.portail.y - 22, azimut: 180 },
-  C3: { x: PLAN.bat.x + PLAN.bat.l * 0.24, y: PLAN.cour.y + 1.5, azimut: 168 },
-  C4: { x: PLAN.cour.x + PLAN.cour.l - 9, y: PLAN.cour.y + PLAN.cour.p * 0.5, azimut: 250 },
-  C5: { x: PLAN.bat.x + PLAN.bat.l * 0.76, y: PLAN.cour.y + 1.5, azimut: 196 },
-  C6: { x: PLAN.bat.x + PLAN.bat.l * 0.58, y: PLAN.cour.y + 1.5, azimut: 180 },
-  C7: { x: PLAN.bat.x + 3.5, y: PLAN.bat.y + PLAN.bat.p * 0.62, azimut: 90 },
-  C8: { x: PLAN.bat.x + PLAN.bat.l - 3.5, y: PLAN.bat.y + PLAN.bat.p * 0.62, azimut: 270 },
-  // En angle : la bissectrice des deux murs, soit 135° dans ce coin du plan.
-  C9: { x: PLAN.bat.x + PLAN.bat.l * 0.34, y: PLAN.bat.y + 2.5, azimut: 135 },
-  // Extension : positions INDICATIVES, faute de relevé intérieur.
-  C10: { x: PLAN.bat.x + PLAN.bat.l * 0.88, y: PLAN.bat.y + PLAN.bat.p * 0.3, azimut: 170 },
-  C11: { x: PLAN.bat.x + PLAN.bat.l * 0.14, y: PLAN.bat.y + PLAN.bat.p * 0.28, azimut: 95 },
-  C12: { x: PLAN.bat.x + PLAN.bat.l * 0.45, y: PLAN.bat.y + 2.5, azimut: 150 },
-  C13: { x: PLAN.bat.x + PLAN.bat.l * 0.94, y: PLAN.bat.y + PLAN.bat.p * 0.8, azimut: 300 },
-  C14: { x: PLAN.bat.x + PLAN.bat.l * 0.68, y: PLAN.bat.y + PLAN.bat.p * 0.86, azimut: 25 },
+  P1: { x: 104.1, y: 38.5, azimut: 242 },
+  P2: { x: 114.9, y: 35.8, azimut: 233 },
+  // Ramenée sur la façade du quai : le relevé la plaçait dans l'épaisseur
+  // du bâtiment, ce qu'une caméra de quai ne peut pas être.
+  P3: { x: 101.8, y: PLAN.bat.y + PLAN.bat.p, azimut: 180 },
+  P4: { x: 6.7, y: 37.0, azimut: 180 },
+  P5: { x: 87.2, y: 15.2, azimut: 200 },
+  P6: { x: 70.1, y: 23.1, azimut: 81 },
+  P7: { x: 45.5, y: 16.2, azimut: 260 },
+  P8: { x: 43.2, y: 27.3, azimut: 260 },
+  P9: { x: 73.7, y: 14.6, azimut: 130 },
+  P10: { x: 100.0, y: 18.6, azimut: 205 },
 };
 
 /**
@@ -953,10 +872,7 @@ const IMPLANTATION = {
  * chaque caméra. Elles entrent dans le métré : la descente du support au
  * chemin de câbles est du câble comme un autre.
  */
-const HAUTEURS = {
-  C1: 4, C2: 3, C3: 4.5, C4: 3.5, C5: 4, C6: 3, C7: 4,
-  C8: 3, C9: 3, C10: 2.8, C11: 4, C12: 3.5, C13: 3, C14: 3,
-};
+const HAUTEURS = Object.fromEntries(CAMERAS.map((c) => [c.cle, c.hauteur]));
 
 /*
  * Les emplacements qui manquaient au moment de déclarer LOCAL et ACCES :
@@ -985,26 +901,37 @@ ACCES[1].y = PLAN.cour.y;
  */
 const RELAIS = {
   R1: {
-    nom: 'Coffret d\'entrée',
-    x: null, y: null, hauteur: 2.5,
-    contenu: 'Commutateur PoE 8 ports et alimentation 12 V du verrouillage',
-    raison: 'La platine du portail est à plus de cent mètres du local. '
-      + 'L\'alimentation du verrouillage, elle, perdrait à cette distance '
-      + 'une tension qu\'aucune section raisonnable ne rattrape : la placer '
-      + 'au portail est la seule solution propre.',
-  },
-  R2: {
-    nom: 'Relais de halle',
+    nom: 'Coffret d\'extrémité droite',
     x: null, y: null, hauteur: 3,
     contenu: 'Commutateur PoE 8 ports',
-    raison: 'La caméra du fond de cour est hors de portée depuis le local. '
-      + 'Le relais la ramène dans la limite, et raccourcit au passage les '
-      + 'deux caméras de l\'extrémité du bâtiment.',
+    raison: 'Sur cent mètres de bâtiment, l\'extrémité droite est hors de '
+      + 'portée du local, qui est à l\'étage côté bureaux. Le coffret y '
+      + 'ramène cinq postes — les deux varifocals de cour, le panoramique '
+      + 'de quai, la caméra de volume et celle du sas.',
+  },
+  R2: {
+    nom: 'Coffret d\'extrémité gauche',
+    x: null, y: null, hauteur: 3,
+    contenu: 'Commutateur PoE 8 ports et alimentation 12 V du verrouillage',
+    raison: 'Même raison à l\'autre bout, plus le portail : une alimentation '
+      + 'de verrouillage tirée du local perdrait à cette distance une '
+      + 'tension qu\'aucune section raisonnable ne rattrape.',
   },
 };
 
+/**
+ * Ce que chaque coffret dessert. Le reste part directement au local.
+ *
+ * La répartition n'est pas un choix d'organisation mais une conséquence de
+ * la longueur du bâtiment : cent mètres ne se franchissent pas en Ethernet,
+ * et le local est à l'étage, ce qui ajoute encore.
+ */
+const RATTACHEMENT = {
+  P1: 'R1', P2: 'R1', P3: 'R1', P5: 'R1', P10: 'R1',
+  P4: 'R2', A1: 'R2',
+};
+
 /** Ce que chaque coffret dessert. Le reste part directement au local. */
-const RATTACHEMENT = { C1: 'R1', C2: 'R1', A1: 'R1', C4: 'R2', C8: 'R2', C13: 'R2' };
 
 /**
  * Le métré, liaison par liaison.
@@ -1024,10 +951,12 @@ const RATTACHEMENT = { C1: 'R1', C2: 'R1', A1: 'R1', C4: 'R2', C8: 'R2', C13: 'R
 const METRE = (() => {
   const liaisons = [];
 
-  RELAIS.R1.x = IMPLANTATION.C1.x;
-  RELAIS.R1.y = IMPLANTATION.C1.y;
-  RELAIS.R2.x = PLAN.bat.x + PLAN.bat.l * 0.9;
-  RELAIS.R2.y = PLAN.bat.y + PLAN.bat.p * 0.5;
+  // Les coffrets se posent DANS le bâtiment, à chaque extrémité : c'est là
+  // qu'une arrivée 230 V est plausible et qu'un coffret reste accessible.
+  RELAIS.R1.x = PLAN.bat.x + PLAN.bat.l * 0.83;
+  RELAIS.R1.y = PLAN.bat.y + PLAN.bat.p * 0.4;
+  RELAIS.R2.x = PLAN.bat.x + 3;
+  RELAIS.R2.y = PLAN.bat.y + PLAN.bat.p * 0.4;
 
   const depuis = (origine, x, y, montee) => cheminement({
     dx: x - origine.x,
@@ -1163,7 +1092,7 @@ const ALIMS_RACCOURCIES = METRE
 const LIAISONS_LONGUES = METRE.filter((l) => l.verdict && l.verdict.niveau !== 'ok');
 
 /**
- * Le plan d'implantation, à l'échelle de la longueur supposée.
+ * Le plan d'implantation, à l'échelle de la longueur communiquée.
  *
  * L'ordre de tracé compte : le fond, puis les bâtiments PLEINS, puis les
  * champs, puis les contours. Les champs des caméras intérieures se voyaient
@@ -1237,7 +1166,7 @@ function planMasse(options = {}) {
       x2="${px(PLAN.bat.x + PLAN.bat.l)}" y2="${px(PLAN.bat.y - 3)}"/>
     <text x="${px(PLAN.bat.x + PLAN.bat.l / 2)}" y="${px(PLAN.bat.y - 7.5)}"
       font-size="12.5" font-weight="700" text-anchor="middle" stroke="none"
-      >${ech(SITE.longueurBatiment)} m — longueur supposée, à confirmer</text>
+      >${ech(SITE.longueurBatiment)} m — longueur communiquée par l'agence</text>
   </g>`;
 
   const xE = PLAN.largeur - 30;
@@ -1301,20 +1230,16 @@ function planMasse(options = {}) {
  * elles, sont au plan masse.
  */
 const REPERAGE = {
-  C1: { x: 0.300, y: 0.880, azimut: 200 },
-  C2: { x: 0.362, y: 0.880, azimut: 190 },
-  C3: { x: 0.245, y: 0.575, azimut: 160 },
-  C4: { x: 0.830, y: 0.800, azimut: 285 },
-  C5: { x: 0.655, y: 0.575, azimut: 200 },
-  C6: { x: 0.500, y: 0.580, azimut: 180 },
-  C7: { x: 0.160, y: 0.420, azimut: 95 },
-  C8: { x: 0.660, y: 0.505, azimut: 275 },
-  C9: { x: 0.320, y: 0.285, azimut: 145 },
-  C10: { x: 0.800, y: 0.300, azimut: 205 },
-  C11: { x: 0.175, y: 0.300, azimut: 105 },
-  C12: { x: 0.400, y: 0.270, azimut: 165 },
-  C13: { x: 0.805, y: 0.520, azimut: 310 },
-  C14: { x: 0.545, y: 0.485, azimut: 25 },
+  P1: { x: 0.701, y: 0.602, azimut: 181 },
+  P2: { x: 0.792, y: 0.561, azimut: 94 },
+  P3: { x: 0.849, y: 0.299, azimut: 144 },
+  P4: { x: 0.141, y: 0.584, azimut: 308 },
+  P5: { x: 0.681, y: 0.289, azimut: 200 },
+  P6: { x: 0.483, y: 0.432, azimut: 79 },
+  P7: { x: 0.310, y: 0.290, azimut: 262 },
+  P8: { x: 0.310, y: 0.482, azimut: 259 },
+  P9: { x: 0.546, y: 0.284, azimut: 160 },
+  P10: { x: 0.800, y: 0.300, azimut: 205 },
 };
 
 /** Noir dehors, bleu dedans — c'est la clé de lecture de l'image. */
@@ -1440,12 +1365,11 @@ function sectionVue(vue) {
     <ul class="obs">${vue.observations.map((o) => `<li>${ech(o)}</li>`).join('')}</ul>
 
     ${vue.manque ? `<div class="point">
-      <b>Zone non couverte.</b> ${ech(vue.manque)}
-      Deux façons d'y répondre, et elles n'ont pas le même prix&nbsp;:
-      déplacer C7, qui ne fait aujourd'hui qu'une vue d'ensemble de la halle
-      et dont l'apport est le plus faible du parc&nbsp;; ou ajouter une
-      dixième caméra. Le choix appartient au client, et il se fait sur
-      l'enjeu&nbsp;: ce qui est stocké derrière ces portes.
+      <b>Zone sans caméra dédiée.</b> ${ech(vue.manque)}
+      Les quatre postes intérieurs sans vue photographique — P5, P6, P8, P9 —
+      sont au plan dans ce secteur&nbsp;: l'un d'eux la couvre peut-être déjà,
+      et le relevé le dira. Sinon, le choix appartient au client, et il se
+      fait sur l'enjeu&nbsp;: ce qui est stocké là.
     </div>` : ''}
 
     <h3>${cams.length ? 'Caméras proposées' : 'Aucune caméra proposée à ce jour'}</h3>
@@ -1495,7 +1419,7 @@ for (const v of VUES) {
 const logo = image(join(racineOutil, 'img', 'logo.png'), 'png');
 
 const parc = [
-  ['turret', 5], ['varifocal', 3], ['panoramique', 1],
+  ['turret', 6], ['varifocal', 2], ['panoramique', 2],
 ];
 const debitTotal = parc.reduce((s, [cle, n]) => {
   const m = MODELES[cle];
@@ -1509,7 +1433,7 @@ const stockage = (j) => capaciteNecessaire({ debitTotal, jours: j, heuresParJour
  * Il se compare à la bande passante de l'enregistreur, pas à son nombre de
  * voies : c'est elle qui plafonne, et elle plafonne plus tôt.
  */
-const parcEtendu = [['turret', 8], ['varifocal', 4], ['panoramique', 2]];
+const parcEtendu = parc;
 const debitExtension = parcEtendu.reduce((sm, [cle, n]) => {
   const m = MODELES[cle];
   return sm + n * debitEstime({ resH: m.resH, resV: m.resV, codec: 'h265' });
@@ -1548,6 +1472,20 @@ const POE_COFFRET = PARC.filter((c) => RATTACHEMENT[c.cle]);
 const PORTS_UTILISES = POE_DIRECT.length + Object.keys(RELAIS).length;
 const POE_DIRECT_ETENDU = CAMERAS.filter((c) => !RATTACHEMENT[c.cle]);
 const PORTS_ETENDUS = POE_DIRECT_ETENDU.length + Object.keys(RELAIS).length;
+
+/**
+ * Ce que P1 voit réellement du portail.
+ *
+ * Elle est orientée vers lui, comme l'agence l'a arrêté. Reste à savoir ce
+ * que « vers le portail » donne à cette distance : une optique ne se
+ * commande pas à la volonté, elle se commande aux pixels par mètre.
+ */
+const DISTANCE_PORTAIL = (() => {
+  const c = IMPLANTATION.P1;
+  const x = PLAN.portail.x + PLAN.portail.l / 2;
+  return Math.hypot(x - c.x, PLAN.portail.y - c.y);
+})();
+const PORTEES_P1 = portees(MODELES.varifocal, true);
 
 /** La mosaïque qu'impose le parc à l'écran de supervision. */
 const mosaiqueParc = mosaique(PARC.length);
@@ -1898,12 +1836,11 @@ ${planMasse()}
   les turrets sont placées aux seuils et non en surplomb.</p>
 
 <div class="point">
-  <b>Une longueur, et le plan devient exact.</b>
-  La façade du bâtiment, la largeur du portail, l'entraxe de deux poteaux
-  d'éclairage&nbsp;: n'importe laquelle suffit. Tout le reste se recale dessus,
-  y compris les longueurs de câble et les distances de pose. Tant qu'elle n'est
-  pas confirmée, <b>ce plan vaut comme schéma de principe, pas comme document
-  d'exécution</b>.
+  <b>La longueur est connue : 100 mètres.</b> Elle a été communiquée par
+  l'agence et le plan est tracé dessus. Ce qui reste proportionnel, et non
+  mesuré, c'est la profondeur du bâtiment et l'étendue de la cour — relevées
+  sur la vue aérienne. Une seconde cote, la profondeur ou la largeur du
+  portail, achèverait de caler le plan.
 </div>
 
 <div class="alerte">
@@ -1925,43 +1862,25 @@ ${planMasse()}
     couvrant le site serait inexact, et il vaut mieux le dire maintenant
     qu'après la pose.</p>
 
-  <h3 class="sous">Extension proposée&nbsp;: ${ech(EXTENSION.length)} caméras</h3>
-  <p>Elles reprennent les mêmes références que le parc initial — une ligne de
-    plus au bon de commande, pas un second matériel à apprendre et à
-    maintenir. Elles portent les repères ${ech(EXTENSION.map((c) => c.cle).join(', '))}
-    et apparaissent partout en <b>rouge, cerclées de pointillés</b>, pour qu'on
-    ne les confonde jamais avec le parc déclaré.</p>
-  <table>
-    <thead><tr><th>Repère</th><th>Zone</th><th>Modèle</th>
-      <th class="n">Identifie&nbsp;jusqu'à</th></tr></thead>
-    <tbody>${EXTENSION.map((c) => {
-    const m = MODELES[c.modele];
-    const v = VUES.find((x) => x.cle === c.vue);
-    return `<tr><td><b>${ech(c.cle)}</b></td><td>${ech(v.titre)}</td>
-      <td>${ech(m.reference.replace('Hikvision ', ''))}${c.tele ? ' (télé)' : ''}</td>
-      <td class="n">${ech(fr(portees(m, c.tele).identification))} m</td></tr>`;
-  }).join('')}</tbody>
-  </table>
-  <p><b>Ce que l'extension ne règle pas.</b> Une caméra par allée de racks
-    serait nécessaire pour voir toutes les allées&nbsp;: C12 n'en couvre qu'une.
-    Et la profondeur du volume arrière dépasse ce qu'une seule caméra rend.
-    ${restantes.length === 0
-    ? 'Chaque zone relevée reçoit au moins une caméra — ce qui n\'est pas la même chose que d\'être entièrement couverte.'
-    : `${ech(restantes.length)} zone(s) resteraient sans image.`}</p>
-  <p>Le client garde la main&nbsp;: <b>retenir l'extension</b>,
-    <b>arbitrer</b> en actant par écrit que certaines zones restent sans image,
-    ou <b>phaser</b> — les accès et les valeurs d'abord, le volume ensuite.
-    Aucun de ces choix n'appartient à l'installateur.</p>
+  <h3 class="sous">Ce que le parc ne couvre pas</h3>
+  <p>Quatre postes intérieurs — P5, P6, P8 et P9 — figurent au plan sans vue
+    photographique dédiée. Les photos transmises ne montrent pas ces angles,
+    et le document ne prétend donc pas dire ce qu'ils couvrent&nbsp;: leur
+    emplacement vient du tracé de l'agence, leur orientation se confirme au
+    relevé.</p>
+  <p>Le client garde la main&nbsp;: <b>compléter le parc</b>, ou
+    <b>arbitrer</b> en actant par écrit que certaines zones restent sans
+    image. Ce qui ne se défend pas, c'est de ne pas avoir posé la
+    question.</p>
 </div>
 
 ${VUES.map(sectionVue).join('')}
 
 <h2>4. Synthèse du parc</h2>
-<p><b>${ech(PARC.length)} caméras déclarées</b> pour ${ech(couvertes.length)} des
-  ${ech(VUES.length)} zones relevées, et <b>${ech(EXTENSION.length)} proposées en
-  extension</b> pour les ${ech(decouvertes.length)} autres — soit
-  ${ech(CAMERAS.length)} au total si l'extension est retenue. Les lignes en
-  rouge sont celles de l'extension&nbsp;: elles ne sont pas commandées.</p>
+
+<p><b>${ech(String(CAMERAS.length))} caméras</b>, numérotées P1 à P10 selon le
+  plan arrêté par l'agence&nbsp;: quatre à l'extérieur, six à l'intérieur.</p>
+
 <table>
   <thead><tr><th>Repère</th><th>Emplacement</th><th>Modèle</th><th>Rôle</th>
     <th class="n">Identifie&nbsp;jusqu'à</th></tr></thead>
@@ -1969,16 +1888,44 @@ ${VUES.map(sectionVue).join('')}
     ${CAMERAS.map((c) => {
     const m = MODELES[c.modele];
     const vue = VUES.find((v) => v.cle === c.vue);
-    return `<tr${c.extension ? ' class="ext"' : ''}>
+    return `<tr>
         <td><b>${ech(c.cle)}</b></td>
-        <td>${ech(vue.titre)}</td>
-        <td>${ech(m.reference.replace('Hikvision ', ''))}${c.tele ? ' (télé)' : ''}</td>
+        <td>${vue ? ech(vue.titre) : '<i>intérieur — sans vue photographique</i>'}</td>
+        <td>${ech(m.reference.replace('Hikvision ', ''))}${c.tele ? ' (télé 12 mm)' : ''}</td>
         <td>${ech(c.role)}</td>
         <td class="n">${ech(fr(portees(m, c.tele).identification))} m</td>
       </tr>`;
   }).join('')}
   </tbody>
 </table>
+
+<p class="largeur">Quatre postes intérieurs — ${CAMERAS.filter((c) => !c.vue).map((c) => ech(c.cle)).join(', ')} —
+  figurent au plan sans vue photographique dédiée&nbsp;: les photos
+  transmises ne couvrent pas ces angles. Leur emplacement vient du tracé de
+  l'agence, leur orientation reste à confirmer au relevé.</p>
+
+<p class="point"><b>P1 est orientée vers le portail, et le portail est à
+  ${ech(fr(DISTANCE_PORTAIL, 0))} mètres.</b> Réglée à 12 mm, elle identifie
+  un inconnu jusqu'à ${ech(fr(PORTEES_P1.identification))} m et reconnaît une
+  personne connue jusqu'à ${ech(fr(PORTEES_P1.reconnaissance))} m. À
+  ${ech(fr(DISTANCE_PORTAIL, 0))} m, elle <b>observe</b> — elle voit qu'un
+  véhicule entre, à quelle heure et dans quel sens. Elle ne lira pas la
+  plaque et ne nommera pas le conducteur.</p>
+
+<p class="largeur">Ce n'est pas une erreur de choix&nbsp;: c'est une distance.
+  Aucune optique de ce parc ne lit une plaque à cent mètres, et celle-ci est
+  déjà la plus longue du lot. Deux issues, et elles ne coûtent pas la même
+  chose&nbsp;: <b>rapprocher P1 du portail</b> — sous trente mètres, elle
+  identifie — ou <b>assumer que l'entrée est surveillée sans être
+  identifiée</b>, ce qui se dit au client avant la pose et non après un vol.
+  La seconde se défend si l'enjeu est ailleurs&nbsp;; elle ne se défend pas
+  si on a promis une lecture de plaque.</p>
+
+<p class="point"><b>Ce que la commande doit suivre.</b> Le plan demande deux
+  varifocals, deux panoramiques et six turrets. La commande en porte trois,
+  un et cinq&nbsp;: il manque <b>un panoramique et un turret</b>, et un
+  varifocal devient surnuméraire. Ce varifocal n'est pas perdu pour autant —
+  c'est la seule optique du parc qui identifie au-delà de cinq mètres.</p>
 
 <h2>5. Enregistrement et stockage</h2>
 
@@ -1991,9 +1938,6 @@ ${VUES.map(sectionVue).join('')}
   <tbody>
     <tr><td>Caméras au parc retenu</td><td class="n"><b>${PARC.length}</b>
       sur ${EQUIPEMENTS.enregistreur.canaux} voies disponibles</td></tr>
-    <tr><td>Avec les ${EXTENSION.length} caméras d'extension</td>
-      <td class="n"><b>${CAMERAS.length}</b> voies — il en resterait
-      ${EQUIPEMENTS.enregistreur.canaux - CAMERAS.length}</td></tr>
     <tr><td>Débit estimé, parc retenu</td>
       <td class="n"><b>${ech(fr(debitTotal))} Mbit/s</b> sur
       ${EQUIPEMENTS.enregistreur.bandePassante} admis en entrée</td></tr>
@@ -2047,8 +1991,6 @@ ${VUES.map(sectionVue).join('')}
       <td class="n"><b>${PORTS_UTILISES}</b> sur
         ${EQUIPEMENTS.enregistreur.portsPoe} — il en reste
         ${EQUIPEMENTS.enregistreur.portsPoe - PORTS_UTILISES}</td></tr>
-    <tr><td>Avec les ${EXTENSION.length} caméras d'extension</td>
-      <td class="n"><b>${PORTS_ETENDUS}</b> ports occupés</td></tr>
   </tbody>
 </table>
 
@@ -2257,9 +2199,11 @@ ${ACCES.map((a) => `<p class="largeur"><b>${ech(a.cle)} — ${ech(a.nom)}.</b>
   </tbody>
 </table>
 
-<p>Les alimentations et les commandes du portail, elles, fonctionneraient à
-  cent douze mètres — mais à quel prix de cuivre. Le coffret les ramène
-  toutes à ${ech(fr(ALIMS_RACCOURCIES[0].longueur, 0))} mètres&nbsp;:</p>
+${ALIMS_RACCOURCIES.length ? `<p>Les alimentations et les commandes du
+  portail, elles, fonctionneraient à
+  ${ech(fr(ALIMS_RACCOURCIES[0].direct, 0))} mètres — mais à quel prix de
+  cuivre. Le coffret les ramène toutes à
+  ${ech(fr(ALIMS_RACCOURCIES[0].longueur, 0))} mètres&nbsp;:</p>` : ''}
 
 <table>
   <thead>
@@ -2685,7 +2629,7 @@ ${ACCES.map((a) => `<p class="largeur"><b>${ech(a.cle)} — ${ech(a.nom)}.</b>
     arrêtée sur une halle vide sera coupée par les racks.</li>
   <li><b>Les limites de propriété</b>, et ce que chaque caméra verra au-delà.</li>
   <li><b>La distance entre l'angle retenu et le rayonnage.</b> Elle décide si
-    C9 identifie ou se contente de reconnaître : la bascule se fait à quatre
+    P7 identifie ou se contente de reconnaître : la bascule se fait à quatre
     mètres et demi.</li>
 </ul>
 
@@ -2695,10 +2639,12 @@ ${ACCES.map((a) => `<p class="largeur"><b>${ech(a.cle)} — ${ech(a.nom)}.</b>
     prix&nbsp;: aucun montant n'y figure.</li>
   <li>Les caractéristiques optiques sont à confirmer sur les fiches
     constructeur des références exactes commandées.</li>
-  <li>Le plan d'implantation est tracé pour une longueur de bâtiment supposée
-    de ${ech(SITE.longueurBatiment)} m. Aucune dimension du site n'a été
-    mesurée. Le plan est un schéma de principe ; il ne vaut pas plan
-    d'exécution et ne doit pas servir à commander des longueurs de câble.</li>
+  <li>Le plan est tracé sur une longueur de bâtiment de
+    ${ech(SITE.longueurBatiment)} m, communiquée par l'agence. La PROFONDEUR
+    du bâtiment et les dimensions de la cour restent proportionnelles au
+    relevé sur vue aérienne : elles ne sont pas mesurées. Le plan vaut donc
+    pour l'échelle générale et les ordres de grandeur, non comme document
+    d'exécution.</li>
   <li>Les vues aériennes proviennent d'un service de cartographie grand public.
     Elles datent de la prise de vue du service, pas d'aujourd'hui.</li>
   <li>Les vues de matériel sont des visuels catalogue fournis par l'agence,
@@ -2710,7 +2656,7 @@ ${ACCES.map((a) => `<p class="largeur"><b>${ech(a.cle)} — ${ech(a.nom)}.</b>
     qu'une caméra de cour.</b> L'angle relevé en halle comporte des bureaux
     occupés : filmer en continu un salarié à son poste est encadré, et une
     installation qui le ferait sans justification proportionnée s'expose à être
-    contestée — y compris par le salarié lui-même. Le champ de C9 est à orienter
+    contestée — y compris par le salarié lui-même. Le champ de P7 est à orienter
     sur le rayonnage et les circulations, pas sur les plans de travail.
     L'information des salariés et la consultation des représentants du personnel
     obéissent par ailleurs à des règles propres, distinctes de l'information des

@@ -61,7 +61,7 @@ Deux familles de chiffres en dépendent, et pas au même titre :
 
 ## Hypothèses du plan
 
-- Longueur de bâtiment supposée : 75 m. Tout le plan
+- Longueur de bâtiment supposée : 100 m. Tout le plan
   et tout le métré en dépendent. Une seule cote relevée les recale.
 - Emplacement du local technique supposé, côté bureaux. Le déplacer change
   toutes les longueurs de câble.
