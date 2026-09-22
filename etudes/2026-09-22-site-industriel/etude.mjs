@@ -174,6 +174,32 @@ function champHorizontal(chemin) {
   return (2 * Math.atan(Math.tan((CHAMP_TELEPHONE * Math.PI) / 360) * part) * 180) / Math.PI;
 }
 
+/**
+ * Les vues d'ensemble : deux prises aériennes et la façade depuis la voie.
+ *
+ * Elles ne se mesurent pas — ce sont des vues obliques, où une même longueur
+ * ne couvre pas le même nombre de pixels selon qu'elle est au premier ou à
+ * l'arrière-plan. Elles disent en revanche ce qu'aucune photo au sol ne
+ * montre : la forme du site, le nombre d'accès, ce qui borde la propriété.
+ */
+const ENSEMBLE = [
+  {
+    fichier: 'v1-aerienne-large.jpg',
+    legende: 'Vue aérienne d\'ensemble. Le bâtiment principal occupe toute la '
+      + 'longueur du site ; la cour le borde sur sa face la plus longue.',
+  },
+  {
+    fichier: 'v2-aerienne-proche.jpg',
+    legende: 'Vue rapprochée. On distingue l\'auvent et les portes de quai le '
+      + 'long de la façade, et les véhicules stationnés en cour.',
+  },
+  {
+    fichier: 'v3-facade.jpg',
+    legende: 'La façade des bureaux depuis la voie. Deux niveaux, fenêtres '
+      + 'alignées, et des projecteurs déjà fixés en toiture.',
+  },
+];
+
 const VUES = [
   {
     cle: 'entree',
@@ -550,6 +576,8 @@ for (const m of Object.values(MODELES)) {
   if (m.vignette) m.vignetteSrc = image(join(ici, 'photos', m.vignette));
 }
 
+for (const v of ENSEMBLE) v.src = image(join(ici, 'photos', v.fichier));
+
 for (const v of VUES) {
   const chemin = join(ici, 'photos', v.fichier);
   v.src = image(chemin);
@@ -601,6 +629,10 @@ const html = `<!doctype html>
   ul.obs, ul.liste { margin:0 0 12px; padding-left:20px; }
   ul.obs li, ul.liste li { margin-bottom:8px; }
   .prise { color:var(--doux); font-size:14px; }
+  figure.ensemble { margin:0 0 18px; page-break-inside:avoid; }
+  figure.ensemble img { width:100%; display:block; border-radius:8px;
+    border:1px solid var(--bord); }
+  figure.ensemble figcaption { font-size:13.5px; color:var(--doux); margin-top:6px; }
   .camera { border:1px solid var(--bord); border-radius:10px; padding:16px 18px;
     margin:16px 0; page-break-inside:avoid; }
   .puce { display:inline-block; min-width:34px; padding:2px 8px; border-radius:20px;
@@ -708,9 +740,55 @@ ${Object.values(MODELES).map(ficheModele).join('')}
   en surplomb d'une cour.
 </div>
 
+<h2>3. Le site vu d'ensemble</h2>
+
+<p>Trois vues complètent les prises au sol : deux aériennes et la façade depuis
+  la voie. Elles ne se mesurent pas — ce sont des vues obliques, où une même
+  longueur ne couvre pas le même nombre de pixels selon qu'elle est au premier
+  ou à l'arrière-plan. Elles disent en revanche ce qu'aucune photo au sol ne
+  montre.</p>
+
+${ENSEMBLE.map((v) => `<figure class="ensemble">
+  <img src="${v.src}" alt="">
+  <figcaption>${ech(v.legende)}</figcaption>
+</figure>`).join('')}
+
+<h3>Ce que la vue du ciel apprend</h3>
+<ul class="obs">
+  <li><b>Un seul bâtiment, très allongé.</b> La cour le borde sur sa face la
+    plus longue : c'est cette face qui porte les quais, et c'est donc là que se
+    concentre l'exposition.</li>
+  <li><b>Un seul accès carrossable</b>, celui du portail photographié. Tout
+    véhicule y passe — ce qui donne à la caméra d'identification de l'entrée
+    une valeur que rien d'autre ne remplace.</li>
+  <li><b>La cour est vaste et sans obstacle.</b> C'est le point dur de
+    l'affaire, et il est chiffrable : au grand-angle, le bullet motorisé
+    n'observe que jusqu'à
+    ${ech(fr(portees(MODELES.varifocal, false).observation))}&nbsp;m et ne
+    reconnaît personne au-delà de
+    ${ech(fr(portees(MODELES.varifocal, false).reconnaissance))}&nbsp;m. Une
+    cour de cinquante mètres ou plus ne se couvre donc pas d'un bout à l'autre
+    avec ce parc — elle se couvre aux endroits qui comptent.</li>
+  <li><b>La propriété est bordée d'arbres et d'une voie ferrée.</b> Aucune
+    clôture continue n'apparaît sur les vues. Le périmètre n'est pas fermé :
+    les caméras ne remplaceront pas ce qui manque, elles le constateront.</li>
+  <li><b>Des projecteurs sont déjà en place</b> en toiture et en façade. Ils
+    décideront de ce que les caméras voient la nuit bien plus que leur
+    définition : à relever un par un lors du passage.</li>
+</ul>
+
+<div class="avert">
+  <b>Ce qui manque pour tracer le plan d'implantation.</b>
+  Une seule longueur. La façade du bâtiment, la largeur du portail, l'entraxe
+  de deux poteaux d'éclairage&nbsp;: n'importe laquelle suffit, et tout le reste
+  s'en déduit par report sur la vue aérienne. Tant qu'elle manque, aucun plan à
+  l'échelle ne peut être produit — et un plan tracé au jugé serait pire
+  qu'aucun plan.
+</div>
+
 ${VUES.map(sectionVue).join('')}
 
-<h2>Synthèse du parc</h2>
+<h2>4. Synthèse du parc</h2>
 <table>
   <thead><tr><th>Repère</th><th>Emplacement</th><th>Modèle</th><th>Rôle</th>
     <th class="n">Identifie&nbsp;jusqu'à</th></tr></thead>
@@ -729,7 +807,7 @@ ${VUES.map(sectionVue).join('')}
   </tbody>
 </table>
 
-<h2>Réseau, enregistrement, stockage</h2>
+<h2>5. Réseau, enregistrement, stockage</h2>
 <p>Neuf caméras alimentées par le réseau. Le dimensionnement ci-dessous est un
   ordre de grandeur, calculé sur un codec H.265 et un enregistrement continu.
   Un débit réel relevé sur site le remplacera.</p>
@@ -751,7 +829,7 @@ ${VUES.map(sectionVue).join('')}
   avec le client&nbsp;: la durée de conservation est aussi une question
   juridique.</p>
 
-<h2>Ce qu'il reste à mesurer sur place</h2>
+<h2>6. Ce qu'il reste à mesurer sur place</h2>
 <ul class="liste">
   <li><b>Les distances.</b> Pour chaque vue, deux longueurs connues suffisent —
     la largeur du portail, l'entraxe de deux poteaux, la longueur d'une
@@ -769,12 +847,16 @@ ${VUES.map(sectionVue).join('')}
   <li><b>Les limites de propriété</b>, et ce que chaque caméra verra au-delà.</li>
 </ul>
 
-<h2>Réserves et obligations</h2>
+<h2>7. Réserves et obligations</h2>
 <ul class="liste">
   <li>Ce document est une étude technique. Il ne vaut ni devis ni engagement de
     prix&nbsp;: aucun montant n'y figure.</li>
   <li>Les caractéristiques optiques sont à confirmer sur les fiches
     constructeur des références exactes commandées.</li>
+  <li>Les vues aériennes proviennent d'un service de cartographie grand public.
+    Elles datent de la prise de vue du service, pas d'aujourd'hui, et portent
+    un repère commercial qui identifie le voisinage — à retirer si le document
+    doit circuler.</li>
   <li>Les vues de matériel sont des visuels catalogue fournis par l'agence,
     rapprochés de chaque référence à la forme : deux objectifs pour le
     panoramique, un bullet à objectif motorisé pour le varifocal, un turret
