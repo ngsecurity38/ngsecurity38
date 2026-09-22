@@ -52,13 +52,38 @@ const AGENCE = {
   courriel: 'contact@ngsecurity38.com',
   sites: ['ngsecurity38.fr', 'ngsecurity38.com'],
   zone: 'Intervention France et Belgique',
+  /*
+   * Relevées sur les pages publiques de l'agence — conditions de vente et
+   * politique de confidentialité — par recherche documentaire. Les pages
+   * elles-mêmes n'ont PAS pu être ouvertes depuis l'atelier : le réseau y
+   * bloque le domaine. Ces mentions sont donc de seconde main, et le
+   * document le dit tant qu'elles ne sont pas confirmées.
+   */
+  adresse: '2 rue des Drillons, 89150 Vernoy',
+  rcs: 'RCS Sens 518 723 366',
+  aConfirmer: [
+    'L\'adresse et le RCS ci-dessus, relevés sur vos pages publiques.',
+    'Le téléphone : deux numéros apparaissent sur vos pages, '
+      + '07 56 87 61 71 et 07 56 87 62 72. Lequel figure sur un devis ?',
+  ],
   aCompleter: [
-    'Adresse du siège',
-    'Numéro SIRET',
-    'Téléphone',
-    'Assurance responsabilité civile professionnelle (compagnie et numéro de police)',
+    'Le SIRET complet, à quatorze chiffres. Le RCS relevé donne les neuf '
+      + 'premiers (518 723 366, clé de Luhn vérifiée) ; les cinq derniers '
+      + 'identifient l\'établissement et ne se devinent pas.',
+    'Assurance responsabilité civile professionnelle : compagnie et numéro '
+      + 'de police.',
   ],
 };
+
+/**
+ * Passe à `true` le jour où les mentions ci-dessus sont confirmées par
+ * l'agence : l'encadré de la page de garde disparaît alors, et le document
+ * part au client sans rien qui ressemble à une note interne.
+ *
+ * Tant que c'est `false`, l'encadré reste — mieux vaut un rappel visible
+ * qu'une adresse fausse imprimée sur un devis.
+ */
+const MENTIONS_CONFIRMEES = false;
 
 /* ------------------------------------------------------------- le parc */
 
@@ -1283,9 +1308,10 @@ const html = `<!doctype html>
     <div class="coordonnees">
       <p class="nom">${ech(AGENCE.nom)}</p>
       <p>${ech(AGENCE.accroche)}</p>
+      <p>${ech(AGENCE.adresse)}</p>
       <p>${ech(AGENCE.courriel)}</p>
       <p>${AGENCE.sites.map((s) => ech(s)).join(' · ')}</p>
-      <p>${ech(AGENCE.zone)}</p>
+      <p>${ech(AGENCE.rcs)} · ${ech(AGENCE.zone)}</p>
     </div>
   </div>
   <p class="surtitre">Étude technique</p>
@@ -1300,12 +1326,16 @@ const html = `<!doctype html>
     <p><b>Référence :</b> ETU-2026-09-22</p>
   </div>
 
+  ${MENTIONS_CONFIRMEES ? '' : `
   <div class="avert">
-    <b>Mentions à compléter avant remise.</b> Un document remis à un client
-    porte l'identité complète de l'entreprise. Ces éléments ne figurent pas au
-    dossier et n'ont pas été inventés&nbsp;:
+    <b>Mentions à vérifier avant remise.</b> Relevées sur les pages publiques
+    de l'agence par recherche documentaire — les pages elles-mêmes n'ont pas pu
+    être ouvertes. Une adresse ou un numéro faux sur un devis se retourne
+    contre celui qui le signe&nbsp;:
+    ${AGENCE.aConfirmer.map((x) => `<br>— ${ech(x)}`).join('')}
+    <br><br><b>Et ce qui manque encore</b>, qui ne se devine pas&nbsp;:
     ${AGENCE.aCompleter.map((x) => `<br>— ${ech(x)}`).join('')}
-  </div>
+  </div>`}
 </header>
 
 <h2>1. Ce que cette étude affirme, et ce qu'elle propose</h2>
