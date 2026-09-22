@@ -30,6 +30,8 @@ import { debitEstime, capaciteNecessaire, disquesPourBaies, joursTenus }
   from '../../outils/analyse-vue-angle/js/stockage.js';
 import { cheminement, verdictEthernet, bobines, sectionContinu, LIAISON_PERMANENTE, BOBINE }
   from '../../outils/analyse-vue-angle/js/cable.js';
+import { bilan as bilanSecours, energieNecessaire, calibreOnduleur, RENDEMENT, RESERVE }
+  from '../../outils/analyse-vue-angle/js/secours.js';
 import { fr, frGroupe } from '../../outils/analyse-vue-angle/js/format.js';
 
 const ici = dirname(fileURLToPath(import.meta.url));
@@ -1549,6 +1551,60 @@ const PORTS_UTILISES = POE_DIRECT.length + Object.keys(RELAIS).length;
 const POE_DIRECT_ETENDU = CAMERAS.filter((c) => !RATTACHEMENT[c.cle]);
 const PORTS_ETENDUS = POE_DIRECT_ETENDU.length + Object.keys(RELAIS).length;
 
+/* ------------------------------------------------- autonomie sur coupure */
+
+/**
+ * Les trois zones d'alimentation du site.
+ *
+ * Elles sont déduites du rattachement des caméras, jamais écrites à la main :
+ * déplacer une caméra d'un coffret à l'autre change ce tableau tout seul.
+ *
+ * Les puissances ne sont PAS renseignées — ni celle de l'enregistreur, ni le
+ * budget PoE, ni la consommation des caméras ne figurent au relevé
+ * fournisseur. Le document chiffre donc la batterie POUR PLUSIEURS CHARGES,
+ * comme il donne la section du verrouillage pour plusieurs courants. On lit
+ * la ligne de la charge réelle le jour où on la connaît.
+ */
+const ZONES_SECOURS = [
+  {
+    cle: 'local',
+    nom: 'Local technique — enregistreur, disques, box',
+    enregistreur: true,
+    cameras: POE_DIRECT.map((c) => c.cle),
+    detail: 'L\'enregistreur alimente lui-même ces caméras par ses ports PoE : '
+      + 'un seul onduleur les tient toutes.',
+  },
+  {
+    cle: 'R1',
+    nom: `${RELAIS.R1.nom} — commutateur, alimentation du verrouillage, platine`,
+    cameras: PARC.filter((c) => RATTACHEMENT[c.cle] === 'R1').map((c) => c.cle),
+    detail: 'Alimenté par sa propre arrivée 230 V, donc coupé par la même '
+      + 'coupure. Un onduleur au local ne lui apporte rien.',
+  },
+  {
+    cle: 'R2',
+    nom: `${RELAIS.R2.nom} — commutateur`,
+    cameras: PARC.filter((c) => RATTACHEMENT[c.cle] === 'R2').map((c) => c.cle),
+    detail: 'Même situation que le coffret d\'entrée.',
+  },
+];
+
+/** Charges testées, en watts : on ignore la vraie, on encadre. */
+const CHARGES_TESTEES = [80, 120, 160, 200];
+
+/** Durées d'autonomie usuelles, en heures. */
+const DUREES_SECOURS = [0.5, 1, 2, 4];
+
+/**
+ * Le cas que le document doit nommer : l'enregistreur secouru seul.
+ *
+ * C'est la configuration qu'on installe par défaut — un onduleur dans la
+ * baie — et c'est celle qui produit une preuve vide.
+ */
+const SECOURS_PARTIEL = bilanSecours({
+  zones: ZONES_SECOURS.map((z) => ({ ...z, secourue: z.cle === 'local', charge: 1 })),
+});
+
 const AUJOURD_HUI = new Date().toLocaleDateString('fr-FR', {
   day: '2-digit', month: 'long', year: 'numeric',
 });
@@ -2277,7 +2333,124 @@ ${ACCES.map((a) => `<p class="largeur"><b>${ech(a.cle)} — ${ech(a.nom)}.</b>
   ou de rapprocher l'alimentation de la porte. C'est précisément ce que fait
   le coffret d'entrée R1.</p>
 
-<h2>8. Ce qu'il reste à mesurer sur place</h2>
+<h2>8. Autonomie sur coupure de courant</h2>
+
+<p><b>Cet enregistreur n'a pas de batterie</b>, et aucun de cette famille n'en
+  a. Il s'arrête avec le courant, et ses seize ports PoE s'arrêtent avec lui —
+  donc les caméras qu'ils alimentent aussi. L'autonomie ne s'achète pas avec
+  l'enregistreur&nbsp;: elle s'ajoute, et elle se dimensionne.</p>
+
+<p class="largeur">La différence avec l'alarme mérite d'être dite, parce
+  qu'elle surprend&nbsp;: une centrale d'alarme embarque sa batterie par
+  construction, et les référentiels de certification lui imposent de tenir
+  sans secteur. La vidéo n'a aucune obligation de ce genre. Un client qui a
+  les deux croit souvent que la seconde se comporte comme la première.</p>
+
+<h3>Le piège : secourir l'enregistreur seul</h3>
+
+<p>C'est ce qu'on installe par défaut — un onduleur dans la baie — et c'est
+  ce qui coûte le plus cher pour ce que ça rapporte. Le site compte
+  <b>trois zones d'alimentation distinctes</b>, chacune sur sa propre arrivée
+  230 V&nbsp;:</p>
+
+<table>
+  <thead>
+    <tr><th>Zone</th><th>Caméras qui en dépendent</th><th>Ce qu'il faut en savoir</th></tr>
+  </thead>
+  <tbody>
+    ${ZONES_SECOURS.map((z) => `<tr>
+      <td><b>${ech(z.cle)}</b> — ${ech(z.nom)}</td>
+      <td>${z.cameras.length ? z.cameras.map((c) => ech(c)).join(', ') : '—'}</td>
+      <td>${ech(z.detail)}</td>
+    </tr>`).join('')}
+  </tbody>
+</table>
+
+<div class="avert">
+  <b>Un onduleur au local seul, et vous enregistrez du noir.</b>
+  L'enregistreur tiendrait, ses disques tourneraient, l'accès à distance
+  fonctionnerait — et
+  ${SECOURS_PARTIEL.camerasPerdues.length} caméras sur ${PARC.length}
+  seraient éteintes&nbsp;: <b>${SECOURS_PARTIEL.camerasPerdues.join(', ')}</b>.
+  Parmi elles, les deux du portail et celle du fond de cour, c'est-à-dire
+  exactement celles qu'on regarde après une coupure. L'installation
+  fonctionnerait parfaitement, et la preuve serait vide.
+  <br><br><b>Il faut secourir les trois zones, ou aucune.</b> Ne secourir que
+  le local est la seule option qui se paie sans rien rapporter.
+</div>
+
+<h3>Quelle batterie, pour quelle durée</h3>
+
+<p>La consommation réelle de l'installation n'est pas connue&nbsp;: ni celle
+  de l'enregistreur, ni son budget PoE, ni celle des caméras ne figurent au
+  relevé fournisseur. Le tableau donne donc l'énergie de batterie nécessaire
+  <b>pour plusieurs charges</b>, comme le métré donne la section du
+  verrouillage pour plusieurs courants. On lit la ligne de la charge réelle le
+  jour où on la connaît.</p>
+
+<table>
+  <thead>
+    <tr><th class="n">Charge secourue</th>
+      ${DUREES_SECOURS.map((h) => `<th class="n">${ech(fr(h, 1))} h</th>`).join('')}
+      <th class="n">Onduleur</th></tr>
+  </thead>
+  <tbody>
+    ${CHARGES_TESTEES.map((w) => `<tr>
+      <td class="n"><b>${w} W</b></td>
+      ${DUREES_SECOURS.map((h) => `<td class="n">${ech(frGroupe(Math.round(
+        energieNecessaire({ charge: w, heures: h }),
+      )))} Wh</td>`).join('')}
+      <td class="n">${ech(frGroupe(calibreOnduleur(w)))} VA</td>
+    </tr>`).join('')}
+  </tbody>
+</table>
+
+<p class="largeur">Deux corrections sont incluses, et elles expliquent
+  pourquoi ces chiffres dépassent le calcul d'école&nbsp;: la conversion du
+  continu en alternatif perd environ
+  ${ech(fr((1 - RENDEMENT) * 100, 0))} %, et une batterie au plomb vidée
+  jusqu'au bout ne s'en remet pas — on ne compte donc que
+  ${ech(fr((1 - RESERVE) * 100, 0))} % de sa capacité. Les négliger fait
+  annoncer une heure là où l'installation en tient quarante minutes.</p>
+
+<p class="largeur"><b>La colonne « onduleur » n'est pas une coquetterie.</b>
+  Les onduleurs s'achètent en voltampères et les appareils se consomment en
+  watts. Le rapport entre les deux vaut couramment 0,6 sur les modèles
+  d'entrée de gamme&nbsp;: un onduleur annoncé 1&nbsp;000&nbsp;VA ne délivre
+  que six cents watts. Acheter en VA en croyant acheter des watts, c'est
+  acheter deux fois moins que prévu.</p>
+
+<h3>Ce qui compte plus que les minutes gagnées</h3>
+
+<ul class="liste">
+  <li><b>L'arrêt propre de l'enregistreur.</b> Une coupure franche pendant
+    l'écriture peut abîmer le système de fichiers, et ce n'est pas une
+    heure d'images qu'on perd alors mais le disque. Vérifier si
+    l'enregistreur accepte d'être prévenu par l'onduleur — liaison USB ou
+    série — et de s'éteindre avant que la batterie ne lâche. S'il ne le sait
+    pas faire, l'onduleur doit être dimensionné pour <i>survivre</i> à la
+    coupure courante, pas pour gagner cinq minutes.</li>
+  <li><b>Le type d'onduleur.</b> Un modèle <i>line-interactive</i> suffit à
+    une installation vidéo&nbsp;: son temps de bascule, de quelques
+    millisecondes, passe inaperçu d'une alimentation à découpage. La double
+    conversion ne se justifie pas ici.</li>
+  <li><b>L'accès à distance.</b> Il ne survit à la coupure que si la box et le
+    routeur sont sur l'onduleur eux aussi. Ils consomment peu&nbsp;; les
+    oublier annule pourtant tout l'intérêt du secours, puisque plus personne
+    ne voit rien pendant ce temps-là.</li>
+  <li><b>La durée à viser.</b> Elle ne se décide pas au catalogue mais sur
+    l'historique du site&nbsp;: la plupart des coupures du réseau public
+    durent quelques minutes, et ce sont les rares longues qui dimensionnent.
+    À arbitrer avec le client, en sachant qu'au-delà de deux heures le coût
+    des batteries progresse plus vite que le service rendu.</li>
+  <li><b>Les batteries vieillissent.</b> Une batterie d'onduleur perd
+    l'essentiel de sa capacité en quatre à cinq ans, sans prévenir et sans
+    que rien ne le signale. Une installation secourue demande un contrôle
+    périodique, faute de quoi elle n'est secourue que sur le papier —
+    à porter au contrat d'entretien.</li>
+</ul>
+
+<h2>9. Ce qu'il reste à mesurer sur place</h2>
 <ul class="liste">
   <li><b>L'emplacement du local technique.</b> Tout le métré en dépend, et
     il en dépend plus que du nombre de caméras : c'est la première cote à
@@ -2308,7 +2481,7 @@ ${ACCES.map((a) => `<p class="largeur"><b>${ech(a.cle)} — ${ech(a.nom)}.</b>
     mètres et demi.</li>
 </ul>
 
-<h2>9. Réserves et obligations</h2>
+<h2>10. Réserves et obligations</h2>
 <ul class="liste">
   <li>Ce document est une étude technique. Il ne vaut ni devis ni engagement de
     prix&nbsp;: aucun montant n'y figure.</li>
