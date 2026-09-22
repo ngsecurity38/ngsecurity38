@@ -5,8 +5,23 @@ client : il ne contient que ce que l'agence doit lever de son côté.
 
 ## Identité de l'agence
 
-- À trancher : Le RCS. Vos pages publiques annoncent « RCS Sens 518 723 366 », qui n'est pas le SIREN communiqué, 104 732 458 — deux identités différentes, dont une seule peut figurer sur un devis. Le SIRET communiqué fait foi ici ; la mention RCS est retirée du document tant que la contradiction n'est pas levée.
-- Manquant : Assurance responsabilité civile professionnelle : compagnie et numéro de police.
+Relevé Insee du 22/09/2026 : SAS créée le 1er juin 2026,
+SIREN 104 732 458, APE 8020Z. Tout est dans agence.json, à la
+racine du dépôt, et tout document du dépôt le lit là. Rien à ressaisir.
+
+Ce que le relevé Insee ne donne pas, et qu'une SAS porte sur ses
+documents commerciaux :
+
+- Capital social.
+- Ville du greffe, pour la mention RCS. Le NUMÉRO est acquis — c'est le SIREN. Seule la ville manque.
+- Assurance responsabilité civile professionnelle : compagnie et numéro de police.
+
+## À corriger sur le site, pas dans les documents
+
+Les pages publiques du site (mentions légales, CGV) annoncent encore
+« NGS38, entreprise individuelle » et « RCS Sens 518 723 366 ». C'est
+la structure précédente : la SAS ci-dessus a été créée le 1er juin 2026.
+À corriger sur le site, pas dans les documents.
 
 ## Fiches constructeur à ouvrir
 

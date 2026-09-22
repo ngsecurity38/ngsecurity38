@@ -45,47 +45,16 @@ const image = (chemin, type = 'jpeg') => `data:image/${type};base64,`
   + readFileSync(chemin).toString('base64');
 
 /**
- * L'agence, telle qu'elle apparaît sur le document.
+ * L'agence, lue dans agence.json à la racine du dépôt.
  *
- * `aCompleter` n'est pas un oubli : ce sont les mentions que seule l'agence
- * peut fournir, et qu'un document remis à un client doit porter. Elles
- * s'affichent en clair, en attente — plutôt que d'être inventées, ou tues.
+ * Elle n'est PAS recopiée ici. Une identité recopiée est une identité qui
+ * finit par diverger : un document porte l'ancienne adresse pendant qu'un
+ * autre porte la nouvelle, et plus personne ne sait lequel croire. Le
+ * fichier est la seule source ; le corriger corrige tous les documents.
+ *
+ * Relevé Insee du 22/09/2026, communiqué par l'agence.
  */
-const AGENCE = {
-  nom: 'NG Security 38',
-  accroche: 'Vidéosurveillance et alarme anti-intrusion',
-  courriel: 'contact@ngsecurity38.com',
-  sites: ['ngsecurity38.fr', 'ngsecurity38.com'],
-  zone: 'Intervention France et Belgique',
-  /*
-   * Relevée d'abord sur les pages publiques de l'agence, puis CONFIRMÉE par
-   * l'agence. La distinction compte : sur la même source, le RCS s'est
-   * révélé faux — voir `aConfirmer`. Rien ici n'est de seconde main.
-   */
-  adresse: '2 rue des Drillons, 89150 Vernoy',
-  /*
-   * Ceux-ci viennent de l'agence elle-même, pas d'une recherche, et ils se
-   * confirment l'un l'autre : la clé de Luhn du SIREN et celle du SIRET
-   * tombent juste, et la clé du numéro de TVA — 30 — est exactement celle
-   * que le SIREN 104 732 458 impose. Trois nombres qui se recoupent ne se
-   * recoupent pas par hasard.
-   */
-  siret: '104 732 458 00013',
-  tva: 'FR30104732458',
-  telephone: '07 74 11 24 56',
-  aConfirmer: [
-    'Le RCS. Vos pages publiques annoncent « RCS Sens 518 723 366 », qui '
-      + 'n\'est pas le SIREN communiqué, 104 732 458 — deux identités '
-      + 'différentes, dont une '
-      + 'seule peut figurer sur un devis. Le SIRET communiqué fait foi ici ; '
-      + 'la mention RCS est retirée du document tant que la contradiction '
-      + 'n\'est pas levée.',
-  ],
-  aCompleter: [
-    'Assurance responsabilité civile professionnelle : compagnie et numéro '
-      + 'de police.',
-  ],
-};
+const AGENCE = JSON.parse(readFileSync(join(ici, '..', '..', 'agence.json'), 'utf8'));
 
 /* ------------------------------------------------------------- le parc */
 
@@ -1771,14 +1740,17 @@ const html = `<!doctype html>
 
 <header class="garde">
   <div class="bandeau-agence">
-    <img src="${logo}" alt="${ech(AGENCE.nom)}">
+    <img src="${logo}" alt="${ech(AGENCE.nomCommercial)}">
     <div class="coordonnees">
-      <p class="nom">${ech(AGENCE.nom)}</p>
+      <p class="nom">${ech(AGENCE.nomCommercial)}</p>
       <p>${ech(AGENCE.accroche)}</p>
       <p>${ech(AGENCE.adresse)}</p>
       <p>${ech(AGENCE.telephone)} · ${ech(AGENCE.courriel)}</p>
       <p>${AGENCE.sites.map((s) => ech(s)).join(' · ')}</p>
-      <p>SIRET ${ech(AGENCE.siret)} · TVA ${ech(AGENCE.tva)}</p>
+      <p>${ech(AGENCE.formeCourte)}${AGENCE.aCompleter.capitalSocial
+        ? ` au capital de ${ech(AGENCE.aCompleter.capitalSocial)}` : ''} ·
+        SIRET ${ech(AGENCE.siret)} · TVA ${ech(AGENCE.tva)}</p>
+      <p>APE ${ech(AGENCE.naf)} — ${ech(AGENCE.nafLibelle)}</p>
       <p>${ech(AGENCE.zone)}</p>
     </div>
   </div>
@@ -2622,7 +2594,7 @@ ${ACCES.map((a) => `<p class="largeur"><b>${ech(a.cle)} — ${ech(a.nom)}.</b>
     conditionne le dimensionnement du stockage retenu plus haut.</li>
 </ul>
 
-<p class="pied">${ech(AGENCE.nom)} · ${ech(AGENCE.telephone)} ·
+<p class="pied">${ech(AGENCE.nomCommercial)} · ${ech(AGENCE.telephone)} ·
   ${ech(AGENCE.courriel)} — étude établie le ${ech(AUJOURD_HUI)} —
   document de travail, à confirmer par un relevé sur place.</p>
 
@@ -2647,6 +2619,15 @@ console.log(`${sortie} — ${(html.length / 1024 / 1024).toFixed(2)} Mo`);
  * données. Une mention confirmée disparaît donc des deux d'un coup : le mémo
  * ne peut pas rester en retard sur l'étude.
  */
+/** Ce que chaque champ vide d'agence.json veut dire, en clair. */
+const MANQUES_AGENCE = {
+  capitalSocial: 'Capital social.',
+  rcsGreffe: 'Ville du greffe, pour la mention RCS. Le NUMÉRO est acquis — '
+    + 'c\'est le SIREN. Seule la ville manque.',
+  assuranceRcPro: 'Assurance responsabilité civile professionnelle : '
+    + 'compagnie et numéro de police.',
+};
+
 const memo = [
   '# Points à traiter avant remise — ETU-2026-09-22',
   '',
@@ -2655,8 +2636,20 @@ const memo = [
   '',
   '## Identité de l\'agence',
   '',
-  ...AGENCE.aConfirmer.map((x) => `- À trancher : ${x}`),
-  ...AGENCE.aCompleter.map((x) => `- Manquant : ${x}`),
+  `Relevé Insee du 22/09/2026 : ${AGENCE.formeCourte} créée le 1er juin 2026,`,
+  `SIREN ${AGENCE.siren}, APE ${AGENCE.naf}. Tout est dans agence.json, à la`,
+  'racine du dépôt, et tout document du dépôt le lit là. Rien à ressaisir.',
+  '',
+  'Ce que le relevé Insee ne donne pas, et qu\'une SAS porte sur ses',
+  'documents commerciaux :',
+  '',
+  ...Object.entries(AGENCE.aCompleter)
+    .filter(([cle, v]) => cle !== '_note' && !v)
+    .map(([cle]) => `- ${MANQUES_AGENCE[cle] || cle}`),
+  '',
+  '## À corriger sur le site, pas dans les documents',
+  '',
+  ...AGENCE.aCorrigerAilleurs,
   '',
   '## Fiches constructeur à ouvrir',
   '',

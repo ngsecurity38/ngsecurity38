@@ -1,0 +1,46 @@
+{
+  "_lisez_moi": [
+    "L'identité de l'agence, à un seul endroit. Tout document produit dans ce",
+    "dépôt la lit ici : une correction faite dans ce fichier se propage, et",
+    "aucun document ne peut plus porter une identité périmée pendant qu'un",
+    "autre porte la bonne.",
+    "",
+    "Relevé Insee du 22/09/2026, communiqué par l'agence. Ce ne sont pas des",
+    "valeurs trouvées par recherche : elles viennent du répertoire officiel."
+  ],
+  "nomCommercial": "NG Security 38",
+  "accroche": "Vidéosurveillance et alarme anti-intrusion",
+  "formeJuridique": "Société par actions simplifiée",
+  "formeCourte": "SAS",
+  "dateCreation": "2026-06-01",
+  "dirigeant": "Ezechiel NGOMA YENGO",
+  "siren": "104 732 458",
+  "siret": "104 732 458 00013",
+  "tva": "FR30104732458",
+  "naf": "8020Z",
+  "nafLibelle": "Activités liées aux systèmes de sécurité",
+  "adresse": "2 rue des Drillons, 89150 Vernoy",
+  "telephone": "07 74 11 24 56",
+  "courriel": "contact@ngsecurity38.com",
+  "sites": [
+    "ngsecurity38.fr",
+    "ngsecurity38.com"
+  ],
+  "zone": "Intervention France et Belgique",
+  "aCompleter": {
+    "_note": [
+      "Deux mentions qu'une SAS porte sur ses documents commerciaux et que",
+      "le relevé Insee ne donne pas. Les renseigner ici les fait apparaître",
+      "partout d'un coup."
+    ],
+    "capitalSocial": null,
+    "rcsGreffe": null,
+    "assuranceRcPro": null
+  },
+  "aCorrigerAilleurs": [
+    "Les pages publiques du site (mentions légales, CGV) annoncent encore",
+    "« NGS38, entreprise individuelle » et « RCS Sens 518 723 366 ». C'est",
+    "la structure précédente : la SAS ci-dessus a été créée le 1er juin 2026.",
+    "À corriger sur le site, pas dans les documents."
+  ]
+}
