@@ -65,17 +65,36 @@ n'est pas établi ; la phrase est à redemander avant d'agir dessus.
 |---|---|---|
 | 1 | Bullet varifocal DS-2CD2683G2-IZS | extérieure |
 | 2 | Bullet varifocal DS-2CD2683G2-IZS | extérieure |
-| 3 | Bullet varifocal DS-2CD2683G2-IZS | extérieure |
+| 3 | Panoramique 180° DS-2CD2346G2P-ISU/SL | extérieure |
 | 4 | Panoramique 180° DS-2CD2346G2P-ISU/SL | extérieure |
 | 5 à 10 | Turret DS-2CD2346G2H-IU | intérieures |
 
-**Il manque une caméra.** Les trois varifocals et la panoramique sont
-commandés, et les quatre postes extérieurs les consomment exactement.
-Restent six postes intérieurs pour **cinq** turrets commandés : il en
-faut **un sixième**, référence DS-2CD2346G2H-IU.
+### Ce que cela change à la commande
 
-La seule autre issue est de retirer un poste intérieur du plan. C'est
-un arbitrage de commande, pas de dossier.
+| Modèle | Commandé | Au plan | Écart |
+|---|---:|---:|---|
+| Bullet varifocal DS-2CD2683G2-IZS | 3 | 2 | **+1 en trop** |
+| Panoramique DS-2CD2346G2P-ISU/SL | 1 | 2 | **−1 à commander** |
+| Turret DS-2CD2346G2H-IU | 5 | 6 | **−1 à commander** |
+| **Total** | **9** | **10** | |
+
+Deux caméras à commander, une en surplus. À arbitrer avant la
+reconstruction : un dossier qui annoncerait un parc qui ne se commande
+pas ne vaudrait rien.
+
+Le varifocal en trop ne se perd pas forcément — c'est la seule optique
+du parc capable d'identifier au-delà de cinq mètres, et la seule à
+téléobjectif. Un onzième poste, ou une réserve.
+
+### Ce que ce choix vaut techniquement
+
+Deux panoramiques aux deux extrémités du bâtiment se couvrent l'une
+l'autre le long de la façade : chacune balaie 180°, et leur portée
+d'observation — 30 m — se rejoint au milieu d'un bâtiment de 75 m.
+Elles portent en outre stroboscope et alarme sonore, donc la
+dissuasion. Elles n'identifient pas au-delà de trois mètres : ce sont
+des caméras de contexte, et l'identification reste le travail des deux
+varifocals placés en cour.
 
 ## Deux points à lever avant de reconstruire le plan
 
