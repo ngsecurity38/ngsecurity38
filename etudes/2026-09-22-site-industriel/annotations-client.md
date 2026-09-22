@@ -63,8 +63,8 @@ n'est pas établi ; la phrase est à redemander avant d'agir dessus.
 
 | N° | Modèle | Où |
 |---|---|---|
-| 1 | Bullet varifocal DS-2CD2683G2-IZS | extérieure |
-| 2 | Bullet varifocal DS-2CD2683G2-IZS | extérieure |
+| 1 | Bullet varifocal DS-2CD2683G2-IZS — **réglé à 12 mm** | extérieure |
+| 2 | Bullet varifocal DS-2CD2683G2-IZS — **réglé à 12 mm** | extérieure |
 | 3 | Panoramique 180° DS-2CD2346G2P-ISU/SL | extérieure |
 | 4 | Panoramique 180° DS-2CD2346G2P-ISU/SL | extérieure |
 | 5 à 10 | Turret DS-2CD2346G2H-IU | intérieures |
@@ -85,6 +85,27 @@ pas ne vaudrait rien.
 Le varifocal en trop ne se perd pas forcément — c'est la seule optique
 du parc capable d'identifier au-delà de cinq mètres, et la seule à
 téléobjectif. Un onzième poste, ou une réserve.
+
+### Les deux varifocals au téléobjectif
+
+Réglés à 12 mm, ils ne font plus de contexte : champ horizontal 30°,
+soit **10,7 m de large à vingt mètres**. En échange ils identifient un
+inconnu jusqu'à **28,7 m** — les deux seules caméras du parc à le
+faire, et de loin.
+
+C'est cohérent avec ce que le dossier démontre par ailleurs :
+l'identification se joue aux SEUILS, pas au milieu d'une cour. Deux
+faisceaux étroits tenus sur les deux points de passage valent mieux
+qu'un grand-angle qui voit tout et ne reconnaît personne.
+
+Deux conséquences à tenir :
+
+- **le pointage devient critique.** À 30° de champ, deux degrés d'écart
+  font manquer le portail. L'axe se règle au relevé, sur le passage
+  réel des véhicules, pas à l'estime ;
+- **12 mm est un RÉGLAGE, pas un achat.** L'objectif est motorisé de
+  2,8 à 12 mm : le choix se révise à la mise en service, et devra
+  l'être si le cadrage ne tombe pas juste.
 
 ### Ce que ce choix vaut techniquement
 
