@@ -86,6 +86,8 @@
   .report .champ span { position:absolute; top:6px; left:6px; background:var(--rouge);
     color:#fff; font-size:12px; font-weight:700; padding:2px 7px; border-radius:4px; }
   .deborde { font-size:13px; color:#8a5a00; margin-top:6px; }
+  h3 { font-size:16px; margin:22px 0 8px; color:var(--encre); }
+  tr.ext td { color:var(--doux); }
   table { border-collapse:collapse; width:100%; font-size:14px; }
   th, td { text-align:left; padding:7px 9px; border-bottom:1px solid var(--bord); }
   th { font-size:12px; text-transform:uppercase; letter-spacing:.05em; color:var(--doux); }
@@ -3236,30 +3238,507 @@
   </tbody>
 </table>
 
-<h2>5. Réseau, enregistrement, stockage</h2>
-<p>Neuf caméras alimentées par le réseau. Le dimensionnement ci-dessous est un
-  ordre de grandeur, calculé sur un codec H.265 et un enregistrement continu.
-  Un débit réel relevé sur site le remplacera.</p>
+<h2>5. Enregistrement et stockage</h2>
+
+<p>L'enregistreur retenu est un <b>Hikvision DS-7616NXI-K2/…</b> —
+  Enregistreur réseau 16 voies AcuSense, 2 baies SATA. Le dimensionnement ci-dessous est
+  calculé sur un codec H.265 et un enregistrement continu ; un débit réel
+  relevé à la mise en service le remplacera.</p>
+
 <table>
   <tbody>
-    <tr><td>Ports PoE nécessaires</td><td class="n"><b>9</b>, plus un port de
-      liaison — un commutateur de 16 ports laisse la place d'une extension</td></tr>
-    <tr><td>Débit estimé, toutes caméras</td>
-      <td class="n"><b>43,3 Mbit/s</b></td></tr>
-    <tr><td>Enregistreur</td><td class="n">au moins <b>9 voies</b> en 8 MP</td></tr>
-    <tr><td>Stockage, 15 jours continus</td>
+    <tr><td>Caméras au parc retenu</td><td class="n"><b>9</b>
+      sur 16 voies disponibles</td></tr>
+    <tr><td>Avec les 5 caméras d'extension</td>
+      <td class="n"><b>14</b> voies — il en resterait
+      2</td></tr>
+    <tr><td>Débit estimé, parc retenu</td>
+      <td class="n"><b>43,3 Mbit/s</b> sur
+      160 admis en entrée</td></tr>
+    <tr><td>Stockage nécessaire, 15 jours continus</td>
       <td class="n"><b>8,4 To</b></td></tr>
-    <tr><td>Stockage, 30 jours continus</td>
+    <tr><td>Stockage nécessaire, 30 jours continus</td>
       <td class="n"><b>16,8 To</b></td></tr>
   </tbody>
 </table>
-<p class="largeur">L'enregistrement sur détection au lieu du continu divise ces
-  volumes, dans une proportion qui dépend de l'activité du site. À arbitrer
-  avec le client&nbsp;: la durée de conservation est aussi une question
-  juridique.</p>
 
-<h2>6. Ce qu'il reste à mesurer sur place</h2>
+<p class="largeur">Les capacités sont en téraoctets décimaux, comme les
+  étiquettes des fabricants. Un disque annoncé 8 To en offre bien huit&nbsp;;
+  c'est l'affichage du système, en Tio, qui montrera 7,3 — différence
+  d'unité, pas de capacité perdue. Une marge de 20 % est incluse.</p>
+
+<h3>Ce que la bande passante autorise vraiment</h3>
+
+<p>Seize voies ne veulent pas dire seize caméras. L'enregistreur admet
+  <b>160 Mbit/s</b> en entrée, et c'est
+  ce chiffre qui plafonne le parc bien avant le nombre de canaux. Le parc
+  retenu en consomme 43,3, soit
+  27 %.
+  Les cinq caméras d'extension porteraient le total à
+  64,9 Mbit/s, soit
+  41 %
+  — l'extension tient donc dans la machine.</p>
+
+<h3>Les deux disques</h3>
+
+<p>L'enregistreur a 2 baies. Ce n'est pas
+  la même chose que deux fois la capacité&nbsp;: tout dépend de ce qu'on en
+  fait, et le choix n'est pas technique, il est commercial.</p>
+
+<table>
+  <thead>
+    <tr><th>Pour 30 jours</th><th class="n">Disques</th><th class="n">Installé</th>
+      <th class="n">Utile</th><th>Ce qu'on y gagne, ce qu'on y perd</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><b>Deux disques en pool</b></td>
+      <td class="n">2 × 10 To</td>
+      <td class="n">20 To</td>
+      <td class="n">20 To</td>
+      <td>Toute la capacité. La perte d'un disque emporte la part des images
+        qu'il portait.</td></tr>
+    <tr>
+      <td><b>Deux disques en miroir</b></td>
+      <td class="n">2 × 18 To</td>
+      <td class="n">36 To</td>
+      <td class="n">18 To</td>
+      <td>Un disque peut mourir sans qu'une image manque. On paie deux fois
+        la capacité pour en utiliser une.</td></tr>
+  </tbody>
+</table>
+
+<p class="largeur">Un disque de vidéosurveillance écrit vingt-quatre heures
+  sur vingt-quatre, toute l'année. Il ne meurt pas «&nbsp;peut-être&nbsp;»&nbsp;:
+  il meurt, et la seule question est de savoir si ce jour-là on avait besoin
+  des images. Le miroir répond à cette question, le pool répond à la question
+  du prix. Les deux réponses sont défendables&nbsp;; celle qui ne l'est pas,
+  c'est de ne pas avoir posé la question.</p>
+
+<p class="largeur">Avec
+  20 To en pool,
+  le parc retenu tient
+  <b>36 jours</b>
+  d'enregistrement continu. L'enregistrement sur détection allonge cette
+  durée dans une proportion qui dépend de l'activité du site&nbsp;: c'est le
+  réglage qui change le plus les chiffres, et il s'arbitre avec le client —
+  la durée de conservation est aussi une question juridique.</p>
+
+<div class="avert">
+  <b>Trois points à vérifier sur la fiche de l'enregistreur</b>, qu'aucun
+  relevé fournisseur ne donne&nbsp;:
+  <br>— La variante exacte. La référence du relevé s&#39;arrête sur une barre oblique : « DS-7616NXI-K2/… ». Le suffixe décide de tout — un K2/16P embarque seize ports PoE et rend le commutateur inutile, un K2 nu impose de l&#39;acheter. Cette étude retient le K2 nu, puisqu&#39;un commutateur est demandé par ailleurs.<br>— La capacité maximale admise par baie. Elle n&#39;est pas au relevé, et elle conditionne le choix des disques ci-dessus.<br>— La présence et le niveau de RAID. Un deux-baies ne fait pas toujours de miroir ; sans miroir, la perte d&#39;un disque emporte sa part des images.
+</div>
+
+<h2>6. Interphonie et contrôle d'accès</h2>
+
+<p>Le kit retenu est un <b>Hikvision DS-KIS902-S</b> —
+  Kit d&#39;interphonie vidéo IP, alimenté en
+  PoE. Il comprend&nbsp;:</p>
+
 <ul class="liste">
+  <li>Platine de rue, écran tactile 4,3&quot;, double caméra 2 MP, IR 3 m, IP65/IK08</li><li>Moniteur intérieur tactile 7&quot;, Wi-Fi 2,4 GHz</li><li>Commutateur PoE</li><li>Carte TF 32 Go</li>
+</ul>
+
+<p>Il identifie par visage, code PIN, badge 13,56 MHz, QR code. Les
+  quatre moyens coexistent&nbsp;: le visage pour les habitués, le badge pour
+  le personnel, le code pour les livraisons régulières, le QR code pour un
+  visiteur annoncé une seule fois.</p>
+
+<h3>Les deux points d'accès retenus</h3>
+
+<table>
+  <thead>
+    <tr><th>Repère</th><th>Point d'accès</th><th>Verrouillage</th>
+      <th>Ce qui s'y pose</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><b>A1</b></td>
+      <td>Portail piéton</td>
+      <td>ventouse simple</td>
+      <td>Platine d'interphonie, lecteur, bouton de
+        sortie, déverrouillage d'urgence, contact de position</td>
+    </tr><tr>
+      <td><b>A2</b></td>
+      <td>Porte principale, façade sur cour</td>
+      <td>double ventouse (2 vantaux)</td>
+      <td>lecteur, bouton de
+        sortie, déverrouillage d'urgence, contact de position</td>
+    </tr>
+  </tbody>
+</table>
+
+<p class="largeur"><b>A1 — Portail piéton.</b>
+  La platine d&#39;interphonie se pose au portail piéton, à hauteur de visage. C&#39;est le seul endroit où une platine a un sens : un visiteur ne descend pas de voiture deux fois.</p><p class="largeur"><b>A2 — Porte principale, façade sur cour.</b>
+  Porte à deux vantaux : une ventouse par vantail, sur la même alimentation. Le courant double, donc la chute de tension aussi — c&#39;est la liaison la plus exposée du lot.</p>
+
+<div class="avert">
+  <b>Une ventouse sur une issue n'est pas un simple verrou.</b> Une porte que
+  l'on verrouille électriquement doit pouvoir s'ouvrir quand tout s'arrête —
+  coupure de courant, alarme incendie, panique. Cela impose un dispositif de
+  déverrouillage d'urgence à l'intérieur, immédiatement reconnaissable et
+  actionnable sans outil, et un verrouillage qui LIBÈRE en l'absence de
+  tension plutôt qu'il ne se ferme. Ce n'est pas une option de confort&nbsp;:
+  c'est ce qui sépare une porte sécurisée d'une porte qui piège.
+  <br><br>La règle exacte dépend du classement du bâtiment et de l'effectif
+  reçu, que cette étude ne connaît pas. <b>À établir avec le client et, si le
+  site est un établissement recevant du public ou du personnel en nombre,
+  avec le bureau de contrôle</b>, avant toute commande de ventouse. Le
+  déverrouillage d'urgence est porté au métré ci-dessous pour chaque porte —
+  il n'y figure pas par excès de prudence.
+</div>
+
+<div class="avert">
+  <b>Trois points à vérifier sur la fiche du kit&nbsp;:</b>
+  <br>— Le nombre de ports du commutateur fourni, et son budget PoE. Le kit alimente au moins la platine et le moniteur ; savoir s&#39;il peut porter davantage évite d&#39;en acheter un second.<br>— Les contacts de commande disponibles sur la platine : nature (sec ou alimenté), nombre, pouvoir de coupure. C&#39;est ce qui décide si la platine commande directement le verrouillage ou passe par un relais.<br>— La compatibilité des badges déjà en service sur le site, le cas échéant. Le 13,56 MHz recouvre plusieurs protocoles qui ne se lisent pas entre eux.
+</div>
+
+<h2>7. Métré des câbles</h2>
+
+<p>Les longueurs ci-dessous sont calculées, pas estimées à l'œil&nbsp;: pour
+  chaque liaison, la somme des deux écarts du plan — un câble suit les murs,
+  pas la diagonale — plus la hauteur de pose, plus la descente vers le chemin
+  de câbles, plus 10 % de détours, plus un mètre de réserve à chaque bout.</p>
+
+<div class="avert">
+  <b>Ce métré repose sur un plan supposé et sur un local technique supposé.</b>
+  Le local est placé côté bureaux, à l'endroit que les photos rendent
+  vraisemblable&nbsp;; il n'a pas été relevé. Le déplacer change TOUTES les
+  longueurs. C'est la première chose à arrêter sur place, avant même les
+  emplacements de caméras. Les ordres de grandeur, eux, sont justes.
+</div>
+
+<h3>Pourquoi deux coffrets déportés</h3>
+
+<p>Une liaison Ethernet tient <b>90 mètres</b> de câble
+  posé — la norme en réserve dix de plus pour les cordons des deux bouts, et
+  pas un mètre au-delà. Tirées directement au local,
+  2 liaisons réseau dépassaient cette limite. Un câble de cent
+  quarante mètres ne fonctionne pas «&nbsp;un peu moins bien&nbsp;»&nbsp;: il
+  ne fonctionne pas, ou il fonctionne jusqu'au premier orage.</p>
+
+<table>
+  <thead>
+    <tr><th>Coffret</th><th>Ce qu'il contient</th><th class="n">Montante</th>
+      <th>Ce qu'il résout</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><b>R1</b> — Coffret d&#39;entrée</td>
+      <td>Commutateur PoE 8 ports et alimentation 12 V du verrouillage</td>
+      <td class="n">80 m</td>
+      <td>La platine du portail est à plus de cent mètres du local. L&#39;alimentation du verrouillage, elle, perdrait à cette distance une tension qu&#39;aucune section raisonnable ne rattrape : la placer au portail est la seule solution propre.</td>
+    </tr><tr>
+      <td><b>R2</b> — Relais de halle</td>
+      <td>Commutateur PoE 8 ports</td>
+      <td class="n">66 m</td>
+      <td>La caméra du fond de cour est hors de portée depuis le local. Le relais la ramène dans la limite, et raccourcit au passage les deux caméras de l&#39;extrémité du bâtiment.</td>
+    </tr>
+  </tbody>
+</table>
+
+<table>
+  <thead>
+    <tr><th>Liaison</th><th class="n">Sans coffret</th><th class="n">Avec</th>
+      <th>Verdict sans coffret</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><b>C4</b> — Limite arrière et dissuasion — Hikvision DS-2CD2346G2P-ISU/SL</td>
+      <td class="n">144 m</td>
+      <td class="n"><b>87 m</b></td>
+      <td>Hors norme — ne fonctionne pas</td>
+    </tr><tr>
+      <td><b>A1·P</b> — Platine d&#39;interphonie — Portail piéton</td>
+      <td class="n">112 m</td>
+      <td class="n"><b>39 m</b></td>
+      <td>Hors norme — ne fonctionne pas</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>Les alimentations et les commandes du portail, elles, fonctionneraient à
+  cent douze mètres — mais à quel prix de cuivre. Le coffret les ramène
+  toutes à 39 mètres&nbsp;:</p>
+
+<table>
+  <thead>
+    <tr><th>Alimentation</th><th class="n">Sans coffret</th>
+      <th class="n">Section</th><th class="n">Avec</th><th class="n">Section</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><b>A1·V</b> — Portail piéton</td>
+      <td class="n">112 m</td>
+      <td class="n">2,5 mm²</td>
+      <td class="n"><b>39 m</b></td>
+      <td class="n"><b>0,75 mm²</b></td>
+    </tr>
+  </tbody>
+</table>
+
+<p class="largeur">Sections données pour 0,5 A, à titre de comparaison. Le
+  rapport entre les deux colonnes ne dépend pas du courant retenu&nbsp;: c'est
+  la longueur qui commande.</p>
+
+<p class="largeur"><b>Le prix des coffrets n'est pas leur prix d'achat.</b>
+  C'est une arrivée <b>230 V</b> à l'endroit de chacun. Au portail, elle
+  n'existe peut-être pas. Si elle n'existe pas et ne peut être créée, tout se
+  reporte sur des liaisons hors norme, et la solution devient la fibre —
+  autre chantier, autre budget. <b>Point décisif du relevé.</b></p>
+
+<h3>Le métré, liaison par liaison</h3>
+
+<table>
+  <thead>
+    <tr><th>Repère</th><th>Liaison</th><th>Câble</th><th class="n">Depuis</th>
+      <th class="n">Longueur</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><b>R1</b></td>
+      <td>Coffret d&#39;entrée — liaison montante vers le local</td>
+      <td>Cat 6 U/UTP</td>
+      <td class="n">local</td>
+      <td class="n">80 m</td>
+    </tr><tr>
+      <td><b>R2</b></td>
+      <td>Relais de halle — liaison montante vers le local</td>
+      <td>Cat 6 U/UTP</td>
+      <td class="n">local</td>
+      <td class="n">66 m</td>
+    </tr><tr>
+      <td><b>C1</b></td>
+      <td>Identification à l&#39;entrée — Hikvision DS-2CD2683G2-IZS</td>
+      <td>Cat 6 U/UTP</td>
+      <td class="n">R1</td>
+      <td class="n">9 m</td>
+    </tr><tr>
+      <td><b>C2</b></td>
+      <td>Contexte de l&#39;entrée — Hikvision DS-2CD2346G2H-IU</td>
+      <td>Cat 6 U/UTP</td>
+      <td class="n">R1</td>
+      <td class="n">17 m</td>
+    </tr><tr>
+      <td><b>C3</b></td>
+      <td>Surveillance générale de la cour — Hikvision DS-2CD2683G2-IZS</td>
+      <td>Cat 6 U/UTP</td>
+      <td class="n">local</td>
+      <td class="n">37 m</td>
+    </tr><tr>
+      <td><b>C4</b></td>
+      <td>Limite arrière et dissuasion — Hikvision DS-2CD2346G2P-ISU/SL</td>
+      <td>Cat 6 U/UTP</td>
+      <td class="n">R2</td>
+      <td class="n">87 m</td>
+    </tr><tr>
+      <td><b>C5</b></td>
+      <td>Abords du quai — Hikvision DS-2CD2683G2-IZS</td>
+      <td>Cat 6 U/UTP</td>
+      <td class="n">local</td>
+      <td class="n">69 m</td>
+    </tr><tr>
+      <td><b>C6</b></td>
+      <td>Porte de quai — Hikvision DS-2CD2346G2H-IU</td>
+      <td>Cat 6 U/UTP</td>
+      <td class="n">local</td>
+      <td class="n">53 m</td>
+    </tr><tr>
+      <td><b>C7</b></td>
+      <td>Volume de la halle — Hikvision DS-2CD2346G2H-IU</td>
+      <td>Cat 6 U/UTP</td>
+      <td class="n">local</td>
+      <td class="n">41 m</td>
+    </tr><tr>
+      <td><b>C8</b></td>
+      <td>Rideau métallique — Hikvision DS-2CD2346G2H-IU</td>
+      <td>Cat 6 U/UTP</td>
+      <td class="n">R2</td>
+      <td class="n">16 m</td>
+    </tr><tr>
+      <td><b>C9</b></td>
+      <td>Angle de travail et stock — Hikvision DS-2CD2346G2H-IU</td>
+      <td>Cat 6 U/UTP</td>
+      <td class="n">local</td>
+      <td class="n">14 m</td>
+    </tr><tr class="ext">
+      <td><b>C10</b></td>
+      <td>Sas et issue de secours — Hikvision DS-2CD2346G2H-IU <i>(extension)</i></td>
+      <td>Cat 6 U/UTP</td>
+      <td class="n">local</td>
+      <td class="n">59 m</td>
+    </tr><tr class="ext">
+      <td><b>C11</b></td>
+      <td>Parc de chariots élévateurs — Hikvision DS-2CD2683G2-IZS <i>(extension)</i></td>
+      <td>Cat 6 U/UTP</td>
+      <td class="n">local</td>
+      <td class="n">25 m</td>
+    </tr><tr class="ext">
+      <td><b>C12</b></td>
+      <td>Allée de manutention — Hikvision DS-2CD2346G2H-IU <i>(extension)</i></td>
+      <td>Cat 6 U/UTP</td>
+      <td class="n">local</td>
+      <td class="n">23 m</td>
+    </tr><tr class="ext">
+      <td><b>C13</b></td>
+      <td>Second rideau métallique — Hikvision DS-2CD2346G2H-IU <i>(extension)</i></td>
+      <td>Cat 6 U/UTP</td>
+      <td class="n">R2</td>
+      <td class="n">19 m</td>
+    </tr><tr class="ext">
+      <td><b>C14</b></td>
+      <td>Porte vitrée de fond — Hikvision DS-2CD2346G2H-IU <i>(extension)</i></td>
+      <td>Cat 6 U/UTP</td>
+      <td class="n">local</td>
+      <td class="n">56 m</td>
+    </tr><tr>
+      <td><b>A1·P</b></td>
+      <td>Platine d&#39;interphonie — Portail piéton</td>
+      <td>Cat 6 U/UTP</td>
+      <td class="n">R1</td>
+      <td class="n">39 m</td>
+    </tr><tr>
+      <td><b>A1·V</b></td>
+      <td>Alimentation du verrouillage — ventouse simple</td>
+      <td>2 conducteurs, section au tableau ci-dessous</td>
+      <td class="n">R1</td>
+      <td class="n">39 m</td>
+    </tr><tr>
+      <td><b>A1·L</b></td>
+      <td>Lecteur d&#39;accès — Portail piéton</td>
+      <td>6 conducteurs blindés (Wiegand) ou 2 paires (OSDP)</td>
+      <td class="n">R1</td>
+      <td class="n">39 m</td>
+    </tr><tr>
+      <td><b>A1·B</b></td>
+      <td>Bouton de sortie et déverrouillage d&#39;urgence — Portail piéton</td>
+      <td>2 × 2 conducteurs</td>
+      <td class="n">R1</td>
+      <td class="n">39 m</td>
+    </tr><tr>
+      <td><b>A1·C</b></td>
+      <td>Contact de position de porte — Portail piéton</td>
+      <td>2 conducteurs</td>
+      <td class="n">R1</td>
+      <td class="n">39 m</td>
+    </tr><tr>
+      <td><b>A2·V</b></td>
+      <td>Alimentation du verrouillage — double ventouse</td>
+      <td>2 conducteurs, section au tableau ci-dessous</td>
+      <td class="n">local</td>
+      <td class="n">28 m</td>
+    </tr><tr>
+      <td><b>A2·L</b></td>
+      <td>Lecteur d&#39;accès — Porte principale, façade sur cour</td>
+      <td>6 conducteurs blindés (Wiegand) ou 2 paires (OSDP)</td>
+      <td class="n">local</td>
+      <td class="n">28 m</td>
+    </tr><tr>
+      <td><b>A2·B</b></td>
+      <td>Bouton de sortie et déverrouillage d&#39;urgence — Porte principale, façade sur cour</td>
+      <td>2 × 2 conducteurs</td>
+      <td class="n">local</td>
+      <td class="n">28 m</td>
+    </tr><tr>
+      <td><b>A2·C</b></td>
+      <td>Contact de position de porte — Porte principale, façade sur cour</td>
+      <td>2 conducteurs</td>
+      <td class="n">local</td>
+      <td class="n">28 m</td>
+    </tr><tr>
+      <td><b>M1</b></td>
+      <td>Moniteur intérieur d&#39;interphonie — bureau</td>
+      <td>Cat 6 U/UTP</td>
+      <td class="n">local</td>
+      <td class="n">18 m</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="paire">
+  <table>
+    <tbody>
+      <tr><td>Réseau, parc retenu</td>
+        <td class="n"><b>545 m</b></td></tr>
+      <tr><td>Réseau, extension comprise</td>
+        <td class="n"><b>728 m</b></td></tr>
+      <tr><td>À commander</td>
+        <td class="n"><b>3 boîtes</b> de 305 m</td></tr>
+      <tr><td>Reste disponible</td>
+        <td class="n">187 m</td></tr>
+    </tbody>
+  </table>
+  <table>
+    <tbody>
+      <tr><td>Alimentation et commande</td>
+        <td class="n"><b>265 m</b></td></tr>
+      <tr><td>Liaisons hors limite Ethernet</td>
+        <td class="n"><b>aucune</b></td></tr>
+      <tr><td>Liaison la plus longue</td>
+        <td class="n">87 m</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<p class="largeur">Le reste de la dernière boîte n'est pas une curiosité de
+  comptable&nbsp;: c'est ce dont on dispose le jour où une liaison se révèle
+  plus longue qu'au plan. Ce jour arrive à chaque chantier.</p>
+
+<h3>Section des alimentations de verrouillage</h3>
+
+<p>Une ventouse sous-alimentée ne tombe pas en panne à la mise en
+  service&nbsp;: elle tient au banc, puis lâche l'hiver, quand la tension
+  baisse et que le courant monte. On ne rattrape pas cette erreur autrement
+  qu'en retirant le câble. La section se calcule&nbsp;: la chute de tension
+  vaut <b>2&nbsp;ρ&nbsp;L&nbsp;I&nbsp;/&nbsp;S</b>, et le facteur deux n'est
+  pas décoratif — le courant fait l'aller <i>et</i> le retour.</p>
+
+<p class="largeur">Le courant réel dépend du modèle de ventouse retenu, que
+  cette étude ne connaît pas&nbsp;: les modèles courants se situent entre
+  0,25 et 0,5 A par unité en 12 V, à confirmer sur la fiche. Le tableau donne
+  donc la section pour plusieurs courants, et se lit à la ligne du modèle
+  réellement posé. Chute admise&nbsp;: 10 % de la tension.</p>
+
+<table>
+  <thead>
+    <tr><th>Liaison</th><th class="n">Longueur</th>
+      <th class="n">0,25 A</th><th class="n">0,5 A</th><th class="n">1 A</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><b>A1·V</b> — Portail piéton,
+        ventouse simple</td>
+      <td class="n">39 m</td>
+      <td class="n">0,34 mm²</td><td class="n">0,75 mm²</td><td class="n">1,5 mm²</td>
+    </tr><tr>
+      <td><b>A2·V</b> — Porte principale, façade sur cour,
+        double ventouse</td>
+      <td class="n">28 m</td>
+      <td class="n">0,22 mm²</td><td class="n">0,5 mm²</td><td class="n">1 mm²</td>
+    </tr>
+  </tbody>
+</table>
+
+<p class="largeur"><b>Une double ventouse appelle le double de courant</b>, et
+  se lit donc une colonne plus à droite que la simple. Si aucune section
+  raisonnable ne tient, la réponse n'est pas de forcer le câble&nbsp;: c'est
+  de passer en 24 V, ce qui divise le courant par deux et la chute par quatre,
+  ou de rapprocher l'alimentation de la porte. C'est précisément ce que fait
+  le coffret d'entrée R1.</p>
+
+<h2>8. Ce qu'il reste à mesurer sur place</h2>
+<ul class="liste">
+  <li><b>L'emplacement du local technique.</b> Tout le métré en dépend, et
+    il en dépend plus que du nombre de caméras : c'est la première cote à
+    arrêter, avant les emplacements de pose. Celui retenu ici est supposé.</li>
+  <li><b>L'arrivée 230 V au portail.</b> Elle conditionne le coffret d'entrée,
+    qui conditionne à son tour la platine d'interphonie et le verrouillage.
+    Si elle n'existe pas et ne peut être créée, la solution change de nature
+    — et de budget.</li>
+  <li><b>Le classement du bâtiment au regard de l'incendie</b>, et l'effectif
+    reçu. C'est ce qui fixe les obligations de déverrouillage d'urgence sur
+    les portes tenues par ventouse. À établir avant toute commande.</li>
   <li><b>Les distances.</b> Pour chaque vue, deux longueurs connues suffisent —
     la largeur du portail, l'entraxe de deux poteaux, la longueur d'une
     remorque. Le report des champs devient alors une mesure.</li>
@@ -3279,7 +3758,7 @@
     mètres et demi.</li>
 </ul>
 
-<h2>7. Réserves et obligations</h2>
+<h2>9. Réserves et obligations</h2>
 <ul class="liste">
   <li>Ce document est une étude technique. Il ne vaut ni devis ni engagement de
     prix&nbsp;: aucun montant n'y figure.</li>

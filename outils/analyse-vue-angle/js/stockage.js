@@ -108,6 +108,42 @@ export function disqueRecommande(go) {
   return { unitaire: plusGros, nombre, total: plusGros * nombre };
 }
 
+/**
+ * Comment remplir un enregistreur à N baies.
+ *
+ * Deux baies ne veulent pas dire deux fois la capacité : cela dépend de ce
+ * qu'on en fait, et le choix n'est pas technique mais commercial.
+ *
+ * - en **pool**, les disques s'additionnent. On a toute la capacité, et la
+ *   perte d'un disque emporte la part des images qu'il portait ;
+ * - en **miroir**, chaque disque porte la même chose. On a la moitié de la
+ *   capacité, et un disque peut mourir sans qu'une image manque.
+ *
+ * Un disque de vidéosurveillance écrit vingt-quatre heures sur vingt-quatre.
+ * Il ne meurt pas « peut-être » : il meurt, et la seule question est de
+ * savoir si ce jour-là on avait besoin des images. La fonction rend les deux
+ * hypothèses chiffrées plutôt que d'en imposer une.
+ *
+ * @param {number} go capacité nécessaire, en gigaoctets
+ * @param {number} [baies=2] nombre d'emplacements de disque
+ * @returns {{baies:number, pool:object|null, miroir:object|null}|null}
+ */
+export function disquesPourBaies(go, baies = 2) {
+  if (!(go > 0) || !(baies >= 1)) return null;
+  const to = go / 1000;
+  const choisir = (besoinParDisque, nombre) => {
+    const unitaire = DISQUES.find((d) => d >= besoinParDisque);
+    if (!unitaire) return null;
+    return { unitaire, nombre, total: unitaire * nombre };
+  };
+  return {
+    baies,
+    pool: choisir(to / baies, baies),
+    // Le miroir n'a de sens qu'à baies paires : chaque disque en double un autre.
+    miroir: baies % 2 === 0 ? choisir(to / (baies / 2), baies) : null,
+  };
+}
+
 /* --------------------------------------------------------------- PoE */
 
 /**

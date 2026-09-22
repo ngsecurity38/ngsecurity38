@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 import {
   GO_PAR_MBPS_JOUR, MARGE_DEFAUT, CODECS, CLASSES_POE,
   debitEstime, capaciteNecessaire, joursTenus, disqueRecommande,
-  classePour, ipValide, controler, bilan,
+  classePour, ipValide, controler, bilan, disquesPourBaies,
 } from '../js/stockage.js';
 import { nouveauSynoptique, nouveauNoeud, nouveauLien } from '../js/reseau.js';
 
@@ -268,4 +268,55 @@ test('les nombres des messages sont écrits à la française', () => {
   const texte = a.map((x) => x.texte).join(' ');
   assert.ok(!/\d\.\d/.test(texte), `décimale anglaise dans : ${texte}`);
   assert.match(texte, /5\u202f832 Go nécessaires/, 'les milliers sont séparés');
+});
+
+/* --------------------------------------------------- disques et baies */
+
+test('deux baies : le pool additionne, le miroir double', () => {
+  // 12 To de besoin : deux disques de 6 To en pool, deux de 12 en miroir.
+  const d = disquesPourBaies(12000, 2);
+  assert.equal(d.baies, 2);
+  assert.equal(d.pool.unitaire, 6);
+  assert.equal(d.pool.nombre, 2);
+  assert.equal(d.pool.total, 12);
+  assert.equal(d.miroir.unitaire, 12);
+  assert.equal(d.miroir.nombre, 2);
+});
+
+test('deux baies : le pool tient toujours le besoin', () => {
+  for (const go of [500, 3200, 7800, 12000, 19500, 33000]) {
+    const d = disquesPourBaies(go, 2);
+    if (!d.pool) continue;
+    assert.ok(
+      d.pool.total * 1000 >= go,
+      `${go} Go : ${d.pool.total} To en pool ne suffit pas`,
+    );
+    // Le miroir n'offre que la moitié de sa capacité installée — et il est
+    // donc le premier des deux à sortir du catalogue. À 33 To de besoin, le
+    // pool tient encore (2 × 18) quand le miroir demanderait deux disques de
+    // 33 To, qui n'existent pas : la fonction rend null, elle n'arrondit pas.
+    if (!d.miroir) {
+      assert.ok(go / 1000 > 24, `${go} Go : miroir refusé alors qu'il tenait`);
+      continue;
+    }
+    assert.ok((d.miroir.total / 2) * 1000 >= go, `${go} Go : miroir insuffisant`);
+  }
+});
+
+test('baies impaires : pas de miroir, et la fonction le dit', () => {
+  // Un miroir suppose des paires. Proposer un miroir sur trois baies serait
+  // proposer une chose qui n'existe pas.
+  assert.equal(disquesPourBaies(8000, 1).miroir, null);
+  assert.equal(disquesPourBaies(8000, 3).miroir, null);
+});
+
+test('baies : besoin au-delà du catalogue → null plutôt qu\'un disque imaginaire', () => {
+  const d = disquesPourBaies(200000, 2); // 200 To sur deux baies
+  assert.equal(d.pool, null);
+  assert.equal(d.miroir, null);
+});
+
+test('baies : données absentes → null', () => {
+  assert.equal(disquesPourBaies(0, 2), null);
+  assert.equal(disquesPourBaies(8000, 0), null);
 });

@@ -26,7 +26,10 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { distanceDori, couverture, SEUILS_DORI } from '../../outils/analyse-vue-angle/js/optique.js';
-import { debitEstime, capaciteNecessaire } from '../../outils/analyse-vue-angle/js/stockage.js';
+import { debitEstime, capaciteNecessaire, disquesPourBaies, joursTenus }
+  from '../../outils/analyse-vue-angle/js/stockage.js';
+import { cheminement, verdictEthernet, bobines, sectionContinu, LIAISON_PERMANENTE, BOBINE }
+  from '../../outils/analyse-vue-angle/js/cable.js';
 import { fr, frGroupe } from '../../outils/analyse-vue-angle/js/format.js';
 
 const ici = dirname(fileURLToPath(import.meta.url));
@@ -165,6 +168,117 @@ const MODELES = {
  * extérieure se pose sous un débord de toiture, subit le gel et le
  * ruissellement, et se câble depuis l'extérieur du volume.
  */
+/* ------------------------------------------------- enregistrement, accès */
+
+/**
+ * Le reste du matériel, tel que le distributeur le référence.
+ *
+ * Les descriptifs sont ceux du relevé fournisseur communiqué par l'agence.
+ * Aucune fiche constructeur n'a pu être ouverte depuis l'atelier — le réseau
+ * y bloque les serveurs qui les hébergent — et chaque point à vérifier est
+ * porté dans `aVerifier` plutôt que tranché ici.
+ */
+const EQUIPEMENTS = {
+  enregistreur: {
+    reference: 'Hikvision DS-7616NXI-K2/…',
+    type: 'Enregistreur réseau 16 voies AcuSense, 2 baies SATA',
+    canaux: 16,
+    baies: 2,
+    // Mbit/s, entrée comme sortie. C'est le chiffre qui plafonne le parc
+    // bien avant le nombre de voies : seize caméras 12 MP dépasseraient
+    // cette bande passante longtemps avant d'avoir épuisé les canaux.
+    bandePassante: 160,
+    resolutionMax: '12 MP',
+    codec: 'H.265+',
+    aVerifier: [
+      'La variante exacte. La référence du relevé s\'arrête sur une barre '
+        + 'oblique : « DS-7616NXI-K2/… ». Le suffixe décide de tout — un '
+        + 'K2/16P embarque seize ports PoE et rend le commutateur inutile, '
+        + 'un K2 nu impose de l\'acheter. Cette étude retient le K2 nu, '
+        + 'puisqu\'un commutateur est demandé par ailleurs.',
+      'La capacité maximale admise par baie. Elle n\'est pas au relevé, et '
+        + 'elle conditionne le choix des disques ci-dessus.',
+      'La présence et le niveau de RAID. Un deux-baies ne fait pas toujours '
+        + 'de miroir ; sans miroir, la perte d\'un disque emporte sa part '
+        + 'des images.',
+    ],
+  },
+  interphonie: {
+    reference: 'Hikvision DS-KIS902-S',
+    type: 'Kit d\'interphonie vidéo IP',
+    contenu: [
+      'Platine de rue, écran tactile 4,3", double caméra 2 MP, IR 3 m, IP65/IK08',
+      'Moniteur intérieur tactile 7", Wi-Fi 2,4 GHz',
+      'Commutateur PoE',
+      'Carte TF 32 Go',
+    ],
+    identification: ['visage', 'code PIN', 'badge 13,56 MHz', 'QR code'],
+    alimentation: 'PoE',
+    aVerifier: [
+      'Le nombre de ports du commutateur fourni, et son budget PoE. Le kit '
+        + 'alimente au moins la platine et le moniteur ; savoir s\'il peut '
+        + 'porter davantage évite d\'en acheter un second.',
+      'Les contacts de commande disponibles sur la platine : nature (sec ou '
+        + 'alimenté), nombre, pouvoir de coupure. C\'est ce qui décide si la '
+        + 'platine commande directement le verrouillage ou passe par un relais.',
+      'La compatibilité des badges déjà en service sur le site, le cas '
+        + 'échéant. Le 13,56 MHz recouvre plusieurs protocoles qui ne se '
+        + 'lisent pas entre eux.',
+    ],
+  },
+};
+
+/**
+ * Le local technique, et les points d'accès.
+ *
+ * AUCUN de ces emplacements n'est relevé. Ce sont des hypothèses de travail,
+ * prises là où les photos et la vue aérienne les rendent vraisemblables —
+ * le local près des bureaux, la platine au portail, la porte principale en
+ * façade sur cour. Elles servent à produire un métré qui a un ordre de
+ * grandeur juste, pas un métré qu'on commande les yeux fermés.
+ *
+ * Déplacer le local change toutes les longueurs. C'est la première chose à
+ * arrêter au relevé, avant même les emplacements de caméras.
+ */
+const LOCAL = { x: null, y: null, hauteurChemin: 3 };
+
+const ACCES = [
+  {
+    cle: 'A1',
+    nom: 'Portail piéton',
+    x: null, y: null,
+    hauteur: 1.5,
+    verrouillage: 'ventouse simple',
+    vantaux: 1,
+    platine: true,
+    hypothese: 'La platine d\'interphonie se pose au portail piéton, à hauteur '
+      + 'de visage. C\'est le seul endroit où une platine a un sens : un '
+      + 'visiteur ne descend pas de voiture deux fois.',
+  },
+  {
+    cle: 'A2',
+    nom: 'Porte principale, façade sur cour',
+    x: null, y: null,
+    hauteur: 2.2,
+    verrouillage: 'double ventouse',
+    vantaux: 2,
+    platine: false,
+    hypothese: 'Porte à deux vantaux : une ventouse par vantail, sur la même '
+      + 'alimentation. Le courant double, donc la chute de tension aussi — '
+      + 'c\'est la liaison la plus exposée du lot.',
+  },
+];
+
+/**
+ * Courant appelé par le verrouillage, en ampères sous douze volts.
+ *
+ * Ordres de grandeur du marché : une ventouse de 300 kg se situe couramment
+ * entre 0,25 et 0,5 A en 12 V. La fiche du modèle retenu tranche — et c'est
+ * pour cela que le métré donne la section pour PLUSIEURS courants au lieu
+ * d'en figer un. Le tableau se lit à la ligne du modèle réellement posé.
+ */
+const COURANTS_TESTES = [0.25, 0.5, 1];
+
 const VUES_EXTERIEURES = new Set(['entree', 'cour', 'quai']);
 const dehors = (cam) => VUES_EXTERIEURES.has(cam.vue);
 
@@ -831,6 +945,220 @@ const IMPLANTATION = {
 };
 
 /**
+ * Hauteurs de pose, en mètres, telles qu'elles figurent au descriptif de
+ * chaque caméra. Elles entrent dans le métré : la descente du support au
+ * chemin de câbles est du câble comme un autre.
+ */
+const HAUTEURS = {
+  C1: 4, C2: 3, C3: 4.5, C4: 3.5, C5: 4, C6: 3, C7: 4,
+  C8: 3, C9: 3, C10: 2.8, C11: 4, C12: 3.5, C13: 3, C14: 3,
+};
+
+/*
+ * Les emplacements qui manquaient au moment de déclarer LOCAL et ACCES :
+ * ils s'expriment dans le repère du plan, qui n'existe qu'ici.
+ */
+LOCAL.x = PLAN.bat.x + PLAN.bat.l * 0.30;
+LOCAL.y = PLAN.bat.y + 4;
+
+ACCES[0].x = PLAN.portail.x + PLAN.portail.l + 1.5;
+ACCES[0].y = PLAN.portail.y;
+ACCES[1].x = PLAN.bat.x + PLAN.bat.l * 0.30;
+ACCES[1].y = PLAN.cour.y;
+
+/**
+ * Les coffrets déportés.
+ *
+ * Ils ne sont pas une élégance : ils sont la seule réponse à un constat.
+ * Tirées jusqu'au local, deux liaisons dépassent les cent mètres du canal
+ * Ethernet — la caméra du fond de cour et la platine du portail. Un câble
+ * de cent quarante mètres ne fonctionne pas « un peu moins bien » : il ne
+ * fonctionne pas, ou fonctionne jusqu'au premier jour d'orage.
+ *
+ * Un coffret rapproche le point de raccordement. Il a un prix, et ce prix
+ * est une arrivée 230 V à l'endroit du coffret — point décisif du relevé,
+ * porté aux réserves.
+ */
+const RELAIS = {
+  R1: {
+    nom: 'Coffret d\'entrée',
+    x: null, y: null, hauteur: 2.5,
+    contenu: 'Commutateur PoE 8 ports et alimentation 12 V du verrouillage',
+    raison: 'La platine du portail est à plus de cent mètres du local. '
+      + 'L\'alimentation du verrouillage, elle, perdrait à cette distance '
+      + 'une tension qu\'aucune section raisonnable ne rattrape : la placer '
+      + 'au portail est la seule solution propre.',
+  },
+  R2: {
+    nom: 'Relais de halle',
+    x: null, y: null, hauteur: 3,
+    contenu: 'Commutateur PoE 8 ports',
+    raison: 'La caméra du fond de cour est hors de portée depuis le local. '
+      + 'Le relais la ramène dans la limite, et raccourcit au passage les '
+      + 'deux caméras de l\'extrémité du bâtiment.',
+  },
+};
+
+/** Ce que chaque coffret dessert. Le reste part directement au local. */
+const RATTACHEMENT = { C1: 'R1', C2: 'R1', A1: 'R1', C4: 'R2', C8: 'R2', C13: 'R2' };
+
+/**
+ * Le métré, liaison par liaison.
+ *
+ * Chaque longueur est CALCULÉE — écart au plan, montée, descente, mou,
+ * réserves — par la même fonction que celle du site public. Aucune n'est
+ * écrite à la main, et aucune ne peut donc être juste ici et fausse ailleurs.
+ *
+ * Ce que le métré vaut : l'exactitude du plan dont il part. Celui-ci repose
+ * sur une longueur de bâtiment supposée. Les longueurs ci-dessous sont donc
+ * des ORDRES DE GRANDEUR justes, à recaler dès qu'une cote réelle existe —
+ * et le document ne prétend pas autre chose.
+ *
+ * `direct` garde la longueur qu'aurait eue la liaison sans coffret. C'est ce
+ * qui justifie le coffret, chiffres à l'appui, au lieu de l'imposer.
+ */
+const METRE = (() => {
+  const liaisons = [];
+
+  RELAIS.R1.x = IMPLANTATION.C1.x;
+  RELAIS.R1.y = IMPLANTATION.C1.y;
+  RELAIS.R2.x = PLAN.bat.x + PLAN.bat.l * 0.9;
+  RELAIS.R2.y = PLAN.bat.y + PLAN.bat.p * 0.5;
+
+  const depuis = (origine, x, y, montee) => cheminement({
+    dx: x - origine.x,
+    dy: y - origine.y,
+    montee,
+    descente: origine.hauteurChemin ?? origine.hauteur ?? 0,
+  });
+
+  const ajouter = (l) => {
+    const complete = { ...l, verdict: l.famille === 'video' ? verdictEthernet(l.longueur) : null };
+    liaisons.push(complete);
+    return complete;
+  };
+
+  // Les liaisons montantes des coffrets, d'abord : elles portent tout le reste.
+  for (const [cle, r] of Object.entries(RELAIS)) {
+    ajouter({
+      repere: cle,
+      designation: `${r.nom} — liaison montante vers le local`,
+      cable: 'Cat 6 U/UTP',
+      longueur: depuis(LOCAL, r.x, r.y, r.hauteur),
+      famille: 'video',
+      montante: true,
+    });
+  }
+
+  for (const cam of CAMERAS) {
+    const pos = IMPLANTATION[cam.cle];
+    if (!pos) continue;
+    const relais = RATTACHEMENT[cam.cle];
+    const origine = relais ? RELAIS[relais] : LOCAL;
+    const longueur = depuis(origine, pos.x, pos.y, HAUTEURS[cam.cle] ?? 3);
+    ajouter({
+      repere: cam.cle,
+      designation: `${cam.role} — ${MODELES[cam.modele].reference.split(' (')[0]}`,
+      cable: 'Cat 6 U/UTP',
+      longueur,
+      direct: relais ? depuis(LOCAL, pos.x, pos.y, HAUTEURS[cam.cle] ?? 3) : null,
+      vers: relais || 'local',
+      extension: !!cam.extension,
+      famille: 'video',
+    });
+  }
+
+  for (const a of ACCES) {
+    const relais = RATTACHEMENT[a.cle];
+    const origine = relais ? RELAIS[relais] : LOCAL;
+    const l = depuis(origine, a.x, a.y, a.hauteur);
+    const direct = relais ? depuis(LOCAL, a.x, a.y, a.hauteur) : null;
+    if (a.platine) {
+      ajouter({
+        repere: `${a.cle}·P`,
+        designation: `Platine d'interphonie — ${a.nom}`,
+        cable: 'Cat 6 U/UTP',
+        longueur: l, direct, vers: relais || 'local',
+        famille: 'video',
+      });
+    }
+    ajouter({
+      repere: `${a.cle}·V`,
+      designation: `Alimentation du verrouillage — ${a.verrouillage}`,
+      cable: '2 conducteurs, section au tableau ci-dessous',
+      longueur: l, direct, vers: relais || 'local',
+      famille: 'alimentation',
+      acces: a,
+    });
+    ajouter({
+      repere: `${a.cle}·L`,
+      designation: `Lecteur d'accès — ${a.nom}`,
+      cable: '6 conducteurs blindés (Wiegand) ou 2 paires (OSDP)',
+      longueur: l, direct, vers: relais || 'local',
+      famille: 'commande',
+    });
+    ajouter({
+      repere: `${a.cle}·B`,
+      designation: `Bouton de sortie et déverrouillage d'urgence — ${a.nom}`,
+      cable: '2 × 2 conducteurs',
+      longueur: l, direct, vers: relais || 'local',
+      famille: 'commande',
+    });
+    ajouter({
+      repere: `${a.cle}·C`,
+      designation: `Contact de position de porte — ${a.nom}`,
+      cable: '2 conducteurs',
+      longueur: l, direct, vers: relais || 'local',
+      famille: 'commande',
+    });
+  }
+
+  // Le moniteur d'interphonie est dans le bureau, à quelques mètres du local.
+  ajouter({
+    repere: 'M1',
+    designation: 'Moniteur intérieur d\'interphonie — bureau',
+    cable: 'Cat 6 U/UTP',
+    longueur: cheminement({ dx: 6, dy: 4, montee: 1.5, descente: LOCAL.hauteurChemin }),
+    vers: 'local',
+    famille: 'video',
+  });
+
+  return liaisons;
+})();
+
+const metreParFamille = (famille, avecExtension = true) => METRE
+  .filter((l) => l.famille === famille && (avecExtension || !l.extension))
+  .reduce((s, l) => s + l.longueur, 0);
+
+const RESEAU_PARC = metreParFamille('video', false);
+const RESEAU_TOTAL = metreParFamille('video', true);
+const COMMANDE_TOTAL = metreParFamille('commande') + metreParFamille('alimentation');
+const BOBINES_RESEAU = bobines(RESEAU_TOTAL);
+
+/**
+ * Ce que les coffrets évitent, et qui n'est pas de même nature selon la
+ * liaison. Une liaison Ethernet trop longue ne FONCTIONNE pas. Une
+ * alimentation trop longue fonctionne, mais coûte du cuivre et perd de la
+ * tension. Les confondre ferait passer un problème de prix pour une panne,
+ * et une panne pour un problème de prix.
+ */
+const SAUVEES = METRE.filter(
+  (l) => l.famille === 'video' && l.direct && verdictEthernet(l.direct).niveau !== 'ok',
+);
+
+/** Les alimentations que le coffret raccourcit, avec ce qu'elles auraient coûté. */
+const ALIMS_RACCOURCIES = METRE
+  .filter((l) => l.famille === 'alimentation' && l.direct && l.direct > l.longueur)
+  .map((l) => ({
+    ...l,
+    sansCoffret: sectionContinu({ courant: 0.5, longueur: l.direct, tension: 12 }),
+    avecCoffret: sectionContinu({ courant: 0.5, longueur: l.longueur, tension: 12 }),
+  }));
+
+/** Ce qui sort encore de la limite, coffrets compris. */
+const LIAISONS_LONGUES = METRE.filter((l) => l.verdict && l.verdict.niveau !== 'ok');
+
+/**
  * Le plan d'implantation, à l'échelle de la longueur supposée.
  *
  * L'ordre de tracé compte : le fond, puis les bâtiments PLEINS, puis les
@@ -1171,6 +1499,21 @@ const debitTotal = parc.reduce((s, [cle, n]) => {
 const stockage = (j) => capaciteNecessaire({ debitTotal, jours: j, heuresParJour: 24 });
 
 /*
+ * Le débit qu'atteindrait le parc étendu.
+ *
+ * Il se compare à la bande passante de l'enregistreur, pas à son nombre de
+ * voies : c'est elle qui plafonne, et elle plafonne plus tôt.
+ */
+const parcEtendu = [['turret', 8], ['varifocal', 4], ['panoramique', 2]];
+const debitExtension = parcEtendu.reduce((sm, [cle, n]) => {
+  const m = MODELES[cle];
+  return sm + n * debitEstime({ resH: m.resH, resV: m.resV, codec: 'h265' });
+}, 0);
+
+/** Les deux façons de remplir les deux baies, pour trente jours. */
+const disques30 = disquesPourBaies(stockage(30), EQUIPEMENTS.enregistreur.baies);
+
+/*
  * Le compte des zones couvertes.
  *
  * Calculé, pas écrit : le parc a été arrêté sur cinq vues, et les photos
@@ -1275,6 +1618,8 @@ const html = `<!doctype html>
   .report .champ span { position:absolute; top:6px; left:6px; background:var(--rouge);
     color:#fff; font-size:12px; font-weight:700; padding:2px 7px; border-radius:4px; }
   .deborde { font-size:13px; color:#8a5a00; margin-top:6px; }
+  h3 { font-size:16px; margin:22px 0 8px; color:var(--encre); }
+  tr.ext td { color:var(--doux); }
   table { border-collapse:collapse; width:100%; font-size:14px; }
   th, td { text-align:left; padding:7px 9px; border-bottom:1px solid var(--bord); }
   th { font-size:12px; text-transform:uppercase; letter-spacing:.05em; color:var(--doux); }
@@ -1545,30 +1890,341 @@ ${VUES.map(sectionVue).join('')}
   </tbody>
 </table>
 
-<h2>5. Réseau, enregistrement, stockage</h2>
-<p>Neuf caméras alimentées par le réseau. Le dimensionnement ci-dessous est un
-  ordre de grandeur, calculé sur un codec H.265 et un enregistrement continu.
-  Un débit réel relevé sur site le remplacera.</p>
+<h2>5. Enregistrement et stockage</h2>
+
+<p>L'enregistreur retenu est un <b>${ech(EQUIPEMENTS.enregistreur.reference)}</b> —
+  ${ech(EQUIPEMENTS.enregistreur.type)}. Le dimensionnement ci-dessous est
+  calculé sur un codec H.265 et un enregistrement continu ; un débit réel
+  relevé à la mise en service le remplacera.</p>
+
 <table>
   <tbody>
-    <tr><td>Ports PoE nécessaires</td><td class="n"><b>9</b>, plus un port de
-      liaison — un commutateur de 16 ports laisse la place d'une extension</td></tr>
-    <tr><td>Débit estimé, toutes caméras</td>
-      <td class="n"><b>${ech(fr(debitTotal))} Mbit/s</b></td></tr>
-    <tr><td>Enregistreur</td><td class="n">au moins <b>9 voies</b> en 8 MP</td></tr>
-    <tr><td>Stockage, 15 jours continus</td>
+    <tr><td>Caméras au parc retenu</td><td class="n"><b>${PARC.length}</b>
+      sur ${EQUIPEMENTS.enregistreur.canaux} voies disponibles</td></tr>
+    <tr><td>Avec les ${EXTENSION.length} caméras d'extension</td>
+      <td class="n"><b>${CAMERAS.length}</b> voies — il en resterait
+      ${EQUIPEMENTS.enregistreur.canaux - CAMERAS.length}</td></tr>
+    <tr><td>Débit estimé, parc retenu</td>
+      <td class="n"><b>${ech(fr(debitTotal))} Mbit/s</b> sur
+      ${EQUIPEMENTS.enregistreur.bandePassante} admis en entrée</td></tr>
+    <tr><td>Stockage nécessaire, 15 jours continus</td>
       <td class="n"><b>${ech(fr(stockage(15) / 1000))} To</b></td></tr>
-    <tr><td>Stockage, 30 jours continus</td>
+    <tr><td>Stockage nécessaire, 30 jours continus</td>
       <td class="n"><b>${ech(fr(stockage(30) / 1000))} To</b></td></tr>
   </tbody>
 </table>
-<p class="largeur">L'enregistrement sur détection au lieu du continu divise ces
-  volumes, dans une proportion qui dépend de l'activité du site. À arbitrer
-  avec le client&nbsp;: la durée de conservation est aussi une question
-  juridique.</p>
 
-<h2>6. Ce qu'il reste à mesurer sur place</h2>
+<p class="largeur">Les capacités sont en téraoctets décimaux, comme les
+  étiquettes des fabricants. Un disque annoncé 8 To en offre bien huit&nbsp;;
+  c'est l'affichage du système, en Tio, qui montrera 7,3 — différence
+  d'unité, pas de capacité perdue. Une marge de 20 % est incluse.</p>
+
+<h3>Ce que la bande passante autorise vraiment</h3>
+
+<p>Seize voies ne veulent pas dire seize caméras. L'enregistreur admet
+  <b>${EQUIPEMENTS.enregistreur.bandePassante} Mbit/s</b> en entrée, et c'est
+  ce chiffre qui plafonne le parc bien avant le nombre de canaux. Le parc
+  retenu en consomme ${ech(fr(debitTotal))}, soit
+  ${ech(fr((debitTotal / EQUIPEMENTS.enregistreur.bandePassante) * 100, 0))} %.
+  Les cinq caméras d'extension porteraient le total à
+  ${ech(fr(debitExtension))} Mbit/s, soit
+  ${ech(fr((debitExtension / EQUIPEMENTS.enregistreur.bandePassante) * 100, 0))} %
+  — ${debitExtension <= EQUIPEMENTS.enregistreur.bandePassante
+    ? 'l\'extension tient donc dans la machine'
+    : 'l\'extension NE TIENT PAS : un second enregistreur serait nécessaire'}.</p>
+
+<h3>Les deux disques</h3>
+
+<p>L'enregistreur a ${EQUIPEMENTS.enregistreur.baies} baies. Ce n'est pas
+  la même chose que deux fois la capacité&nbsp;: tout dépend de ce qu'on en
+  fait, et le choix n'est pas technique, il est commercial.</p>
+
+<table>
+  <thead>
+    <tr><th>Pour 30 jours</th><th class="n">Disques</th><th class="n">Installé</th>
+      <th class="n">Utile</th><th>Ce qu'on y gagne, ce qu'on y perd</th></tr>
+  </thead>
+  <tbody>
+    ${disques30.pool ? `<tr>
+      <td><b>Deux disques en pool</b></td>
+      <td class="n">2 × ${disques30.pool.unitaire} To</td>
+      <td class="n">${disques30.pool.total} To</td>
+      <td class="n">${disques30.pool.total} To</td>
+      <td>Toute la capacité. La perte d'un disque emporte la part des images
+        qu'il portait.</td></tr>` : ''}
+    ${disques30.miroir ? `<tr>
+      <td><b>Deux disques en miroir</b></td>
+      <td class="n">2 × ${disques30.miroir.unitaire} To</td>
+      <td class="n">${disques30.miroir.total} To</td>
+      <td class="n">${disques30.miroir.total / 2} To</td>
+      <td>Un disque peut mourir sans qu'une image manque. On paie deux fois
+        la capacité pour en utiliser une.</td></tr>` : ''}
+  </tbody>
+</table>
+
+<p class="largeur">Un disque de vidéosurveillance écrit vingt-quatre heures
+  sur vingt-quatre, toute l'année. Il ne meurt pas «&nbsp;peut-être&nbsp;»&nbsp;:
+  il meurt, et la seule question est de savoir si ce jour-là on avait besoin
+  des images. Le miroir répond à cette question, le pool répond à la question
+  du prix. Les deux réponses sont défendables&nbsp;; celle qui ne l'est pas,
+  c'est de ne pas avoir posé la question.</p>
+
+<p class="largeur">Avec
+  ${disques30.pool ? `${disques30.pool.total} To en pool` : 'la capacité installée'},
+  le parc retenu tient
+  <b>${ech(fr(joursTenus({ debitTotal, capaciteGo: (disques30.pool?.total || 0) * 1000 }), 0))} jours</b>
+  d'enregistrement continu. L'enregistrement sur détection allonge cette
+  durée dans une proportion qui dépend de l'activité du site&nbsp;: c'est le
+  réglage qui change le plus les chiffres, et il s'arbitre avec le client —
+  la durée de conservation est aussi une question juridique.</p>
+
+<div class="avert">
+  <b>Trois points à vérifier sur la fiche de l'enregistreur</b>, qu'aucun
+  relevé fournisseur ne donne&nbsp;:
+  ${EQUIPEMENTS.enregistreur.aVerifier.map((x) => `<br>— ${ech(x)}`).join('')}
+</div>
+
+<h2>6. Interphonie et contrôle d'accès</h2>
+
+<p>Le kit retenu est un <b>${ech(EQUIPEMENTS.interphonie.reference)}</b> —
+  ${ech(EQUIPEMENTS.interphonie.type)}, alimenté en
+  ${ech(EQUIPEMENTS.interphonie.alimentation)}. Il comprend&nbsp;:</p>
+
 <ul class="liste">
+  ${EQUIPEMENTS.interphonie.contenu.map((x) => `<li>${ech(x)}</li>`).join('')}
+</ul>
+
+<p>Il identifie par ${EQUIPEMENTS.interphonie.identification.join(', ')}. Les
+  quatre moyens coexistent&nbsp;: le visage pour les habitués, le badge pour
+  le personnel, le code pour les livraisons régulières, le QR code pour un
+  visiteur annoncé une seule fois.</p>
+
+<h3>Les deux points d'accès retenus</h3>
+
+<table>
+  <thead>
+    <tr><th>Repère</th><th>Point d'accès</th><th>Verrouillage</th>
+      <th>Ce qui s'y pose</th></tr>
+  </thead>
+  <tbody>
+    ${ACCES.map((a) => `<tr>
+      <td><b>${ech(a.cle)}</b></td>
+      <td>${ech(a.nom)}</td>
+      <td>${ech(a.verrouillage)}${a.vantaux > 1 ? ` (${a.vantaux} vantaux)` : ''}</td>
+      <td>${a.platine ? 'Platine d\'interphonie, ' : ''}lecteur, bouton de
+        sortie, déverrouillage d'urgence, contact de position</td>
+    </tr>`).join('')}
+  </tbody>
+</table>
+
+${ACCES.map((a) => `<p class="largeur"><b>${ech(a.cle)} — ${ech(a.nom)}.</b>
+  ${ech(a.hypothese)}</p>`).join('')}
+
+<div class="avert">
+  <b>Une ventouse sur une issue n'est pas un simple verrou.</b> Une porte que
+  l'on verrouille électriquement doit pouvoir s'ouvrir quand tout s'arrête —
+  coupure de courant, alarme incendie, panique. Cela impose un dispositif de
+  déverrouillage d'urgence à l'intérieur, immédiatement reconnaissable et
+  actionnable sans outil, et un verrouillage qui LIBÈRE en l'absence de
+  tension plutôt qu'il ne se ferme. Ce n'est pas une option de confort&nbsp;:
+  c'est ce qui sépare une porte sécurisée d'une porte qui piège.
+  <br><br>La règle exacte dépend du classement du bâtiment et de l'effectif
+  reçu, que cette étude ne connaît pas. <b>À établir avec le client et, si le
+  site est un établissement recevant du public ou du personnel en nombre,
+  avec le bureau de contrôle</b>, avant toute commande de ventouse. Le
+  déverrouillage d'urgence est porté au métré ci-dessous pour chaque porte —
+  il n'y figure pas par excès de prudence.
+</div>
+
+<div class="avert">
+  <b>Trois points à vérifier sur la fiche du kit&nbsp;:</b>
+  ${EQUIPEMENTS.interphonie.aVerifier.map((x) => `<br>— ${ech(x)}`).join('')}
+</div>
+
+<h2>7. Métré des câbles</h2>
+
+<p>Les longueurs ci-dessous sont calculées, pas estimées à l'œil&nbsp;: pour
+  chaque liaison, la somme des deux écarts du plan — un câble suit les murs,
+  pas la diagonale — plus la hauteur de pose, plus la descente vers le chemin
+  de câbles, plus 10 % de détours, plus un mètre de réserve à chaque bout.</p>
+
+<div class="avert">
+  <b>Ce métré repose sur un plan supposé et sur un local technique supposé.</b>
+  Le local est placé côté bureaux, à l'endroit que les photos rendent
+  vraisemblable&nbsp;; il n'a pas été relevé. Le déplacer change TOUTES les
+  longueurs. C'est la première chose à arrêter sur place, avant même les
+  emplacements de caméras. Les ordres de grandeur, eux, sont justes.
+</div>
+
+<h3>Pourquoi deux coffrets déportés</h3>
+
+<p>Une liaison Ethernet tient <b>${LIAISON_PERMANENTE} mètres</b> de câble
+  posé — la norme en réserve dix de plus pour les cordons des deux bouts, et
+  pas un mètre au-delà. Tirées directement au local,
+  ${SAUVEES.length} liaisons réseau dépassaient cette limite. Un câble de cent
+  quarante mètres ne fonctionne pas «&nbsp;un peu moins bien&nbsp;»&nbsp;: il
+  ne fonctionne pas, ou il fonctionne jusqu'au premier orage.</p>
+
+<table>
+  <thead>
+    <tr><th>Coffret</th><th>Ce qu'il contient</th><th class="n">Montante</th>
+      <th>Ce qu'il résout</th></tr>
+  </thead>
+  <tbody>
+    ${Object.entries(RELAIS).map(([cle, r]) => `<tr>
+      <td><b>${ech(cle)}</b> — ${ech(r.nom)}</td>
+      <td>${ech(r.contenu)}</td>
+      <td class="n">${ech(fr(METRE.find((l) => l.repere === cle).longueur, 0))} m</td>
+      <td>${ech(r.raison)}</td>
+    </tr>`).join('')}
+  </tbody>
+</table>
+
+<table>
+  <thead>
+    <tr><th>Liaison</th><th class="n">Sans coffret</th><th class="n">Avec</th>
+      <th>Verdict sans coffret</th></tr>
+  </thead>
+  <tbody>
+    ${SAUVEES.map((l) => `<tr>
+      <td><b>${ech(l.repere)}</b> — ${ech(l.designation)}</td>
+      <td class="n">${ech(fr(l.direct, 0))} m</td>
+      <td class="n"><b>${ech(fr(l.longueur, 0))} m</b></td>
+      <td>${ech(verdictEthernet(l.direct).niveau === 'hors-norme'
+        ? 'Hors norme — ne fonctionne pas' : 'Sans marge')}</td>
+    </tr>`).join('')}
+  </tbody>
+</table>
+
+<p>Les alimentations et les commandes du portail, elles, fonctionneraient à
+  cent douze mètres — mais à quel prix de cuivre. Le coffret les ramène
+  toutes à ${ech(fr(ALIMS_RACCOURCIES[0].longueur, 0))} mètres&nbsp;:</p>
+
+<table>
+  <thead>
+    <tr><th>Alimentation</th><th class="n">Sans coffret</th>
+      <th class="n">Section</th><th class="n">Avec</th><th class="n">Section</th></tr>
+  </thead>
+  <tbody>
+    ${ALIMS_RACCOURCIES.map((l) => `<tr>
+      <td><b>${ech(l.repere)}</b> — ${ech(l.acces.nom)}</td>
+      <td class="n">${ech(fr(l.direct, 0))} m</td>
+      <td class="n">${ech(fr(l.sansCoffret.section, 2))} mm²</td>
+      <td class="n"><b>${ech(fr(l.longueur, 0))} m</b></td>
+      <td class="n"><b>${ech(fr(l.avecCoffret.section, 2))} mm²</b></td>
+    </tr>`).join('')}
+  </tbody>
+</table>
+
+<p class="largeur">Sections données pour 0,5 A, à titre de comparaison. Le
+  rapport entre les deux colonnes ne dépend pas du courant retenu&nbsp;: c'est
+  la longueur qui commande.</p>
+
+<p class="largeur"><b>Le prix des coffrets n'est pas leur prix d'achat.</b>
+  C'est une arrivée <b>230 V</b> à l'endroit de chacun. Au portail, elle
+  n'existe peut-être pas. Si elle n'existe pas et ne peut être créée, tout se
+  reporte sur des liaisons hors norme, et la solution devient la fibre —
+  autre chantier, autre budget. <b>Point décisif du relevé.</b></p>
+
+<h3>Le métré, liaison par liaison</h3>
+
+<table>
+  <thead>
+    <tr><th>Repère</th><th>Liaison</th><th>Câble</th><th class="n">Depuis</th>
+      <th class="n">Longueur</th></tr>
+  </thead>
+  <tbody>
+    ${METRE.map((l) => `<tr${l.extension ? ' class="ext"' : ''}>
+      <td><b>${ech(l.repere)}</b></td>
+      <td>${ech(l.designation)}${l.extension ? ' <i>(extension)</i>' : ''}</td>
+      <td>${ech(l.cable)}</td>
+      <td class="n">${ech(l.montante ? 'local' : (l.vers || 'local'))}</td>
+      <td class="n">${ech(fr(l.longueur, 0))} m</td>
+    </tr>`).join('')}
+  </tbody>
+</table>
+
+<div class="paire">
+  <table>
+    <tbody>
+      <tr><td>Réseau, parc retenu</td>
+        <td class="n"><b>${ech(fr(RESEAU_PARC, 0))} m</b></td></tr>
+      <tr><td>Réseau, extension comprise</td>
+        <td class="n"><b>${ech(fr(RESEAU_TOTAL, 0))} m</b></td></tr>
+      <tr><td>À commander</td>
+        <td class="n"><b>${BOBINES_RESEAU.boites} boîtes</b> de ${BOBINE} m</td></tr>
+      <tr><td>Reste disponible</td>
+        <td class="n">${ech(fr(BOBINES_RESEAU.reste, 0))} m</td></tr>
+    </tbody>
+  </table>
+  <table>
+    <tbody>
+      <tr><td>Alimentation et commande</td>
+        <td class="n"><b>${ech(fr(COMMANDE_TOTAL, 0))} m</b></td></tr>
+      <tr><td>Liaisons hors limite Ethernet</td>
+        <td class="n"><b>${LIAISONS_LONGUES.length === 0 ? 'aucune' : LIAISONS_LONGUES.length}</b></td></tr>
+      <tr><td>Liaison la plus longue</td>
+        <td class="n">${ech(fr(Math.max(...METRE.filter((l) => l.famille === 'video').map((l) => l.longueur)), 0))} m</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<p class="largeur">Le reste de la dernière boîte n'est pas une curiosité de
+  comptable&nbsp;: c'est ce dont on dispose le jour où une liaison se révèle
+  plus longue qu'au plan. Ce jour arrive à chaque chantier.</p>
+
+<h3>Section des alimentations de verrouillage</h3>
+
+<p>Une ventouse sous-alimentée ne tombe pas en panne à la mise en
+  service&nbsp;: elle tient au banc, puis lâche l'hiver, quand la tension
+  baisse et que le courant monte. On ne rattrape pas cette erreur autrement
+  qu'en retirant le câble. La section se calcule&nbsp;: la chute de tension
+  vaut <b>2&nbsp;ρ&nbsp;L&nbsp;I&nbsp;/&nbsp;S</b>, et le facteur deux n'est
+  pas décoratif — le courant fait l'aller <i>et</i> le retour.</p>
+
+<p class="largeur">Le courant réel dépend du modèle de ventouse retenu, que
+  cette étude ne connaît pas&nbsp;: les modèles courants se situent entre
+  0,25 et 0,5 A par unité en 12 V, à confirmer sur la fiche. Le tableau donne
+  donc la section pour plusieurs courants, et se lit à la ligne du modèle
+  réellement posé. Chute admise&nbsp;: 10 % de la tension.</p>
+
+<table>
+  <thead>
+    <tr><th>Liaison</th><th class="n">Longueur</th>
+      ${COURANTS_TESTES.map((i) => `<th class="n">${ech(fr(i, 2))} A</th>`).join('')}</tr>
+  </thead>
+  <tbody>
+    ${METRE.filter((l) => l.famille === 'alimentation').map((l) => `<tr>
+      <td><b>${ech(l.repere)}</b> — ${ech(l.acces.nom)},
+        ${ech(l.acces.verrouillage)}</td>
+      <td class="n">${ech(fr(l.longueur, 0))} m</td>
+      ${COURANTS_TESTES.map((i) => {
+    const r = sectionContinu({ courant: i, longueur: l.longueur, tension: 12 });
+    return `<td class="n">${r.horsCatalogue ? '—' : `${ech(fr(r.section, 2))} mm²`}</td>`;
+  }).join('')}
+    </tr>`).join('')}
+  </tbody>
+</table>
+
+<p class="largeur"><b>Une double ventouse appelle le double de courant</b>, et
+  se lit donc une colonne plus à droite que la simple. Si aucune section
+  raisonnable ne tient, la réponse n'est pas de forcer le câble&nbsp;: c'est
+  de passer en 24 V, ce qui divise le courant par deux et la chute par quatre,
+  ou de rapprocher l'alimentation de la porte. C'est précisément ce que fait
+  le coffret d'entrée R1.</p>
+
+<h2>8. Ce qu'il reste à mesurer sur place</h2>
+<ul class="liste">
+  <li><b>L'emplacement du local technique.</b> Tout le métré en dépend, et
+    il en dépend plus que du nombre de caméras : c'est la première cote à
+    arrêter, avant les emplacements de pose. Celui retenu ici est supposé.</li>
+  <li><b>L'arrivée 230 V au portail.</b> Elle conditionne le coffret d'entrée,
+    qui conditionne à son tour la platine d'interphonie et le verrouillage.
+    Si elle n'existe pas et ne peut être créée, la solution change de nature
+    — et de budget.</li>
+  <li><b>Le classement du bâtiment au regard de l'incendie</b>, et l'effectif
+    reçu. C'est ce qui fixe les obligations de déverrouillage d'urgence sur
+    les portes tenues par ventouse. À établir avant toute commande.</li>
   <li><b>Les distances.</b> Pour chaque vue, deux longueurs connues suffisent —
     la largeur du portail, l'entraxe de deux poteaux, la longueur d'une
     remorque. Le report des champs devient alors une mesure.</li>
@@ -1588,7 +2244,7 @@ ${VUES.map(sectionVue).join('')}
     mètres et demi.</li>
 </ul>
 
-<h2>7. Réserves et obligations</h2>
+<h2>9. Réserves et obligations</h2>
 <ul class="liste">
   <li>Ce document est une étude technique. Il ne vaut ni devis ni engagement de
     prix&nbsp;: aucun montant n'y figure.</li>
