@@ -54,6 +54,7 @@ const MODELES = {
     cle: 'turret',
     reference: 'Hikvision DS-2CD2346G2H-IU (2,8 mm)',
     type: 'Turret 4 MP AcuSense, micro intégré',
+    vignette: 'm-turret.jpg',
     resH: 2688,
     resV: 1520,
     angleH: 100.2,
@@ -67,6 +68,7 @@ const MODELES = {
     cle: 'varifocal',
     reference: 'Hikvision DS-2CD2683G2-IZS (2,8–12 mm motorisé)',
     type: 'Bullet 8 MP AcuSense, objectif motorisé',
+    vignette: 'm-varifocal.jpg',
     resH: 3840,
     resV: 2160,
     angleH: 108,
@@ -82,6 +84,7 @@ const MODELES = {
     cle: 'panoramique',
     reference: 'Hikvision DS-2CD2346G2P-ISU/SL (2,8 mm)(C)',
     type: 'Turret panoramique 4 MP, 180°, stroboscope et alarme sonore',
+    vignette: 'm-panoramique.jpg',
     resH: 3040,
     resV: 1368,
     angleH: 180,
@@ -93,6 +96,9 @@ const MODELES = {
      * la formule y divise par l'infini.
      */
     capteurUnique: { resH: 1520, angleH: 90 },
+    noteCone: 'Le schéma montre UN des deux objectifs, soit la moitié du champ. '
+      + 'L\'appareil en couvre le double, à la même densité de pixels : les '
+      + 'portées ci-contre valent pour les 180°.',
     source: 'Deux objectifs de 2,8 mm assemblés en 180°, définition 3040 × 1368, '
       + 'infrarouge 30 m : relevés par recherche documentaire (fiche '
       + 'DS-2CD2346G2P-ISU/SL, éd. 27/03/2024). À CONFIRMER sur la fiche.',
@@ -481,9 +487,15 @@ function ficheModele(m) {
     ? [['Grand-angle (2,8 mm)', false], ['Téléobjectif (12 mm)', true]]
     : [[null, false]];
   return `<section class="modele">
-    <h3>${ech(m.reference)}</h3>
-    <p class="type">${ech(m.type)} — ${ech(frGroupe(m.resH))} × ${ech(frGroupe(m.resV))} px
-      ${m.ir ? `· infrarouge ${ech(m.ir)} m` : '· portée infrarouge à relever'}</p>
+    <div class="entete-modele">
+      ${m.vignetteSrc ? `<img class="vignette" src="${m.vignetteSrc}"
+        alt="${ech(m.reference)}">` : ''}
+      <div>
+        <h3>${ech(m.reference)}</h3>
+        <p class="type">${ech(m.type)} — ${ech(frGroupe(m.resH))} × ${ech(frGroupe(m.resV))} px
+          ${m.ir ? `· infrarouge ${ech(m.ir)} m` : '· portée infrarouge à relever'}</p>
+      </div>
+    </div>
     ${reglages.map(([titre, tele]) => `<div class="reglage">
       ${titre ? `<h4>${ech(titre)}</h4>` : ''}
       <div class="paire">
@@ -494,7 +506,9 @@ function ficheModele(m) {
         </table>
       </div>
       <p class="largeur">Largeur couverte à 20 m :
-        <b>${ech(fr(couverture(optiqueUtile(m, tele).angleH, 20)))} m</b>.</p>
+        <b>${ech(fr(couverture(optiqueUtile(m, tele).angleH, 20)))} m</b>${
+  m.capteurUnique ? ' par objectif, soit le double sur les 180°' : ''}.</p>
+      ${m.noteCone ? `<p class="note-cone">${ech(m.noteCone)}</p>` : ''}
     </div>`).join('')}
     <p class="source">${ech(m.source)}</p>
   </section>`;
@@ -531,6 +545,10 @@ function sectionVue(vue) {
 }
 
 /* --------------------------------------------------------- l'assemblage */
+
+for (const m of Object.values(MODELES)) {
+  if (m.vignette) m.vignetteSrc = image(join(ici, 'photos', m.vignette));
+}
 
 for (const v of VUES) {
   const chemin = join(ici, 'photos', v.fichier);
@@ -604,10 +622,16 @@ const html = `<!doctype html>
   .modele { border:1px solid var(--bord); border-radius:10px; padding:18px 20px;
     margin:16px 0; page-break-inside:avoid; }
   .modele .type { color:var(--doux); font-size:14px; }
+  .entete-modele { display:flex; gap:18px; align-items:flex-start; margin-bottom:12px; }
+  .entete-modele > div { flex:1 1 auto; min-width:0; }
+  .entete-modele h3 { margin-top:0; }
+  .vignette { flex:none; width:132px; height:auto; border:1px solid var(--bord);
+    border-radius:8px; background:#fff; }
   .paire { display:flex; gap:20px; align-items:flex-start; flex-wrap:wrap; }
   .cone { flex:1 1 340px; max-width:440px; height:auto; }
   .paire table { flex:1 1 240px; }
   .largeur { font-size:14px; color:var(--doux); margin-top:8px; }
+  .note-cone { font-size:13px; color:var(--doux); font-style:italic; margin-top:4px; }
   .source { font-size:12.5px; color:#8a5a00; background:#fff8e6; border-radius:6px;
     padding:9px 11px; margin-top:12px; }
   .pied { color:var(--doux); font-size:13px; text-align:center; padding:8px 0 30px; }
@@ -751,6 +775,11 @@ ${VUES.map(sectionVue).join('')}
     prix&nbsp;: aucun montant n'y figure.</li>
   <li>Les caractéristiques optiques sont à confirmer sur les fiches
     constructeur des références exactes commandées.</li>
+  <li>Les vues de matériel sont des visuels catalogue fournis par l'agence,
+    rapprochés de chaque référence à la forme : deux objectifs pour le
+    panoramique, un bullet à objectif motorisé pour le varifocal, un turret
+    pour le modèle fixe. Le rapprochement est à confirmer, et l'aspect réel
+    peut varier selon la révision livrée.</li>
   <li>Une caméra qui filme au-delà de la propriété — voie publique, parcelle
     voisine — relève d'une autorisation préfectorale. À cadrer avant la pose.</li>
   <li>Sur un lieu de travail, l'information des salariés et la consultation des
