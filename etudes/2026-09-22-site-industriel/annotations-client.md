@@ -69,6 +69,38 @@ n'est pas établi ; la phrase est à redemander avant d'agir dessus.
 | 4 | Panoramique 180° DS-2CD2346G2P-ISU/SL | extérieure |
 | 5 à 10 | Turret DS-2CD2346G2H-IU | intérieures |
 
+### Emplacements, dictés par l'agence
+
+Se remplit au fur et à mesure. Tant qu'une ligne est vide, la position
+lue sur le tracé de la page 6 ne vaut que comme lecture.
+
+| N° | Emplacement | Source |
+|---|---|---|
+| 1 | — | tracé p6 : en cour, centre-droit |
+| 2 | — | tracé p6 : en cour, à droite de 1 |
+| 3 | — | tracé p6 : extrémité droite du bâtiment |
+| 4 | — | tracé p6 : angle, extrémité gauche du bâtiment |
+| 5 | — | tracé p6 : intérieur, partie droite |
+| 6 | — | tracé p6 : intérieur, centre |
+| 7 | — | tracé p6 : intérieur, partie gauche, haut |
+| 8 | — | tracé p6 : intérieur, partie gauche, sous 7 |
+| 9 | — | tracé p6 : intérieur, centre-haut |
+| **10** | **Porte de secours** | **dicté** |
+
+Le poste 10 reprend exactement la fiche C10 du dossier — « sas et issue
+de secours » — sur laquelle l'agence a écrit « OK » en page 35. Toute
+l'analyse de cette position tient donc telle quelle :
+
+- plafond du sas à 2,8 m, dans l'axe du couloir. Un couloir force le
+  passage dans un goulot étroit et à courte distance : les 4,5 m
+  d'identification du turret y suffisent largement, là où ils ne
+  suffiraient pas en cour ;
+- **le point de fixation se choisit portes OUVERTES.** Les deux portes
+  isolantes, ouvertes, masquent une bonne part du volume : une caméra
+  posée derrière un battant ouvert ne voit rien ;
+- éclairage au néon seulement, aucune lumière du jour. Éclairage coupé,
+  il ne reste que l'infrarouge.
+
 ### Ce que cela change à la commande
 
 | Modèle | Commandé | Au plan | Écart |
