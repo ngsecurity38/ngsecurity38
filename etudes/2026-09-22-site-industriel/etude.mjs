@@ -1589,6 +1589,15 @@ const ZONES_SECOURS = [
   },
 ];
 
+/**
+ * Courants testés pour une alimentation 12 V de caméra, en ampères.
+ *
+ * Une caméra fixe se situe couramment vers 0,35 A en 12 V, davantage quand
+ * l'infrarouge s'allume, davantage encore pour un modèle à stroboscope et
+ * haut-parleur. Aucune fiche n'a pu être ouverte : on encadre.
+ */
+const COURANTS_CAMERA = [0.35, 0.5, 1];
+
 /** Charges testées, en watts : on ignore la vraie, on encadre. */
 const CHARGES_TESTEES = [80, 120, 160, 200];
 
@@ -2419,6 +2428,66 @@ ${ACCES.map((a) => `<p class="largeur"><b>${ech(a.cle)} — ${ech(a.nom)}.</b>
   d'entrée de gamme&nbsp;: un onduleur annoncé 1&nbsp;000&nbsp;VA ne délivre
   que six cents watts. Acheter en VA en croyant acheter des watts, c'est
   acheter deux fois moins que prévu.</p>
+
+<h3>Alimenter les caméras par un fil séparé</h3>
+
+<p>L'idée se tient&nbsp;: amener à chaque caméra une alimentation 12 V
+  distincte du réseau, de sorte qu'elle continue à filmer quand le PoE
+  s'arrête. Ces modèles acceptent en principe une entrée 12 V en plus du
+  PoE — <b>à confirmer fiche en main pour chacun</b>, et particulièrement
+  pour le panoramique, qui porte un stroboscope et un haut-parleur et
+  consomme donc plus que les autres.</p>
+
+<p><b>Mais une caméra vivante dont le commutateur est mort filme dans le
+  vide.</b> Le flux n'a plus de chemin, l'enregistreur ne reçoit rien, et
+  l'image n'existe nulle part. Alimenter la caméra à part ne sert donc à rien
+  tant que le reste de sa zone n'est pas secouru — et dès lors que la zone
+  l'est, le PoE la réalimente sans qu'aucun fil supplémentaire soit
+  nécessaire.</p>
+
+<div class="avert">
+  <b>L'unité de secours est la zone, pas l'appareil.</b> Secourir le
+  commutateur d'un coffret, c'est secourir d'un coup toutes les caméras qu'il
+  alimente, par le câble réseau déjà posé. Tirer en plus un fil 12 V à chaque
+  caméra double le câblage pour obtenir le même résultat — et ne le
+  surpasse que dans deux cas&nbsp;: garder une caméra vivante pendant le
+  redémarrage de son commutateur, ou alimenter une caméra placée sur une zone
+  qu'on a choisi de ne pas secourir.
+</div>
+
+<h3>Ce que coûterait ce fil, s'il était retenu</h3>
+
+<p>Le calcul est le même que pour le verrouillage — même formule, mêmes
+  pertes. Il se lit à la colonne du courant réel de la caméra, et il montre
+  surtout où le 12 V cesse d'être raisonnable&nbsp;: <b>une alimentation
+  basse tension ne se tire pas de loin</b>. Les caméras rattachées à un
+  coffret s'en tirent avec du fil de sonnette&nbsp;; celles qui viennent du
+  local demandent du câble d'éclairage.</p>
+
+<table>
+  <thead>
+    <tr><th>Caméra</th><th class="n">Départ</th><th class="n">Longueur</th>
+      ${COURANTS_CAMERA.map((i) => `<th class="n">${ech(fr(i, 2))} A</th>`).join('')}</tr>
+  </thead>
+  <tbody>
+    ${METRE.filter((l) => l.famille === 'video' && /^C\d+$/.test(l.repere)).map((l) => `<tr${
+  l.extension ? ' class="ext"' : ''}>
+      <td><b>${ech(l.repere)}</b>${l.extension ? ' <i>(extension)</i>' : ''}</td>
+      <td class="n">${ech(l.vers || 'local')}</td>
+      <td class="n">${ech(fr(l.longueur, 0))} m</td>
+      ${COURANTS_CAMERA.map((i) => {
+    const r = sectionContinu({ courant: i, longueur: l.longueur, tension: 12 });
+    return `<td class="n">${r.horsCatalogue ? '—' : `${ech(fr(r.section, 2))} mm²`}</td>`;
+  }).join('')}
+    </tr>`).join('')}
+  </tbody>
+</table>
+
+<p class="largeur">Une caméra à 0,22 mm² et une caméra à 4 mm² ne coûtent pas
+  le même chantier, et l'écart ne vient pas de la caméra&nbsp;: il vient de la
+  distance. C'est l'argument décisif en faveur d'une alimentation secourue
+  <b>dans chaque coffret</b> plutôt qu'au local — le cuivre y reste fin parce
+  que le trajet y est court.</p>
 
 <h3>Ce qui compte plus que les minutes gagnées</h3>
 
