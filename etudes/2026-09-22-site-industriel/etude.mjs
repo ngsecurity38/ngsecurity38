@@ -517,6 +517,78 @@ const CAMERAS = [
       + 'jusqu\'à quatre mètres et demi : le rayonnage doit se trouver dans cette '
       + 'distance, sinon elle ne fera que reconnaître.',
   },
+
+  /*
+   * EXTENSION PROPOSÉE — elle ne fait pas partie du parc déclaré.
+   *
+   * Cinq caméras pour les quatre zones relevées sans couverture. Elles
+   * reprennent les mêmes références que le parc initial : une ligne de plus
+   * au bon de commande, pas un second matériel à apprendre et à maintenir.
+   *
+   * Leurs emplacements disent LA ZONE, pas le point de fixation : aucun relevé
+   * intérieur n'a été fait, et la position exacte dépend des racks, des
+   * portes ouvertes et des alimentations disponibles.
+   */
+  {
+    cle: 'C10',
+    vue: 'sas',
+    modele: 'turret',
+    extension: true,
+    role: 'Sas et issue de secours',
+    pose: 'En plafond du sas, 2,8 m, dans l\'axe du couloir',
+    bande: 0.5,
+    attendu: 'Identifier au passage. Un couloir force le passage dans un goulot '
+      + 'étroit et à courte distance : c\'est la zone du site où le 2,8 mm est le '
+      + 'plus à son aise. À poser portes ouvertes, pour qu\'un battant ne la masque pas.',
+  },
+  {
+    cle: 'C11',
+    vue: 'chariots',
+    modele: 'varifocal',
+    tele: true,
+    extension: true,
+    role: 'Parc de chariots élévateurs',
+    pose: 'Sur poteau ou charpente, 4 m, dans l\'axe de la rangée',
+    bande: 0.5,
+    attendu: 'Identifier qui approche des chariots. C\'est la concentration de '
+      + 'valeur la plus évidente du site, et la seule optique du parc capable '
+      + 'd\'identifier au-delà de cinq mètres est le motorisé au téléobjectif.',
+  },
+  {
+    cle: 'C12',
+    vue: 'chariots',
+    modele: 'turret',
+    extension: true,
+    role: 'Allée de manutention',
+    pose: 'En tête d\'allée, 3,5 m, vers le fond',
+    bande: 0.5,
+    attendu: 'Rendre compte de la circulation dans l\'allée principale. Chaque '
+      + 'rack est un mur : cette caméra ne voit QUE cette allée, et les autres '
+      + 'resteront sans image tant qu\'on n\'en équipe pas chacune.',
+  },
+  {
+    cle: 'C13',
+    vue: 'volumeArriere',
+    modele: 'turret',
+    extension: true,
+    role: 'Second rideau métallique',
+    pose: 'À l\'aplomb du rideau, 3 m, vers l\'intérieur',
+    bande: 0.5,
+    attendu: 'Identifier au franchissement du second accès véhicule. Même règle '
+      + 'que pour le premier rideau : à l\'aplomb, sinon elle ne fait plus que '
+      + 'de la détection.',
+  },
+  {
+    cle: 'C14',
+    vue: 'porteVitree',
+    modele: 'turret',
+    extension: true,
+    role: 'Porte vitrée de fond',
+    pose: 'Au-dessus de la porte, 3 m, vers l\'allée',
+    bande: 0.5,
+    attendu: 'Identifier au franchissement. Le vitrage impose de la traiter aussi '
+      + 'côté alarme : un contact d\'ouverture ne voit pas une vitre cassée.',
+  },
 ];
 
 /* ----------------------------------------------------------- les dessins */
@@ -687,6 +759,12 @@ const IMPLANTATION = {
   C8: { x: PLAN.bat.x + PLAN.bat.l - 3.5, y: PLAN.bat.y + PLAN.bat.p * 0.62, azimut: 270 },
   // En angle : la bissectrice des deux murs, soit 135° dans ce coin du plan.
   C9: { x: PLAN.bat.x + PLAN.bat.l * 0.34, y: PLAN.bat.y + 2.5, azimut: 135 },
+  // Extension : positions INDICATIVES, faute de relevé intérieur.
+  C10: { x: PLAN.bat.x + PLAN.bat.l * 0.88, y: PLAN.bat.y + PLAN.bat.p * 0.3, azimut: 170 },
+  C11: { x: PLAN.bat.x + PLAN.bat.l * 0.14, y: PLAN.bat.y + PLAN.bat.p * 0.28, azimut: 95 },
+  C12: { x: PLAN.bat.x + PLAN.bat.l * 0.45, y: PLAN.bat.y + 2.5, azimut: 150 },
+  C13: { x: PLAN.bat.x + PLAN.bat.l * 0.94, y: PLAN.bat.y + PLAN.bat.p * 0.8, azimut: 300 },
+  C14: { x: PLAN.bat.x + PLAN.bat.l * 0.68, y: PLAN.bat.y + PLAN.bat.p * 0.86, azimut: 25 },
 };
 
 /**
@@ -745,8 +823,10 @@ function planMasse(options = {}) {
     const c = IMPLANTATION[cam.cle];
     const vif = !focus || focus.includes(cam.cle);
     return `<g opacity="${vif ? 1 : 0.35}">
-      <circle cx="${px(c.x)}" cy="${px(c.y)}" r="${r}" fill="${vif ? '#1a1d23' : '#8a9099'}"
-        stroke="#fff" stroke-width="1.5"/>
+      <circle cx="${px(c.x)}" cy="${px(c.y)}" r="${r}"
+        fill="${vif ? (cam.extension ? '#9d0c24' : '#1a1d23') : '#8a9099'}"
+        stroke="#fff" stroke-width="1.5"
+        ${cam.extension ? 'stroke-dasharray="3 2"' : ''}/>
       <text x="${px(c.x)}" y="${(c.y * E + r * 0.4).toFixed(1)}"
         font-size="${compact ? 7.5 : 9.5}" font-weight="700" fill="#fff"
         text-anchor="middle">${ech(cam.cle)}</text>
@@ -887,7 +967,9 @@ function sectionVue(vue) {
     const m = MODELES[c.modele];
     const p = portees(m, c.tele);
     return `<div class="camera">
-        <h4><span class="puce">${ech(c.cle)}</span> ${ech(c.role)}</h4>
+        <h4><span class="puce${c.extension ? ' ext' : ''}">${ech(c.cle)}</span>
+          ${ech(c.role)}${c.extension
+    ? ' <span class="badge">extension proposée</span>' : ''}</h4>
         <p class="modele-nom">${ech(m.reference)}${c.tele ? ' — réglée au téléobjectif' : ''}</p>
         <p class="pose"><b>Pose proposée :</b> ${ech(c.pose)}</p>
         <p>${ech(c.attendu)}</p>
@@ -933,8 +1015,11 @@ const stockage = (j) => capaciteNecessaire({ debitTotal, jours: j, heuresParJour
  * transmises depuis en montrent d'autres. Ce comptage est ce qui distingue
  * une étude d'une liste de matériel — il dit si l'un répond à l'autre.
  */
-const couvertes = VUES.filter((v) => CAMERAS.some((c) => c.vue === v.cle));
-const decouvertes = VUES.filter((v) => !CAMERAS.some((c) => c.vue === v.cle));
+const PARC = CAMERAS.filter((c) => !c.extension);
+const EXTENSION = CAMERAS.filter((c) => c.extension);
+const couvertes = VUES.filter((v) => PARC.some((c) => c.vue === v.cle));
+const decouvertes = VUES.filter((v) => !PARC.some((c) => c.vue === v.cle));
+const restantes = VUES.filter((v) => !CAMERAS.some((c) => c.vue === v.cle));
 
 const AUJOURD_HUI = new Date().toLocaleDateString('fr-FR', {
   day: '2-digit', month: 'long', year: 'numeric',
@@ -996,7 +1081,13 @@ const html = `<!doctype html>
   .camera { border:1px solid var(--bord); border-radius:10px; padding:16px 18px;
     margin:16px 0; page-break-inside:avoid; }
   .puce { display:inline-block; min-width:34px; padding:2px 8px; border-radius:20px;
-    background:var(--rouge); color:#fff; font-size:13px; text-align:center; margin-right:6px; }
+    background:var(--encre); color:#fff; font-size:13px; text-align:center; margin-right:6px; }
+  .puce.ext { background:var(--rouge); border:2px dashed #fff; box-shadow:0 0 0 1px var(--rouge); }
+  .badge { display:inline-block; padding:2px 8px; border-radius:20px; font-size:11px;
+    font-weight:700; text-transform:uppercase; letter-spacing:.04em;
+    background:#fff5f6; color:var(--rouge); border:1px solid var(--rouge); }
+  tr.ext td { color:var(--rouge); }
+  .alerte h3.sous { font-size:16px; margin:18px 0 8px; }
   .modele-nom { color:var(--doux); font-size:14px; margin-bottom:6px; }
   .report { position:relative; margin:12px 0; }
   .report img { width:100%; display:block; border-radius:8px; }
@@ -1173,9 +1264,10 @@ ${planMasse()}
 
 <div class="alerte">
   <h3>Le parc et le site ne sont plus à la même échelle</h3>
-  <p>Les neuf caméras ont été arrêtées sur <b>cinq vues</b>. Les photos
-    transmises depuis en montrent <b>${ech(VUES.length)}</b>. Le compte est
-    sans appel&nbsp;: <b>${ech(couvertes.length)} zones couvertes</b>,
+  <p>Les ${ech(PARC.length)} caméras du parc déclaré ont été arrêtées sur
+    <b>cinq vues</b>. Les photos transmises depuis en montrent
+    <b>${ech(VUES.length)}</b>. Le compte est sans appel&nbsp;:
+    <b>${ech(couvertes.length)} zones couvertes</b>,
     <b>${ech(decouvertes.length)} zones sans aucune caméra</b>.</p>
   <p>Ce ne sont pas des recoins. Il s'agit d'une issue de secours, d'un second
     rideau métallique, d'un parc de chariots élévateurs, d'une porte vitrée et
@@ -1183,22 +1275,49 @@ ${planMasse()}
   <ul class="liste">
     ${decouvertes.map((v) => `<li><b>${ech(v.titre)}</b> — ${ech(v.manque || '')}</li>`).join('')}
   </ul>
-  <p><b>Ce que cela veut dire, et ce que cela ne veut pas dire.</b> Les neuf
-    caméras retenues restent bien choisies pour ce qu'elles couvrent&nbsp;: rien
-    n'est à jeter. Mais présenter cette installation comme couvrant le site
-    serait inexact, et il vaut mieux le dire maintenant qu'après la pose. Trois
-    chemins s'offrent au client&nbsp;: <b>étendre le parc</b> à hauteur des zones
-    relevées&nbsp;; <b>arbitrer</b>, en acceptant par écrit que certaines zones
-    restent sans image&nbsp;; ou <b>phaser</b>, en équipant d'abord les accès et
-    les valeurs, le volume ensuite. Aucun de ces choix n'appartient à
-    l'installateur.</p>
+  <p><b>Ce que cela veut dire, et ce que cela ne veut pas dire.</b> Les
+    ${ech(PARC.length)} caméras retenues restent bien choisies pour ce qu'elles
+    couvrent&nbsp;: rien n'est à jeter. Mais présenter cette installation comme
+    couvrant le site serait inexact, et il vaut mieux le dire maintenant
+    qu'après la pose.</p>
+
+  <h3 class="sous">Extension proposée&nbsp;: ${ech(EXTENSION.length)} caméras</h3>
+  <p>Elles reprennent les mêmes références que le parc initial — une ligne de
+    plus au bon de commande, pas un second matériel à apprendre et à
+    maintenir. Elles portent les repères ${ech(EXTENSION.map((c) => c.cle).join(', '))}
+    et apparaissent partout en <b>rouge, cerclées de pointillés</b>, pour qu'on
+    ne les confonde jamais avec le parc déclaré.</p>
+  <table>
+    <thead><tr><th>Repère</th><th>Zone</th><th>Modèle</th>
+      <th class="n">Identifie&nbsp;jusqu'à</th></tr></thead>
+    <tbody>${EXTENSION.map((c) => {
+    const m = MODELES[c.modele];
+    const v = VUES.find((x) => x.cle === c.vue);
+    return `<tr><td><b>${ech(c.cle)}</b></td><td>${ech(v.titre)}</td>
+      <td>${ech(m.reference.replace('Hikvision ', ''))}${c.tele ? ' (télé)' : ''}</td>
+      <td class="n">${ech(fr(portees(m, c.tele).identification))} m</td></tr>`;
+  }).join('')}</tbody>
+  </table>
+  <p><b>Ce que l'extension ne règle pas.</b> Une caméra par allée de racks
+    serait nécessaire pour voir toutes les allées&nbsp;: C12 n'en couvre qu'une.
+    Et la profondeur du volume arrière dépasse ce qu'une seule caméra rend.
+    ${restantes.length === 0
+    ? 'Chaque zone relevée reçoit au moins une caméra — ce qui n\'est pas la même chose que d\'être entièrement couverte.'
+    : `${ech(restantes.length)} zone(s) resteraient sans image.`}</p>
+  <p>Le client garde la main&nbsp;: <b>retenir l'extension</b>,
+    <b>arbitrer</b> en actant par écrit que certaines zones restent sans image,
+    ou <b>phaser</b> — les accès et les valeurs d'abord, le volume ensuite.
+    Aucun de ces choix n'appartient à l'installateur.</p>
 </div>
 
 ${VUES.map(sectionVue).join('')}
 
 <h2>4. Synthèse du parc</h2>
-<p>Neuf caméras pour ${ech(couvertes.length)} des ${ech(VUES.length)} zones
-  relevées. Les ${ech(decouvertes.length)} autres sont listées plus haut.</p>
+<p><b>${ech(PARC.length)} caméras déclarées</b> pour ${ech(couvertes.length)} des
+  ${ech(VUES.length)} zones relevées, et <b>${ech(EXTENSION.length)} proposées en
+  extension</b> pour les ${ech(decouvertes.length)} autres — soit
+  ${ech(CAMERAS.length)} au total si l'extension est retenue. Les lignes en
+  rouge sont celles de l'extension&nbsp;: elles ne sont pas commandées.</p>
 <table>
   <thead><tr><th>Repère</th><th>Emplacement</th><th>Modèle</th><th>Rôle</th>
     <th class="n">Identifie&nbsp;jusqu'à</th></tr></thead>
@@ -1206,7 +1325,7 @@ ${VUES.map(sectionVue).join('')}
     ${CAMERAS.map((c) => {
     const m = MODELES[c.modele];
     const vue = VUES.find((v) => v.cle === c.vue);
-    return `<tr>
+    return `<tr${c.extension ? ' class="ext"' : ''}>
         <td><b>${ech(c.cle)}</b></td>
         <td>${ech(vue.titre)}</td>
         <td>${ech(m.reference.replace('Hikvision ', ''))}${c.tele ? ' (télé)' : ''}</td>
