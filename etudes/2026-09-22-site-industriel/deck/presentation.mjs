@@ -22,6 +22,7 @@ const pptxgen = require('pptxgenjs');
 
 const ici = dirname(fileURLToPath(import.meta.url));
 const D = JSON.parse(readFileSync(join(ici, 'donnees.json'), 'utf8'));
+const VUES = JSON.parse(readFileSync(join(ici, 'vues.json'), 'utf8'));
 const img = (n) => join(ici, n);
 const a = (n) => (existsSync(img(n)) ? { path: img(n) } : null);
 
@@ -151,6 +152,47 @@ function carte(s, x, y, w, h, { fond = BLANC } = {}) {
     + 'constructeur ; les emplacements se confirment au relevé sur place.');
 }
 
+/* --------------------------------------------------------- 2. sommaire */
+
+{
+  const s = pres.addSlide();
+  s.background = { color: BLANC };
+  titre(s, 'Ce que contient ce dossier', 'Sommaire');
+
+  const parties = [
+    ['Le parc', 'Dix caméras, ce que chacune prouve, et à quelle distance.'],
+    ['Le site, vue par vue', 'Chaque zone photographiée, avec le champ de sa caméra reporté sur l’image.'],
+    ['Le plan', 'Implantation à l’échelle, portées rapportées à l’étendue réelle du site.'],
+    ['L’installation', 'Enregistrement, stockage, câblage, autonomie sur coupure.'],
+    ['Les options', 'Écran de supervision, contrôle d’accès et interphonie.'],
+    ['Les engagements', 'Ce que l’agence livre, garantit et maintient.'],
+  ];
+  parties.forEach(([t, d], i) => {
+    const x = 0.6 + (i % 2) * 6.2;
+    const y = 1.9 + Math.floor(i / 2) * 1.55;
+    carte(s, x, y, 5.9, 1.32, { fond: FOND });
+    pastille(s, i + 1, x + 0.32, y + 0.3, { taille: 0.44, fond: i < 3 ? ENCRE : ROUGE });
+    s.addText(t, {
+      x: x + 0.92, y: y + 0.28, w: 4.7, h: 0.38, isTextBox: true, margin: 0,
+      fontFace: TITRE, fontSize: 15, bold: true, color: ENCRE, valign: 'middle',
+    });
+    s.addText(d, {
+      x: x + 0.92, y: y + 0.68, w: 4.7, h: 0.55, isTextBox: true, margin: 0,
+      fontFace: TEXTE, fontSize: 11.5, color: DOUX,
+    });
+  });
+  s.addText(
+    'Les portées sont calculées, pas estimées : elles découlent de l’optique '
+    + 'constructeur et de la norme EN 62676-4. Les emplacements, eux, sont '
+    + 'proposés — ils se confirment au relevé sur place.',
+    {
+      x: 0.6, y: 6.28, w: 12.1, h: 0.5, isTextBox: true, margin: 0,
+      fontFace: TEXTE, fontSize: 12, italic: true, color: DOUX,
+    },
+  );
+  signature(s);
+}
+
 /* ----------------------------------------------------------- 2. le parc */
 
 {
@@ -269,6 +311,164 @@ function carte(s, x, y, w, h, { fond = BLANC } = {}) {
   const mo = a('modele.png');
   if (mo) s.addImage({ ...mo, x: 7.5, y: 1.1, w: 5.2, h: 3.55 });
   signature(s, true);
+}
+
+/* --------------------------------- ce que chaque caméra prouve (graphique) */
+
+{
+  const s = pres.addSlide();
+  s.background = { color: BLANC };
+  titre(s, 'Jusqu’où chaque caméra identifie', 'Ce qui compte devant un tribunal');
+  s.addText(
+    'Identifier, c’est nommer un inconnu — 250 pixels par mètre selon la norme '
+    + 'EN 62676-4. En deçà, on voit une silhouette, on ne prouve rien.',
+    {
+      x: 0.6, y: 1.72, w: 12.1, h: 0.45, isTextBox: true, margin: 0,
+      fontFace: TEXTE, fontSize: 14, color: DOUX,
+    },
+  );
+
+  const ordre = [...D.cameras].sort((x, y) => x.ident - y.ident);
+  s.addChart(pres.ChartType.bar, [{
+    name: 'Distance d’identification',
+    labels: ordre.map((c) => `${c.cle} — ${c.role.length > 26 ? `${c.role.slice(0, 25)}…` : c.role}`),
+    values: ordre.map((c) => Number(c.ident.toFixed(1))),
+  }], {
+    x: 0.6, y: 2.25, w: 12.1, h: 4.15,
+    barDir: 'bar',
+    chartColors: ordre.map((c) => (c.ident > 5 ? ROUGE : '8A93A0')),
+    showTitle: false,
+    showLegend: false,
+    showValue: true,
+    dataLabelPosition: 'outEnd',
+    dataLabelFormatCode: '0,0" m"',
+    dataLabelFontFace: TEXTE,
+    dataLabelFontSize: 11,
+    dataLabelColor: ENCRE,
+    catAxisLabelColor: ENCRE,
+    catAxisLabelFontFace: TEXTE,
+    catAxisLabelFontSize: 11,
+    valAxisLabelColor: DOUX,
+    valAxisLabelFontFace: TEXTE,
+    valAxisLabelFontSize: 10,
+    valAxisTitle: 'mètres',
+    showValAxisTitle: true,
+    valAxisTitleColor: DOUX,
+    valAxisTitleFontSize: 10,
+    valGridLine: { color: BORD, size: 0.75 },
+    catGridLine: { style: 'none' },
+    barGapWidthPct: 45,
+  });
+  s.addNotes('Les deux barres rouges sont les bullets réglés au téléobjectif. '
+    + 'Tout le reste du parc couvre et dissuade ; il ne prouve pas.');
+  signature(s);
+}
+
+/* --------------------------------------------- le site, vue par vue */
+
+const COUVERTES = VUES.filter((v) => v.photos.length);
+for (const v of COUVERTES) {
+  const s = pres.addSlide();
+  s.background = { color: BLANC };
+  const cams = v.cams.join(' et ');
+  titre(s, v.titre, cams ? `Caméra ${cams}` : 'Le site');
+
+  const deux = v.photos.length > 1;
+  v.photos.forEach((nom, i) => {
+    const ph = a(nom);
+    if (!ph) return;
+    const w = deux ? 3.75 : 6.6;
+    const x = 0.6 + i * (w + 0.35);
+    s.addImage({ ...ph, x, y: 1.78, w, h: deux ? 2.5 : 4.4 });
+    if (v.cams[i]) {
+      pastille(s, v.cams[i].replace('C', ''), x + 0.12, 1.9, { taille: 0.4, fond: ROUGE });
+    }
+  });
+
+  const xd = deux ? 8.5 : 7.5;
+  const wd = deux ? 4.2 : 5.2;
+  s.addText('Ce que montre la vue', {
+    x: xd, y: 1.78, w: wd, h: 0.34, isTextBox: true, margin: 0,
+    fontFace: TITRE, fontSize: 16, bold: true, color: ENCRE,
+  });
+  const obs = v.obs.slice(0, 4);
+  s.addText(obs.map((t, i) => ({
+    text: t.length > 210 ? `${t.slice(0, 208)}…` : t,
+    options: { bullet: true, breakLine: i !== obs.length - 1, paraSpaceAfter: 9 },
+  })), {
+    x: xd, y: 2.22, w: wd, h: 3.9, isTextBox: true, margin: 0,
+    fontFace: TEXTE, fontSize: 11.5, color: DOUX,
+  });
+
+  if (deux) {
+    s.addText('La bande rouge sur chaque photo est le champ réel de la caméra, '
+      + 'reporté à l’échelle de la prise de vue.', {
+      x: 0.6, y: 4.45, w: 7.5, h: 0.5, isTextBox: true, margin: 0,
+      fontFace: TEXTE, fontSize: 11.5, italic: true, color: DOUX,
+    });
+  }
+
+  const dets = D.cameras.filter((c) => v.cams.includes(c.cle));
+  // La fiche caméra ne dépasse jamais la largeur des photos : au-delà, elle
+  // passerait sous la colonne d'observations.
+  const wc = deux ? 7.5 : 6.6;
+  dets.forEach((c, i) => {
+    const y = deux ? 5.1 + i * 0.78 : 5.45 + i * 0.78;
+    carte(s, 0.6, y, wc, 0.68, { fond: FOND });
+    pastille(s, c.cle.replace('C', ''), 0.78, y + 0.13, { taille: 0.42, fond: ENCRE });
+    s.addText(`${c.modele.replace(/ \(.*/, '')}${c.tele ? ' · téléobjectif' : ''}`, {
+      x: 1.32, y: y + 0.08, w: wc - 3.47, h: 0.52, isTextBox: true, margin: 0,
+      fontFace: TEXTE, fontSize: 11.5, bold: true, color: ENCRE, valign: 'middle',
+    });
+    s.addText(`identifie jusqu’à ${fr(c.ident)} m`, {
+      x: 0.6 + wc - 2.6, y: y + 0.08, w: 2.35, h: 0.52, isTextBox: true, margin: 0,
+      align: 'right', fontFace: TEXTE, fontSize: 11.5, bold: true, valign: 'middle',
+      color: c.ident > 5 ? ROUGE : DOUX,
+    });
+  });
+  signature(s);
+}
+
+/* ------------------------------------- les zones sans caméra dédiée */
+
+{
+  const nues = VUES.filter((v) => !v.photos.length);
+  if (nues.length) {
+    const s = pres.addSlide();
+    s.background = { color: FOND };
+    titre(s, 'Ce que le parc ne couvre pas', 'Dit avant la pose, pas après');
+    s.addText(
+      `${nues.length} zones relevées sur le site n’ont pas de caméra dédiée au `
+      + 'plan. Elles figurent ici parce qu’un dossier qui les tairait se '
+      + 'retournerait contre celui qui l’a signé.',
+      {
+        x: 0.6, y: 1.72, w: 12.1, h: 0.5, isTextBox: true, margin: 0,
+        fontFace: TEXTE, fontSize: 14, color: DOUX,
+      },
+    );
+    nues.forEach((v, i) => {
+      const y = 2.42 + i * 1.32;
+      carte(s, 0.6, y, 12.1, 1.12, { fond: BLANC });
+      s.addText(v.titre, {
+        x: 0.92, y: y + 0.18, w: 5.4, h: 0.34, isTextBox: true, margin: 0,
+        fontFace: TITRE, fontSize: 14.5, bold: true, color: ENCRE,
+      });
+      s.addText(v.obs[0] ? (v.obs[0].length > 150 ? `${v.obs[0].slice(0, 148)}…` : v.obs[0]) : '', {
+        x: 0.92, y: y + 0.56, w: 11.4, h: 0.46, isTextBox: true, margin: 0,
+        fontFace: TEXTE, fontSize: 11.5, color: DOUX,
+      });
+    });
+    s.addText(
+      'Deux réponses, et elles n’ont pas le même prix : une caméra de plus, '
+      + 'ou l’acceptation écrite que ces zones restent sans image. Ce qui ne '
+      + 'se défend pas, c’est de ne pas avoir posé la question.',
+      {
+        x: 0.6, y: 6.28, w: 12.1, h: 0.5, isTextBox: true, margin: 0,
+        fontFace: TEXTE, fontSize: 12, bold: true, color: ROUGE,
+      },
+    );
+    signature(s);
+  }
 }
 
 /* ------------------------------------------------ 5. plan d’implantation */

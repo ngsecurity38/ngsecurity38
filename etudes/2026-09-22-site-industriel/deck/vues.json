@@ -1,0 +1,153 @@
+[
+ {
+  "titre": "Entrée du site — portail",
+  "prise": "Depuis la voie, face au portail. — champ de la photo estimé à\n      52,8°.",
+  "obs": [
+   "Accès unique par un portail double à barreaudage. C'est le point de passage obligé de tout véhicule : c'est donc là, et nulle part ailleurs, que se joue l'identification.",
+   "Le bâtiment à droite offre un point de fixation en hauteur, à une quinzaine de mètres du portail — distance à mesurer.",
+   "Soleil rasant au moment de la prise de vue. Une caméra placée dans l'axe du soleil levant ou couchant perd son image aux heures précises où l'on entre et où l'on sort. L'orientation définitive doit en tenir compte.",
+   "Aucune clôture n'est visible de part et d'autre du portail : la haie et le talus ne sont pas un obstacle. Le portail protège du véhicule, pas du piéton."
+  ],
+  "photos": [
+   "vue-1-1.png",
+   "vue-1-2.png"
+  ],
+  "cams": [
+   "C1",
+   "C2"
+  ]
+ },
+ {
+  "titre": "Cour de manœuvre",
+  "prise": "Depuis la cour, vers la limite arrière boisée. — champ de la photo estimé à\n      52,8°.",
+  "obs": [
+   "Grande aire ouverte, sans obstacle. C'est la zone où une caméra couvre le plus de surface pour le moins d'appareils — et celle où elle distingue le moins de détails, faute de pixels au loin.",
+   "La limite du site est un bois, sans clôture visible. C'est le point faible : on y entre à pied sans passer par le portail.",
+   "Éclairage nocturne non constaté. Au-delà de la portée de l'infrarouge, une caméra ne voit rien la nuit, quels que soient ses pixels."
+  ],
+  "photos": [
+   "vue-2-1.png",
+   "vue-2-2.png"
+  ],
+  "cams": [
+   "C3",
+   "C4"
+  ]
+ },
+ {
+  "titre": "Quai de chargement",
+  "prise": "Depuis la cour, face au quai. — champ de la photo estimé à\n      52,8°.",
+  "obs": [
+   "Quai avec rampe et porte de grande hauteur. C'est par là que sort la marchandise : le vol s'y fait de jour, à visage découvert, et se conteste ensuite sur la vidéo. L'exigence y est l'identification, pas la détection.",
+   "Les blocs béton en cours de stockage font écran : ils masquent le bas du champ et se déplacent d'une semaine à l'autre. Une caméra posée trop bas sera aveuglée par le prochain lot.",
+   "Un projecteur est déjà fixé en façade, au-dessus de la porte : point d'alimentation possible, à vérifier."
+  ],
+  "photos": [
+   "vue-3-1.png",
+   "vue-3-2.png"
+  ],
+  "cams": [
+   "C5",
+   "C6"
+  ]
+ },
+ {
+  "titre": "Halle — volume principal",
+  "prise": "Depuis l'allée, vers le mur de refend. — champ de la photo estimé à\n      52,8°.",
+  "obs": [
+   "Charpente métallique et lanterneaux. Deux conséquences : la portée radio y est dégradée si des équipements sans fil sont envisagés, et les lanterneaux créent un contre-jour violent au zénith — une caméra orientée vers eux perdra le détail au sol en milieu de journée.",
+   "Hauteur sous charpente estimée à six ou sept mètres. Une caméra posée haut couvre plus de surface mais regarde le sol de plus en plus obliquement : les visages s'y lisent mal. Pour l'identification, il faut redescendre.",
+   "Volume libre au moment de la prise de vue. Le jour où les racks seront remontés, ils couperont les champs : l'implantation doit être arrêtée sur le plan de stockage définitif, pas sur une halle vide."
+  ],
+  "photos": [
+   "vue-4-1.png"
+  ],
+  "cams": [
+   "C7"
+  ]
+ },
+ {
+  "titre": "Halle — angle de travail et stock",
+  "prise": "Depuis l'intérieur, vers l'angle des deux murs. — champ de la photo estimé à\n      52,8°.",
+  "obs": [
+   "Un angle de murs est le meilleur point de fixation d'une halle : un seul objectif grand-angle y couvre les deux directions à la fois, sans mur dans son dos et sans angle mort derrière lui. C'est là que se pose la caméra de cette zone, et nulle part ailleurs.",
+   "Rayonnage garni à portée de main. Ce n'est pas du volume à surveiller, c'est de la marchandise à prouver : l'exigence y est l'identification, et un objectif de 2,8 mm ne l'atteint qu'à quatre mètres et demi. La caméra doit donc être posée SUR la zone, pas à l'autre bout de la halle.",
+   "Aucune ouverture sur l'extérieur dans cet angle : tout l'éclairage y est artificiel. Lumières éteintes, il ne reste que l'infrarouge — et ce qu'il éclaire, il l'éclaire en noir et blanc.",
+   "La charpente métallique et le bandeau technique en partie haute offrent des appuis et un cheminement de câble déjà en place, à vérifier."
+  ],
+  "photos": [
+   "vue-5-1.png"
+  ],
+  "cams": [
+   "C9"
+  ]
+ },
+ {
+  "titre": "Halle — rideau métallique et zone de stockage",
+  "prise": "Depuis l'intérieur, le long du mur pignon. — champ de la photo estimé à\n      52,8°.",
+  "obs": [
+   "Rideau métallique de grande largeur : deuxième accès véhicule au volume. Baissé, c'est lui la porte ; un champ réglé sur la porte vitrée derrière ne verrait rien.",
+   "Des panneaux sont appuyés contre le mur, à l'aplomb du rideau. Stockés là durablement, ils masqueraient une caméra fixée bas.",
+   "Racks en cours de montage sur la droite : ils définiront les allées, donc les seuls axes où une caméra voit quelque chose."
+  ],
+  "photos": [
+   "vue-6-1.png"
+  ],
+  "cams": [
+   "C8"
+  ]
+ },
+ {
+  "titre": "Sas isolé et issue de secours",
+  "prise": "Depuis le sas, vers le fond et l'issue. — champ de la photo estimé à\n      52,8°.",
+  "obs": [
+   "Une issue de secours au fond, barre anti-panique et extincteur. Elle s'ouvre de l'intérieur SANS clé, et c'est la loi : on ne la condamne pas. Du point de vue du vol, c'est donc une porte de sortie permanente — celle par laquelle la marchandise part une fois qu'on est entré par ailleurs. Elle se surveille, elle ne se ferme pas.",
+   "Un couloir est la meilleure position pour un objectif de 2,8 mm. Il force le passage dans un goulot étroit et à courte distance : les quatre mètres et demi d'identification, insuffisants dans une cour, suffisent ici largement.",
+   "Les deux portes isolantes, ouvertes, masquent une bonne part du volume. Une caméra posée derrière un battant ouvert ne voit rien : le point de fixation doit être choisi portes OUVERTES, pas portes fermées.",
+   "Plafond bas et poutres apparentes, éclairage au néon uniquement. Aucune lumière du jour : si l'éclairage est coupé, seul l'infrarouge reste.",
+   "Des locaux isolés donnent sur ce sas. S'il s'agit de chambres froides, la température et la condensation conditionnent le choix du matériel et sa fixation — à relever."
+  ],
+  "photos": [
+   "vue-7-1.png"
+  ],
+  "cams": [
+   "C10"
+  ]
+ },
+ {
+  "titre": "Zone de manutention et parc de chariots",
+  "prise": "Depuis l'allée, vers le fond de la halle. — champ de la photo estimé à\n      52,8°.",
+  "obs": [
+   "Une rangée de chariots élévateurs au fond. C'est la concentration de valeur la plus évidente du site : un chariot se vole, se charge sur un plateau, et ne se retrouve pas. Cette zone-là mérite une caméra à elle seule, et l'exigence y est l'identification.",
+   "Racks à palettes sur plusieurs niveaux, avec mezzanine. Chaque rack est un mur : il coupe les champs, et ce qui se passe dans l'allée voisine ne se voit pas. Une caméra par allée, ou rien.",
+   "Zone en exploitation, circulation permanente de chariots. La détection y se déclenchera toute la journée : le réglage doit distinguer les heures ouvrées du reste, sinon les alertes deviennent du bruit et plus personne ne les regarde.",
+   "Éclairage au néon sous charpente et lanterneaux : fort contraste entre les allées éclairées et le dessous des racks, qui reste sombre en plein jour."
+  ],
+  "photos": [],
+  "cams": []
+ },
+ {
+  "titre": "Volume arrière et second rideau",
+  "prise": "Depuis le milieu de la halle, vers le fond. — champ de la photo estimé à\n      52,8°.",
+  "obs": [
+   "Un SECOND rideau métallique au fond, que les premières vues ne montraient pas. C'est un accès véhicule de plus, et il n'entrait dans aucun comptage jusqu'ici.",
+   "Volume très étendu et en grande partie libre. Les traces de pneus au sol disent que les chariots y circulent d'un bout à l'autre : c'est un axe de passage, pas un fond de halle.",
+   "Un escalier ou une plateforme au milieu du volume. Tout ce qui monte crée un angle mort en dessous et un poste d'observation au-dessus : à relever précisément.",
+   "La profondeur de ce volume dépasse de loin les dix-huit mètres où le turret 2,8 mm permet encore d'observer. Une caméra placée à une extrémité ne rendra compte que du premier tiers."
+  ],
+  "photos": [],
+  "cams": []
+ },
+ {
+  "titre": "Allée de racks et porte vitrée",
+  "prise": "Depuis l'allée, vers la porte de fond. — champ de la photo estimé à\n      52,8°.",
+  "obs": [
+   "Une porte rouge largement VITRÉE au fond. Un contact d'ouverture n'y suffirait pas : on casse le vitrage sans ouvrir le battant. C'est le genre d'accès qui se traite en même temps côté alarme et côté caméra.",
+   "Les palettes-caisses en bois sont empilées haut et déplacées chaque jour. Une caméra calée sur la configuration du jour sera masquée la semaine suivante : viser les circulations, pas les emplacements de stockage.",
+   "L'armoire électrique visible au fond à droite est un point sensible : couper l'alimentation d'une installation commence souvent là. À protéger, et à relever pour l'alimentation des caméras.",
+   "Barrières de chaîne et rubalise : la zone est en réorganisation. L'implantation définitive doit attendre l'état final des racks."
+  ],
+  "photos": [],
+  "cams": []
+ }
+]
