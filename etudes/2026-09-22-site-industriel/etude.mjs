@@ -53,11 +53,9 @@ const AGENCE = {
   sites: ['ngsecurity38.fr', 'ngsecurity38.com'],
   zone: 'Intervention France et Belgique',
   /*
-   * Relevées sur les pages publiques de l'agence — conditions de vente et
-   * politique de confidentialité — par recherche documentaire. Les pages
-   * elles-mêmes n'ont PAS pu être ouvertes depuis l'atelier : le réseau y
-   * bloque le domaine. Ces mentions sont donc de seconde main, et le
-   * document le dit tant qu'elles ne sont pas confirmées.
+   * Relevée d'abord sur les pages publiques de l'agence, puis CONFIRMÉE par
+   * l'agence. La distinction compte : sur la même source, le RCS s'est
+   * révélé faux — voir `aConfirmer`. Rien ici n'est de seconde main.
    */
   adresse: '2 rue des Drillons, 89150 Vernoy',
   /*
@@ -71,7 +69,6 @@ const AGENCE = {
   tva: 'FR30104732458',
   telephone: '07 74 11 24 56',
   aConfirmer: [
-    'L\'adresse ci-dessus, relevée sur vos pages publiques et non confirmée.',
     'Le RCS. Vos pages publiques annoncent « RCS Sens 518 723 366 », qui '
       + 'n\'est pas le SIREN ci-dessus — deux identités différentes, dont une '
       + 'seule peut figurer sur un devis. Le SIRET communiqué fait foi ici ; '
@@ -1338,10 +1335,9 @@ const html = `<!doctype html>
 
   ${MENTIONS_CONFIRMEES ? '' : `
   <div class="avert">
-    <b>Mentions à vérifier avant remise.</b> Relevées sur les pages publiques
-    de l'agence par recherche documentaire — les pages elles-mêmes n'ont pas pu
-    être ouvertes. Une adresse ou un numéro faux sur un devis se retourne
-    contre celui qui le signe&nbsp;:
+    <b>Point à trancher avant remise.</b> L'identité ci-dessus est confirmée
+    par l'agence. Une contradiction subsiste pourtant, et un identifiant faux
+    sur un devis se retourne contre celui qui le signe&nbsp;:
     ${AGENCE.aConfirmer.map((x) => `<br>— ${ech(x)}`).join('')}
     <br><br><b>Et ce qui manque encore</b>, qui ne se devine pas&nbsp;:
     ${AGENCE.aCompleter.map((x) => `<br>— ${ech(x)}`).join('')}
