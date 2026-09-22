@@ -1583,19 +1583,22 @@ const ZONES_SECOURS = [
     detail: 'L\'enregistreur alimente lui-même ces caméras par ses ports PoE : '
       + 'un seul onduleur les tient toutes.',
   },
-  {
-    cle: 'R1',
-    nom: `${RELAIS.R1.nom} — commutateur, alimentation du verrouillage, platine`,
-    cameras: PARC.filter((c) => RATTACHEMENT[c.cle] === 'R1').map((c) => c.cle),
-    detail: 'Alimenté par sa propre arrivée 230 V, donc coupé par la même '
-      + 'coupure. Un onduleur au local ne lui apporte rien.',
-  },
-  {
-    cle: 'R2',
-    nom: `${RELAIS.R2.nom} — commutateur`,
-    cameras: PARC.filter((c) => RATTACHEMENT[c.cle] === 'R2').map((c) => c.cle),
-    detail: 'Même situation que le coffret d\'entrée.',
-  },
+  /*
+   * Une zone par coffret, DÉDUITE de la liste des coffrets et non écrite.
+   * Le jour où un troisième coffret est apparu, une liste écrite à la main
+   * l'aurait ignoré — et le bilan aurait annoncé deux caméras perdues là où
+   * il y en avait quatre.
+   */
+  ...Object.entries(RELAIS).map(([cle, r]) => ({
+    cle,
+    nom: `${r.nom} — ${r.contenu.toLowerCase()}`,
+    cameras: PARC.filter((c) => RATTACHEMENT[c.cle] === cle).map((c) => c.cle),
+    detail: r.depuis === 'local'
+      ? 'Alimenté par sa propre arrivée 230 V, donc coupé par la même '
+        + 'coupure. Un onduleur au local ne lui apporte rien.'
+      : `Même situation, et il porte en plus ce qui pend derrière lui : `
+        + `coupé, il emporte ${RELAIS[r.depuis] ? 'sa branche' : 'la suite'}.`,
+  })),
 ];
 
 /**

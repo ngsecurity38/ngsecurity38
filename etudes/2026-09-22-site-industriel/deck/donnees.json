@@ -1,0 +1,365 @@
+{
+ "agence": {
+  "_lisez_moi": [
+   "L'identité de l'agence, à un seul endroit. Tout document produit dans ce",
+   "dépôt la lit ici : une correction faite dans ce fichier se propage, et",
+   "aucun document ne peut plus porter une identité périmée pendant qu'un",
+   "autre porte la bonne.",
+   "",
+   "Relevé Insee du 22/09/2026, communiqué par l'agence. Ce ne sont pas des",
+   "valeurs trouvées par recherche : elles viennent du répertoire officiel."
+  ],
+  "nomCommercial": "NG Security 38",
+  "accroche": "Vidéosurveillance et alarme anti-intrusion",
+  "formeJuridique": "Société par actions simplifiée",
+  "formeCourte": "SAS",
+  "dateCreation": "2026-06-01",
+  "dirigeant": "Ezechiel NGOMA YENGO",
+  "siren": "104 732 458",
+  "siret": "104 732 458 00013",
+  "tva": "FR30104732458",
+  "naf": "8020Z",
+  "nafLibelle": "Activités liées aux systèmes de sécurité",
+  "adresse": "2 rue des Drillons, 89150 Vernoy",
+  "telephone": "07 74 11 24 56",
+  "courriel": "contact@ngsecurity38.com",
+  "sites": [
+   "ngsecurity38.fr",
+   "ngsecurity38.com"
+  ],
+  "zone": "Intervention France et Belgique",
+  "aCompleter": {
+   "_note": [
+    "Deux mentions qu'une SAS porte sur ses documents commerciaux et que",
+    "le relevé Insee ne donne pas. Les renseigner ici les fait apparaître",
+    "partout d'un coup."
+   ],
+   "capitalSocial": null,
+   "rcsGreffe": null,
+   "assuranceRcPro": null
+  },
+  "aCorrigerAilleurs": [
+   "Les pages publiques du site (mentions légales, CGV) annoncent encore",
+   "« NGS38, entreprise individuelle » et « RCS Sens 518 723 366 ». C'est",
+   "la structure précédente : la SAS ci-dessus a été créée le 1er juin 2026.",
+   "À corriger sur le site, pas dans les documents."
+  ]
+ },
+ "site": {
+  "longueurBatiment": 100,
+  "profondeurBatiment": 22,
+  "annexe": {
+   "longueur": 18,
+   "profondeur": 10
+  },
+  "cour": {
+   "profondeur": 62
+  },
+  "marge": 12,
+  "estime": false
+ },
+ "cameras": [
+  {
+   "cle": "C1",
+   "zone": "Entrée du site — portail",
+   "role": "Identification à l'entrée",
+   "tele": true,
+   "modele": "DS-2CD2683G2-IZS (2,8–12 mm motorisé)",
+   "conso": 15,
+   "ident": 28.662150202128977,
+   "reco": 57.324300404257954,
+   "obs": 115.57318629890717
+  },
+  {
+   "cle": "C2",
+   "zone": "Entrée du site — portail",
+   "role": "Contexte de l'entrée",
+   "tele": false,
+   "modele": "DS-2CD2346G2H-IU (2,8 mm)",
+   "conso": 9,
+   "ident": 4.495033711002071,
+   "reco": 8.990067422004142,
+   "obs": 18.12513593145996
+  },
+  {
+   "cle": "C3",
+   "zone": "Cour de manœuvre",
+   "role": "Surveillance générale de la cour",
+   "tele": false,
+   "modele": "DS-2CD2683G2-IZS (2,8–12 mm motorisé)",
+   "conso": 15,
+   "ident": 5.5798466150811725,
+   "reco": 11.159693230162345,
+   "obs": 22.499381512424083
+  },
+  {
+   "cle": "C4",
+   "zone": "Cour de manœuvre",
+   "role": "Limite arrière et dissuasion",
+   "tele": false,
+   "modele": "DS-2CD2346G2P-ISU/SL (2,8 mm)(C)",
+   "conso": 12.5,
+   "ident": 3.0400000000000005,
+   "reco": 6.080000000000001,
+   "obs": 12.258064516129034
+  },
+  {
+   "cle": "C5",
+   "zone": "Quai de chargement",
+   "role": "Abords du quai",
+   "tele": true,
+   "modele": "DS-2CD2683G2-IZS (2,8–12 mm motorisé)",
+   "conso": 15,
+   "ident": 28.662150202128977,
+   "reco": 57.324300404257954,
+   "obs": 115.57318629890717
+  },
+  {
+   "cle": "C6",
+   "zone": "Quai de chargement",
+   "role": "Porte de quai",
+   "tele": false,
+   "modele": "DS-2CD2346G2H-IU (2,8 mm)",
+   "conso": 9,
+   "ident": 4.495033711002071,
+   "reco": 8.990067422004142,
+   "obs": 18.12513593145996
+  },
+  {
+   "cle": "C7",
+   "zone": "Halle — volume principal",
+   "role": "Volume de la halle",
+   "tele": false,
+   "modele": "DS-2CD2346G2H-IU (2,8 mm)",
+   "conso": 9,
+   "ident": 4.495033711002071,
+   "reco": 8.990067422004142,
+   "obs": 18.12513593145996
+  },
+  {
+   "cle": "C8",
+   "zone": "Halle — rideau métallique et zone de stockage",
+   "role": "Rideau métallique",
+   "tele": false,
+   "modele": "DS-2CD2346G2H-IU (2,8 mm)",
+   "conso": 9,
+   "ident": 4.495033711002071,
+   "reco": 8.990067422004142,
+   "obs": 18.12513593145996
+  },
+  {
+   "cle": "C9",
+   "zone": "Halle — angle de travail et stock",
+   "role": "Angle de travail et stock",
+   "tele": false,
+   "modele": "DS-2CD2346G2H-IU (2,8 mm)",
+   "conso": 9,
+   "ident": 4.495033711002071,
+   "reco": 8.990067422004142,
+   "obs": 18.12513593145996
+  },
+  {
+   "cle": "C10",
+   "zone": "Sas isolé et issue de secours",
+   "role": "Sas et issue de secours",
+   "tele": false,
+   "modele": "DS-2CD2346G2H-IU (2,8 mm)",
+   "conso": 9,
+   "ident": 4.495033711002071,
+   "reco": 8.990067422004142,
+   "obs": 18.12513593145996
+  }
+ ],
+ "nvr": {
+  "reference": "Hikvision DS-7616NXI-K2/16P",
+  "type": "Enregistreur réseau 16 voies AcuSense, 2 baies SATA, 16 ports PoE intégrés",
+  "canaux": 16,
+  "baies": 2,
+  "portsPoe": 16,
+  "budgetPoe": 200,
+  "capaciteMaxBaie": 10,
+  "raid": false,
+  "consoVide": 40,
+  "bandePassante": 160,
+  "resolutionMax": "12 MP",
+  "codec": "H.265+",
+  "aVerifier": [
+   "Les trois chiffres relevés par recherche, à confirmer sur la fiche : budget PoE total de 200 W, 10 To par baie, absence de RAID. Les serveurs de fiches sont bloqués depuis l'atelier et aucun n'a pu être ouvert à la source.",
+   "Le plafond par baie selon la RÉVISION livrée. Les éditions courantes annoncent 10 To, la révision (D) 16 To. Le dossier retient 10 : se tromper vers le bas fait acheter un disque de trop, vers le haut un disque inutilisable.",
+   "Comment les coffrets déportés s'y raccordent. Un commutateur placé derrière un port PoE d'enregistreur Hikvision fonctionne, mais sort de la reconnaissance automatique : les caméras qui sont derrière s'ajoutent alors à la main, par leur adresse. Le raccordement par le port réseau est plus sain. À arrêter à la mise en service, pas sur le chantier."
+  ]
+ },
+ "interphonie": {
+  "reference": "Hikvision DS-KIS902-S",
+  "type": "Kit d'interphonie vidéo IP",
+  "contenu": [
+   "Platine de rue, écran tactile 4,3\", double caméra 2 MP, IR 3 m, IP65/IK08",
+   "Moniteur intérieur tactile 7\", Wi-Fi 2,4 GHz",
+   "Commutateur PoE",
+   "Carte TF 32 Go"
+  ],
+  "identification": [
+   "visage",
+   "code PIN",
+   "badge 13,56 MHz",
+   "QR code"
+  ],
+  "alimentation": "PoE",
+  "aVerifier": [
+   "Le nombre de ports du commutateur fourni, et son budget PoE. Le kit alimente au moins la platine et le moniteur ; savoir s'il peut porter davantage évite d'en acheter un second.",
+   "Les contacts de commande disponibles sur la platine : nature (sec ou alimenté), nombre, pouvoir de coupure. C'est ce qui décide si la platine commande directement le verrouillage ou passe par un relais.",
+   "La compatibilité des badges déjà en service sur le site, le cas échéant. Le 13,56 MHz recouvre plusieurs protocoles qui ne se lisent pas entre eux."
+  ]
+ },
+ "debit": 46.861920000000005,
+ "stock30": 18.219914496,
+ "disques": {
+  "baies": 2,
+  "capaciteMax": 10,
+  "raid": false,
+  "pool": {
+   "unitaire": 10,
+   "nombre": 2,
+   "total": 20
+  },
+  "miroir": null
+ },
+ "poe": 111.5,
+ "ports": 3,
+ "distancePortail": 25.30316185775999,
+ "porteesC1": {
+  "detection": 286.62150202128976,
+  "observation": 115.57318629890717,
+  "reconnaissance": 57.324300404257954,
+  "identification": 28.662150202128977
+ },
+ "reseau": 745.7700000000001,
+ "commande": 492.9600000000001,
+ "boites": {
+  "boites": 3,
+  "total": 915,
+  "reste": 169.2299999999999
+ },
+ "relais": [
+  {
+   "cle": "R1",
+   "nom": "Coffret de cour",
+   "contenu": "Commutateur PoE 8 ports",
+   "depuis": "local",
+   "montante": 37.75
+  },
+  {
+   "cle": "R2",
+   "nom": "Relais médian",
+   "contenu": "Commutateur PoE 8 ports",
+   "depuis": "local",
+   "montante": 71.85000000000001
+  },
+  {
+   "cle": "R3",
+   "nom": "Coffret d'entrée",
+   "contenu": "Commutateur PoE 8 ports et alimentation 12 V du verrouillage",
+   "depuis": "R2",
+   "montante": 52.6
+  }
+ ],
+ "zones": [
+  {
+   "cle": "local",
+   "nom": "Local technique — enregistreur, disques, box",
+   "cameras": [
+    "C10"
+   ]
+  },
+  {
+   "cle": "R1",
+   "nom": "Coffret de cour — commutateur poe 8 ports",
+   "cameras": [
+    "C4",
+    "C5",
+    "C6",
+    "C8"
+   ]
+  },
+  {
+   "cle": "R2",
+   "nom": "Relais médian — commutateur poe 8 ports",
+   "cameras": [
+    "C3",
+    "C7",
+    "C9"
+   ]
+  },
+  {
+   "cle": "R3",
+   "nom": "Coffret d'entrée — commutateur poe 8 ports et alimentation 12 v du verrouillage",
+   "cameras": [
+    "C1",
+    "C2"
+   ]
+  }
+ ],
+ "perdues": [
+  "C4",
+  "C5",
+  "C6",
+  "C8",
+  "C3",
+  "C7",
+  "C9",
+  "C1",
+  "C2"
+ ],
+ "mosaique": {
+  "cases": 16,
+  "colonnes": 4,
+  "lignes": 4,
+  "libres": 6
+ },
+ "ecrans": [
+  {
+   "d": 1.5,
+   "pouces": 27,
+   "def": "4K UHD",
+   "tuile": "960 × 540"
+  },
+  {
+   "d": 2,
+   "pouces": 43,
+   "def": "4K UHD",
+   "tuile": "960 × 540"
+  },
+  {
+   "d": 3,
+   "pouces": 50,
+   "def": "4K UHD",
+   "tuile": "960 × 540"
+  }
+ ],
+ "batteries": [
+  {
+   "w": 80,
+   "h1": 118,
+   "h2": 235,
+   "va": 200
+  },
+  {
+   "w": 120,
+   "h1": 176,
+   "h2": 353,
+   "va": 200
+  },
+  {
+   "w": 160,
+   "h1": 235,
+   "h2": 471,
+   "va": 300
+  },
+  {
+   "w": 200,
+   "h1": 294,
+   "h2": 588,
+   "va": 400
+  }
+ ]
+}

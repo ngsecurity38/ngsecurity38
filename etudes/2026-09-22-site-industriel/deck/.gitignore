@@ -1,0 +1,9 @@
+# Dépendance du générateur : elle se réinstalle par `npm install`.
+node_modules/
+package-lock.json
+
+# Sorties de contrôle, régénérées à chaque passage.
+apercu-*.png
+planche-*.png
+verif.png
+*.pdf

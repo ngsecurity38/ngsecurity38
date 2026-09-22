@@ -3213,13 +3213,17 @@
       <td>C10</td>
       <td>L&#39;enregistreur alimente lui-même ces caméras par ses ports PoE : un seul onduleur les tient toutes.</td>
     </tr><tr>
-      <td><b>R1</b> — Coffret de cour — commutateur, alimentation du verrouillage, platine</td>
+      <td><b>R1</b> — Coffret de cour — commutateur poe 8 ports</td>
       <td>C4, C5, C6, C8</td>
       <td>Alimenté par sa propre arrivée 230 V, donc coupé par la même coupure. Un onduleur au local ne lui apporte rien.</td>
     </tr><tr>
-      <td><b>R2</b> — Relais médian — commutateur</td>
+      <td><b>R2</b> — Relais médian — commutateur poe 8 ports</td>
       <td>C3, C7, C9</td>
-      <td>Même situation que le coffret d&#39;entrée.</td>
+      <td>Alimenté par sa propre arrivée 230 V, donc coupé par la même coupure. Un onduleur au local ne lui apporte rien.</td>
+    </tr><tr>
+      <td><b>R3</b> — Coffret d&#39;entrée — commutateur poe 8 ports et alimentation 12 v du verrouillage</td>
+      <td>C1, C2</td>
+      <td>Même situation, et il porte en plus ce qui pend derrière lui : coupé, il emporte sa branche.</td>
     </tr>
   </tbody>
 </table>
@@ -3228,8 +3232,8 @@
   <b>Un onduleur au local seul, et vous enregistrez du noir.</b>
   L'enregistreur tiendrait, ses disques tourneraient, l'accès à distance
   fonctionnerait — et
-  7 caméras sur 10
-  seraient éteintes&nbsp;: <b>C4, C5, C6, C8, C3, C7, C9</b>.
+  9 caméras sur 10
+  seraient éteintes&nbsp;: <b>C4, C5, C6, C8, C3, C7, C9, C1, C2</b>.
   Parmi elles, les deux du portail et celle du fond de cour, c'est-à-dire
   exactement celles qu'on regarde après une coupure. L'installation
   fonctionnerait parfaitement, et la preuve serait vide.
