@@ -343,6 +343,73 @@ const VUES = [
       + 'C\'est une lacune, pas un oubli de rédaction : le parc a été arrêté sur '
       + 'cinq vues, et cette zone n\'en faisait pas partie.',
   },
+  {
+    cle: 'chariots',
+    fichier: 'p8-chariots.jpg',
+    titre: 'Zone de manutention et parc de chariots',
+    prise: 'Depuis l\'allée, vers le fond de la halle.',
+    observations: [
+      'Une rangée de chariots élévateurs au fond. C\'est la concentration de '
+        + 'valeur la plus évidente du site : un chariot se vole, se charge sur un '
+        + 'plateau, et ne se retrouve pas. Cette zone-là mérite une caméra à elle '
+        + 'seule, et l\'exigence y est l\'identification.',
+      'Racks à palettes sur plusieurs niveaux, avec mezzanine. Chaque rack est un '
+        + 'mur : il coupe les champs, et ce qui se passe dans l\'allée voisine ne '
+        + 'se voit pas. Une caméra par allée, ou rien.',
+      'Zone en exploitation, circulation permanente de chariots. La détection y '
+        + 'se déclenchera toute la journée : le réglage doit distinguer les heures '
+        + 'ouvrées du reste, sinon les alertes deviennent du bruit et plus '
+        + 'personne ne les regarde.',
+      'Éclairage au néon sous charpente et lanterneaux : fort contraste entre les '
+        + 'allées éclairées et le dessous des racks, qui reste sombre en plein jour.',
+    ],
+    cameras: [],
+    manque: 'Ni le parc de chariots ni les allées de racks ne sont couverts.',
+  },
+  {
+    cle: 'volumeArriere',
+    fichier: 'p9-volume-arriere.jpg',
+    titre: 'Volume arrière et second rideau',
+    champForce: null,
+    prise: 'Depuis le milieu de la halle, vers le fond.',
+    observations: [
+      'Un SECOND rideau métallique au fond, que les premières vues ne montraient '
+        + 'pas. C\'est un accès véhicule de plus, et il n\'entrait dans aucun '
+        + 'comptage jusqu\'ici.',
+      'Volume très étendu et en grande partie libre. Les traces de pneus au sol '
+        + 'disent que les chariots y circulent d\'un bout à l\'autre : c\'est un '
+        + 'axe de passage, pas un fond de halle.',
+      'Un escalier ou une plateforme au milieu du volume. Tout ce qui monte crée '
+        + 'un angle mort en dessous et un poste d\'observation au-dessus : à '
+        + 'relever précisément.',
+      'La profondeur de ce volume dépasse de loin les dix-huit mètres où le '
+        + 'turret 2,8 mm permet encore d\'observer. Une caméra placée à une '
+        + 'extrémité ne rendra compte que du premier tiers.',
+    ],
+    cameras: [],
+    manque: 'Le second rideau métallique et le volume arrière ne sont pas couverts.',
+  },
+  {
+    cle: 'porteVitree',
+    fichier: 'p10-racks-porte-vitree.jpg',
+    titre: 'Allée de racks et porte vitrée',
+    prise: 'Depuis l\'allée, vers la porte de fond.',
+    observations: [
+      'Une porte rouge largement VITRÉE au fond. Un contact d\'ouverture n\'y '
+        + 'suffirait pas : on casse le vitrage sans ouvrir le battant. C\'est le '
+        + 'genre d\'accès qui se traite en même temps côté alarme et côté caméra.',
+      'Les palettes-caisses en bois sont empilées haut et déplacées chaque jour. '
+        + 'Une caméra calée sur la configuration du jour sera masquée la semaine '
+        + 'suivante : viser les circulations, pas les emplacements de stockage.',
+      'L\'armoire électrique visible au fond à droite est un point sensible : '
+        + 'couper l\'alimentation d\'une installation commence souvent là. À '
+        + 'protéger, et à relever pour l\'alimentation des caméras.',
+      'Barrières de chaîne et rubalise : la zone est en réorganisation. '
+        + 'L\'implantation définitive doit attendre l\'état final des racks.',
+    ],
+    cameras: [],
+    manque: 'L\'allée de racks et la porte vitrée de fond ne sont pas couvertes.',
+  },
 ];
 
 /**
@@ -859,6 +926,16 @@ const debitTotal = parc.reduce((s, [cle, n]) => {
 }, 0);
 const stockage = (j) => capaciteNecessaire({ debitTotal, jours: j, heuresParJour: 24 });
 
+/*
+ * Le compte des zones couvertes.
+ *
+ * Calculé, pas écrit : le parc a été arrêté sur cinq vues, et les photos
+ * transmises depuis en montrent d'autres. Ce comptage est ce qui distingue
+ * une étude d'une liste de matériel — il dit si l'un répond à l'autre.
+ */
+const couvertes = VUES.filter((v) => CAMERAS.some((c) => c.vue === v.cle));
+const decouvertes = VUES.filter((v) => !CAMERAS.some((c) => c.vue === v.cle));
+
 const AUJOURD_HUI = new Date().toLocaleDateString('fr-FR', {
   day: '2-digit', month: 'long', year: 'numeric',
 });
@@ -891,6 +968,10 @@ const html = `<!doctype html>
   .avert { background:#fff8e6; border:1px solid #f0d9a0; border-radius:8px;
     padding:14px 16px; margin:18px 0; font-size:14px; }
   .avert b { color:#8a5a00; }
+  .alerte { border:2px solid var(--rouge); border-radius:10px; padding:18px 20px;
+    margin:22px 0; background:#fff5f6; page-break-inside:avoid; }
+  .alerte h3 { margin-top:0; color:var(--rouge); font-size:18px; }
+  .alerte p:last-child { margin-bottom:0; }
   ul.obs, ul.liste { margin:0 0 12px; padding-left:20px; }
   ul.obs li, ul.liste li { margin-bottom:8px; }
   .prise { color:var(--doux); font-size:14px; }
@@ -1090,9 +1171,34 @@ ${planMasse()}
   d'exécution</b>.
 </div>
 
+<div class="alerte">
+  <h3>Le parc et le site ne sont plus à la même échelle</h3>
+  <p>Les neuf caméras ont été arrêtées sur <b>cinq vues</b>. Les photos
+    transmises depuis en montrent <b>${ech(VUES.length)}</b>. Le compte est
+    sans appel&nbsp;: <b>${ech(couvertes.length)} zones couvertes</b>,
+    <b>${ech(decouvertes.length)} zones sans aucune caméra</b>.</p>
+  <p>Ce ne sont pas des recoins. Il s'agit d'une issue de secours, d'un second
+    rideau métallique, d'un parc de chariots élévateurs, d'une porte vitrée et
+    de plusieurs allées de racks — autrement dit, d'accès et de valeurs.</p>
+  <ul class="liste">
+    ${decouvertes.map((v) => `<li><b>${ech(v.titre)}</b> — ${ech(v.manque || '')}</li>`).join('')}
+  </ul>
+  <p><b>Ce que cela veut dire, et ce que cela ne veut pas dire.</b> Les neuf
+    caméras retenues restent bien choisies pour ce qu'elles couvrent&nbsp;: rien
+    n'est à jeter. Mais présenter cette installation comme couvrant le site
+    serait inexact, et il vaut mieux le dire maintenant qu'après la pose. Trois
+    chemins s'offrent au client&nbsp;: <b>étendre le parc</b> à hauteur des zones
+    relevées&nbsp;; <b>arbitrer</b>, en acceptant par écrit que certaines zones
+    restent sans image&nbsp;; ou <b>phaser</b>, en équipant d'abord les accès et
+    les valeurs, le volume ensuite. Aucun de ces choix n'appartient à
+    l'installateur.</p>
+</div>
+
 ${VUES.map(sectionVue).join('')}
 
 <h2>4. Synthèse du parc</h2>
+<p>Neuf caméras pour ${ech(couvertes.length)} des ${ech(VUES.length)} zones
+  relevées. Les ${ech(decouvertes.length)} autres sont listées plus haut.</p>
 <table>
   <thead><tr><th>Repère</th><th>Emplacement</th><th>Modèle</th><th>Rôle</th>
     <th class="n">Identifie&nbsp;jusqu'à</th></tr></thead>
