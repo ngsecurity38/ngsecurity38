@@ -576,8 +576,17 @@ const IMPLANTATION = {
  * autrement recouverts par la halle, et le plan donnait à croire qu'elles ne
  * couvraient rien.
  */
-function planMasse() {
-  const E = 9; // pixels par mètre
+/**
+ * @param {object} [options]
+ * @param {string[]} [options.focus] n'éclairer que ces caméras. Les autres
+ *   restent posées, en gris : le lecteur voit où il se trouve dans le site
+ *   sans perdre de vue le reste du parc.
+ * @param {boolean} [options.compact] version réduite, pour l'en-tête d'une vue.
+ */
+function planMasse(options = {}) {
+  const focus = options.focus || null;
+  const compact = !!options.compact;
+  const E = compact ? 5.5 : 9; // pixels par mètre
   const L = PLAN.largeur * E;
   const H = PLAN.hauteur * E;
   const px = (m) => (m * E).toFixed(1);
@@ -596,7 +605,7 @@ function planMasse() {
       0 ${grand} 1 ${x1} ${y1} Z" fill="${couleur}" opacity="${opacite}"/>`;
   };
 
-  const champs = CAMERAS.map((cam) => {
+  const champs = CAMERAS.filter((cam) => !focus || focus.includes(cam.cle)).map((cam) => {
     const c = IMPLANTATION[cam.cle];
     const m = MODELES[cam.modele];
     const o = optiqueUtile(m, cam.tele);
@@ -610,17 +619,20 @@ function planMasse() {
     </g>`;
   }).join('');
 
+  const r = compact ? 6.5 : 8.5;
   const pastilles = CAMERAS.map((cam) => {
     const c = IMPLANTATION[cam.cle];
-    return `<g>
-      <circle cx="${px(c.x)}" cy="${px(c.y)}" r="8.5" fill="#1a1d23"
+    const vif = !focus || focus.includes(cam.cle);
+    return `<g opacity="${vif ? 1 : 0.35}">
+      <circle cx="${px(c.x)}" cy="${px(c.y)}" r="${r}" fill="${vif ? '#1a1d23' : '#8a9099'}"
         stroke="#fff" stroke-width="1.5"/>
-      <text x="${px(c.x)}" y="${(c.y * E + 3.4).toFixed(1)}" font-size="9.5"
-        font-weight="700" fill="#fff" text-anchor="middle">${ech(cam.cle)}</text>
+      <text x="${px(c.x)}" y="${(c.y * E + r * 0.4).toFixed(1)}"
+        font-size="${compact ? 7.5 : 9.5}" font-weight="700" fill="#fff"
+        text-anchor="middle">${ech(cam.cle)}</text>
     </g>`;
   }).join('');
 
-  const cote = `<g stroke="#1a1d23" stroke-width="1" fill="#1a1d23">
+  const cote = compact ? '' : `<g stroke="#1a1d23" stroke-width="1" fill="#1a1d23">
     <line x1="${px(PLAN.bat.x)}" y1="${px(PLAN.bat.y - 5)}"
       x2="${px(PLAN.bat.x + PLAN.bat.l)}" y2="${px(PLAN.bat.y - 5)}"/>
     <line x1="${px(PLAN.bat.x)}" y1="${px(PLAN.bat.y - 7)}" x2="${px(PLAN.bat.x)}"
@@ -634,7 +646,7 @@ function planMasse() {
 
   const xE = PLAN.largeur - 30;
   const yE = PLAN.hauteur - 5;
-  const echelle = `<g stroke="#1a1d23" stroke-width="1.5" fill="#1a1d23">
+  const echelle = compact ? '' : `<g stroke="#1a1d23" stroke-width="1.5" fill="#1a1d23">
     <line x1="${px(xE)}" y1="${px(yE)}" x2="${px(xE + 20)}" y2="${px(yE)}"/>
     <line x1="${px(xE)}" y1="${px(yE - 1.5)}" x2="${px(xE)}" y2="${px(yE + 1.5)}"/>
     <line x1="${px(xE + 20)}" y1="${px(yE - 1.5)}" x2="${px(xE + 20)}" y2="${px(yE + 1.5)}"/>
@@ -642,7 +654,8 @@ function planMasse() {
       stroke="none">20 m</text>
   </g>`;
 
-  return `<svg viewBox="0 0 ${L.toFixed(0)} ${H.toFixed(0)}" class="plan" role="img"
+  return `<svg viewBox="0 0 ${L.toFixed(0)} ${H.toFixed(0)}"
+    class="plan${compact ? ' compact' : ''}" role="img"
     aria-label="Plan d'implantation des neuf caméras, avec leurs champs">
     <defs><clipPath id="cadre">
       <rect x="0" y="0" width="${L.toFixed(0)}" height="${H.toFixed(0)}"/>
@@ -656,18 +669,19 @@ function planMasse() {
       ${rect(PLAN.bat, 'fill="none" stroke="#5b6472" stroke-width="1.6"')}
       ${rect(PLAN.annexe, 'fill="none" stroke="#5b6472" stroke-width="1.6"')}
       ${rect(PLAN.quai, 'fill="none" stroke="#5b6472" stroke-width="1" stroke-dasharray="5 3"')}
-      <text x="${px(PLAN.bat.x + 3)}" y="${px(PLAN.bat.y + 6)}"
-        font-size="13" font-weight="700" fill="#5b6472">HALLE</text>
-      <text x="${px(PLAN.annexe.x + PLAN.annexe.l / 2)}" y="${px(PLAN.annexe.y + 5.5)}"
-        font-size="9.5" font-weight="700" fill="#5b6472" text-anchor="middle">BUREAUX</text>
-      <text x="${px(PLAN.quai.x + 1.5)}" y="${px(PLAN.quai.y + 2.5)}"
-        font-size="9.5" fill="#5b6472">quais de chargement</text>
-      <text x="${px(PLAN.cour.x + 3)}" y="${px(PLAN.cour.y + 10)}"
-        font-size="13" font-weight="700" fill="#8a9099">COUR</text>
+      ${compact ? '' : `<text x="${px(PLAN.bat.x + 3)}" y="${px(PLAN.bat.y + 6)}"
+        font-size="13" font-weight="700" fill="#5b6472">HALLE</text>`}
+      ${compact ? '' : `<text x="${px(PLAN.annexe.x + PLAN.annexe.l / 2)}"
+        y="${px(PLAN.annexe.y + 5.5)}" font-size="9.5" font-weight="700" fill="#5b6472"
+        text-anchor="middle">BUREAUX</text>`}
+      ${compact ? '' : `<text x="${px(PLAN.quai.x + 1.5)}" y="${px(PLAN.quai.y + 2.5)}"
+        font-size="9.5" fill="#5b6472">quais de chargement</text>`}
+      ${compact ? '' : `<text x="${px(PLAN.cour.x + 3)}" y="${px(PLAN.cour.y + 10)}"
+        font-size="13" font-weight="700" fill="#8a9099">COUR</text>`}
       <rect x="${px(PLAN.portail.x)}" y="${px(PLAN.portail.y)}" width="${px(PLAN.portail.l)}"
         height="${px(0.8)}" fill="#1a1d23"/>
-      <text x="${px(PLAN.portail.x)}" y="${px(PLAN.portail.y + 4)}" font-size="11"
-        font-weight="700" fill="#1a1d23">PORTAIL</text>
+      ${compact ? '' : `<text x="${px(PLAN.portail.x)}" y="${px(PLAN.portail.y + 4)}"
+        font-size="11" font-weight="700" fill="#1a1d23">PORTAIL</text>`}
       ${pastilles}
       ${cote}
       ${echelle}
@@ -724,6 +738,13 @@ function sectionVue(vue) {
     <h2>${ech(vue.titre)}</h2>
     <p class="prise">${ech(vue.prise)} — champ de la photo estimé à
       ${ech(fr(vue.champ))}°.</p>
+
+    <div class="situation">
+      ${planMasse({ focus: cams.map((c) => c.cle), compact: true })}
+      <p>Où l'on se trouve dans le site, et ce que couvrent les caméras de
+        cette vue — ${ech(cams.map((c) => c.cle).join(' et '))}. Le reste du
+        parc reste posé, en gris.</p>
+    </div>
 
     <h3>Ce que montre la vue</h3>
     <ul class="obs">${vue.observations.map((o) => `<li>${ech(o)}</li>`).join('')}</ul>
@@ -819,6 +840,12 @@ const html = `<!doctype html>
   .cles span { display:flex; align-items:center; gap:7px; }
   .cles i { width:22px; height:12px; border-radius:3px; display:block;
     border:1px solid #c9cfd8; }
+  .situation { display:flex; gap:16px; align-items:center; margin:12px 0 18px;
+    padding:12px 14px; background:var(--fond); border:1px solid var(--bord);
+    border-radius:10px; page-break-inside:avoid; }
+  .situation svg.plan.compact { flex:1 1 320px; max-width:420px; margin:0;
+    border:0; background:transparent; }
+  .situation p { flex:1 1 200px; margin:0; font-size:13.5px; color:var(--doux); }
   .camera { border:1px solid var(--bord); border-radius:10px; padding:16px 18px;
     margin:16px 0; page-break-inside:avoid; }
   .puce { display:inline-block; min-width:34px; padding:2px 8px; border-radius:20px;

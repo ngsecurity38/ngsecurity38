@@ -41,6 +41,12 @@
   .cles span { display:flex; align-items:center; gap:7px; }
   .cles i { width:22px; height:12px; border-radius:3px; display:block;
     border:1px solid #c9cfd8; }
+  .situation { display:flex; gap:16px; align-items:center; margin:12px 0 18px;
+    padding:12px 14px; background:var(--fond); border:1px solid var(--bord);
+    border-radius:10px; page-break-inside:avoid; }
+  .situation svg.plan.compact { flex:1 1 320px; max-width:420px; margin:0;
+    border:0; background:transparent; }
+  .situation p { flex:1 1 200px; margin:0; font-size:13.5px; color:var(--doux); }
   .camera { border:1px solid var(--bord); border-radius:10px; padding:16px 18px;
     margin:16px 0; page-break-inside:avoid; }
   .puce { display:inline-block; min-width:34px; padding:2px 8px; border-radius:20px;
@@ -424,7 +430,8 @@
   donc, c'est le rapport entre ce que couvrent vos caméras et l'étendue du
   site&nbsp;; ce rapport se corrige d'un chiffre.</p>
 
-<svg viewBox="0 0 1053 900" class="plan" role="img"
+<svg viewBox="0 0 1053 900"
+    class="plan" role="img"
     aria-label="Plan d'implantation des neuf caméras, avec leurs champs">
     <defs><clipPath id="cadre">
       <rect x="0" y="0" width="1053" height="900"/>
@@ -510,61 +517,71 @@
     height="31.5" fill="none" stroke="#5b6472" stroke-width="1" stroke-dasharray="5 3"/>
       <text x="135.0" y="162.0"
         font-size="13" font-weight="700" fill="#5b6472">HALLE</text>
-      <text x="864.0" y="157.5"
-        font-size="9.5" font-weight="700" fill="#5b6472" text-anchor="middle">BUREAUX</text>
+      <text x="864.0"
+        y="157.5" font-size="9.5" font-weight="700" fill="#5b6472"
+        text-anchor="middle">BUREAUX</text>
       <text x="324.0" y="328.5"
         font-size="9.5" fill="#5b6472">quais de chargement</text>
       <text x="27.0" y="396.0"
         font-size="13" font-weight="700" fill="#8a9099">COUR</text>
       <rect x="43.2" y="810.0" width="63.0"
         height="7.2" fill="#1a1d23"/>
-      <text x="43.2" y="846.0" font-size="11"
-        font-weight="700" fill="#1a1d23">PORTAIL</text>
-      <g>
+      <text x="43.2" y="846.0"
+        font-size="11" font-weight="700" fill="#1a1d23">PORTAIL</text>
+      <g opacity="1">
       <circle cx="187.2" cy="612.0" r="8.5" fill="#1a1d23"
         stroke="#fff" stroke-width="1.5"/>
-      <text x="187.2" y="615.4" font-size="9.5"
-        font-weight="700" fill="#fff" text-anchor="middle">C1</text>
-    </g><g>
+      <text x="187.2" y="615.4"
+        font-size="9.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C1</text>
+    </g><g opacity="1">
       <circle cx="259.2" cy="612.0" r="8.5" fill="#1a1d23"
         stroke="#fff" stroke-width="1.5"/>
-      <text x="259.2" y="615.4" font-size="9.5"
-        font-weight="700" fill="#fff" text-anchor="middle">C2</text>
-    </g><g>
+      <text x="259.2" y="615.4"
+        font-size="9.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C2</text>
+    </g><g opacity="1">
       <circle cx="270.0" cy="319.5" r="8.5" fill="#1a1d23"
         stroke="#fff" stroke-width="1.5"/>
-      <text x="270.0" y="322.9" font-size="9.5"
-        font-weight="700" fill="#fff" text-anchor="middle">C3</text>
-    </g><g>
+      <text x="270.0" y="322.9"
+        font-size="9.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C3</text>
+    </g><g opacity="1">
       <circle cx="972.0" cy="585.0" r="8.5" fill="#1a1d23"
         stroke="#fff" stroke-width="1.5"/>
-      <text x="972.0" y="588.4" font-size="9.5"
-        font-weight="700" fill="#fff" text-anchor="middle">C4</text>
-    </g><g>
+      <text x="972.0" y="588.4"
+        font-size="9.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C4</text>
+    </g><g opacity="1">
       <circle cx="621.0" cy="319.5" r="8.5" fill="#1a1d23"
         stroke="#fff" stroke-width="1.5"/>
-      <text x="621.0" y="322.9" font-size="9.5"
-        font-weight="700" fill="#fff" text-anchor="middle">C5</text>
-    </g><g>
+      <text x="621.0" y="322.9"
+        font-size="9.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C5</text>
+    </g><g opacity="1">
       <circle cx="499.5" cy="319.5" r="8.5" fill="#1a1d23"
         stroke="#fff" stroke-width="1.5"/>
-      <text x="499.5" y="322.9" font-size="9.5"
-        font-weight="700" fill="#fff" text-anchor="middle">C6</text>
-    </g><g>
+      <text x="499.5" y="322.9"
+        font-size="9.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C6</text>
+    </g><g opacity="1">
       <circle cx="139.5" cy="230.8" r="8.5" fill="#1a1d23"
         stroke="#fff" stroke-width="1.5"/>
-      <text x="139.5" y="234.2" font-size="9.5"
-        font-weight="700" fill="#fff" text-anchor="middle">C7</text>
-    </g><g>
+      <text x="139.5" y="234.2"
+        font-size="9.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C7</text>
+    </g><g opacity="1">
       <circle cx="751.5" cy="230.8" r="8.5" fill="#1a1d23"
         stroke="#fff" stroke-width="1.5"/>
-      <text x="751.5" y="234.2" font-size="9.5"
-        font-weight="700" fill="#fff" text-anchor="middle">C8</text>
-    </g><g>
+      <text x="751.5" y="234.2"
+        font-size="9.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C8</text>
+    </g><g opacity="1">
       <circle cx="459.0" cy="135.0" r="8.5" fill="#1a1d23"
         stroke="#fff" stroke-width="1.5"/>
-      <text x="459.0" y="138.4" font-size="9.5"
-        font-weight="700" fill="#fff" text-anchor="middle">C9</text>
+      <text x="459.0" y="138.4"
+        font-size="9.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C9</text>
     </g>
       <g stroke="#1a1d23" stroke-width="1" fill="#1a1d23">
     <line x1="108.0" y1="63.0"
@@ -615,6 +632,114 @@
     <p class="prise">Depuis la voie, face au portail. — champ de la photo estimé à
       52,8°.</p>
 
+    <div class="situation">
+      <svg viewBox="0 0 644 550"
+    class="plan compact" role="img"
+    aria-label="Plan d'implantation des neuf caméras, avec leurs champs">
+    <defs><clipPath id="cadre">
+      <rect x="0" y="0" width="644" height="550"/>
+    </clipPath></defs>
+    <g clip-path="url(#cadre)">
+      <rect x="0.0" y="187.0" width="643.5"
+    height="341.0" fill="#eceef1"/>
+      <rect x="66.0" y="66.0" width="412.5"
+    height="121.0" fill="#dfe3e9"/>
+      <rect x="478.5" y="66.0" width="99.0"
+    height="55.0" fill="#eef0f3"/>
+      <g>
+      <path d="M 114.4 374.0 L 278.9 988.0 A 635.7 635.7
+      0 0 1 -50.1 988.0 Z" fill="#5b6472" opacity="0.16"/>
+      <path d="M 114.4 374.0 L 196.0 678.5 A 315.3 315.3
+      0 0 1 32.8 678.5 Z" fill="#9d0c24" opacity="0.22"/>
+      <path d="M 114.4 374.0 L 155.2 526.3 A 157.6 157.6
+      0 0 1 73.6 526.3 Z" fill="#c8102e" opacity="0.5"/>
+    </g><g>
+      <path d="M 158.4 374.0 L 234.9 437.9 A 99.7 99.7
+      0 0 1 81.9 437.9 Z" fill="#5b6472" opacity="0.16"/>
+      <path d="M 158.4 374.0 L 196.3 405.7 A 49.4 49.4
+      0 0 1 120.5 405.7 Z" fill="#9d0c24" opacity="0.22"/>
+      <path d="M 158.4 374.0 L 177.4 389.9 A 24.7 24.7
+      0 0 1 139.4 389.9 Z" fill="#c8102e" opacity="0.5"/>
+    </g>
+      <rect x="0.0" y="187.0" width="643.5"
+    height="341.0" fill="none" stroke="#c9cfd8" stroke-width="1"/>
+      <rect x="66.0" y="66.0" width="412.5"
+    height="121.0" fill="none" stroke="#5b6472" stroke-width="1.6"/>
+      <rect x="478.5" y="66.0" width="99.0"
+    height="55.0" fill="none" stroke="#5b6472" stroke-width="1.6"/>
+      <rect x="189.8" y="187.0" width="268.1"
+    height="19.3" fill="none" stroke="#5b6472" stroke-width="1" stroke-dasharray="5 3"/>
+      
+      
+      
+      
+      <rect x="26.4" y="495.0" width="38.5"
+        height="4.4" fill="#1a1d23"/>
+      
+      <g opacity="1">
+      <circle cx="114.4" cy="374.0" r="6.5" fill="#1a1d23"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="114.4" y="376.6"
+        font-size="7.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C1</text>
+    </g><g opacity="1">
+      <circle cx="158.4" cy="374.0" r="6.5" fill="#1a1d23"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="158.4" y="376.6"
+        font-size="7.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C2</text>
+    </g><g opacity="0.35">
+      <circle cx="165.0" cy="195.3" r="6.5" fill="#8a9099"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="165.0" y="197.8"
+        font-size="7.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C3</text>
+    </g><g opacity="0.35">
+      <circle cx="594.0" cy="357.5" r="6.5" fill="#8a9099"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="594.0" y="360.1"
+        font-size="7.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C4</text>
+    </g><g opacity="0.35">
+      <circle cx="379.5" cy="195.3" r="6.5" fill="#8a9099"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="379.5" y="197.8"
+        font-size="7.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C5</text>
+    </g><g opacity="0.35">
+      <circle cx="305.3" cy="195.3" r="6.5" fill="#8a9099"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="305.3" y="197.8"
+        font-size="7.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C6</text>
+    </g><g opacity="0.35">
+      <circle cx="85.3" cy="141.0" r="6.5" fill="#8a9099"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="85.3" y="143.6"
+        font-size="7.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C7</text>
+    </g><g opacity="0.35">
+      <circle cx="459.3" cy="141.0" r="6.5" fill="#8a9099"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="459.3" y="143.6"
+        font-size="7.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C8</text>
+    </g><g opacity="0.35">
+      <circle cx="280.5" cy="82.5" r="6.5" fill="#8a9099"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="280.5" y="85.1"
+        font-size="7.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C9</text>
+    </g>
+      
+      
+    </g>
+  </svg>
+      <p>Où l'on se trouve dans le site, et ce que couvrent les caméras de
+        cette vue — C1 et C2. Le reste du
+        parc reste posé, en gris.</p>
+    </div>
+
     <h3>Ce que montre la vue</h3>
     <ul class="obs"><li>Accès unique par un portail double à barreaudage. C&#39;est le point de passage obligé de tout véhicule : c&#39;est donc là, et nulle part ailleurs, que se joue l&#39;identification.</li><li>Le bâtiment à droite offre un point de fixation en hauteur, à une quinzaine de mètres du portail — distance à mesurer.</li><li>Soleil rasant au moment de la prise de vue. Une caméra placée dans l&#39;axe du soleil levant ou couchant perd son image aux heures précises où l&#39;on entre et où l&#39;on sort. L&#39;orientation définitive doit en tenir compte.</li><li>Aucune clôture n&#39;est visible de part et d&#39;autre du portail : la haie et le talus ne sont pas un obstacle. Le portail protège du véhicule, pas du piéton.</li></ul>
 
@@ -662,6 +787,114 @@
     <h2>Cour de manœuvre</h2>
     <p class="prise">Depuis la cour, vers la limite arrière boisée. — champ de la photo estimé à
       52,8°.</p>
+
+    <div class="situation">
+      <svg viewBox="0 0 644 550"
+    class="plan compact" role="img"
+    aria-label="Plan d'implantation des neuf caméras, avec leurs champs">
+    <defs><clipPath id="cadre">
+      <rect x="0" y="0" width="644" height="550"/>
+    </clipPath></defs>
+    <g clip-path="url(#cadre)">
+      <rect x="0.0" y="187.0" width="643.5"
+    height="341.0" fill="#eceef1"/>
+      <rect x="66.0" y="66.0" width="412.5"
+    height="121.0" fill="#dfe3e9"/>
+      <rect x="478.5" y="66.0" width="99.0"
+    height="55.0" fill="#eef0f3"/>
+      <g>
+      <path d="M 165.0 195.3 L 278.0 245.6 A 123.7 123.7
+      0 0 1 82.2 287.2 Z" fill="#5b6472" opacity="0.16"/>
+      <path d="M 165.0 195.3 L 221.1 220.2 A 61.4 61.4
+      0 0 1 123.9 240.9 Z" fill="#9d0c24" opacity="0.22"/>
+      <path d="M 165.0 195.3 L 193.0 207.7 A 30.7 30.7
+      0 0 1 144.5 218.1 Z" fill="#c8102e" opacity="0.5"/>
+    </g><g>
+      <path d="M 594.0 357.5 L 617.1 420.9 A 67.4 67.4
+      0 0 1 570.9 294.1 Z" fill="#5b6472" opacity="0.16"/>
+      <path d="M 594.0 357.5 L 605.4 388.9 A 33.4 33.4
+      0 0 1 582.6 326.1 Z" fill="#9d0c24" opacity="0.22"/>
+      <path d="M 594.0 357.5 L 599.7 373.2 A 16.7 16.7
+      0 0 1 588.3 341.8 Z" fill="#c8102e" opacity="0.5"/>
+    </g>
+      <rect x="0.0" y="187.0" width="643.5"
+    height="341.0" fill="none" stroke="#c9cfd8" stroke-width="1"/>
+      <rect x="66.0" y="66.0" width="412.5"
+    height="121.0" fill="none" stroke="#5b6472" stroke-width="1.6"/>
+      <rect x="478.5" y="66.0" width="99.0"
+    height="55.0" fill="none" stroke="#5b6472" stroke-width="1.6"/>
+      <rect x="189.8" y="187.0" width="268.1"
+    height="19.3" fill="none" stroke="#5b6472" stroke-width="1" stroke-dasharray="5 3"/>
+      
+      
+      
+      
+      <rect x="26.4" y="495.0" width="38.5"
+        height="4.4" fill="#1a1d23"/>
+      
+      <g opacity="0.35">
+      <circle cx="114.4" cy="374.0" r="6.5" fill="#8a9099"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="114.4" y="376.6"
+        font-size="7.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C1</text>
+    </g><g opacity="0.35">
+      <circle cx="158.4" cy="374.0" r="6.5" fill="#8a9099"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="158.4" y="376.6"
+        font-size="7.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C2</text>
+    </g><g opacity="1">
+      <circle cx="165.0" cy="195.3" r="6.5" fill="#1a1d23"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="165.0" y="197.8"
+        font-size="7.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C3</text>
+    </g><g opacity="1">
+      <circle cx="594.0" cy="357.5" r="6.5" fill="#1a1d23"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="594.0" y="360.1"
+        font-size="7.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C4</text>
+    </g><g opacity="0.35">
+      <circle cx="379.5" cy="195.3" r="6.5" fill="#8a9099"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="379.5" y="197.8"
+        font-size="7.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C5</text>
+    </g><g opacity="0.35">
+      <circle cx="305.3" cy="195.3" r="6.5" fill="#8a9099"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="305.3" y="197.8"
+        font-size="7.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C6</text>
+    </g><g opacity="0.35">
+      <circle cx="85.3" cy="141.0" r="6.5" fill="#8a9099"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="85.3" y="143.6"
+        font-size="7.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C7</text>
+    </g><g opacity="0.35">
+      <circle cx="459.3" cy="141.0" r="6.5" fill="#8a9099"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="459.3" y="143.6"
+        font-size="7.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C8</text>
+    </g><g opacity="0.35">
+      <circle cx="280.5" cy="82.5" r="6.5" fill="#8a9099"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="280.5" y="85.1"
+        font-size="7.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C9</text>
+    </g>
+      
+      
+    </g>
+  </svg>
+      <p>Où l'on se trouve dans le site, et ce que couvrent les caméras de
+        cette vue — C3 et C4. Le reste du
+        parc reste posé, en gris.</p>
+    </div>
 
     <h3>Ce que montre la vue</h3>
     <ul class="obs"><li>Grande aire ouverte, sans obstacle. C&#39;est la zone où une caméra couvre le plus de surface pour le moins d&#39;appareils — et celle où elle distingue le moins de détails, faute de pixels au loin.</li><li>La limite du site est un bois, sans clôture visible. C&#39;est le point faible : on y entre à pied sans passer par le portail.</li><li>Éclairage nocturne non constaté. Au-delà de la portée de l&#39;infrarouge, une caméra ne voit rien la nuit, quels que soient ses pixels.</li></ul>
@@ -713,6 +946,114 @@
     <p class="prise">Depuis la cour, face au quai. — champ de la photo estimé à
       52,8°.</p>
 
+    <div class="situation">
+      <svg viewBox="0 0 644 550"
+    class="plan compact" role="img"
+    aria-label="Plan d'implantation des neuf caméras, avec leurs champs">
+    <defs><clipPath id="cadre">
+      <rect x="0" y="0" width="644" height="550"/>
+    </clipPath></defs>
+    <g clip-path="url(#cadre)">
+      <rect x="0.0" y="187.0" width="643.5"
+    height="341.0" fill="#eceef1"/>
+      <rect x="66.0" y="66.0" width="412.5"
+    height="121.0" fill="#dfe3e9"/>
+      <rect x="478.5" y="66.0" width="99.0"
+    height="55.0" fill="#eef0f3"/>
+      <g>
+      <path d="M 379.5 195.3 L 368.4 830.8 A 635.7 635.7
+      0 0 1 52.1 740.1 Z" fill="#5b6472" opacity="0.16"/>
+      <path d="M 379.5 195.3 L 374.0 510.5 A 315.3 315.3
+      0 0 1 217.1 465.5 Z" fill="#9d0c24" opacity="0.22"/>
+      <path d="M 379.5 195.3 L 376.7 352.9 A 157.6 157.6
+      0 0 1 298.3 330.4 Z" fill="#c8102e" opacity="0.5"/>
+    </g><g>
+      <path d="M 305.3 195.3 L 381.7 259.2 A 99.7 99.7
+      0 0 1 228.8 259.2 Z" fill="#5b6472" opacity="0.16"/>
+      <path d="M 305.3 195.3 L 343.2 227.0 A 49.4 49.4
+      0 0 1 267.3 227.0 Z" fill="#9d0c24" opacity="0.22"/>
+      <path d="M 305.3 195.3 L 324.2 211.1 A 24.7 24.7
+      0 0 1 286.3 211.1 Z" fill="#c8102e" opacity="0.5"/>
+    </g>
+      <rect x="0.0" y="187.0" width="643.5"
+    height="341.0" fill="none" stroke="#c9cfd8" stroke-width="1"/>
+      <rect x="66.0" y="66.0" width="412.5"
+    height="121.0" fill="none" stroke="#5b6472" stroke-width="1.6"/>
+      <rect x="478.5" y="66.0" width="99.0"
+    height="55.0" fill="none" stroke="#5b6472" stroke-width="1.6"/>
+      <rect x="189.8" y="187.0" width="268.1"
+    height="19.3" fill="none" stroke="#5b6472" stroke-width="1" stroke-dasharray="5 3"/>
+      
+      
+      
+      
+      <rect x="26.4" y="495.0" width="38.5"
+        height="4.4" fill="#1a1d23"/>
+      
+      <g opacity="0.35">
+      <circle cx="114.4" cy="374.0" r="6.5" fill="#8a9099"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="114.4" y="376.6"
+        font-size="7.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C1</text>
+    </g><g opacity="0.35">
+      <circle cx="158.4" cy="374.0" r="6.5" fill="#8a9099"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="158.4" y="376.6"
+        font-size="7.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C2</text>
+    </g><g opacity="0.35">
+      <circle cx="165.0" cy="195.3" r="6.5" fill="#8a9099"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="165.0" y="197.8"
+        font-size="7.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C3</text>
+    </g><g opacity="0.35">
+      <circle cx="594.0" cy="357.5" r="6.5" fill="#8a9099"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="594.0" y="360.1"
+        font-size="7.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C4</text>
+    </g><g opacity="1">
+      <circle cx="379.5" cy="195.3" r="6.5" fill="#1a1d23"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="379.5" y="197.8"
+        font-size="7.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C5</text>
+    </g><g opacity="1">
+      <circle cx="305.3" cy="195.3" r="6.5" fill="#1a1d23"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="305.3" y="197.8"
+        font-size="7.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C6</text>
+    </g><g opacity="0.35">
+      <circle cx="85.3" cy="141.0" r="6.5" fill="#8a9099"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="85.3" y="143.6"
+        font-size="7.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C7</text>
+    </g><g opacity="0.35">
+      <circle cx="459.3" cy="141.0" r="6.5" fill="#8a9099"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="459.3" y="143.6"
+        font-size="7.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C8</text>
+    </g><g opacity="0.35">
+      <circle cx="280.5" cy="82.5" r="6.5" fill="#8a9099"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="280.5" y="85.1"
+        font-size="7.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C9</text>
+    </g>
+      
+      
+    </g>
+  </svg>
+      <p>Où l'on se trouve dans le site, et ce que couvrent les caméras de
+        cette vue — C5 et C6. Le reste du
+        parc reste posé, en gris.</p>
+    </div>
+
     <h3>Ce que montre la vue</h3>
     <ul class="obs"><li>Quai avec rampe et porte de grande hauteur. C&#39;est par là que sort la marchandise : le vol s&#39;y fait de jour, à visage découvert, et se conteste ensuite sur la vidéo. L&#39;exigence y est l&#39;identification, pas la détection.</li><li>Les blocs béton en cours de stockage font écran : ils masquent le bas du champ et se déplacent d&#39;une semaine à l&#39;autre. Une caméra posée trop bas sera aveuglée par le prochain lot.</li><li>Un projecteur est déjà fixé en façade, au-dessus de la porte : point d&#39;alimentation possible, à vérifier.</li></ul>
 
@@ -761,6 +1102,107 @@
     <p class="prise">Depuis l&#39;allée, vers le mur de refend. — champ de la photo estimé à
       52,8°.</p>
 
+    <div class="situation">
+      <svg viewBox="0 0 644 550"
+    class="plan compact" role="img"
+    aria-label="Plan d'implantation des neuf caméras, avec leurs champs">
+    <defs><clipPath id="cadre">
+      <rect x="0" y="0" width="644" height="550"/>
+    </clipPath></defs>
+    <g clip-path="url(#cadre)">
+      <rect x="0.0" y="187.0" width="643.5"
+    height="341.0" fill="#eceef1"/>
+      <rect x="66.0" y="66.0" width="412.5"
+    height="121.0" fill="#dfe3e9"/>
+      <rect x="478.5" y="66.0" width="99.0"
+    height="55.0" fill="#eef0f3"/>
+      <g>
+      <path d="M 85.3 141.0 L 149.2 64.5 A 99.7 99.7
+      0 0 1 149.2 217.5 Z" fill="#5b6472" opacity="0.16"/>
+      <path d="M 85.3 141.0 L 117.0 103.1 A 49.4 49.4
+      0 0 1 117.0 179.0 Z" fill="#9d0c24" opacity="0.22"/>
+      <path d="M 85.3 141.0 L 101.1 122.1 A 24.7 24.7
+      0 0 1 101.1 160.0 Z" fill="#c8102e" opacity="0.5"/>
+    </g>
+      <rect x="0.0" y="187.0" width="643.5"
+    height="341.0" fill="none" stroke="#c9cfd8" stroke-width="1"/>
+      <rect x="66.0" y="66.0" width="412.5"
+    height="121.0" fill="none" stroke="#5b6472" stroke-width="1.6"/>
+      <rect x="478.5" y="66.0" width="99.0"
+    height="55.0" fill="none" stroke="#5b6472" stroke-width="1.6"/>
+      <rect x="189.8" y="187.0" width="268.1"
+    height="19.3" fill="none" stroke="#5b6472" stroke-width="1" stroke-dasharray="5 3"/>
+      
+      
+      
+      
+      <rect x="26.4" y="495.0" width="38.5"
+        height="4.4" fill="#1a1d23"/>
+      
+      <g opacity="0.35">
+      <circle cx="114.4" cy="374.0" r="6.5" fill="#8a9099"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="114.4" y="376.6"
+        font-size="7.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C1</text>
+    </g><g opacity="0.35">
+      <circle cx="158.4" cy="374.0" r="6.5" fill="#8a9099"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="158.4" y="376.6"
+        font-size="7.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C2</text>
+    </g><g opacity="0.35">
+      <circle cx="165.0" cy="195.3" r="6.5" fill="#8a9099"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="165.0" y="197.8"
+        font-size="7.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C3</text>
+    </g><g opacity="0.35">
+      <circle cx="594.0" cy="357.5" r="6.5" fill="#8a9099"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="594.0" y="360.1"
+        font-size="7.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C4</text>
+    </g><g opacity="0.35">
+      <circle cx="379.5" cy="195.3" r="6.5" fill="#8a9099"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="379.5" y="197.8"
+        font-size="7.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C5</text>
+    </g><g opacity="0.35">
+      <circle cx="305.3" cy="195.3" r="6.5" fill="#8a9099"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="305.3" y="197.8"
+        font-size="7.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C6</text>
+    </g><g opacity="1">
+      <circle cx="85.3" cy="141.0" r="6.5" fill="#1a1d23"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="85.3" y="143.6"
+        font-size="7.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C7</text>
+    </g><g opacity="0.35">
+      <circle cx="459.3" cy="141.0" r="6.5" fill="#8a9099"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="459.3" y="143.6"
+        font-size="7.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C8</text>
+    </g><g opacity="0.35">
+      <circle cx="280.5" cy="82.5" r="6.5" fill="#8a9099"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="280.5" y="85.1"
+        font-size="7.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C9</text>
+    </g>
+      
+      
+    </g>
+  </svg>
+      <p>Où l'on se trouve dans le site, et ce que couvrent les caméras de
+        cette vue — C7. Le reste du
+        parc reste posé, en gris.</p>
+    </div>
+
     <h3>Ce que montre la vue</h3>
     <ul class="obs"><li>Charpente métallique et lanterneaux. Deux conséquences : la portée radio y est dégradée si des équipements sans fil sont envisagés, et les lanterneaux créent un contre-jour violent au zénith — une caméra orientée vers eux perdra le détail au sol en milieu de journée.</li><li>Hauteur sous charpente estimée à six ou sept mètres. Une caméra posée haut couvre plus de surface mais regarde le sol de plus en plus obliquement : les visages s&#39;y lisent mal. Pour l&#39;identification, il faut redescendre.</li><li>Volume libre au moment de la prise de vue. Le jour où les racks seront remontés, ils couperont les champs : l&#39;implantation doit être arrêtée sur le plan de stockage définitif, pas sur une halle vide.</li></ul>
 
@@ -790,6 +1232,114 @@
     <h2>Halle — rideau métallique et zone de stockage</h2>
     <p class="prise">Depuis l&#39;intérieur, le long du mur pignon. — champ de la photo estimé à
       52,8°.</p>
+
+    <div class="situation">
+      <svg viewBox="0 0 644 550"
+    class="plan compact" role="img"
+    aria-label="Plan d'implantation des neuf caméras, avec leurs champs">
+    <defs><clipPath id="cadre">
+      <rect x="0" y="0" width="644" height="550"/>
+    </clipPath></defs>
+    <g clip-path="url(#cadre)">
+      <rect x="0.0" y="187.0" width="643.5"
+    height="341.0" fill="#eceef1"/>
+      <rect x="66.0" y="66.0" width="412.5"
+    height="121.0" fill="#dfe3e9"/>
+      <rect x="478.5" y="66.0" width="99.0"
+    height="55.0" fill="#eef0f3"/>
+      <g>
+      <path d="M 459.3 141.0 L 395.3 217.5 A 99.7 99.7
+      0 0 1 395.3 64.5 Z" fill="#5b6472" opacity="0.16"/>
+      <path d="M 459.3 141.0 L 427.5 179.0 A 49.4 49.4
+      0 0 1 427.5 103.1 Z" fill="#9d0c24" opacity="0.22"/>
+      <path d="M 459.3 141.0 L 443.4 160.0 A 24.7 24.7
+      0 0 1 443.4 122.1 Z" fill="#c8102e" opacity="0.5"/>
+    </g><g>
+      <path d="M 280.5 82.5 L 357.0 146.4 A 99.7 99.7
+      0 0 1 204.0 146.4 Z" fill="#5b6472" opacity="0.16"/>
+      <path d="M 280.5 82.5 L 318.4 114.2 A 49.4 49.4
+      0 0 1 242.6 114.2 Z" fill="#9d0c24" opacity="0.22"/>
+      <path d="M 280.5 82.5 L 299.5 98.4 A 24.7 24.7
+      0 0 1 261.5 98.4 Z" fill="#c8102e" opacity="0.5"/>
+    </g>
+      <rect x="0.0" y="187.0" width="643.5"
+    height="341.0" fill="none" stroke="#c9cfd8" stroke-width="1"/>
+      <rect x="66.0" y="66.0" width="412.5"
+    height="121.0" fill="none" stroke="#5b6472" stroke-width="1.6"/>
+      <rect x="478.5" y="66.0" width="99.0"
+    height="55.0" fill="none" stroke="#5b6472" stroke-width="1.6"/>
+      <rect x="189.8" y="187.0" width="268.1"
+    height="19.3" fill="none" stroke="#5b6472" stroke-width="1" stroke-dasharray="5 3"/>
+      
+      
+      
+      
+      <rect x="26.4" y="495.0" width="38.5"
+        height="4.4" fill="#1a1d23"/>
+      
+      <g opacity="0.35">
+      <circle cx="114.4" cy="374.0" r="6.5" fill="#8a9099"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="114.4" y="376.6"
+        font-size="7.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C1</text>
+    </g><g opacity="0.35">
+      <circle cx="158.4" cy="374.0" r="6.5" fill="#8a9099"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="158.4" y="376.6"
+        font-size="7.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C2</text>
+    </g><g opacity="0.35">
+      <circle cx="165.0" cy="195.3" r="6.5" fill="#8a9099"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="165.0" y="197.8"
+        font-size="7.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C3</text>
+    </g><g opacity="0.35">
+      <circle cx="594.0" cy="357.5" r="6.5" fill="#8a9099"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="594.0" y="360.1"
+        font-size="7.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C4</text>
+    </g><g opacity="0.35">
+      <circle cx="379.5" cy="195.3" r="6.5" fill="#8a9099"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="379.5" y="197.8"
+        font-size="7.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C5</text>
+    </g><g opacity="0.35">
+      <circle cx="305.3" cy="195.3" r="6.5" fill="#8a9099"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="305.3" y="197.8"
+        font-size="7.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C6</text>
+    </g><g opacity="0.35">
+      <circle cx="85.3" cy="141.0" r="6.5" fill="#8a9099"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="85.3" y="143.6"
+        font-size="7.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C7</text>
+    </g><g opacity="1">
+      <circle cx="459.3" cy="141.0" r="6.5" fill="#1a1d23"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="459.3" y="143.6"
+        font-size="7.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C8</text>
+    </g><g opacity="1">
+      <circle cx="280.5" cy="82.5" r="6.5" fill="#1a1d23"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="280.5" y="85.1"
+        font-size="7.5" font-weight="700" fill="#fff"
+        text-anchor="middle">C9</text>
+    </g>
+      
+      
+    </g>
+  </svg>
+      <p>Où l'on se trouve dans le site, et ce que couvrent les caméras de
+        cette vue — C8 et C9. Le reste du
+        parc reste posé, en gris.</p>
+    </div>
 
     <h3>Ce que montre la vue</h3>
     <ul class="obs"><li>Rideau métallique de grande largeur : deuxième accès véhicule au volume. Baissé, c&#39;est lui la porte ; un champ réglé sur la porte vitrée derrière ne verrait rien.</li><li>Des panneaux sont appuyés contre le mur, à l&#39;aplomb du rideau. Stockés là durablement, ils masqueraient une caméra fixée bas.</li><li>Racks en cours de montage sur la droite : ils définiront les allées, donc les seuls axes où une caméra voit quelque chose.</li></ul>
