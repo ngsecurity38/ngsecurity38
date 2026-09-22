@@ -61,10 +61,10 @@ const AGENCE = {
    */
   adresse: '2 rue des Drillons, 89150 Vernoy',
   rcs: 'RCS Sens 518 723 366',
+  /* Celui-ci vient de l'agence elle-même, pas d'une recherche. */
+  telephone: '07 74 11 24 56',
   aConfirmer: [
     'L\'adresse et le RCS ci-dessus, relevés sur vos pages publiques.',
-    'Le téléphone : deux numéros apparaissent sur vos pages, '
-      + '07 56 87 61 71 et 07 56 87 62 72. Lequel figure sur un devis ?',
   ],
   aCompleter: [
     'Le SIRET complet, à quatorze chiffres. Le RCS relevé donne les neuf '
@@ -1309,7 +1309,7 @@ const html = `<!doctype html>
       <p class="nom">${ech(AGENCE.nom)}</p>
       <p>${ech(AGENCE.accroche)}</p>
       <p>${ech(AGENCE.adresse)}</p>
-      <p>${ech(AGENCE.courriel)}</p>
+      <p>${ech(AGENCE.telephone)} · ${ech(AGENCE.courriel)}</p>
       <p>${AGENCE.sites.map((s) => ech(s)).join(' · ')}</p>
       <p>${ech(AGENCE.rcs)} · ${ech(AGENCE.zone)}</p>
     </div>
@@ -1616,7 +1616,8 @@ ${VUES.map(sectionVue).join('')}
     conditionne le dimensionnement du stockage retenu plus haut.</li>
 </ul>
 
-<p class="pied">NG Security 38 — étude établie le ${ech(AUJOURD_HUI)} —
+<p class="pied">${ech(AGENCE.nom)} · ${ech(AGENCE.telephone)} ·
+  ${ech(AGENCE.courriel)} — étude établie le ${ech(AUJOURD_HUI)} —
   document de travail, à confirmer par un relevé sur place.</p>
 
 </div>
