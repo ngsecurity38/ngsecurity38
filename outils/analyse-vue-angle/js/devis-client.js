@@ -16,6 +16,7 @@ import { chargerMenu, poserMenu } from './menu.js';
 import { texteEnsemble } from './ensemble.js';
 import { afficherEnsemble } from './ensemble-vue.js';
 import { TYPES_SITE, RESERVES, composer } from './offre.js';
+import { BOBINE } from './cable.js';
 import { choixTva, lireChoix, tauxTva, reservesPays } from './pays.js';
 import { ligne, devis, euros, TVA_DEFAUT, MARGE_COMMERCIALE } from './prix.js';
 import {
@@ -68,6 +69,7 @@ const reponses = () => ({
   jours: parseInt($('#q-jours').value, 10),
   heuresParJour: parseInt($('#q-heures').value, 10),
   extension: parseInt($('#q-extension').value, 10),
+  metresParCamera: parseFloat($('#q-distance').value),
   ecran: $('#q-ecran').checked,
   routeur: $('#q-routeur').checked,
   pose: $('#q-pose').checked,
@@ -287,7 +289,8 @@ function majContact(offre, r, d, ensemble, regime) {
     `- Zones à couvrir : ${offre.cameras}`,
     `- Conservation : ${offre.jours} jours, ${offre.heuresParJour} h/24`,
     `- Extension prévue : ${offre.prevues - offre.cameras} caméra(s)`,
-    `- Câble estimé : ${offre.metresCable} m`,
+    `- Câble estimé : ${Math.round(offre.metresCable)} m posés, soit `
+      + `${offre.boitesCable.boites} boîte(s) de ${BOBINE} m`,
     `- Écran de supervision : ${r.ecran ? 'oui' : 'non'}`,
     `- Installation par vos soins : ${r.pose ? 'oui' : 'non'}`,
     ...lignesEtude(),
@@ -733,7 +736,8 @@ async function restaurer(contenu) {
 
   const r = contenu.reponses || {};
   for (const [id, cle] of [['#q-type', 'typeSite'], ['#q-pays', 'pays'], ['#q-zones', 'zones'],
-    ['#q-jours', 'jours'], ['#q-heures', 'heuresParJour'], ['#q-extension', 'extension']]) {
+    ['#q-jours', 'jours'], ['#q-heures', 'heuresParJour'], ['#q-extension', 'extension'],
+    ['#q-distance', 'metresParCamera']]) {
     if (r[cle] !== undefined) $(id).value = r[cle];
   }
   for (const [id, cle] of [['#q-ecran', 'ecran'], ['#q-routeur', 'routeur'], ['#q-pose', 'pose']]) {
@@ -806,7 +810,8 @@ async function demarrer() {
     calculer();
   });
 
-  ['#q-pays', '#q-zones', '#q-jours', '#q-heures', '#q-extension', '#q-ecran',
+  ['#q-pays', '#q-zones', '#q-jours', '#q-heures', '#q-extension',
+    '#q-distance', '#q-ecran',
     '#q-routeur', '#q-pose']
     .forEach((id) => {
       $(id).addEventListener('change', calculer);

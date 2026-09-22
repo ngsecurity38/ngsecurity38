@@ -20,7 +20,7 @@ const lire = (...p) => readFileSync(join(ici, ...p), 'utf8');
 /** Modules de l'application, dans l'ordre des dépendances. */
 const MODULES = [
   'dom.js', 'format.js', 'optique.js', 'alignement.js',
-  'diagnostic.js', 'lecture-etude.js', 'plan.js', 'photo.js', 'catalogue.js', 'reseau.js', 'stockage.js', 'murs.js', 'prix.js',
+  'diagnostic.js', 'lecture-etude.js', 'plan.js', 'photo.js', 'catalogue.js', 'reseau.js', 'stockage.js', 'cable.js', 'murs.js', 'prix.js',
   'fiche.js', 'ocr.js', 'etude-pdf.js', 'app.js',
 ];
 
@@ -175,7 +175,7 @@ ecrire('analyse-vue-angle-ocr.html', injecter(html, '</head>', `${ocr}\n</head>`
  * outil ni reconstruction.
  */
 const MODULES_CLIENT = ['dom.js', 'format.js', 'menu.js', 'optique.js', 'photo.js',
-  'photo-client.js', 'stockage.js', 'prix.js', 'pays.js', 'ensemble.js',
+  'photo-client.js', 'stockage.js', 'cable.js', 'prix.js', 'pays.js', 'ensemble.js',
   'ensemble-vue.js', 'offre.js', 'devis-client.js'];
 verifierListe(MODULES_CLIENT);
 

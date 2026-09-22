@@ -1,5 +1,5 @@
 <!-- ngs-devis — NG Security 38. Bloc « HTML personnalisé ».
-     Produit par build.mjs le 2026-09-21.
+     Produit par build.mjs le 2026-09-22.
      Tout se modifie ici même, dans l'éditeur : les adresses en tête, et les
      données sur la ligne window.__catalogue / window.__tarif plus bas. -->
 <div id="ngs-devis"></div>
@@ -8,7 +8,7 @@
   var hote = document.getElementById("ngs-devis");
   if (!hote || hote.shadowRoot) return;
   var ombre = hote.attachShadow({ mode: 'open' });
-  ombre.innerHTML = "<style>/* Devis client — NG Security 38.\n   Page publique : lisible sur téléphone d'abord, imprimable ensuite. */\n\n:host {\n  --rouge: #c8102e;\n  --rouge-sombre: #9d0c24;\n  --encre: #1a1d23;\n  --doux: #5b6472;\n  --bord: #dde1e7;\n  --fond: #f6f7f9;\n  --police: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif;\n}\n\n* { box-sizing: border-box; }\n[hidden] { display: none !important; }\n\n.ngs-page {\n  margin: 0;\n  font-family: var(--police);\n  font-size: 16px;\n  line-height: 1.55;\n  color: var(--encre);\n  background: var(--fond);\n}\n\n.dedans { max-width: 760px; margin: 0 auto; padding: 0 20px; }\n\n.entete {\n  background: var(--encre);\n  color: #fff;\n  padding: 32px 0 28px;\n  border-bottom: 4px solid var(--rouge);\n}\n.entete h1 { margin: 0 0 6px; font-size: 26px; }\n.entete p { margin: 0; color: #c3c9d3; }\n\nmain { padding-bottom: 48px; }\n\n.carte {\n  background: #fff;\n  border: 1px solid var(--bord);\n  border-radius: 12px;\n  padding: 22px;\n  margin: 22px 0;\n}\n.carte h2 { margin: 0 0 16px; font-size: 18px; }\n\n.bandeau {\n  margin: 22px 0 0;\n  padding: 12px 16px;\n  border-radius: 10px;\n  background: #fff4d6;\n  border: 1px solid #e3c77a;\n  font-size: 14px;\n}\n\n.questions { display: grid; gap: 18px; }\n.questions label { display: block; font-weight: 600; }\n.questions small { display: block; font-weight: 400; color: var(--doux); font-size: 13px; margin-top: 4px; }\n.questions input[type=\"number\"], .questions select {\n  display: block;\n  width: 100%;\n  margin-top: 6px;\n  padding: 11px 12px;\n  font: inherit;\n  color: inherit;\n  background: #fff;\n  border: 1px solid var(--bord);\n  border-radius: 8px;\n}\n.questions .case { display: flex; align-items: center; gap: 10px; font-weight: 400; }\n.questions .case input { width: 20px; height: 20px; }\n\n.resume {\n  margin: 0 0 16px;\n  padding: 14px 16px;\n  background: var(--fond);\n  border-left: 3px solid var(--rouge);\n  border-radius: 0 8px 8px 0;\n}\n\n.manques, .manques li { color: #8a5a00; font-size: 14px; }\n.manques { margin: 0 0 16px; padding-left: 20px; }\n\ntable { width: 100%; border-collapse: collapse; font-size: 15px; }\nth, td { padding: 10px 8px; text-align: left; border-bottom: 1px solid var(--bord); }\nth { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--doux); }\n.nombre { text-align: right; white-space: nowrap; }\n.ref { color: var(--doux); font-size: 13px; }\ntfoot td { border-bottom: 0; padding-top: 12px; }\ntfoot tr.fort td { font-size: 19px; font-weight: 700; border-top: 2px solid var(--encre); }\n\n.repli { margin-top: 18px; font-size: 14px; }\n.repli summary { cursor: pointer; color: var(--doux); }\n.repli ul { margin: 10px 0 0; padding-left: 20px; color: var(--doux); }\n\n.actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; }\n.btn {\n  display: inline-block;\n  font: inherit;\n  font-weight: 600;\n  padding: 12px 20px;\n  border-radius: 8px;\n  border: 1px solid var(--bord);\n  background: #fff;\n  color: inherit;\n  text-decoration: none;\n  cursor: pointer;\n}\n.btn-plein { background: var(--rouge); border-color: var(--rouge); color: #fff; }\n.btn-plein:hover { background: var(--rouge-sombre); border-color: var(--rouge-sombre); }\n\n.pied { color: var(--doux); font-size: 13px; margin-top: 28px; }\n\n/* À l'impression, le client garde le chiffrage : les questions n'y servent\n   plus, et l'encre non plus. */\n@media print {\n  .ngs-page { background: #fff; font-size: 12pt; }\n  .marque { border-bottom: 0; }\n  .marque .retour span { display: none; }\n  .marque .dedans { padding: 0; }\n  .marque img { height: 22mm; }\n  .entete { background: #fff; color: #000; border-bottom: 2px solid #000; padding: 0 0 8pt; }\n  .entete p { color: #444; }\n  .carte { border: 0; padding: 0; margin: 12pt 0; }\n  .questions, .actions, .repli summary { display: none; }\n  .repli[open] ul, .repli ul { display: block; }\n  .bandeau { border: 1px solid #000; }\n}\n\n.synoptique { margin: 20px 0; padding: 0; }\n.synoptique figcaption {\n  font-size: 12px; text-transform: uppercase; letter-spacing: .05em;\n  color: var(--doux); margin-bottom: 10px;\n}\n.synoptique svg { width: 100%; height: auto; display: block; }\n.synoptique figcaption.note-schema {\n  font-size: 12px; color: var(--doux); margin: 8px 0 0;\n  text-transform: none; letter-spacing: 0; line-height: 1.45;\n}\n\n/* ------------------------------------------------------ étude par photo */\n\n.carte h2 small { font-weight: 400; color: var(--doux); font-size: 13px; }\n.aide { margin: 0 0 16px; color: var(--doux); font-size: 14px; }\n\n.depot {\n  border: 2px dashed var(--bord); border-radius: 12px; padding: 24px 16px;\n  text-align: center; cursor: pointer; background: var(--fond);\n}\n.depot:hover, .depot.survol { border-color: var(--rouge); background: #fff; }\n.depot span { display: block; font-weight: 600; }\n.depot small { color: var(--doux); font-size: 13px; }\n\n.vignettes { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }\n.vignette {\n  border: 2px solid var(--bord); border-radius: 10px; padding: 0; overflow: hidden;\n  background: #fff; cursor: pointer; width: 96px; font: inherit;\n}\n.vignette.actif { border-color: var(--rouge); }\n.vignette img { display: block; width: 100%; height: 62px; object-fit: cover; }\n.vignette span { display: block; font-size: 12px; padding: 4px; }\n\n#toile-photo {\n  display: block; width: 100%; height: auto; margin: 14px 0;\n  border-radius: 10px; touch-action: none; cursor: crosshair;\n}\n.consigne {\n  margin: 0; padding: 12px 14px; border-radius: 8px;\n  background: #eaf2ff; border: 1px solid #c3d9f7; font-size: 14px;\n}\n/* Les réglages viennent après les mesures : l'image et ses chiffres doivent\n   se toucher sur un téléphone. */\n.questions.serre { gap: 12px; margin-top: 18px; }\n.etapes { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }\n.btn-petit { padding: 8px 14px; font-size: 14px; }\n.btn.actif { border-color: var(--rouge); color: var(--rouge); }\n\n.mesures-client { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 16px 0; }\n.tuile { background: var(--fond); border-radius: 10px; padding: 12px; }\n.tuile .cle { display: block; font-size: 11px; text-transform: uppercase;\n  letter-spacing: .05em; color: var(--doux); }\n.tuile .val { display: block; font-size: 20px; font-weight: 700; }\n.tuile .note-tuile { display: block; font-size: 12px; color: var(--doux); }\n/* Récapitulatif photo par photo : c'est lui que le client garde, et qui nous\n   revient imprimé ou en pièce jointe. */\n.zone-recap {\n  margin: 0 0 16px; padding: 0; display: flex; gap: 14px; align-items: flex-start;\n  break-inside: avoid;\n}\n.zone-recap img {\n  width: 180px; border-radius: 8px; border: 1px solid var(--bord); display: block;\n}\n.zone-recap figcaption { font-size: 14px; }\n.zone-recap .note-tuile { display: block; font-size: 12px; color: var(--doux); }\n\n@media (max-width: 540px) {\n  .zone-recap { flex-direction: column; }\n  .zone-recap img { width: 100%; }\n}\n\n.conseil-client {\n  margin: 0; padding: 14px 16px; border-radius: 8px;\n  background: #fff; border-left: 3px solid var(--rouge); font-size: 15px;\n}\n\n@media print {\n  .depot, .vignettes, .etapes, .consigne { display: none; }\n  /* À l'impression, le récapitulatif remplace la photo à l'écran : il les\n     porte toutes, pas seulement celle qui était ouverte. */\n  #toile-photo, #photo-resultat { display: none; }\n  .zone-recap img { width: 46mm; }\n}\n\n/* ----------------------------------------------------------- la marque\n\n   Le logo porte des ailes gris ardoise et une baseline sombre : sur\n   l'en-tête noir, le contraste tombe à 3,3:1 et la baseline s'efface. Il lui\n   faut donc son propre bandeau, blanc, au-dessus. */\n.marque { background: #fff; border-bottom: 1px solid var(--bord); }\n.marque .dedans { padding-top: 18px; padding-bottom: 18px; }\n.marque img { display: block; height: 110px; width: auto; }\n\n@media (max-width: 560px) {\n  .marque .dedans { padding-top: 14px; padding-bottom: 14px; }\n  .marque img { height: 104px; margin: 0 auto; }\n}\n\n/* Le logo ramène au site.\n   Servie sous /outils/, la page est bien SUR le site — mais elle n'en porte\n   ni le menu ni le pied. Sans porte de sortie, le visiteur arrivé là se\n   retrouve dans une impasse et ferme l'onglet. */\n.marque .retour {\n  display: inline-flex; align-items: center; gap: 16px;\n  text-decoration: none; color: var(--doux);\n}\n.marque .retour span { font-size: 14px; white-space: nowrap; }\n.marque .retour:hover span { color: var(--rouge); }\n\n@media (max-width: 560px) {\n  .marque .retour { flex-direction: column; gap: 6px; }\n}\n\n/* Les liens de sortie, en pied : le site, l'autre outil, la boutique.\n   Une page d'outil sans porte de sortie est une impasse. */\n/* --------------------------------------------------- le projet complet\n\n   Les deux études réunies. Le montant absent n'est pas un montant à zéro :\n   il s'écrit en toutes lettres, en gris, pour qu'on ne le lise pas comme\n   une gratuité. */\n/* `.apercu` et non `.resume` : cette feuille donne déjà à `.resume` un encadré\n   à filet rouge, celui du résumé principal de la page. Réemployer le nom ici\n   habillait chaque volet en gros bandeau. */\n.volets { display: grid; gap: 12px; margin: 0 0 16px; }\n.volet {\n  display: grid; gap: 3px; padding: 14px;\n  border: 1px solid var(--bord); border-radius: 10px; background: #fff;\n}\n.volet .apercu { font-size: 14px; color: var(--doux); }\n.volet .montant { font-weight: 700; color: var(--rouge); }\n.volet .montant.absent { color: var(--doux); font-weight: 600; font-style: italic; }\n.volet .age { font-size: 13px; color: #8a5a00; }\n\n.ensemble-total {\n  display: flex; justify-content: space-between; align-items: baseline; gap: 12px;\n  margin: 0 0 12px; padding-top: 12px;\n  border-top: 2px solid var(--encre); font-size: 18px;\n}\n.ensemble-total .intitule { font-weight: 600; }\n\n.liens-pied { margin-top: 10px; }\n.liens-pied a { color: var(--doux); }\n.liens-pied a:hover { color: var(--rouge); }\n\n@media print { .liens-pied { display: none; } }\n</style><div class=\"ngs-page\"><header class=\"entete\">\n  <div class=\"dedans\">\n    <h1>Estimer mon installation</h1>\n    <p>Quatre questions, et vous savez ce qu'il vous faut et ce que cela coûte.\n      Sans engagement.</p>\n  </div>\n</header>\n\n<main class=\"dedans\">\n\n  <p class=\"bandeau\" id=\"bandeau-exemple\" hidden>\n    <b>Tarif d'exemple.</b> Les montants affichés servent à illustrer le\n    fonctionnement de cette page et ne constituent pas une offre.\n  </p>\n\n  <section class=\"carte\">\n    <h2>Votre site</h2>\n\n    <div class=\"questions\">\n      <label>Quel type de site ?\n        <select id=\"q-type\"></select>\n      </label>\n\n      <label>Où se trouve le chantier&nbsp;?\n        <select id=\"q-pays\"></select>\n        <small>La TVA n'est pas la même en France et en Belgique&nbsp;: c'est elle\n          qui décide du montant toutes taxes comprises.</small>\n      </label>\n\n      <label>Combien d'accès ou de zones à couvrir ?\n        <input type=\"number\" id=\"q-zones\" min=\"1\" max=\"32\" step=\"1\" value=\"3\">\n        <small>Une entrée, un portail, une façade, une allée : comptez une\n          caméra par point à surveiller.</small>\n      </label>\n\n      <label>Combien de temps garder les images ?\n        <select id=\"q-jours\">\n          <option value=\"7\">7 jours</option>\n          <option value=\"15\">15 jours</option>\n          <option value=\"30\" selected>30 jours</option>\n          <option value=\"45\">45 jours</option>\n          <option value=\"60\">60 jours</option>\n          <option value=\"90\">90 jours</option>\n        </select>\n        <small>Trente jours conviennent à la plupart des sites. Plus longtemps\n          demande un disque plus gros.</small>\n      </label>\n\n      <label>Enregistrement\n        <select id=\"q-heures\">\n          <option value=\"24\" selected>24 h/24</option>\n          <option value=\"14\">Seulement la nuit et les heures de fermeture</option>\n        </select>\n      </label>\n\n      <label>Prévoir une extension plus tard ?\n        <select id=\"q-extension\">\n          <option value=\"0\" selected>Non, l'installation est définitive</option>\n          <option value=\"2\">Oui, deux caméras de plus à terme</option>\n          <option value=\"4\">Oui, quatre caméras de plus à terme</option>\n        </select>\n        <small>Le switch et l'enregistreur sont alors choisis plus grands dès\n          maintenant : ajouter une caméra plus tard ne coûtera qu'une caméra.</small>\n      </label>\n\n      <label class=\"case\">\n        <input type=\"checkbox\" id=\"q-ecran\"> Je veux un écran de supervision sur place\n      </label>\n\n      <label class=\"case\">\n        <input type=\"checkbox\" id=\"q-routeur\" checked> J'ai besoin d'un routeur (accès à distance)\n      </label>\n\n      <label class=\"case\">\n        <input type=\"checkbox\" id=\"q-pose\" checked> Installation et mise en service par NG Security 38\n      </label>\n    </div>\n  </section>\n\n  <section class=\"carte\">\n    <h2>Vos photos <small>facultatif, mais c'est ce qui change tout</small></h2>\n    <p class=\"aide\">\n      Prenez une photo <b>depuis l'endroit où vous voulez poser la caméra</b>,\n      dans la direction à surveiller. Entourez ensuite la zone : nous en\n      déduisons l'angle de vue, la distance et la caméra qu'il faut.\n    </p>\n\n    <div class=\"depot\" id=\"depot-photo\" tabindex=\"0\" role=\"button\">\n      <input type=\"file\" id=\"fichier-photo\" accept=\"image/*\" multiple hidden>\n      <span>Ajouter une photo</span>\n      <small>Une par zone à surveiller</small>\n    </div>\n\n    <div id=\"vignettes\" class=\"vignettes\"></div>\n\n    <div id=\"etude-photo\" hidden>\n      <p class=\"consigne\" id=\"photo-consigne\"></p>\n      <canvas id=\"toile-photo\"></canvas>\n\n      <div class=\"etapes\">\n        <button type=\"button\" class=\"btn btn-petit\" data-etape=\"r1\">1 · Repère proche</button>\n        <button type=\"button\" class=\"btn btn-petit\" data-etape=\"r2\">2 · Repère lointain</button>\n        <button type=\"button\" class=\"btn btn-petit\" data-etape=\"zone\">3 · Entourer la zone</button>\n        <button type=\"button\" class=\"btn btn-petit\" id=\"photo-supprimer\">Supprimer la photo</button>\n      </div>\n\n      <div id=\"photo-resultat\"></div>\n\n      <div class=\"questions serre\">\n        <label>Hauteur de pose prévue (m)\n          <input type=\"number\" id=\"p-hauteur\" value=\"3\" min=\"1\" max=\"15\" step=\"0.1\">\n          <small>À quelle hauteur la caméra sera fixée.</small>\n        </label>\n        <label>Distance du premier repère (m)\n          <input type=\"number\" id=\"p-d1\" value=\"10\" min=\"1\" max=\"200\" step=\"1\">\n        </label>\n        <label>Distance du second repère (m) <small>facultatif</small>\n          <input type=\"number\" id=\"p-d2\" value=\"25\" min=\"1\" max=\"300\" step=\"1\">\n        </label>\n        <label>Avec quoi la photo a-t-elle été prise ?\n          <select id=\"p-appareil\"></select>\n        </label>\n      </div>\n    </div>\n  </section>\n\n  <section class=\"carte\" id=\"resultat\" hidden>\n    <h2>Ce qu'il vous faut</h2>\n    <p class=\"resume\" id=\"resume\"></p>\n\n    <div id=\"recap-photos\"></div>\n\n    <div id=\"manques\"></div>\n\n    <figure class=\"synoptique\">\n      <figcaption>Comment tout se raccorde</figcaption>\n      <div id=\"schema\"></div>\n    </figure>\n\n    <table id=\"table-devis\">\n      <thead>\n        <tr><th>Désignation</th><th class=\"nombre\">Qté</th>\n          <th class=\"nombre\">PU HT</th><th class=\"nombre\">Total HT</th></tr>\n      </thead>\n      <tbody id=\"lignes\"></tbody>\n      <tfoot id=\"totaux\"></tfoot>\n    </table>\n\n    <details class=\"repli\">\n      <summary>Ce que cette estimation ne peut pas savoir</summary>\n      <ul id=\"reserves\"></ul>\n    </details>\n\n    <div class=\"actions\">\n      <button type=\"button\" id=\"btn-enregistrer\" class=\"btn\">Enregistrer mon projet</button>\n      <button type=\"button\" id=\"btn-reprendre\" class=\"btn\">Reprendre un projet</button>\n      <input type=\"file\" id=\"fichier-projet\" accept=\".json,application/json\" hidden>\n      <button type=\"button\" id=\"btn-imprimer\" class=\"btn\">Imprimer / enregistrer en PDF</button>\n      <a id=\"btn-contact\" class=\"btn btn-plein\" href=\"#\">Demander une étude gratuite</a>\n    </div>\n  </section>\n\n  \n\n  <p class=\"pied\">\n    Estimation établie à partir de vos réponses, sans visite du site. Elle ne\n    vaut pas devis : seul un relevé technique permet d'arrêter le nombre de\n    caméras, leurs emplacements et le cheminement des câbles.\n  </p>\n\n  <p class=\"pied liens-pied\">\n    <a href=\"/\">ngsecurity38.fr</a>\n    · <a href=\"/outils/etude/\">Quelle caméra vous faut-il&nbsp;?</a>\n    · <a href=\"https://ngsecurity38.com/\">La boutique</a>\n  </p>\n</main></div>";
+  ombre.innerHTML = "<style>/* Devis client — NG Security 38.\n   Page publique : lisible sur téléphone d'abord, imprimable ensuite. */\n\n:host {\n  --rouge: #c8102e;\n  --rouge-sombre: #9d0c24;\n  --encre: #1a1d23;\n  --doux: #5b6472;\n  --bord: #dde1e7;\n  --fond: #f6f7f9;\n  --police: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif;\n}\n\n* { box-sizing: border-box; }\n[hidden] { display: none !important; }\n\n.ngs-page {\n  margin: 0;\n  font-family: var(--police);\n  font-size: 16px;\n  line-height: 1.55;\n  color: var(--encre);\n  background: var(--fond);\n}\n\n.dedans { max-width: 760px; margin: 0 auto; padding: 0 20px; }\n\n.entete {\n  background: var(--encre);\n  color: #fff;\n  padding: 32px 0 28px;\n  border-bottom: 4px solid var(--rouge);\n}\n.entete h1 { margin: 0 0 6px; font-size: 26px; }\n.entete p { margin: 0; color: #c3c9d3; }\n\nmain { padding-bottom: 48px; }\n\n.carte {\n  background: #fff;\n  border: 1px solid var(--bord);\n  border-radius: 12px;\n  padding: 22px;\n  margin: 22px 0;\n}\n.carte h2 { margin: 0 0 16px; font-size: 18px; }\n\n.bandeau {\n  margin: 22px 0 0;\n  padding: 12px 16px;\n  border-radius: 10px;\n  background: #fff4d6;\n  border: 1px solid #e3c77a;\n  font-size: 14px;\n}\n\n.questions { display: grid; gap: 18px; }\n.questions label { display: block; font-weight: 600; }\n.questions small { display: block; font-weight: 400; color: var(--doux); font-size: 13px; margin-top: 4px; }\n.questions input[type=\"number\"], .questions select {\n  display: block;\n  width: 100%;\n  margin-top: 6px;\n  padding: 11px 12px;\n  font: inherit;\n  color: inherit;\n  background: #fff;\n  border: 1px solid var(--bord);\n  border-radius: 8px;\n}\n.questions .case { display: flex; align-items: center; gap: 10px; font-weight: 400; }\n.questions .case input { width: 20px; height: 20px; }\n\n.resume {\n  margin: 0 0 16px;\n  padding: 14px 16px;\n  background: var(--fond);\n  border-left: 3px solid var(--rouge);\n  border-radius: 0 8px 8px 0;\n}\n\n.manques, .manques li { color: #8a5a00; font-size: 14px; }\n.manques { margin: 0 0 16px; padding-left: 20px; }\n\ntable { width: 100%; border-collapse: collapse; font-size: 15px; }\nth, td { padding: 10px 8px; text-align: left; border-bottom: 1px solid var(--bord); }\nth { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--doux); }\n.nombre { text-align: right; white-space: nowrap; }\n.ref { color: var(--doux); font-size: 13px; }\ntfoot td { border-bottom: 0; padding-top: 12px; }\ntfoot tr.fort td { font-size: 19px; font-weight: 700; border-top: 2px solid var(--encre); }\n\n.repli { margin-top: 18px; font-size: 14px; }\n.repli summary { cursor: pointer; color: var(--doux); }\n.repli ul { margin: 10px 0 0; padding-left: 20px; color: var(--doux); }\n\n.actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; }\n.btn {\n  display: inline-block;\n  font: inherit;\n  font-weight: 600;\n  padding: 12px 20px;\n  border-radius: 8px;\n  border: 1px solid var(--bord);\n  background: #fff;\n  color: inherit;\n  text-decoration: none;\n  cursor: pointer;\n}\n.btn-plein { background: var(--rouge); border-color: var(--rouge); color: #fff; }\n.btn-plein:hover { background: var(--rouge-sombre); border-color: var(--rouge-sombre); }\n\n.pied { color: var(--doux); font-size: 13px; margin-top: 28px; }\n\n/* À l'impression, le client garde le chiffrage : les questions n'y servent\n   plus, et l'encre non plus. */\n@media print {\n  .ngs-page { background: #fff; font-size: 12pt; }\n  .marque { border-bottom: 0; }\n  .marque .retour span { display: none; }\n  .marque .dedans { padding: 0; }\n  .marque img { height: 22mm; }\n  .entete { background: #fff; color: #000; border-bottom: 2px solid #000; padding: 0 0 8pt; }\n  .entete p { color: #444; }\n  .carte { border: 0; padding: 0; margin: 12pt 0; }\n  .questions, .actions, .repli summary { display: none; }\n  .repli[open] ul, .repli ul { display: block; }\n  .bandeau { border: 1px solid #000; }\n}\n\n.synoptique { margin: 20px 0; padding: 0; }\n.synoptique figcaption {\n  font-size: 12px; text-transform: uppercase; letter-spacing: .05em;\n  color: var(--doux); margin-bottom: 10px;\n}\n.synoptique svg { width: 100%; height: auto; display: block; }\n.synoptique figcaption.note-schema {\n  font-size: 12px; color: var(--doux); margin: 8px 0 0;\n  text-transform: none; letter-spacing: 0; line-height: 1.45;\n}\n\n/* ------------------------------------------------------ étude par photo */\n\n.carte h2 small { font-weight: 400; color: var(--doux); font-size: 13px; }\n.aide { margin: 0 0 16px; color: var(--doux); font-size: 14px; }\n\n.depot {\n  border: 2px dashed var(--bord); border-radius: 12px; padding: 24px 16px;\n  text-align: center; cursor: pointer; background: var(--fond);\n}\n.depot:hover, .depot.survol { border-color: var(--rouge); background: #fff; }\n.depot span { display: block; font-weight: 600; }\n.depot small { color: var(--doux); font-size: 13px; }\n\n.vignettes { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }\n.vignette {\n  border: 2px solid var(--bord); border-radius: 10px; padding: 0; overflow: hidden;\n  background: #fff; cursor: pointer; width: 96px; font: inherit;\n}\n.vignette.actif { border-color: var(--rouge); }\n.vignette img { display: block; width: 100%; height: 62px; object-fit: cover; }\n.vignette span { display: block; font-size: 12px; padding: 4px; }\n\n#toile-photo {\n  display: block; width: 100%; height: auto; margin: 14px 0;\n  border-radius: 10px; touch-action: none; cursor: crosshair;\n}\n.consigne {\n  margin: 0; padding: 12px 14px; border-radius: 8px;\n  background: #eaf2ff; border: 1px solid #c3d9f7; font-size: 14px;\n}\n/* Les réglages viennent après les mesures : l'image et ses chiffres doivent\n   se toucher sur un téléphone. */\n.questions.serre { gap: 12px; margin-top: 18px; }\n.etapes { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }\n.btn-petit { padding: 8px 14px; font-size: 14px; }\n.btn.actif { border-color: var(--rouge); color: var(--rouge); }\n\n.mesures-client { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 16px 0; }\n.tuile { background: var(--fond); border-radius: 10px; padding: 12px; }\n.tuile .cle { display: block; font-size: 11px; text-transform: uppercase;\n  letter-spacing: .05em; color: var(--doux); }\n.tuile .val { display: block; font-size: 20px; font-weight: 700; }\n.tuile .note-tuile { display: block; font-size: 12px; color: var(--doux); }\n/* Récapitulatif photo par photo : c'est lui que le client garde, et qui nous\n   revient imprimé ou en pièce jointe. */\n.zone-recap {\n  margin: 0 0 16px; padding: 0; display: flex; gap: 14px; align-items: flex-start;\n  break-inside: avoid;\n}\n.zone-recap img {\n  width: 180px; border-radius: 8px; border: 1px solid var(--bord); display: block;\n}\n.zone-recap figcaption { font-size: 14px; }\n.zone-recap .note-tuile { display: block; font-size: 12px; color: var(--doux); }\n\n@media (max-width: 540px) {\n  .zone-recap { flex-direction: column; }\n  .zone-recap img { width: 100%; }\n}\n\n.conseil-client {\n  margin: 0; padding: 14px 16px; border-radius: 8px;\n  background: #fff; border-left: 3px solid var(--rouge); font-size: 15px;\n}\n\n@media print {\n  .depot, .vignettes, .etapes, .consigne { display: none; }\n  /* À l'impression, le récapitulatif remplace la photo à l'écran : il les\n     porte toutes, pas seulement celle qui était ouverte. */\n  #toile-photo, #photo-resultat { display: none; }\n  .zone-recap img { width: 46mm; }\n}\n\n/* ----------------------------------------------------------- la marque\n\n   Le logo porte des ailes gris ardoise et une baseline sombre : sur\n   l'en-tête noir, le contraste tombe à 3,3:1 et la baseline s'efface. Il lui\n   faut donc son propre bandeau, blanc, au-dessus. */\n.marque { background: #fff; border-bottom: 1px solid var(--bord); }\n.marque .dedans { padding-top: 18px; padding-bottom: 18px; }\n.marque img { display: block; height: 110px; width: auto; }\n\n@media (max-width: 560px) {\n  .marque .dedans { padding-top: 14px; padding-bottom: 14px; }\n  .marque img { height: 104px; margin: 0 auto; }\n}\n\n/* Le logo ramène au site.\n   Servie sous /outils/, la page est bien SUR le site — mais elle n'en porte\n   ni le menu ni le pied. Sans porte de sortie, le visiteur arrivé là se\n   retrouve dans une impasse et ferme l'onglet. */\n.marque .retour {\n  display: inline-flex; align-items: center; gap: 16px;\n  text-decoration: none; color: var(--doux);\n}\n.marque .retour span { font-size: 14px; white-space: nowrap; }\n.marque .retour:hover span { color: var(--rouge); }\n\n@media (max-width: 560px) {\n  .marque .retour { flex-direction: column; gap: 6px; }\n}\n\n/* Les liens de sortie, en pied : le site, l'autre outil, la boutique.\n   Une page d'outil sans porte de sortie est une impasse. */\n/* --------------------------------------------------- le projet complet\n\n   Les deux études réunies. Le montant absent n'est pas un montant à zéro :\n   il s'écrit en toutes lettres, en gris, pour qu'on ne le lise pas comme\n   une gratuité. */\n/* `.apercu` et non `.resume` : cette feuille donne déjà à `.resume` un encadré\n   à filet rouge, celui du résumé principal de la page. Réemployer le nom ici\n   habillait chaque volet en gros bandeau. */\n.volets { display: grid; gap: 12px; margin: 0 0 16px; }\n.volet {\n  display: grid; gap: 3px; padding: 14px;\n  border: 1px solid var(--bord); border-radius: 10px; background: #fff;\n}\n.volet .apercu { font-size: 14px; color: var(--doux); }\n.volet .montant { font-weight: 700; color: var(--rouge); }\n.volet .montant.absent { color: var(--doux); font-weight: 600; font-style: italic; }\n.volet .age { font-size: 13px; color: #8a5a00; }\n\n.ensemble-total {\n  display: flex; justify-content: space-between; align-items: baseline; gap: 12px;\n  margin: 0 0 12px; padding-top: 12px;\n  border-top: 2px solid var(--encre); font-size: 18px;\n}\n.ensemble-total .intitule { font-weight: 600; }\n\n.liens-pied { margin-top: 10px; }\n.liens-pied a { color: var(--doux); }\n.liens-pied a:hover { color: var(--rouge); }\n\n@media print { .liens-pied { display: none; } }\n</style><div class=\"ngs-page\"><header class=\"entete\">\n  <div class=\"dedans\">\n    <h1>Estimer mon installation</h1>\n    <p>Quatre questions, et vous savez ce qu'il vous faut et ce que cela coûte.\n      Sans engagement.</p>\n  </div>\n</header>\n\n<main class=\"dedans\">\n\n  <p class=\"bandeau\" id=\"bandeau-exemple\" hidden>\n    <b>Tarif d'exemple.</b> Les montants affichés servent à illustrer le\n    fonctionnement de cette page et ne constituent pas une offre.\n  </p>\n\n  <section class=\"carte\">\n    <h2>Votre site</h2>\n\n    <div class=\"questions\">\n      <label>Quel type de site ?\n        <select id=\"q-type\"></select>\n      </label>\n\n      <label>Où se trouve le chantier&nbsp;?\n        <select id=\"q-pays\"></select>\n        <small>La TVA n'est pas la même en France et en Belgique&nbsp;: c'est elle\n          qui décide du montant toutes taxes comprises.</small>\n      </label>\n\n      <label>Combien d'accès ou de zones à couvrir ?\n        <input type=\"number\" id=\"q-zones\" min=\"1\" max=\"32\" step=\"1\" value=\"3\">\n        <small>Une entrée, un portail, une façade, une allée : comptez une\n          caméra par point à surveiller.</small>\n      </label>\n\n      <label>Combien de temps garder les images ?\n        <select id=\"q-jours\">\n          <option value=\"7\">7 jours</option>\n          <option value=\"15\">15 jours</option>\n          <option value=\"30\" selected>30 jours</option>\n          <option value=\"45\">45 jours</option>\n          <option value=\"60\">60 jours</option>\n          <option value=\"90\">90 jours</option>\n        </select>\n        <small>Trente jours conviennent à la plupart des sites. Plus longtemps\n          demande un disque plus gros.</small>\n      </label>\n\n      <label>Enregistrement\n        <select id=\"q-heures\">\n          <option value=\"24\" selected>24 h/24</option>\n          <option value=\"14\">Seulement la nuit et les heures de fermeture</option>\n        </select>\n      </label>\n\n      <label>Distance de l'enregistreur à la caméra la plus éloignée&nbsp;?\n        <input type=\"number\" id=\"q-distance\" min=\"1\" max=\"200\" step=\"5\" value=\"30\">\n        <small>En mètres, à plat. La longueur de câble s'en déduit : montée au\n          support (3&nbsp;m supposés), descente au coffret, détours et réserves\n          de raccordement comprises — trente mètres de plan font près de\n          trente-sept mètres de câble. Au-delà de 90&nbsp;m posés, une liaison\n          réseau sort de la norme, et la page vous le dit.</small>\n      </label>\n\n      <label>Prévoir une extension plus tard ?\n        <select id=\"q-extension\">\n          <option value=\"0\" selected>Non, l'installation est définitive</option>\n          <option value=\"2\">Oui, deux caméras de plus à terme</option>\n          <option value=\"4\">Oui, quatre caméras de plus à terme</option>\n        </select>\n        <small>Le switch et l'enregistreur sont alors choisis plus grands dès\n          maintenant : ajouter une caméra plus tard ne coûtera qu'une caméra.</small>\n      </label>\n\n      <label class=\"case\">\n        <input type=\"checkbox\" id=\"q-ecran\"> Je veux un écran de supervision sur place\n      </label>\n\n      <label class=\"case\">\n        <input type=\"checkbox\" id=\"q-routeur\" checked> J'ai besoin d'un routeur (accès à distance)\n      </label>\n\n      <label class=\"case\">\n        <input type=\"checkbox\" id=\"q-pose\" checked> Installation et mise en service par NG Security 38\n      </label>\n    </div>\n  </section>\n\n  <section class=\"carte\">\n    <h2>Vos photos <small>facultatif, mais c'est ce qui change tout</small></h2>\n    <p class=\"aide\">\n      Prenez une photo <b>depuis l'endroit où vous voulez poser la caméra</b>,\n      dans la direction à surveiller. Entourez ensuite la zone : nous en\n      déduisons l'angle de vue, la distance et la caméra qu'il faut.\n    </p>\n\n    <div class=\"depot\" id=\"depot-photo\" tabindex=\"0\" role=\"button\">\n      <input type=\"file\" id=\"fichier-photo\" accept=\"image/*\" multiple hidden>\n      <span>Ajouter une photo</span>\n      <small>Une par zone à surveiller</small>\n    </div>\n\n    <div id=\"vignettes\" class=\"vignettes\"></div>\n\n    <div id=\"etude-photo\" hidden>\n      <p class=\"consigne\" id=\"photo-consigne\"></p>\n      <canvas id=\"toile-photo\"></canvas>\n\n      <div class=\"etapes\">\n        <button type=\"button\" class=\"btn btn-petit\" data-etape=\"r1\">1 · Repère proche</button>\n        <button type=\"button\" class=\"btn btn-petit\" data-etape=\"r2\">2 · Repère lointain</button>\n        <button type=\"button\" class=\"btn btn-petit\" data-etape=\"zone\">3 · Entourer la zone</button>\n        <button type=\"button\" class=\"btn btn-petit\" id=\"photo-supprimer\">Supprimer la photo</button>\n      </div>\n\n      <div id=\"photo-resultat\"></div>\n\n      <div class=\"questions serre\">\n        <label>Hauteur de pose prévue (m)\n          <input type=\"number\" id=\"p-hauteur\" value=\"3\" min=\"1\" max=\"15\" step=\"0.1\">\n          <small>À quelle hauteur la caméra sera fixée.</small>\n        </label>\n        <label>Distance du premier repère (m)\n          <input type=\"number\" id=\"p-d1\" value=\"10\" min=\"1\" max=\"200\" step=\"1\">\n        </label>\n        <label>Distance du second repère (m) <small>facultatif</small>\n          <input type=\"number\" id=\"p-d2\" value=\"25\" min=\"1\" max=\"300\" step=\"1\">\n        </label>\n        <label>Avec quoi la photo a-t-elle été prise ?\n          <select id=\"p-appareil\"></select>\n        </label>\n      </div>\n    </div>\n  </section>\n\n  <section class=\"carte\" id=\"resultat\" hidden>\n    <h2>Ce qu'il vous faut</h2>\n    <p class=\"resume\" id=\"resume\"></p>\n\n    <div id=\"recap-photos\"></div>\n\n    <div id=\"manques\"></div>\n\n    <figure class=\"synoptique\">\n      <figcaption>Comment tout se raccorde</figcaption>\n      <div id=\"schema\"></div>\n    </figure>\n\n    <table id=\"table-devis\">\n      <thead>\n        <tr><th>Désignation</th><th class=\"nombre\">Qté</th>\n          <th class=\"nombre\">PU HT</th><th class=\"nombre\">Total HT</th></tr>\n      </thead>\n      <tbody id=\"lignes\"></tbody>\n      <tfoot id=\"totaux\"></tfoot>\n    </table>\n\n    <details class=\"repli\">\n      <summary>Ce que cette estimation ne peut pas savoir</summary>\n      <ul id=\"reserves\"></ul>\n    </details>\n\n    <div class=\"actions\">\n      <button type=\"button\" id=\"btn-enregistrer\" class=\"btn\">Enregistrer mon projet</button>\n      <button type=\"button\" id=\"btn-reprendre\" class=\"btn\">Reprendre un projet</button>\n      <input type=\"file\" id=\"fichier-projet\" accept=\".json,application/json\" hidden>\n      <button type=\"button\" id=\"btn-imprimer\" class=\"btn\">Imprimer / enregistrer en PDF</button>\n      <a id=\"btn-contact\" class=\"btn btn-plein\" href=\"#\">Demander une étude gratuite</a>\n    </div>\n  </section>\n\n  \n\n  <p class=\"pied\">\n    Estimation établie à partir de vos réponses, sans visite du site. Elle ne\n    vaut pas devis : seul un relevé technique permet d'arrêter le nombre de\n    caméras, leurs emplacements et le cheminement des câbles.\n  </p>\n\n  <p class=\"pied liens-pied\">\n    <a href=\"/\">ngsecurity38.fr</a>\n    · <a href=\"/outils/etude/\">Quelle caméra vous faut-il&nbsp;?</a>\n    · <a href=\"https://ngsecurity38.com/\">La boutique</a>\n  </p>\n</main></div>";
   window.__ngsRacine = ombre;
   window.__ngsIntegre = true;
   window.__tarif={
@@ -1212,6 +1212,42 @@ function disqueRecommande(go) {
   return { unitaire: plusGros, nombre, total: plusGros * nombre };
 }
 
+/**
+ * Comment remplir un enregistreur à N baies.
+ *
+ * Deux baies ne veulent pas dire deux fois la capacité : cela dépend de ce
+ * qu'on en fait, et le choix n'est pas technique mais commercial.
+ *
+ * - en **pool**, les disques s'additionnent. On a toute la capacité, et la
+ *   perte d'un disque emporte la part des images qu'il portait ;
+ * - en **miroir**, chaque disque porte la même chose. On a la moitié de la
+ *   capacité, et un disque peut mourir sans qu'une image manque.
+ *
+ * Un disque de vidéosurveillance écrit vingt-quatre heures sur vingt-quatre.
+ * Il ne meurt pas « peut-être » : il meurt, et la seule question est de
+ * savoir si ce jour-là on avait besoin des images. La fonction rend les deux
+ * hypothèses chiffrées plutôt que d'en imposer une.
+ *
+ * @param {number} go capacité nécessaire, en gigaoctets
+ * @param {number} [baies=2] nombre d'emplacements de disque
+ * @returns {{baies:number, pool:object|null, miroir:object|null}|null}
+ */
+function disquesPourBaies(go, baies = 2) {
+  if (!(go > 0) || !(baies >= 1)) return null;
+  const to = go / 1000;
+  const choisir = (besoinParDisque, nombre) => {
+    const unitaire = DISQUES.find((d) => d >= besoinParDisque);
+    if (!unitaire) return null;
+    return { unitaire, nombre, total: unitaire * nombre };
+  };
+  return {
+    baies,
+    pool: choisir(to / baies, baies),
+    // Le miroir n'a de sens qu'à baies paires : chaque disque en double un autre.
+    miroir: baies % 2 === 0 ? choisir(to / (baies / 2), baies) : null,
+  };
+}
+
 /* --------------------------------------------------------------- PoE */
 
 /**
@@ -1392,6 +1428,192 @@ function bilan(synoptique, reglages = {}) {
     poe,
     anomalies: controler(synoptique, reglages),
   };
+}
+
+/* ===== cable.js ===== */
+/**
+ * Métré des câbles : longueurs, limite Ethernet, section des alimentations.
+ *
+ * Trois questions se posent dès qu'on quitte le plan pour le chantier, et
+ * chacune a une réponse chiffrée, pas une réponse d'habitude :
+ *
+ * - « Combien de câble faut-il commander ? » → cheminement, puis bobines ;
+ * - « Cette caméra est-elle trop loin ? » → la limite des 90 mètres ;
+ * - « Du 6/10 suffit pour la ventouse ? » → la chute de tension tranche.
+ *
+ * La troisième est celle qui se paie. Une alimentation sous-dimensionnée ne
+ * tombe pas en panne à la mise en service : elle fonctionne au banc, puis
+ * lâche l'hiver quand la tension baisse et que le courant monte. On ne la
+ * rattrape qu'en retirant le câble.
+ *
+ * Module pur (aucune dépendance au DOM), testé sous Node.
+ */
+
+/* ------------------------------------------------------------ Ethernet */
+
+/**
+ * Le lien permanent : du panneau de brassage à la prise, 90 mètres.
+ *
+ * La norme (ISO/IEC 11801, TIA-568) compte 100 mètres pour le canal complet
+ * et réserve les dix derniers aux cordons de brassage des deux bouts. Poser
+ * 95 mètres de câble « puisque la limite est à 100 » revient à livrer une
+ * liaison qui n'a plus de marge, et qui tombera au premier cordon ajouté.
+ */
+const LIAISON_PERMANENTE = 90;
+
+/** Le canal complet, cordons compris. Au-delà, plus rien ne garantit rien. */
+const CANAL_COMPLET = 100;
+
+/**
+ * Ce que devient une liaison d'une longueur donnée.
+ *
+ * Trois verdicts, et un seul est confortable. Le niveau `limite` n'est pas un
+ * refus : c'est une liaison qui marchera et qu'on ne pourra plus rallonger,
+ * ce qui se dit avant la pose et non après.
+ *
+ * @param {number} metres longueur du câble posé, cordons non compris
+ * @returns {{niveau:'ok'|'limite'|'hors-norme', texte:string}}
+ */
+function verdictEthernet(metres) {
+  const l = Number(metres);
+  if (!(l > 0)) return { niveau: 'ok', texte: 'Longueur non renseignée.' };
+  if (l <= LIAISON_PERMANENTE) {
+    return { niveau: 'ok', texte: `${arrondi(l)} m — dans la limite des ${LIAISON_PERMANENTE} m.` };
+  }
+  if (l <= CANAL_COMPLET) {
+    return {
+      niveau: 'limite',
+      texte: `${arrondi(l)} m — au-delà du lien permanent de ${LIAISON_PERMANENTE} m. `
+        + 'La liaison fonctionnera sans marge : aucun cordon ne pourra être ajouté.',
+    };
+  }
+  return {
+    niveau: 'hors-norme',
+    texte: `${arrondi(l)} m — au-delà des ${CANAL_COMPLET} m du canal. `
+      + 'Un relais actif (commutateur déporté) ou une fibre est nécessaire.',
+  };
+}
+
+/* ---------------------------------------------------------- cheminement */
+
+/** Réserve laissée à chaque extrémité : dépose en baie, boucle au support. */
+const RESERVE_BOUT = 1;
+
+/** Détours non portés au plan : contournements, passages, remontées. */
+const MOU_DEFAUT = 0.1;
+
+/**
+ * Longueur d'un cheminement, en mètres.
+ *
+ * La distance à vol d'oiseau ne se pose pas : un câble suit les murs, les
+ * chemins de câbles et les angles. La somme des deux écarts du plan
+ * (|dx| + |dy|) en est l'approximation honnête — celle qui, si elle se
+ * trompe, se trompe du bon côté.
+ *
+ * @param {object} p
+ * @param {number} p.dx écart horizontal sur le plan, en mètres
+ * @param {number} p.dy écart vertical sur le plan, en mètres
+ * @param {number} [p.montee=0] hauteur de pose de l'appareil
+ * @param {number} [p.descente=0] descente du chemin de câbles vers la baie
+ * @param {number} [p.mou=MOU_DEFAUT] proportion de détours
+ * @param {number} [p.reserveBout=RESERVE_BOUT] réserve à chaque extrémité
+ * @returns {number} mètres
+ */
+function cheminement({
+  dx = 0, dy = 0, montee = 0, descente = 0,
+  mou = MOU_DEFAUT, reserveBout = RESERVE_BOUT,
+}) {
+  const parcouru = Math.abs(dx) + Math.abs(dy)
+    + Math.max(0, montee) + Math.max(0, descente);
+  if (!(parcouru > 0)) return 0;
+  return parcouru * (1 + Math.max(0, mou)) + 2 * Math.max(0, reserveBout);
+}
+
+/** Longueur standard d'une boîte de câble réseau, en mètres. */
+const BOBINE = 305;
+
+/**
+ * Nombre de boîtes à commander, et ce qui reste sur la dernière.
+ *
+ * Le reste n'est pas une curiosité : c'est ce dont on dispose le jour où une
+ * liaison se révèle plus longue qu'au plan, ce qui arrive à chaque chantier.
+ *
+ * @returns {{boites:number, total:number, reste:number}}
+ */
+function bobines(metres, parBoite = BOBINE) {
+  const l = Number(metres);
+  const b = Number(parBoite);
+  if (!(l > 0) || !(b > 0)) return { boites: 0, total: 0, reste: 0 };
+  const boites = Math.ceil(l / b);
+  return { boites, total: boites * b, reste: boites * b - l };
+}
+
+/* -------------------------------------------------- alimentations continues */
+
+/**
+ * Résistivité du cuivre, en ohm·mm²/m, à vingt degrés.
+ *
+ * Elle monte avec la température : environ +0,4 % par degré. Un câble en
+ * gaine, au soleil, ne travaille pas à vingt degrés — la marge prise sur la
+ * chute admissible n'est pas de la coquetterie.
+ */
+const RHO_CUIVRE = 0.0175;
+
+/** Sections courantes du commerce, en mm². */
+const SECTIONS = [0.22, 0.34, 0.5, 0.75, 1, 1.5, 2.5, 4, 6, 10];
+
+/** Chute de tension admissible par défaut : un dixième de la tension. */
+const CHUTE_MAX = 0.1;
+
+/**
+ * Chute de tension d'une alimentation continue, en volts.
+ *
+ * Le facteur deux n'est pas décoratif : le courant fait l'aller ET le retour.
+ * L'oublier divise la chute calculée par deux, et c'est l'erreur qui fait
+ * poser du 6/10 là où il faut du 15/10.
+ *
+ * @param {object} p
+ * @param {number} p.courant ampères
+ * @param {number} p.longueur mètres, aller simple
+ * @param {number} p.section mm²
+ * @returns {number} volts perdus dans le câble
+ */
+function chuteTension({ courant, longueur, section }) {
+  if (!(courant > 0) || !(longueur > 0) || !(section > 0)) return 0;
+  return (2 * RHO_CUIVRE * longueur * courant) / section;
+}
+
+/**
+ * Section minimale d'une alimentation continue.
+ *
+ * @param {object} p
+ * @param {number} p.courant ampères appelés par l'appareil
+ * @param {number} p.longueur mètres, aller simple
+ * @param {number} [p.tension=12] tension nominale
+ * @param {number} [p.chuteMax=CHUTE_MAX] part admissible de la tension
+ * @returns {{section:number, chute:number, part:number, horsCatalogue:boolean}|null}
+ */
+function sectionContinu({ courant, longueur, tension = 12, chuteMax = CHUTE_MAX }) {
+  if (!(courant > 0) || !(longueur > 0) || !(tension > 0)) return null;
+  const admissible = tension * chuteMax;
+  const theorique = (2 * RHO_CUIVRE * longueur * courant) / admissible;
+  const retenue = SECTIONS.find((s) => s >= theorique);
+  const section = retenue ?? SECTIONS[SECTIONS.length - 1];
+  const chute = chuteTension({ courant, longueur, section });
+  return {
+    section,
+    chute,
+    part: chute / tension,
+    // Aucune section du catalogue ne tient : il faut monter en tension
+    // (24 V au lieu de 12 V divise le courant par deux, donc la chute par
+    // quatre) ou rapprocher l'alimentation de l'appareil.
+    horsCatalogue: retenue === undefined,
+  };
+}
+
+/** Arrondi d'affichage : le mètre est la seule précision qu'un métré mérite. */
+function arrondi(m) {
+  return Math.round(m);
 }
 
 /* ===== prix.js ===== */
@@ -2082,6 +2304,7 @@ const projetReuni = () => combiner(lireVolets());
  */
 
 
+
 /**
  * Types de site proposés au client, avec ce qu'ils impliquent d'ordinaire.
  *
@@ -2111,13 +2334,22 @@ const POSE_DEFAUT = { base: 3, parCamera: 1.5 };
 const PORTS_RESERVES = 1;
 
 /**
- * Longueur de câble supposée par caméra, en mètres.
+ * Distance supposée entre l'enregistreur et une caméra, en mètres, à PLAT.
  *
  * Une moyenne de chantier, pas une mesure : le cheminement réel ne se connaît
  * qu'au relevé. Elle sert à ce que le câble figure au budget plutôt que d'être
  * découvert à la facture.
+ *
+ * C'est une distance sur le plan, pas une longueur de câble : celle-ci se
+ * calcule à partir d'elle, hauteur de pose et détours compris.
  */
 const METRES_PAR_CAMERA = 30;
+
+/** Hauteur de pose supposée quand le client n'en dit rien, en mètres. */
+const HAUTEUR_SUPPOSEE = 3;
+
+/** Hauteur du coffret ou de la baie où descendent les câbles, en mètres. */
+const DESCENTE_COFFRET = 2;
 
 /** Consommation supposée d'une caméra quand le tarif ne la donne pas, en watts. */
 const CONSO_SUPPOSEE = 8;
@@ -2226,12 +2458,44 @@ function composer(reponses = {}, tarif = [], options = {}) {
    * les factures. Les compter d'emblée évite l'écart le plus fréquent entre
    * l'estimation et la note finale.
    */
-  const metres = Math.max(0, reponses.metresParCamera ?? METRES_PAR_CAMERA) * cameras;
+  /*
+   * Une distance sur le plan n'est pas une longueur de câble.
+   *
+   * Le câble monte au support, redescend au coffret, contourne ce qui se
+   * trouve sur son chemin et laisse de quoi raccorder aux deux bouts. Trente
+   * mètres à plat en font près de trente-sept une fois posés — et ce sont ces
+   * sept mètres, multipliés par le nombre de caméras, qui séparent
+   * l'estimation de la facture.
+   */
+  const aPlat = Math.max(0, reponses.metresParCamera ?? METRES_PAR_CAMERA);
+  const hauteur = Math.max(0, reponses.hauteurPose ?? HAUTEUR_SUPPOSEE);
+  // Une distance déclarée nulle n'est pas une caméra posée sur l'enregistreur :
+  // c'est le client qui retire le câble du budget, parce qu'il le fournit ou
+  // qu'il est déjà tiré. On ne lui compte alors ni descente ni réserves.
+  const parCamera = aPlat > 0
+    ? cheminement({ dx: aPlat, montee: hauteur, descente: DESCENTE_COFFRET })
+    : 0;
+  const metres = parCamera * cameras;
+  const verdictCable = verdictEthernet(parCamera);
+  const boites = bobines(metres);
   if (metres > 0) {
     const cable = moinsCher(tarif, 'cable');
     if (cable) {
       lignes.push({ article: cable, quantite: Math.ceil(metres), role: 'Câble réseau' });
     } else manques.push('Aucun câble réseau au tarif.');
+  }
+  /*
+   * Une liaison hors norme n'est pas un détail de métré : c'est une caméra
+   * qui ne fonctionnera pas. Elle remonte donc avec les manques, là où le
+   * client la lira, et non dans une note de bas de page.
+   */
+  if (verdictCable.niveau === 'hors-norme') {
+    manques.push(`À ${Math.round(aPlat)} m de l'enregistreur, une liaison `
+      + `réseau dépasse les 100 m admis : ${verdictCable.texte} `
+      + 'Cette distance ne relève plus d\'une estimation en ligne.');
+  } else if (verdictCable.niveau === 'limite') {
+    manques.push(`À ${Math.round(aPlat)} m de l'enregistreur, la liaison est `
+      + 'à la limite de la norme : elle fonctionnera, sans marge.');
   }
   for (const [type, role] of [['connectique', 'Connectique et supports'],
     ['coffret', 'Coffret réseau']]) {
@@ -2244,6 +2508,9 @@ function composer(reponses = {}, tarif = [], options = {}) {
     cameras,
     prevues,
     metresCable: metres,
+    metresParCamera: parCamera,
+    boitesCable: boites,
+    verdictCable,
     jours,
     heuresParJour,
     capaciteGo,
@@ -2270,7 +2537,12 @@ const RESERVES = [
   'Les prix sont donnés hors taxes et sous réserve de disponibilité des '
     + 'références au moment de la commande.',
   'La longueur de câble est une moyenne de chantier, pas une mesure : le '
-    + 'cheminement réel ne se connaît qu\'au relevé.',
+    + 'cheminement réel ne se connaît qu\'au relevé. Elle est calculée à '
+    + 'partir de la distance que vous indiquez, hauteur de pose, détours et '
+    + 'réserves de raccordement compris.',
+  `Le câble réseau se vend en boîtes de ${BOBINE} m. Le métré ci-dessus est `
+    + 'la longueur posée ; la commande se fait en boîtes entières, et le '
+    + 'reste sert le jour où une liaison se révèle plus longue qu\'au plan.',
 ];
 
 /* ===== devis-client.js ===== */
@@ -2284,6 +2556,7 @@ const RESERVES = [
  * Aucun serveur : les prix viennent de `tarif.json`, posé à côté de la page.
  * C'est le seul fichier à modifier pour mettre un tarif à jour.
  */
+
 
 
 
@@ -2340,6 +2613,7 @@ const reponses = () => ({
   jours: parseInt($('#q-jours').value, 10),
   heuresParJour: parseInt($('#q-heures').value, 10),
   extension: parseInt($('#q-extension').value, 10),
+  metresParCamera: parseFloat($('#q-distance').value),
   ecran: $('#q-ecran').checked,
   routeur: $('#q-routeur').checked,
   pose: $('#q-pose').checked,
@@ -2559,7 +2833,8 @@ function majContact(offre, r, d, ensemble, regime) {
     `- Zones à couvrir : ${offre.cameras}`,
     `- Conservation : ${offre.jours} jours, ${offre.heuresParJour} h/24`,
     `- Extension prévue : ${offre.prevues - offre.cameras} caméra(s)`,
-    `- Câble estimé : ${offre.metresCable} m`,
+    `- Câble estimé : ${Math.round(offre.metresCable)} m posés, soit `
+      + `${offre.boitesCable.boites} boîte(s) de ${BOBINE} m`,
     `- Écran de supervision : ${r.ecran ? 'oui' : 'non'}`,
     `- Installation par vos soins : ${r.pose ? 'oui' : 'non'}`,
     ...lignesEtude(),
@@ -3005,7 +3280,8 @@ async function restaurer(contenu) {
 
   const r = contenu.reponses || {};
   for (const [id, cle] of [['#q-type', 'typeSite'], ['#q-pays', 'pays'], ['#q-zones', 'zones'],
-    ['#q-jours', 'jours'], ['#q-heures', 'heuresParJour'], ['#q-extension', 'extension']]) {
+    ['#q-jours', 'jours'], ['#q-heures', 'heuresParJour'], ['#q-extension', 'extension'],
+    ['#q-distance', 'metresParCamera']]) {
     if (r[cle] !== undefined) $(id).value = r[cle];
   }
   for (const [id, cle] of [['#q-ecran', 'ecran'], ['#q-routeur', 'routeur'], ['#q-pose', 'pose']]) {
@@ -3078,7 +3354,8 @@ async function demarrer() {
     calculer();
   });
 
-  ['#q-pays', '#q-zones', '#q-jours', '#q-heures', '#q-extension', '#q-ecran',
+  ['#q-pays', '#q-zones', '#q-jours', '#q-heures', '#q-extension',
+    '#q-distance', '#q-ecran',
     '#q-routeur', '#q-pose']
     .forEach((id) => {
       $(id).addEventListener('change', calculer);

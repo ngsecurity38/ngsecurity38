@@ -6,8 +6,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
-  TYPES_SITE, POSE_DEFAUT, METRES_PAR_CAMERA, RESERVES, composer,
+  TYPES_SITE, POSE_DEFAUT, METRES_PAR_CAMERA, HAUTEUR_SUPPOSEE, RESERVES, composer,
 } from '../js/offre.js';
+import { cheminement, BOBINE } from '../js/cable.js';
 
 /** Tarif d'essai : deux caméras, trois switches, deux NVR, trois disques. */
 const TARIF = [
@@ -56,17 +57,60 @@ test('trois caméras : le switch, l\'enregistreur et le disque suivent', () => {
 test('le câble, la connectique et le coffret figurent au budget', () => {
   const o = composer({ zones: 3, jours: 15 }, TARIF);
   const r = roles(o);
-  assert.equal(o.metresCable, 3 * METRES_PAR_CAMERA);
-  assert.equal(r['Câble réseau'].quantite, 90, 'trente mètres par caméra');
+  const attendu = cheminement({
+    dx: METRES_PAR_CAMERA, montee: HAUTEUR_SUPPOSEE, descente: 2,
+  });
+  assert.equal(o.metresParCamera, attendu);
+  assert.equal(o.metresCable, 3 * attendu);
+  assert.equal(r['Câble réseau'].quantite, Math.ceil(3 * attendu));
   assert.equal(r['Connectique et supports'].quantite, 3, 'une par caméra');
   assert.equal(r['Coffret réseau'].quantite, 1);
 });
 
-test('la longueur de câble se règle', () => {
+test('le câble posé est plus long que la distance à plat', () => {
+  // C'est tout l'objet du changement : trente mètres de plan ne font pas
+  // trente mètres de câble. L'écart est le montant qu'on découvrait sur la
+  // facture — sept mètres par caméra, ici.
+  const o = composer({ zones: 4, jours: 15, metresParCamera: 30, hauteurPose: 3 }, TARIF);
+  assert.ok(o.metresParCamera > 30, `${o.metresParCamera} devrait dépasser 30`);
+  assert.ok(o.metresParCamera < 45, 'mais pas au point de doubler');
+  assert.equal(o.metresCable, 4 * o.metresParCamera);
+});
+
+test('poser plus haut allonge le câble', () => {
+  const bas = composer({ zones: 2, jours: 15, hauteurPose: 2.5 }, TARIF);
+  const haut = composer({ zones: 2, jours: 15, hauteurPose: 6 }, TARIF);
+  assert.ok(haut.metresCable > bas.metresCable);
+});
+
+test('la longueur de câble se règle, et se commande en boîtes', () => {
   const o = composer({ zones: 2, jours: 15, metresParCamera: 50 }, TARIF);
-  assert.equal(o.metresCable, 100);
-  assert.equal(roles(o)['Câble réseau'].quantite, 100);
-  assert.equal(composer({ zones: 2, jours: 15, metresParCamera: 0 }, TARIF).metresCable, 0);
+  assert.equal(roles(o)['Câble réseau'].quantite, Math.ceil(o.metresCable));
+  assert.equal(o.boitesCable.boites, Math.ceil(o.metresCable / BOBINE));
+  assert.ok(o.boitesCable.reste >= 0);
+  // Une distance déclarée nulle retire le câble du budget — le client le
+  // fournit, ou il est déjà tiré. Ni descente ni réserves ne s'y ajoutent.
+  const sans = composer({ zones: 2, jours: 15, metresParCamera: 0 }, TARIF);
+  assert.equal(sans.metresCable, 0);
+  assert.equal(sans.boitesCable.boites, 0);
+  assert.ok(!roles(sans)['Câble réseau'], 'aucune ligne de câble au devis');
+});
+
+test('une caméra trop loin est signalée au client, pas enfouie', () => {
+  // Cent vingt mètres à plat : la liaison sort du canal Ethernet. Le client
+  // doit le lire là où il lit les manques, avant de commander.
+  const o = composer({ zones: 2, jours: 15, metresParCamera: 120 }, TARIF);
+  assert.equal(o.verdictCable.niveau, 'hors-norme');
+  assert.ok(
+    o.manques.some((m) => /dépasse les 100 m/.test(m)),
+    `rien dans les manques : ${JSON.stringify(o.manques)}`,
+  );
+});
+
+test('une distance courante ne déclenche aucune alerte', () => {
+  const o = composer({ zones: 3, jours: 15, metresParCamera: 30 }, TARIF);
+  assert.equal(o.verdictCable.niveau, 'ok');
+  assert.equal(o.manques.length, 0, JSON.stringify(o.manques));
 });
 
 test('le switch est choisi sur son budget PoE autant que sur ses ports', () => {

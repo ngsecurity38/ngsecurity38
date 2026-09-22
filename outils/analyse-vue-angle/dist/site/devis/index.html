@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <!-- Devis client — NG Security 38.
-     Fichier unique produit par build.mjs le 2026-09-21.
+     Fichier unique produit par build.mjs le 2026-09-22.
      Pour changer les prix : éditer tarif.json, à côté de la page. -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -464,6 +464,15 @@ tfoot tr.fort td { font-size: 19px; font-weight: 700; border-top: 2px solid var(
           <option value="24" selected>24 h/24</option>
           <option value="14">Seulement la nuit et les heures de fermeture</option>
         </select>
+      </label>
+
+      <label>Distance de l'enregistreur à la caméra la plus éloignée&nbsp;?
+        <input type="number" id="q-distance" min="1" max="200" step="5" value="30">
+        <small>En mètres, à plat. La longueur de câble s'en déduit : montée au
+          support (3&nbsp;m supposés), descente au coffret, détours et réserves
+          de raccordement comprises — trente mètres de plan font près de
+          trente-sept mètres de câble. Au-delà de 90&nbsp;m posés, une liaison
+          réseau sort de la norme, et la page vous le dit.</small>
       </label>
 
       <label>Prévoir une extension plus tard ?
@@ -1794,6 +1803,42 @@ function disqueRecommande(go) {
   return { unitaire: plusGros, nombre, total: plusGros * nombre };
 }
 
+/**
+ * Comment remplir un enregistreur à N baies.
+ *
+ * Deux baies ne veulent pas dire deux fois la capacité : cela dépend de ce
+ * qu'on en fait, et le choix n'est pas technique mais commercial.
+ *
+ * - en **pool**, les disques s'additionnent. On a toute la capacité, et la
+ *   perte d'un disque emporte la part des images qu'il portait ;
+ * - en **miroir**, chaque disque porte la même chose. On a la moitié de la
+ *   capacité, et un disque peut mourir sans qu'une image manque.
+ *
+ * Un disque de vidéosurveillance écrit vingt-quatre heures sur vingt-quatre.
+ * Il ne meurt pas « peut-être » : il meurt, et la seule question est de
+ * savoir si ce jour-là on avait besoin des images. La fonction rend les deux
+ * hypothèses chiffrées plutôt que d'en imposer une.
+ *
+ * @param {number} go capacité nécessaire, en gigaoctets
+ * @param {number} [baies=2] nombre d'emplacements de disque
+ * @returns {{baies:number, pool:object|null, miroir:object|null}|null}
+ */
+function disquesPourBaies(go, baies = 2) {
+  if (!(go > 0) || !(baies >= 1)) return null;
+  const to = go / 1000;
+  const choisir = (besoinParDisque, nombre) => {
+    const unitaire = DISQUES.find((d) => d >= besoinParDisque);
+    if (!unitaire) return null;
+    return { unitaire, nombre, total: unitaire * nombre };
+  };
+  return {
+    baies,
+    pool: choisir(to / baies, baies),
+    // Le miroir n'a de sens qu'à baies paires : chaque disque en double un autre.
+    miroir: baies % 2 === 0 ? choisir(to / (baies / 2), baies) : null,
+  };
+}
+
 /* --------------------------------------------------------------- PoE */
 
 /**
@@ -1974,6 +2019,192 @@ function bilan(synoptique, reglages = {}) {
     poe,
     anomalies: controler(synoptique, reglages),
   };
+}
+
+/* ===== cable.js ===== */
+/**
+ * Métré des câbles : longueurs, limite Ethernet, section des alimentations.
+ *
+ * Trois questions se posent dès qu'on quitte le plan pour le chantier, et
+ * chacune a une réponse chiffrée, pas une réponse d'habitude :
+ *
+ * - « Combien de câble faut-il commander ? » → cheminement, puis bobines ;
+ * - « Cette caméra est-elle trop loin ? » → la limite des 90 mètres ;
+ * - « Du 6/10 suffit pour la ventouse ? » → la chute de tension tranche.
+ *
+ * La troisième est celle qui se paie. Une alimentation sous-dimensionnée ne
+ * tombe pas en panne à la mise en service : elle fonctionne au banc, puis
+ * lâche l'hiver quand la tension baisse et que le courant monte. On ne la
+ * rattrape qu'en retirant le câble.
+ *
+ * Module pur (aucune dépendance au DOM), testé sous Node.
+ */
+
+/* ------------------------------------------------------------ Ethernet */
+
+/**
+ * Le lien permanent : du panneau de brassage à la prise, 90 mètres.
+ *
+ * La norme (ISO/IEC 11801, TIA-568) compte 100 mètres pour le canal complet
+ * et réserve les dix derniers aux cordons de brassage des deux bouts. Poser
+ * 95 mètres de câble « puisque la limite est à 100 » revient à livrer une
+ * liaison qui n'a plus de marge, et qui tombera au premier cordon ajouté.
+ */
+const LIAISON_PERMANENTE = 90;
+
+/** Le canal complet, cordons compris. Au-delà, plus rien ne garantit rien. */
+const CANAL_COMPLET = 100;
+
+/**
+ * Ce que devient une liaison d'une longueur donnée.
+ *
+ * Trois verdicts, et un seul est confortable. Le niveau `limite` n'est pas un
+ * refus : c'est une liaison qui marchera et qu'on ne pourra plus rallonger,
+ * ce qui se dit avant la pose et non après.
+ *
+ * @param {number} metres longueur du câble posé, cordons non compris
+ * @returns {{niveau:'ok'|'limite'|'hors-norme', texte:string}}
+ */
+function verdictEthernet(metres) {
+  const l = Number(metres);
+  if (!(l > 0)) return { niveau: 'ok', texte: 'Longueur non renseignée.' };
+  if (l <= LIAISON_PERMANENTE) {
+    return { niveau: 'ok', texte: `${arrondi(l)} m — dans la limite des ${LIAISON_PERMANENTE} m.` };
+  }
+  if (l <= CANAL_COMPLET) {
+    return {
+      niveau: 'limite',
+      texte: `${arrondi(l)} m — au-delà du lien permanent de ${LIAISON_PERMANENTE} m. `
+        + 'La liaison fonctionnera sans marge : aucun cordon ne pourra être ajouté.',
+    };
+  }
+  return {
+    niveau: 'hors-norme',
+    texte: `${arrondi(l)} m — au-delà des ${CANAL_COMPLET} m du canal. `
+      + 'Un relais actif (commutateur déporté) ou une fibre est nécessaire.',
+  };
+}
+
+/* ---------------------------------------------------------- cheminement */
+
+/** Réserve laissée à chaque extrémité : dépose en baie, boucle au support. */
+const RESERVE_BOUT = 1;
+
+/** Détours non portés au plan : contournements, passages, remontées. */
+const MOU_DEFAUT = 0.1;
+
+/**
+ * Longueur d'un cheminement, en mètres.
+ *
+ * La distance à vol d'oiseau ne se pose pas : un câble suit les murs, les
+ * chemins de câbles et les angles. La somme des deux écarts du plan
+ * (|dx| + |dy|) en est l'approximation honnête — celle qui, si elle se
+ * trompe, se trompe du bon côté.
+ *
+ * @param {object} p
+ * @param {number} p.dx écart horizontal sur le plan, en mètres
+ * @param {number} p.dy écart vertical sur le plan, en mètres
+ * @param {number} [p.montee=0] hauteur de pose de l'appareil
+ * @param {number} [p.descente=0] descente du chemin de câbles vers la baie
+ * @param {number} [p.mou=MOU_DEFAUT] proportion de détours
+ * @param {number} [p.reserveBout=RESERVE_BOUT] réserve à chaque extrémité
+ * @returns {number} mètres
+ */
+function cheminement({
+  dx = 0, dy = 0, montee = 0, descente = 0,
+  mou = MOU_DEFAUT, reserveBout = RESERVE_BOUT,
+}) {
+  const parcouru = Math.abs(dx) + Math.abs(dy)
+    + Math.max(0, montee) + Math.max(0, descente);
+  if (!(parcouru > 0)) return 0;
+  return parcouru * (1 + Math.max(0, mou)) + 2 * Math.max(0, reserveBout);
+}
+
+/** Longueur standard d'une boîte de câble réseau, en mètres. */
+const BOBINE = 305;
+
+/**
+ * Nombre de boîtes à commander, et ce qui reste sur la dernière.
+ *
+ * Le reste n'est pas une curiosité : c'est ce dont on dispose le jour où une
+ * liaison se révèle plus longue qu'au plan, ce qui arrive à chaque chantier.
+ *
+ * @returns {{boites:number, total:number, reste:number}}
+ */
+function bobines(metres, parBoite = BOBINE) {
+  const l = Number(metres);
+  const b = Number(parBoite);
+  if (!(l > 0) || !(b > 0)) return { boites: 0, total: 0, reste: 0 };
+  const boites = Math.ceil(l / b);
+  return { boites, total: boites * b, reste: boites * b - l };
+}
+
+/* -------------------------------------------------- alimentations continues */
+
+/**
+ * Résistivité du cuivre, en ohm·mm²/m, à vingt degrés.
+ *
+ * Elle monte avec la température : environ +0,4 % par degré. Un câble en
+ * gaine, au soleil, ne travaille pas à vingt degrés — la marge prise sur la
+ * chute admissible n'est pas de la coquetterie.
+ */
+const RHO_CUIVRE = 0.0175;
+
+/** Sections courantes du commerce, en mm². */
+const SECTIONS = [0.22, 0.34, 0.5, 0.75, 1, 1.5, 2.5, 4, 6, 10];
+
+/** Chute de tension admissible par défaut : un dixième de la tension. */
+const CHUTE_MAX = 0.1;
+
+/**
+ * Chute de tension d'une alimentation continue, en volts.
+ *
+ * Le facteur deux n'est pas décoratif : le courant fait l'aller ET le retour.
+ * L'oublier divise la chute calculée par deux, et c'est l'erreur qui fait
+ * poser du 6/10 là où il faut du 15/10.
+ *
+ * @param {object} p
+ * @param {number} p.courant ampères
+ * @param {number} p.longueur mètres, aller simple
+ * @param {number} p.section mm²
+ * @returns {number} volts perdus dans le câble
+ */
+function chuteTension({ courant, longueur, section }) {
+  if (!(courant > 0) || !(longueur > 0) || !(section > 0)) return 0;
+  return (2 * RHO_CUIVRE * longueur * courant) / section;
+}
+
+/**
+ * Section minimale d'une alimentation continue.
+ *
+ * @param {object} p
+ * @param {number} p.courant ampères appelés par l'appareil
+ * @param {number} p.longueur mètres, aller simple
+ * @param {number} [p.tension=12] tension nominale
+ * @param {number} [p.chuteMax=CHUTE_MAX] part admissible de la tension
+ * @returns {{section:number, chute:number, part:number, horsCatalogue:boolean}|null}
+ */
+function sectionContinu({ courant, longueur, tension = 12, chuteMax = CHUTE_MAX }) {
+  if (!(courant > 0) || !(longueur > 0) || !(tension > 0)) return null;
+  const admissible = tension * chuteMax;
+  const theorique = (2 * RHO_CUIVRE * longueur * courant) / admissible;
+  const retenue = SECTIONS.find((s) => s >= theorique);
+  const section = retenue ?? SECTIONS[SECTIONS.length - 1];
+  const chute = chuteTension({ courant, longueur, section });
+  return {
+    section,
+    chute,
+    part: chute / tension,
+    // Aucune section du catalogue ne tient : il faut monter en tension
+    // (24 V au lieu de 12 V divise le courant par deux, donc la chute par
+    // quatre) ou rapprocher l'alimentation de l'appareil.
+    horsCatalogue: retenue === undefined,
+  };
+}
+
+/** Arrondi d'affichage : le mètre est la seule précision qu'un métré mérite. */
+function arrondi(m) {
+  return Math.round(m);
 }
 
 /* ===== prix.js ===== */
@@ -2664,6 +2895,7 @@ const projetReuni = () => combiner(lireVolets());
  */
 
 
+
 /**
  * Types de site proposés au client, avec ce qu'ils impliquent d'ordinaire.
  *
@@ -2693,13 +2925,22 @@ const POSE_DEFAUT = { base: 3, parCamera: 1.5 };
 const PORTS_RESERVES = 1;
 
 /**
- * Longueur de câble supposée par caméra, en mètres.
+ * Distance supposée entre l'enregistreur et une caméra, en mètres, à PLAT.
  *
  * Une moyenne de chantier, pas une mesure : le cheminement réel ne se connaît
  * qu'au relevé. Elle sert à ce que le câble figure au budget plutôt que d'être
  * découvert à la facture.
+ *
+ * C'est une distance sur le plan, pas une longueur de câble : celle-ci se
+ * calcule à partir d'elle, hauteur de pose et détours compris.
  */
 const METRES_PAR_CAMERA = 30;
+
+/** Hauteur de pose supposée quand le client n'en dit rien, en mètres. */
+const HAUTEUR_SUPPOSEE = 3;
+
+/** Hauteur du coffret ou de la baie où descendent les câbles, en mètres. */
+const DESCENTE_COFFRET = 2;
 
 /** Consommation supposée d'une caméra quand le tarif ne la donne pas, en watts. */
 const CONSO_SUPPOSEE = 8;
@@ -2808,12 +3049,44 @@ function composer(reponses = {}, tarif = [], options = {}) {
    * les factures. Les compter d'emblée évite l'écart le plus fréquent entre
    * l'estimation et la note finale.
    */
-  const metres = Math.max(0, reponses.metresParCamera ?? METRES_PAR_CAMERA) * cameras;
+  /*
+   * Une distance sur le plan n'est pas une longueur de câble.
+   *
+   * Le câble monte au support, redescend au coffret, contourne ce qui se
+   * trouve sur son chemin et laisse de quoi raccorder aux deux bouts. Trente
+   * mètres à plat en font près de trente-sept une fois posés — et ce sont ces
+   * sept mètres, multipliés par le nombre de caméras, qui séparent
+   * l'estimation de la facture.
+   */
+  const aPlat = Math.max(0, reponses.metresParCamera ?? METRES_PAR_CAMERA);
+  const hauteur = Math.max(0, reponses.hauteurPose ?? HAUTEUR_SUPPOSEE);
+  // Une distance déclarée nulle n'est pas une caméra posée sur l'enregistreur :
+  // c'est le client qui retire le câble du budget, parce qu'il le fournit ou
+  // qu'il est déjà tiré. On ne lui compte alors ni descente ni réserves.
+  const parCamera = aPlat > 0
+    ? cheminement({ dx: aPlat, montee: hauteur, descente: DESCENTE_COFFRET })
+    : 0;
+  const metres = parCamera * cameras;
+  const verdictCable = verdictEthernet(parCamera);
+  const boites = bobines(metres);
   if (metres > 0) {
     const cable = moinsCher(tarif, 'cable');
     if (cable) {
       lignes.push({ article: cable, quantite: Math.ceil(metres), role: 'Câble réseau' });
     } else manques.push('Aucun câble réseau au tarif.');
+  }
+  /*
+   * Une liaison hors norme n'est pas un détail de métré : c'est une caméra
+   * qui ne fonctionnera pas. Elle remonte donc avec les manques, là où le
+   * client la lira, et non dans une note de bas de page.
+   */
+  if (verdictCable.niveau === 'hors-norme') {
+    manques.push(`À ${Math.round(aPlat)} m de l'enregistreur, une liaison `
+      + `réseau dépasse les 100 m admis : ${verdictCable.texte} `
+      + 'Cette distance ne relève plus d\'une estimation en ligne.');
+  } else if (verdictCable.niveau === 'limite') {
+    manques.push(`À ${Math.round(aPlat)} m de l'enregistreur, la liaison est `
+      + 'à la limite de la norme : elle fonctionnera, sans marge.');
   }
   for (const [type, role] of [['connectique', 'Connectique et supports'],
     ['coffret', 'Coffret réseau']]) {
@@ -2826,6 +3099,9 @@ function composer(reponses = {}, tarif = [], options = {}) {
     cameras,
     prevues,
     metresCable: metres,
+    metresParCamera: parCamera,
+    boitesCable: boites,
+    verdictCable,
     jours,
     heuresParJour,
     capaciteGo,
@@ -2852,7 +3128,12 @@ const RESERVES = [
   'Les prix sont donnés hors taxes et sous réserve de disponibilité des '
     + 'références au moment de la commande.',
   'La longueur de câble est une moyenne de chantier, pas une mesure : le '
-    + 'cheminement réel ne se connaît qu\'au relevé.',
+    + 'cheminement réel ne se connaît qu\'au relevé. Elle est calculée à '
+    + 'partir de la distance que vous indiquez, hauteur de pose, détours et '
+    + 'réserves de raccordement compris.',
+  `Le câble réseau se vend en boîtes de ${BOBINE} m. Le métré ci-dessus est `
+    + 'la longueur posée ; la commande se fait en boîtes entières, et le '
+    + 'reste sert le jour où une liaison se révèle plus longue qu\'au plan.',
 ];
 
 /* ===== devis-client.js ===== */
@@ -2866,6 +3147,7 @@ const RESERVES = [
  * Aucun serveur : les prix viennent de `tarif.json`, posé à côté de la page.
  * C'est le seul fichier à modifier pour mettre un tarif à jour.
  */
+
 
 
 
@@ -2922,6 +3204,7 @@ const reponses = () => ({
   jours: parseInt($('#q-jours').value, 10),
   heuresParJour: parseInt($('#q-heures').value, 10),
   extension: parseInt($('#q-extension').value, 10),
+  metresParCamera: parseFloat($('#q-distance').value),
   ecran: $('#q-ecran').checked,
   routeur: $('#q-routeur').checked,
   pose: $('#q-pose').checked,
@@ -3141,7 +3424,8 @@ function majContact(offre, r, d, ensemble, regime) {
     `- Zones à couvrir : ${offre.cameras}`,
     `- Conservation : ${offre.jours} jours, ${offre.heuresParJour} h/24`,
     `- Extension prévue : ${offre.prevues - offre.cameras} caméra(s)`,
-    `- Câble estimé : ${offre.metresCable} m`,
+    `- Câble estimé : ${Math.round(offre.metresCable)} m posés, soit `
+      + `${offre.boitesCable.boites} boîte(s) de ${BOBINE} m`,
     `- Écran de supervision : ${r.ecran ? 'oui' : 'non'}`,
     `- Installation par vos soins : ${r.pose ? 'oui' : 'non'}`,
     ...lignesEtude(),
@@ -3587,7 +3871,8 @@ async function restaurer(contenu) {
 
   const r = contenu.reponses || {};
   for (const [id, cle] of [['#q-type', 'typeSite'], ['#q-pays', 'pays'], ['#q-zones', 'zones'],
-    ['#q-jours', 'jours'], ['#q-heures', 'heuresParJour'], ['#q-extension', 'extension']]) {
+    ['#q-jours', 'jours'], ['#q-heures', 'heuresParJour'], ['#q-extension', 'extension'],
+    ['#q-distance', 'metresParCamera']]) {
     if (r[cle] !== undefined) $(id).value = r[cle];
   }
   for (const [id, cle] of [['#q-ecran', 'ecran'], ['#q-routeur', 'routeur'], ['#q-pose', 'pose']]) {
@@ -3660,7 +3945,8 @@ async function demarrer() {
     calculer();
   });
 
-  ['#q-pays', '#q-zones', '#q-jours', '#q-heures', '#q-extension', '#q-ecran',
+  ['#q-pays', '#q-zones', '#q-jours', '#q-heures', '#q-extension',
+    '#q-distance', '#q-ecran',
     '#q-routeur', '#q-pose']
     .forEach((id) => {
       $(id).addEventListener('change', calculer);

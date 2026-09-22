@@ -16,6 +16,7 @@
  */
 
 import { capaciteNecessaire, debitEstime } from './stockage.js';
+import { cheminement, verdictEthernet, bobines, BOBINE } from './cable.js';
 
 /**
  * Types de site proposés au client, avec ce qu'ils impliquent d'ordinaire.
@@ -46,13 +47,22 @@ export const POSE_DEFAUT = { base: 3, parCamera: 1.5 };
 const PORTS_RESERVES = 1;
 
 /**
- * Longueur de câble supposée par caméra, en mètres.
+ * Distance supposée entre l'enregistreur et une caméra, en mètres, à PLAT.
  *
  * Une moyenne de chantier, pas une mesure : le cheminement réel ne se connaît
  * qu'au relevé. Elle sert à ce que le câble figure au budget plutôt que d'être
  * découvert à la facture.
+ *
+ * C'est une distance sur le plan, pas une longueur de câble : celle-ci se
+ * calcule à partir d'elle, hauteur de pose et détours compris.
  */
 export const METRES_PAR_CAMERA = 30;
+
+/** Hauteur de pose supposée quand le client n'en dit rien, en mètres. */
+export const HAUTEUR_SUPPOSEE = 3;
+
+/** Hauteur du coffret ou de la baie où descendent les câbles, en mètres. */
+const DESCENTE_COFFRET = 2;
 
 /** Consommation supposée d'une caméra quand le tarif ne la donne pas, en watts. */
 const CONSO_SUPPOSEE = 8;
@@ -161,12 +171,44 @@ export function composer(reponses = {}, tarif = [], options = {}) {
    * les factures. Les compter d'emblée évite l'écart le plus fréquent entre
    * l'estimation et la note finale.
    */
-  const metres = Math.max(0, reponses.metresParCamera ?? METRES_PAR_CAMERA) * cameras;
+  /*
+   * Une distance sur le plan n'est pas une longueur de câble.
+   *
+   * Le câble monte au support, redescend au coffret, contourne ce qui se
+   * trouve sur son chemin et laisse de quoi raccorder aux deux bouts. Trente
+   * mètres à plat en font près de trente-sept une fois posés — et ce sont ces
+   * sept mètres, multipliés par le nombre de caméras, qui séparent
+   * l'estimation de la facture.
+   */
+  const aPlat = Math.max(0, reponses.metresParCamera ?? METRES_PAR_CAMERA);
+  const hauteur = Math.max(0, reponses.hauteurPose ?? HAUTEUR_SUPPOSEE);
+  // Une distance déclarée nulle n'est pas une caméra posée sur l'enregistreur :
+  // c'est le client qui retire le câble du budget, parce qu'il le fournit ou
+  // qu'il est déjà tiré. On ne lui compte alors ni descente ni réserves.
+  const parCamera = aPlat > 0
+    ? cheminement({ dx: aPlat, montee: hauteur, descente: DESCENTE_COFFRET })
+    : 0;
+  const metres = parCamera * cameras;
+  const verdictCable = verdictEthernet(parCamera);
+  const boites = bobines(metres);
   if (metres > 0) {
     const cable = moinsCher(tarif, 'cable');
     if (cable) {
       lignes.push({ article: cable, quantite: Math.ceil(metres), role: 'Câble réseau' });
     } else manques.push('Aucun câble réseau au tarif.');
+  }
+  /*
+   * Une liaison hors norme n'est pas un détail de métré : c'est une caméra
+   * qui ne fonctionnera pas. Elle remonte donc avec les manques, là où le
+   * client la lira, et non dans une note de bas de page.
+   */
+  if (verdictCable.niveau === 'hors-norme') {
+    manques.push(`À ${Math.round(aPlat)} m de l'enregistreur, une liaison `
+      + `réseau dépasse les 100 m admis : ${verdictCable.texte} `
+      + 'Cette distance ne relève plus d\'une estimation en ligne.');
+  } else if (verdictCable.niveau === 'limite') {
+    manques.push(`À ${Math.round(aPlat)} m de l'enregistreur, la liaison est `
+      + 'à la limite de la norme : elle fonctionnera, sans marge.');
   }
   for (const [type, role] of [['connectique', 'Connectique et supports'],
     ['coffret', 'Coffret réseau']]) {
@@ -179,6 +221,9 @@ export function composer(reponses = {}, tarif = [], options = {}) {
     cameras,
     prevues,
     metresCable: metres,
+    metresParCamera: parCamera,
+    boitesCable: boites,
+    verdictCable,
     jours,
     heuresParJour,
     capaciteGo,
@@ -205,5 +250,10 @@ export const RESERVES = [
   'Les prix sont donnés hors taxes et sous réserve de disponibilité des '
     + 'références au moment de la commande.',
   'La longueur de câble est une moyenne de chantier, pas une mesure : le '
-    + 'cheminement réel ne se connaît qu\'au relevé.',
+    + 'cheminement réel ne se connaît qu\'au relevé. Elle est calculée à '
+    + 'partir de la distance que vous indiquez, hauteur de pose, détours et '
+    + 'réserves de raccordement compris.',
+  `Le câble réseau se vend en boîtes de ${BOBINE} m. Le métré ci-dessus est `
+    + 'la longueur posée ; la commande se fait en boîtes entières, et le '
+    + 'reste sert le jour où une liaison se révèle plus longue qu\'au plan.',
 ];
