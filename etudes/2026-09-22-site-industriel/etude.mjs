@@ -60,16 +60,25 @@ const AGENCE = {
    * document le dit tant qu'elles ne sont pas confirmées.
    */
   adresse: '2 rue des Drillons, 89150 Vernoy',
-  rcs: 'RCS Sens 518 723 366',
-  /* Celui-ci vient de l'agence elle-même, pas d'une recherche. */
+  /*
+   * Ceux-ci viennent de l'agence elle-même, pas d'une recherche, et ils se
+   * confirment l'un l'autre : la clé de Luhn du SIREN et celle du SIRET
+   * tombent juste, et la clé du numéro de TVA — 30 — est exactement celle
+   * que le SIREN 104 732 458 impose. Trois nombres qui se recoupent ne se
+   * recoupent pas par hasard.
+   */
+  siret: '104 732 458 00013',
+  tva: 'FR30104732458',
   telephone: '07 74 11 24 56',
   aConfirmer: [
-    'L\'adresse et le RCS ci-dessus, relevés sur vos pages publiques.',
+    'L\'adresse ci-dessus, relevée sur vos pages publiques et non confirmée.',
+    'Le RCS. Vos pages publiques annoncent « RCS Sens 518 723 366 », qui '
+      + 'n\'est pas le SIREN ci-dessus — deux identités différentes, dont une '
+      + 'seule peut figurer sur un devis. Le SIRET communiqué fait foi ici ; '
+      + 'la mention RCS est retirée du document tant que la contradiction '
+      + 'n\'est pas levée.',
   ],
   aCompleter: [
-    'Le SIRET complet, à quatorze chiffres. Le RCS relevé donne les neuf '
-      + 'premiers (518 723 366, clé de Luhn vérifiée) ; les cinq derniers '
-      + 'identifient l\'établissement et ne se devinent pas.',
     'Assurance responsabilité civile professionnelle : compagnie et numéro '
       + 'de police.',
   ],
@@ -1311,7 +1320,8 @@ const html = `<!doctype html>
       <p>${ech(AGENCE.adresse)}</p>
       <p>${ech(AGENCE.telephone)} · ${ech(AGENCE.courriel)}</p>
       <p>${AGENCE.sites.map((s) => ech(s)).join(' · ')}</p>
-      <p>${ech(AGENCE.rcs)} · ${ech(AGENCE.zone)}</p>
+      <p>SIRET ${ech(AGENCE.siret)} · TVA ${ech(AGENCE.tva)}</p>
+      <p>${ech(AGENCE.zone)}</p>
     </div>
   </div>
   <p class="surtitre">Étude technique</p>
