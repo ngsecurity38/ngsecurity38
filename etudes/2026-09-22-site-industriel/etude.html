@@ -3302,17 +3302,48 @@
   machine plus chargée qu'elle n'est.</p>
 
 <p class="largeur"><b>Seize ports ne veulent pas dire seize caméras
-  alimentées.</b> Un enregistreur distribue une puissance TOTALE, et les
-  caméras à infrarouge et à stroboscope sont les plus gourmandes du parc.
-  Ce budget en watts ne figure pas au relevé fournisseur&nbsp;: c'est le
-  chiffre à relever sur la fiche avant de considérer l'alimentation comme
-  réglée.</p>
+  alimentées</b>&nbsp;: un enregistreur distribue une puissance TOTALE. Celle
+  de cette machine est de <b>200 W</b>, et
+  le parc est loin de l'atteindre.</p>
 
-<h3>Les deux disques</h3>
+<table>
+  <thead>
+    <tr><th>Puissance demandée aux ports de l'enregistreur</th>
+      <th class="n">Watts</th><th class="n">Part du budget</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Les 5 caméras raccordées en direct
+      (C3, C5, C6, C7, C9)</td>
+      <td class="n"><b>57 W</b></td>
+      <td class="n">28 %</td></tr>
+    <tr><td>Si les 9 caméras y étaient raccordées</td>
+      <td class="n">102,5 W</td>
+      <td class="n">51 %</td></tr>
+    <tr><td>Si les 14 caméras, extension comprise, y étaient</td>
+      <td class="n">153,5 W</td>
+      <td class="n">77 %</td></tr>
+  </tbody>
+</table>
 
-<p>L'enregistreur a 2 baies. Ce n'est pas
-  la même chose que deux fois la capacité&nbsp;: tout dépend de ce qu'on en
-  fait, et le choix n'est pas technique, il est commercial.</p>
+<p class="largeur">Conclusion&nbsp;: <b>l'alimentation n'est pas une
+  contrainte de ce projet.</b> Même en ramenant toutes les caméras,
+  extension comprise, sur les ports de l'enregistreur, le parc resterait sous
+  les trois quarts du budget. Les coffrets déportés restent justifiés par la
+  distance, jamais par la puissance.</p>
+
+<p class="largeur">Consommations par modèle&nbsp;:
+  DS-2CD2346G2H-IU
+    — 9 W, PoE 802.3af&nbsp;; DS-2CD2683G2-IZS
+    — 15 W, PoE+ 802.3at, classe 4&nbsp;; DS-2CD2346G2P-ISU/SL
+    — 12,5 W, PoE 802.3af, classe 3. Le
+  bullet motorisé est le plus gourmand du parc&nbsp;: il demande du PoE+, que
+  cet enregistreur délivre.</p>
+
+<h3>Les disques</h3>
+
+<p>L'enregistreur a 2 baies, chacune
+  plafonnée à <b>10 To</b>. Un disque
+  plus gros n'y serait pas reconnu — ce qui ne s'apprend qu'après l'achat.</p>
 
 <table>
   <thead>
@@ -3327,22 +3358,24 @@
       <td class="n">20 To</td>
       <td>Toute la capacité. La perte d'un disque emporte la part des images
         qu'il portait.</td></tr>
-    <tr>
-      <td><b>Deux disques en miroir</b></td>
-      <td class="n">2 × 18 To</td>
-      <td class="n">36 To</td>
-      <td class="n">18 To</td>
-      <td>Un disque peut mourir sans qu'une image manque. On paie deux fois
-        la capacité pour en utiliser une.</td></tr>
+    
   </tbody>
 </table>
 
+<p class="point"><b>Cette machine ne fait pas de miroir.</b> Elle écrit sur
+  les deux disques à la suite, sans redondance. La perte d'un disque emporte
+  donc la part des images qu'il portait — en pratique, la moitié de la
+  période conservée, et on ne choisit pas laquelle.</p>
+
 <p class="largeur">Un disque de vidéosurveillance écrit vingt-quatre heures
-  sur vingt-quatre, toute l'année. Il ne meurt pas «&nbsp;peut-être&nbsp;»&nbsp;:
-  il meurt, et la seule question est de savoir si ce jour-là on avait besoin
-  des images. Le miroir répond à cette question, le pool répond à la question
-  du prix. Les deux réponses sont défendables&nbsp;; celle qui ne l'est pas,
-  c'est de ne pas avoir posé la question.</p>
+  sur vingt-quatre, toute l'année. Il ne meurt pas
+  «&nbsp;peut-être&nbsp;»&nbsp;: il meurt, et la seule question est de savoir
+  si ce jour-là on avait besoin des images. Si cette perte n'est pas
+  acceptable, elle ne se règle pas avec un disque de plus&nbsp;: il faut soit
+  un enregistreur qui sache faire du RAID, soit un second enregistrement en
+  parallèle — sur carte dans les caméras, ou vers un stockage distant. C'est
+  un arbitrage à porter au client, avec son prix&nbsp;; ce qui ne se défend
+  pas, c'est de ne pas lui avoir posé la question.</p>
 
 <p class="largeur">Avec
   20 To en pool,

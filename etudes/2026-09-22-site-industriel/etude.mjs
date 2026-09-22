@@ -100,6 +100,8 @@ const AGENCE = {
 const MODELES = {
   turret: {
     cle: 'turret',
+    consoPoe: 9,
+    classePoe: 'PoE 802.3af',
     reference: 'Hikvision DS-2CD2346G2H-IU (2,8 mm)',
     type: 'Turret 4 MP AcuSense, micro intégré',
     vignette: 'm-turret.jpg',
@@ -114,6 +116,8 @@ const MODELES = {
   },
   varifocal: {
     cle: 'varifocal',
+    consoPoe: 15,
+    classePoe: 'PoE+ 802.3at, classe 4',
     reference: 'Hikvision DS-2CD2683G2-IZS (2,8–12 mm motorisé)',
     type: 'Bullet 8 MP AcuSense, objectif motorisé',
     vignette: 'm-varifocal.jpg',
@@ -130,6 +134,8 @@ const MODELES = {
   },
   panoramique: {
     cle: 'panoramique',
+    consoPoe: 12.5,
+    classePoe: 'PoE 802.3af, classe 3',
     reference: 'Hikvision DS-2CD2346G2P-ISU/SL (2,8 mm)(C)',
     type: 'Turret panoramique 4 MP, 180°, stroboscope et alarme sonore',
     vignette: 'm-panoramique.jpg',
@@ -180,6 +186,22 @@ const EQUIPEMENTS = {
     // Confirmé par l'agence : c'est bien la variante /16P, celle qui porte
     // ses seize ports PoE. Le commutateur séparé sort donc du projet.
     portsPoe: 16,
+    /*
+     * Relevés par recherche documentaire — les serveurs de fiches sont
+     * bloqués depuis l'atelier. Deux d'entre eux changent le dossier :
+     * sans RAID, le miroir annoncé précédemment n'existe pas sur cette
+     * machine ; et une baie plafonnée à 10 To interdit les disques de
+     * 18 To qui avaient été proposés.
+     *
+     * Le plafond diffère selon la révision — 10 To sur les éditions
+     * courantes, 16 To annoncés sur la révision (D). La valeur retenue est
+     * la basse : se tromper vers le bas fait acheter un disque de trop,
+     * se tromper vers le haut fait acheter un disque inutilisable.
+     */
+    budgetPoe: 200,
+    capaciteMaxBaie: 10,
+    raid: false,
+    consoVide: 40,
     // Mbit/s, entrée comme sortie. C'est le chiffre qui plafonne le parc
     // bien avant le nombre de voies : seize caméras 12 MP dépasseraient
     // cette bande passante longtemps avant d'avoir épuisé les canaux.
@@ -187,22 +209,21 @@ const EQUIPEMENTS = {
     resolutionMax: '12 MP',
     codec: 'H.265+',
     aVerifier: [
-      'Le budget PoE total des seize ports, en watts. Seize ports ne veulent '
-        + 'pas dire seize caméras alimentées : un enregistreur distribue une '
-        + 'puissance totale, et les caméras à infrarouge et à stroboscope '
-        + 'sont les plus gourmandes du parc. C\'est le chiffre qui manque au '
-        + 'relevé et qui décide si tout tient sur la machine.',
+      'Les trois chiffres relevés par recherche, à confirmer sur la fiche : '
+        + 'budget PoE total de 200 W, 10 To par baie, absence de RAID. Les '
+        + 'serveurs de fiches sont bloqués depuis l\'atelier et aucun n\'a pu '
+        + 'être ouvert à la source.',
+      'Le plafond par baie selon la RÉVISION livrée. Les éditions courantes '
+        + 'annoncent 10 To, la révision (D) 16 To. Le dossier retient 10 : se '
+        + 'tromper vers le bas fait acheter un disque de trop, vers le haut '
+        + 'un disque inutilisable.',
       'Comment les coffrets déportés s\'y raccordent. Un commutateur placé '
         + 'derrière un port PoE d\'enregistreur Hikvision fonctionne, mais '
         + 'sort de la reconnaissance automatique : les caméras qui sont '
         + 'derrière s\'ajoutent alors à la main, par leur adresse. Le '
         + 'raccordement par le port réseau est plus sain. À arrêter à la '
         + 'mise en service, pas sur le chantier.',
-      'La capacité maximale admise par baie. Elle n\'est pas au relevé, et '
-        + 'elle conditionne le choix des disques.',
-      'La présence et le niveau de RAID. Un deux-baies ne fait pas toujours '
-        + 'de miroir ; sans miroir, la perte d\'un disque emporte sa part '
-        + 'des images.',
+
     ],
   },
   interphonie: {
@@ -1514,7 +1535,11 @@ const debitExtension = parcEtendu.reduce((sm, [cle, n]) => {
 }, 0);
 
 /** Les deux façons de remplir les deux baies, pour trente jours. */
-const disques30 = disquesPourBaies(stockage(30), EQUIPEMENTS.enregistreur.baies);
+const disques30 = disquesPourBaies(stockage(30), EQUIPEMENTS.enregistreur.baies, {
+  capaciteMax: EQUIPEMENTS.enregistreur.capaciteMaxBaie,
+  raid: EQUIPEMENTS.enregistreur.raid,
+});
+
 
 /*
  * Le compte des zones couvertes.
@@ -1542,6 +1567,16 @@ const POE_COFFRET = PARC.filter((c) => RATTACHEMENT[c.cle]);
 const PORTS_UTILISES = POE_DIRECT.length + Object.keys(RELAIS).length;
 const POE_DIRECT_ETENDU = CAMERAS.filter((c) => !RATTACHEMENT[c.cle]);
 const PORTS_ETENDUS = POE_DIRECT_ETENDU.length + Object.keys(RELAIS).length;
+/*
+ * Ce que le parc demande réellement aux ports PoE de l'enregistreur.
+ *
+ * Seules les caméras raccordées EN DIRECT y puisent : celles qui sont
+ * derrière un coffret sont alimentées par le coffret, sur son propre
+ * secteur.
+ */
+const consoPoeDirecte = POE_DIRECT.reduce((t, c) => t + MODELES[c.modele].consoPoe, 0);
+const consoPoeToutes = PARC.reduce((t, c) => t + MODELES[c.modele].consoPoe, 0);
+const consoPoeEtendue = CAMERAS.reduce((t, c) => t + MODELES[c.modele].consoPoe, 0);
 
 /* ------------------------------------------------- autonomie sur coupure */
 
@@ -2033,17 +2068,46 @@ ${VUES.map(sectionVue).join('')}
   machine plus chargée qu'elle n'est.</p>
 
 <p class="largeur"><b>Seize ports ne veulent pas dire seize caméras
-  alimentées.</b> Un enregistreur distribue une puissance TOTALE, et les
-  caméras à infrarouge et à stroboscope sont les plus gourmandes du parc.
-  Ce budget en watts ne figure pas au relevé fournisseur&nbsp;: c'est le
-  chiffre à relever sur la fiche avant de considérer l'alimentation comme
-  réglée.</p>
+  alimentées</b>&nbsp;: un enregistreur distribue une puissance TOTALE. Celle
+  de cette machine est de <b>${EQUIPEMENTS.enregistreur.budgetPoe} W</b>, et
+  le parc est loin de l'atteindre.</p>
 
-<h3>Les deux disques</h3>
+<table>
+  <thead>
+    <tr><th>Puissance demandée aux ports de l'enregistreur</th>
+      <th class="n">Watts</th><th class="n">Part du budget</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Les ${POE_DIRECT.length} caméras raccordées en direct
+      (${POE_DIRECT.map((c) => ech(c.cle)).join(', ')})</td>
+      <td class="n"><b>${ech(fr(consoPoeDirecte, 1))} W</b></td>
+      <td class="n">${ech(fr((consoPoeDirecte / EQUIPEMENTS.enregistreur.budgetPoe) * 100, 0))} %</td></tr>
+    <tr><td>Si les ${PARC.length} caméras y étaient raccordées</td>
+      <td class="n">${ech(fr(consoPoeToutes, 1))} W</td>
+      <td class="n">${ech(fr((consoPoeToutes / EQUIPEMENTS.enregistreur.budgetPoe) * 100, 0))} %</td></tr>
+    <tr><td>Si les ${CAMERAS.length} caméras, extension comprise, y étaient</td>
+      <td class="n">${ech(fr(consoPoeEtendue, 1))} W</td>
+      <td class="n">${ech(fr((consoPoeEtendue / EQUIPEMENTS.enregistreur.budgetPoe) * 100, 0))} %</td></tr>
+  </tbody>
+</table>
 
-<p>L'enregistreur a ${EQUIPEMENTS.enregistreur.baies} baies. Ce n'est pas
-  la même chose que deux fois la capacité&nbsp;: tout dépend de ce qu'on en
-  fait, et le choix n'est pas technique, il est commercial.</p>
+<p class="largeur">Conclusion&nbsp;: <b>l'alimentation n'est pas une
+  contrainte de ce projet.</b> Même en ramenant toutes les caméras,
+  extension comprise, sur les ports de l'enregistreur, le parc resterait sous
+  les trois quarts du budget. Les coffrets déportés restent justifiés par la
+  distance, jamais par la puissance.</p>
+
+<p class="largeur">Consommations par modèle&nbsp;:
+  ${Object.values(MODELES).map((m) => `${ech(m.reference.split(' (')[0].replace('Hikvision ', ''))}
+    — ${ech(fr(m.consoPoe, 1))} W, ${ech(m.classePoe)}`).join('&nbsp;; ')}. Le
+  bullet motorisé est le plus gourmand du parc&nbsp;: il demande du PoE+, que
+  cet enregistreur délivre.</p>
+
+<h3>Les disques</h3>
+
+<p>L'enregistreur a ${EQUIPEMENTS.enregistreur.baies} baies, chacune
+  plafonnée à <b>${EQUIPEMENTS.enregistreur.capaciteMaxBaie} To</b>. Un disque
+  plus gros n'y serait pas reconnu — ce qui ne s'apprend qu'après l'achat.</p>
 
 <table>
   <thead>
@@ -2068,12 +2132,20 @@ ${VUES.map(sectionVue).join('')}
   </tbody>
 </table>
 
+<p class="point"><b>Cette machine ne fait pas de miroir.</b> Elle écrit sur
+  les deux disques à la suite, sans redondance. La perte d'un disque emporte
+  donc la part des images qu'il portait — en pratique, la moitié de la
+  période conservée, et on ne choisit pas laquelle.</p>
+
 <p class="largeur">Un disque de vidéosurveillance écrit vingt-quatre heures
-  sur vingt-quatre, toute l'année. Il ne meurt pas «&nbsp;peut-être&nbsp;»&nbsp;:
-  il meurt, et la seule question est de savoir si ce jour-là on avait besoin
-  des images. Le miroir répond à cette question, le pool répond à la question
-  du prix. Les deux réponses sont défendables&nbsp;; celle qui ne l'est pas,
-  c'est de ne pas avoir posé la question.</p>
+  sur vingt-quatre, toute l'année. Il ne meurt pas
+  «&nbsp;peut-être&nbsp;»&nbsp;: il meurt, et la seule question est de savoir
+  si ce jour-là on avait besoin des images. Si cette perte n'est pas
+  acceptable, elle ne se règle pas avec un disque de plus&nbsp;: il faut soit
+  un enregistreur qui sache faire du RAID, soit un second enregistrement en
+  parallèle — sur carte dans les caméras, ou vers un stockage distant. C'est
+  un arbitrage à porter au client, avec son prix&nbsp;; ce qui ne se défend
+  pas, c'est de ne pas lui avoir posé la question.</p>
 
 <p class="largeur">Avec
   ${disques30.pool ? `${disques30.pool.total} To en pool` : 'la capacité installée'},
@@ -2588,9 +2660,16 @@ const memo = [
   '',
   '## Fiches constructeur à ouvrir',
   '',
-  'Aucune fiche n\'a pu être consultée à la source depuis l\'atelier. Les',
-  'optiques retenues viennent de recherches documentaires, et les portées',
-  'DORI du document en découlent : une optique fausse les fausse toutes.',
+  'Aucune fiche n\'a pu être consultée à la source depuis l\'atelier : le',
+  'réseau y bloque hikvision.com comme les sites qui en hébergent des copies.',
+  'Tout ce qui suit vient de recherches documentaires.',
+  '',
+  'Deux familles de chiffres en dépendent, et pas au même titre :',
+  '',
+  '- les OPTIQUES commandent toutes les portées DORI du document. Une',
+  '  optique fausse les fausse toutes ;',
+  '- les CONSOMMATIONS commandent le budget PoE et le dimensionnement de',
+  `  l'onduleur : ${Object.values(MODELES).map((x) => `${x.consoPoe} W`).join(', ')}.`,
   '',
   ...Object.values(MODELES).map((m) => `- ${m.reference} — ${m.source || 'source à confirmer'}`),
   '',

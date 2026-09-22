@@ -320,3 +320,33 @@ test('baies : données absentes → null', () => {
   assert.equal(disquesPourBaies(0, 2), null);
   assert.equal(disquesPourBaies(8000, 0), null);
 });
+
+test('baies : un disque plus gros que la baie n\'est jamais proposé', () => {
+  // La machine du dossier accepte 10 To par baie. Proposer du 18 To, c'est
+  // proposer un disque qui ne sera pas reconnu — et cela s'apprend après
+  // l'achat.
+  const d = disquesPourBaies(16800, 2, { capaciteMax: 10, raid: false });
+  assert.ok(d.pool.unitaire <= 10, `${d.pool.unitaire} To dépasse la baie`);
+  assert.equal(d.pool.total, 20);
+  assert.equal(d.miroir, null, 'pas de RAID, donc pas de miroir');
+});
+
+test('baies : sans RAID, aucun miroir n\'est annoncé', () => {
+  // Annoncer un miroir sur une machine qui n'en fait pas, c'est vendre une
+  // sécurité qui n'existe pas.
+  assert.equal(disquesPourBaies(8000, 2, { raid: false }).miroir, null);
+  assert.ok(disquesPourBaies(8000, 2, { raid: true }).miroir);
+});
+
+test('baies : un besoin qui dépasse ce que les baies peuvent porter → null', () => {
+  // 30 To nécessaires, deux baies de 10 : 20 To au mieux. La fonction le dit.
+  const d = disquesPourBaies(30000, 2, { capaciteMax: 10 });
+  assert.equal(d.pool, null);
+});
+
+test('baies : sans contrainte déclarée, le comportement d\'avant est gardé', () => {
+  const d = disquesPourBaies(12000, 2);
+  assert.equal(d.pool.unitaire, 6);
+  assert.equal(d.miroir.unitaire, 12);
+  assert.equal(d.capaciteMax, null);
+});

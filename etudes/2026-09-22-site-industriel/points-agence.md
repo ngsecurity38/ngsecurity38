@@ -10,9 +10,16 @@ client : il ne contient que ce que l'agence doit lever de son côté.
 
 ## Fiches constructeur à ouvrir
 
-Aucune fiche n'a pu être consultée à la source depuis l'atelier. Les
-optiques retenues viennent de recherches documentaires, et les portées
-DORI du document en découlent : une optique fausse les fausse toutes.
+Aucune fiche n'a pu être consultée à la source depuis l'atelier : le
+réseau y bloque hikvision.com comme les sites qui en hébergent des copies.
+Tout ce qui suit vient de recherches documentaires.
+
+Deux familles de chiffres en dépendent, et pas au même titre :
+
+- les OPTIQUES commandent toutes les portées DORI du document. Une
+  optique fausse les fausse toutes ;
+- les CONSOMMATIONS commandent le budget PoE et le dimensionnement de
+  l'onduleur : 9 W, 15 W, 12.5 W.
 
 - Hikvision DS-2CD2346G2H-IU (2,8 mm) — Champ horizontal 100,2° et définition 2688 × 1520 relevés par recherche documentaire (fiche DS-2CD2346G2H-I(U), éd. 13/05/2024). Infrarouge 30 m annoncé par plusieurs revendeurs. À CONFIRMER sur la fiche.
 - Hikvision DS-2CD2683G2-IZS (2,8–12 mm motorisé) — Champ horizontal 108° à 30° et définition 3840 × 2160 relevés par recherche documentaire (fiche DS-2CD2683G2-IZS V5.5.113). Portée infrarouge NON RELEVÉE. À CONFIRMER sur la fiche.
@@ -20,10 +27,9 @@ DORI du document en découlent : une optique fausse les fausse toutes.
 
 ## Enregistreur
 
-- Le budget PoE total des seize ports, en watts. Seize ports ne veulent pas dire seize caméras alimentées : un enregistreur distribue une puissance totale, et les caméras à infrarouge et à stroboscope sont les plus gourmandes du parc. C'est le chiffre qui manque au relevé et qui décide si tout tient sur la machine.
+- Les trois chiffres relevés par recherche, à confirmer sur la fiche : budget PoE total de 200 W, 10 To par baie, absence de RAID. Les serveurs de fiches sont bloqués depuis l'atelier et aucun n'a pu être ouvert à la source.
+- Le plafond par baie selon la RÉVISION livrée. Les éditions courantes annoncent 10 To, la révision (D) 16 To. Le dossier retient 10 : se tromper vers le bas fait acheter un disque de trop, vers le haut un disque inutilisable.
 - Comment les coffrets déportés s'y raccordent. Un commutateur placé derrière un port PoE d'enregistreur Hikvision fonctionne, mais sort de la reconnaissance automatique : les caméras qui sont derrière s'ajoutent alors à la main, par leur adresse. Le raccordement par le port réseau est plus sain. À arrêter à la mise en service, pas sur le chantier.
-- La capacité maximale admise par baie. Elle n'est pas au relevé, et elle conditionne le choix des disques.
-- La présence et le niveau de RAID. Un deux-baies ne fait pas toujours de miroir ; sans miroir, la perte d'un disque emporte sa part des images.
 
 ## Interphonie
 
