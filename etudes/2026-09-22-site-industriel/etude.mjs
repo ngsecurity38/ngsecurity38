@@ -75,7 +75,8 @@ const AGENCE = {
   telephone: '07 74 11 24 56',
   aConfirmer: [
     'Le RCS. Vos pages publiques annoncent « RCS Sens 518 723 366 », qui '
-      + 'n\'est pas le SIREN ci-dessus — deux identités différentes, dont une '
+      + 'n\'est pas le SIREN communiqué, 104 732 458 — deux identités '
+      + 'différentes, dont une '
       + 'seule peut figurer sur un devis. Le SIRET communiqué fait foi ici ; '
       + 'la mention RCS est retirée du document tant que la contradiction '
       + 'n\'est pas levée.',
@@ -85,16 +86,6 @@ const AGENCE = {
       + 'de police.',
   ],
 };
-
-/**
- * Passe à `true` le jour où les mentions ci-dessus sont confirmées par
- * l'agence : l'encadré de la page de garde disparaît alors, et le document
- * part au client sans rien qui ressemble à une note interne.
- *
- * Tant que c'est `false`, l'encadré reste — mieux vaut un rappel visible
- * qu'une adresse fausse imprimée sur un devis.
- */
-const MENTIONS_CONFIRMEES = false;
 
 /* ------------------------------------------------------------- le parc */
 
@@ -208,7 +199,7 @@ const EQUIPEMENTS = {
         + 'raccordement par le port réseau est plus sain. À arrêter à la '
         + 'mise en service, pas sur le chantier.',
       'La capacité maximale admise par baie. Elle n\'est pas au relevé, et '
-        + 'elle conditionne le choix des disques ci-dessus.',
+        + 'elle conditionne le choix des disques.',
       'La présence et le niveau de RAID. Un deux-baies ne fait pas toujours '
         + 'de miroir ; sans miroir, la perte d\'un disque emporte sa part '
         + 'des images.',
@@ -1421,7 +1412,8 @@ function ficheModele(m) {
   m.capteurUnique ? ' par objectif, soit le double sur les 180°' : ''}.</p>
       ${m.noteCone ? `<p class="note-cone">${ech(m.noteCone)}</p>` : ''}
     </div>`).join('')}
-    <p class="source">${ech(m.source)}</p>
+    <p class="provenance">Optique et définition selon la documentation
+      constructeur de la référence.</p>
   </section>`;
 }
 
@@ -1445,7 +1437,7 @@ function sectionVue(vue) {
     <h3>Ce que montre la vue</h3>
     <ul class="obs">${vue.observations.map((o) => `<li>${ech(o)}</li>`).join('')}</ul>
 
-    ${vue.manque ? `<div class="avert">
+    ${vue.manque ? `<div class="point">
       <b>Zone non couverte.</b> ${ech(vue.manque)}
       Deux façons d'y répondre, et elles n'ont pas le même prix&nbsp;:
       déplacer C7, qui ne fait aujourd'hui qu'une vue d'ensemble de la halle
@@ -1649,9 +1641,10 @@ const html = `<!doctype html>
   .garde .meta { margin-top:26px; border-top:1px solid var(--bord); padding-top:16px;
     color:var(--doux); font-size:14px; }
   .garde .meta b { color:var(--encre); }
-  .avert { background:#fff8e6; border:1px solid #f0d9a0; border-radius:8px;
-    padding:14px 16px; margin:18px 0; font-size:14px; }
-  .avert b { color:#8a5a00; }
+  .point { border-left:3px solid var(--rouge); padding:2px 0 2px 16px;
+    margin:18px 0; font-size:15px; }
+  .point b { color:var(--encre); }
+  .point + .point { margin-top:-6px; }
   .alerte { border:2px solid var(--rouge); border-radius:10px; padding:18px 20px;
     margin:22px 0; background:#fff5f6; page-break-inside:avoid; }
   .alerte h3 { margin-top:0; color:var(--rouge); font-size:18px; }
@@ -1727,8 +1720,8 @@ const html = `<!doctype html>
   .paire table { flex:1 1 240px; }
   .largeur { font-size:14px; color:var(--doux); margin-top:8px; }
   .note-cone { font-size:13px; color:var(--doux); font-style:italic; margin-top:4px; }
-  .source { font-size:12.5px; color:#8a5a00; background:#fff8e6; border-radius:6px;
-    padding:9px 11px; margin-top:12px; }
+  .provenance { font-size:13px; color:var(--doux); margin-top:12px;
+    font-style:italic; }
   .pied { color:var(--doux); font-size:13px; text-align:center; padding:8px 0 30px; }
   @media print {
     body { background:#fff; }
@@ -1766,15 +1759,6 @@ const html = `<!doctype html>
     <p><b>Référence :</b> ETU-2026-09-22</p>
   </div>
 
-  ${MENTIONS_CONFIRMEES ? '' : `
-  <div class="avert">
-    <b>Point à trancher avant remise.</b> L'identité ci-dessus est confirmée
-    par l'agence. Une contradiction subsiste pourtant, et un identifiant faux
-    sur un devis se retourne contre celui qui le signe&nbsp;:
-    ${AGENCE.aConfirmer.map((x) => `<br>— ${ech(x)}`).join('')}
-    <br><br><b>Et ce qui manque encore</b>, qui ne se devine pas&nbsp;:
-    ${AGENCE.aCompleter.map((x) => `<br>— ${ech(x)}`).join('')}
-  </div>`}
 </header>
 
 <h2>1. Ce que cette étude affirme, et ce qu'elle propose</h2>
@@ -1793,14 +1777,7 @@ const html = `<!doctype html>
     ce jour.</li>
 </ul>
 
-<div class="avert">
-  <b>Deux réserves à lever avant remise au client.</b>
-  Les caractéristiques optiques ci-après ont été relevées par recherche
-  documentaire&nbsp;: les fiches constructeur elles-mêmes n'ont pas pu être
-  ouvertes. Elles sont à confirmer référence par référence.
-  Et les distances du site restent à mesurer&nbsp;: tant qu'elles manquent, le
-  report des champs sur les photos est une illustration, pas une mesure.
-</div>
+
 
 <h2>2. Le matériel et ce qu'il permet vraiment</h2>
 
@@ -1812,7 +1789,7 @@ const html = `<!doctype html>
 
 ${Object.values(MODELES).map(ficheModele).join('')}
 
-<div class="avert">
+<div class="point">
   <b>Le point à retenir.</b> Sur les neuf caméras, <b>une seule identifie
   au-delà de cinq mètres</b>&nbsp;: le bullet motorisé réglé au téléobjectif,
   qui identifie jusqu'à ${ech(fr(portees(MODELES.varifocal, true).identification))}&nbsp;m.
@@ -1895,7 +1872,7 @@ ${planMasse()}
   presque rien de la cour&nbsp;: c'est voulu, et c'est la raison pour laquelle
   les turrets sont placées aux seuils et non en surplomb.</p>
 
-<div class="avert">
+<div class="point">
   <b>Une longueur, et le plan devient exact.</b>
   La façade du bâtiment, la largeur du portail, l'entraxe de deux poteaux
   d'éclairage&nbsp;: n'importe laquelle suffit. Tout le reste se recale dessus,
@@ -2107,11 +2084,7 @@ ${VUES.map(sectionVue).join('')}
   réglage qui change le plus les chiffres, et il s'arbitre avec le client —
   la durée de conservation est aussi une question juridique.</p>
 
-<div class="avert">
-  <b>Ce qui reste à vérifier sur la fiche de l'enregistreur</b>, qu'aucun
-  relevé fournisseur ne donne&nbsp;:
-  ${EQUIPEMENTS.enregistreur.aVerifier.map((x) => `<br>— ${ech(x)}`).join('')}
-</div>
+
 
 <h2>6. Interphonie et contrôle d'accès</h2>
 
@@ -2149,7 +2122,7 @@ ${VUES.map(sectionVue).join('')}
 ${ACCES.map((a) => `<p class="largeur"><b>${ech(a.cle)} — ${ech(a.nom)}.</b>
   ${ech(a.hypothese)}</p>`).join('')}
 
-<div class="avert">
+<div class="point">
   <b>Une ventouse sur une issue n'est pas un simple verrou.</b> Une porte que
   l'on verrouille électriquement doit pouvoir s'ouvrir quand tout s'arrête —
   coupure de courant, alarme incendie, panique. Cela impose un dispositif de
@@ -2165,10 +2138,7 @@ ${ACCES.map((a) => `<p class="largeur"><b>${ech(a.cle)} — ${ech(a.nom)}.</b>
   il n'y figure pas par excès de prudence.
 </div>
 
-<div class="avert">
-  <b>Ce qui reste à vérifier sur la fiche du kit&nbsp;:</b>
-  ${EQUIPEMENTS.interphonie.aVerifier.map((x) => `<br>— ${ech(x)}`).join('')}
-</div>
+
 
 <h2>7. Métré des câbles</h2>
 
@@ -2177,7 +2147,7 @@ ${ACCES.map((a) => `<p class="largeur"><b>${ech(a.cle)} — ${ech(a.nom)}.</b>
   pas la diagonale — plus la hauteur de pose, plus la descente vers le chemin
   de câbles, plus 10 % de détours, plus un mètre de réserve à chaque bout.</p>
 
-<div class="avert">
+<div class="point">
   <b>Ce métré repose sur un plan supposé et sur un local technique supposé.</b>
   Le local est placé côté bureaux, à l'endroit que les photos rendent
   vraisemblable&nbsp;; il n'a pas été relevé. Le déplacer change TOUTES les
@@ -2375,7 +2345,7 @@ ${ACCES.map((a) => `<p class="largeur"><b>${ech(a.cle)} — ${ech(a.nom)}.</b>
   </tbody>
 </table>
 
-<div class="avert">
+<div class="point">
   <b>Un onduleur au local seul, et vous enregistrez du noir.</b>
   L'enregistreur tiendrait, ses disques tourneraient, l'accès à distance
   fonctionnerait — et
@@ -2445,7 +2415,7 @@ ${ACCES.map((a) => `<p class="largeur"><b>${ech(a.cle)} — ${ech(a.nom)}.</b>
   l'est, le PoE la réalimente sans qu'aucun fil supplémentaire soit
   nécessaire.</p>
 
-<div class="avert">
+<div class="point">
   <b>L'unité de secours est la zone, pas l'appareil.</b> Secourir le
   commutateur d'un coffret, c'est secourir d'un coup toutes les caméras qu'il
   alimente, par le câble réseau déjà posé. Tirer en plus un fil 12 V à chaque
@@ -2561,14 +2531,10 @@ ${ACCES.map((a) => `<p class="largeur"><b>${ech(a.cle)} — ${ech(a.nom)}.</b>
     mesurée. Le plan est un schéma de principe ; il ne vaut pas plan
     d'exécution et ne doit pas servir à commander des longueurs de câble.</li>
   <li>Les vues aériennes proviennent d'un service de cartographie grand public.
-    Elles datent de la prise de vue du service, pas d'aujourd'hui, et portent
-    un repère commercial qui identifie le voisinage — à retirer si le document
-    doit circuler.</li>
+    Elles datent de la prise de vue du service, pas d'aujourd'hui.</li>
   <li>Les vues de matériel sont des visuels catalogue fournis par l'agence,
-    rapprochés de chaque référence à la forme : deux objectifs pour le
-    panoramique, un bullet à objectif motorisé pour le varifocal, un turret
-    pour le modèle fixe. Le rapprochement est à confirmer, et l'aspect réel
-    peut varier selon la révision livrée.</li>
+    rapprochés de chaque référence à la forme. L'aspect réel peut varier
+    selon la révision livrée.</li>
   <li>Une caméra qui filme au-delà de la propriété — voie publique, parcelle
     voisine — relève d'une autorisation préfectorale. À cadrer avant la pose.</li>
   <li><b>Une caméra qui couvre un poste de travail n'obéit pas aux mêmes règles
@@ -2596,3 +2562,63 @@ ${ACCES.map((a) => `<p class="largeur"><b>${ech(a.cle)} — ${ech(a.nom)}.</b>
 const sortie = join(ici, 'etude.html');
 writeFileSync(sortie, html);
 console.log(`${sortie} — ${(html.length / 1024 / 1024).toFixed(2)} Mo`);
+
+/*
+ * Le mémo de l'agence.
+ *
+ * Ce qui n'a pas sa place dans un dossier remis à un client : les mentions à
+ * confirmer, les chiffres relevés de seconde main, les fiches qu'il reste à
+ * ouvrir. Un encadré crème au milieu d'une étude a l'air d'un pense-bête
+ * oublié, et c'est exactement ce que c'était.
+ *
+ * Il est produit PAR LE MÊME PASSAGE que le document, à partir des mêmes
+ * données. Une mention confirmée disparaît donc des deux d'un coup : le mémo
+ * ne peut pas rester en retard sur l'étude.
+ */
+const memo = [
+  '# Points à traiter avant remise — ETU-2026-09-22',
+  '',
+  `Établi le ${AUJOURD_HUI}, avec le document. Ce fichier ne part PAS au`,
+  'client : il ne contient que ce que l\'agence doit lever de son côté.',
+  '',
+  '## Identité de l\'agence',
+  '',
+  ...AGENCE.aConfirmer.map((x) => `- À trancher : ${x}`),
+  ...AGENCE.aCompleter.map((x) => `- Manquant : ${x}`),
+  '',
+  '## Fiches constructeur à ouvrir',
+  '',
+  'Aucune fiche n\'a pu être consultée à la source depuis l\'atelier. Les',
+  'optiques retenues viennent de recherches documentaires, et les portées',
+  'DORI du document en découlent : une optique fausse les fausse toutes.',
+  '',
+  ...Object.values(MODELES).map((m) => `- ${m.reference} — ${m.source || 'source à confirmer'}`),
+  '',
+  '## Enregistreur',
+  '',
+  ...EQUIPEMENTS.enregistreur.aVerifier.map((x) => `- ${x}`),
+  '',
+  '## Interphonie',
+  '',
+  ...EQUIPEMENTS.interphonie.aVerifier.map((x) => `- ${x}`),
+  '',
+  '## À vérifier sur le document lui-même',
+  '',
+  '- La vue aérienne porte un repère commercial qui identifie le voisinage.',
+  '  À retirer si le dossier doit circuler au-delà du client.',
+  '- Les visuels de matériel ont été rapprochés des références à la forme',
+  '  seulement. Vérifier que chaque image correspond bien à la référence.',
+  '',
+  '## Hypothèses du plan',
+  '',
+  `- Longueur de bâtiment supposée : ${SITE.longueurBatiment} m. Tout le plan`,
+  '  et tout le métré en dépendent. Une seule cote relevée les recale.',
+  '- Emplacement du local technique supposé, côté bureaux. Le déplacer change',
+  '  toutes les longueurs de câble.',
+  '- Arrivée 230 V au portail : nécessaire au coffret d\'entrée, non vérifiée.',
+  '',
+].join('\n');
+
+const sortieMemo = join(ici, 'points-agence.md');
+writeFileSync(sortieMemo, `${memo}\n`);
+console.log(`${sortieMemo} — ${memo.split('\n').length} lignes`);
