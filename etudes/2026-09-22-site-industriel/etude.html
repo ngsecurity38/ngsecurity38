@@ -33,6 +33,14 @@
   figure.ensemble img { width:100%; display:block; border-radius:8px;
     border:1px solid var(--bord); }
   figure.ensemble figcaption { font-size:13.5px; color:var(--doux); margin-top:6px; }
+  svg.plan { width:100%; height:auto; display:block; border:1px solid var(--bord);
+    border-radius:8px; background:#fff; margin:14px 0 10px; }
+  .legende-plan { font-size:13.5px; color:var(--doux); }
+  .cles { display:flex; flex-wrap:wrap; gap:6px 22px; font-size:13px; color:var(--doux);
+    margin:0 0 10px; }
+  .cles span { display:flex; align-items:center; gap:7px; }
+  .cles i { width:22px; height:12px; border-radius:3px; display:block;
+    border:1px solid #c9cfd8; }
   .camera { border:1px solid var(--bord); border-radius:10px; padding:16px 18px;
     margin:16px 0; page-break-inside:avoid; }
   .puce { display:inline-block; min-width:34px; padding:2px 8px; border-radius:20px;
@@ -407,13 +415,199 @@
     définition : à relever un par un lors du passage.</li>
 </ul>
 
+<h3>Plan d'implantation</h3>
+
+<p>Les proportions du plan ci-dessous sont relevées sur la vue aérienne. Sa
+  dimension, elle, repose sur <b>une seule valeur supposée</b> : une longueur
+  de bâtiment de 75&nbsp;m. Les champs des caméras,
+  eux, sont exacts — ils ne dépendent que de l'optique. Ce que le plan montre
+  donc, c'est le rapport entre ce que couvrent vos caméras et l'étendue du
+  site&nbsp;; ce rapport se corrige d'un chiffre.</p>
+
+<svg viewBox="0 0 1053 900" class="plan" role="img"
+    aria-label="Plan d'implantation des neuf caméras, avec leurs champs">
+    <defs><clipPath id="cadre">
+      <rect x="0" y="0" width="1053" height="900"/>
+    </clipPath></defs>
+    <g clip-path="url(#cadre)">
+      <rect x="0.0" y="306.0" width="1053.0"
+    height="558.0" fill="#eceef1"/>
+      <rect x="108.0" y="108.0" width="675.0"
+    height="198.0" fill="#dfe3e9"/>
+      <rect x="783.0" y="108.0" width="162.0"
+    height="90.0" fill="#eef0f3"/>
+      <g>
+      <path d="M 187.2 612.0 L 456.4 1616.7 A 1040.2 1040.2
+      0 0 1 -82.0 1616.7 Z" fill="#5b6472" opacity="0.16"/>
+      <path d="M 187.2 612.0 L 320.7 1110.3 A 515.9 515.9
+      0 0 1 53.7 1110.3 Z" fill="#9d0c24" opacity="0.22"/>
+      <path d="M 187.2 612.0 L 254.0 861.2 A 258.0 258.0
+      0 0 1 120.4 861.2 Z" fill="#c8102e" opacity="0.5"/>
+    </g><g>
+      <path d="M 259.2 612.0 L 384.3 716.6 A 163.1 163.1
+      0 0 1 134.1 716.6 Z" fill="#5b6472" opacity="0.16"/>
+      <path d="M 259.2 612.0 L 321.3 663.9 A 80.9 80.9
+      0 0 1 197.1 663.9 Z" fill="#9d0c24" opacity="0.22"/>
+      <path d="M 259.2 612.0 L 290.2 638.0 A 40.5 40.5
+      0 0 1 228.2 638.0 Z" fill="#c8102e" opacity="0.5"/>
+    </g><g>
+      <path d="M 270.0 319.5 L 455.0 401.9 A 202.5 202.5
+      0 0 1 134.5 470.0 Z" fill="#5b6472" opacity="0.16"/>
+      <path d="M 270.0 319.5 L 361.8 360.4 A 100.4 100.4
+      0 0 1 202.8 394.1 Z" fill="#9d0c24" opacity="0.22"/>
+      <path d="M 270.0 319.5 L 315.9 339.9 A 50.2 50.2
+      0 0 1 236.4 356.8 Z" fill="#c8102e" opacity="0.5"/>
+    </g><g>
+      <path d="M 972.0 585.0 L 1009.7 688.7 A 110.3 110.3
+      0 0 1 934.3 481.3 Z" fill="#5b6472" opacity="0.16"/>
+      <path d="M 972.0 585.0 L 990.7 636.4 A 54.7 54.7
+      0 0 1 953.3 533.6 Z" fill="#9d0c24" opacity="0.22"/>
+      <path d="M 972.0 585.0 L 981.4 610.7 A 27.4 27.4
+      0 0 1 962.6 559.3 Z" fill="#c8102e" opacity="0.5"/>
+    </g><g>
+      <path d="M 621.0 319.5 L 602.8 1359.5 A 1040.2 1040.2
+      0 0 1 85.3 1211.1 Z" fill="#5b6472" opacity="0.16"/>
+      <path d="M 621.0 319.5 L 612.0 835.3 A 515.9 515.9
+      0 0 1 355.3 761.7 Z" fill="#9d0c24" opacity="0.22"/>
+      <path d="M 621.0 319.5 L 616.5 577.4 A 258.0 258.0
+      0 0 1 488.1 540.6 Z" fill="#c8102e" opacity="0.5"/>
+    </g><g>
+      <path d="M 499.5 319.5 L 624.6 424.1 A 163.1 163.1
+      0 0 1 374.4 424.1 Z" fill="#5b6472" opacity="0.16"/>
+      <path d="M 499.5 319.5 L 561.6 371.4 A 80.9 80.9
+      0 0 1 437.4 371.4 Z" fill="#9d0c24" opacity="0.22"/>
+      <path d="M 499.5 319.5 L 530.5 345.5 A 40.5 40.5
+      0 0 1 468.5 345.5 Z" fill="#c8102e" opacity="0.5"/>
+    </g><g>
+      <path d="M 139.5 230.8 L 244.1 105.6 A 163.1 163.1
+      0 0 1 244.1 355.9 Z" fill="#5b6472" opacity="0.16"/>
+      <path d="M 139.5 230.8 L 191.4 168.7 A 80.9 80.9
+      0 0 1 191.4 292.8 Z" fill="#9d0c24" opacity="0.22"/>
+      <path d="M 139.5 230.8 L 165.5 199.7 A 40.5 40.5
+      0 0 1 165.5 261.8 Z" fill="#c8102e" opacity="0.5"/>
+    </g><g>
+      <path d="M 751.5 230.8 L 646.9 355.9 A 163.1 163.1
+      0 0 1 646.9 105.6 Z" fill="#5b6472" opacity="0.16"/>
+      <path d="M 751.5 230.8 L 699.6 292.8 A 80.9 80.9
+      0 0 1 699.6 168.7 Z" fill="#9d0c24" opacity="0.22"/>
+      <path d="M 751.5 230.8 L 725.5 261.8 A 40.5 40.5
+      0 0 1 725.5 199.7 Z" fill="#c8102e" opacity="0.5"/>
+    </g><g>
+      <path d="M 459.0 135.0 L 584.1 239.6 A 163.1 163.1
+      0 0 1 333.9 239.6 Z" fill="#5b6472" opacity="0.16"/>
+      <path d="M 459.0 135.0 L 521.1 186.9 A 80.9 80.9
+      0 0 1 396.9 186.9 Z" fill="#9d0c24" opacity="0.22"/>
+      <path d="M 459.0 135.0 L 490.0 161.0 A 40.5 40.5
+      0 0 1 428.0 161.0 Z" fill="#c8102e" opacity="0.5"/>
+    </g>
+      <rect x="0.0" y="306.0" width="1053.0"
+    height="558.0" fill="none" stroke="#c9cfd8" stroke-width="1"/>
+      <rect x="108.0" y="108.0" width="675.0"
+    height="198.0" fill="none" stroke="#5b6472" stroke-width="1.6"/>
+      <rect x="783.0" y="108.0" width="162.0"
+    height="90.0" fill="none" stroke="#5b6472" stroke-width="1.6"/>
+      <rect x="310.5" y="306.0" width="438.8"
+    height="31.5" fill="none" stroke="#5b6472" stroke-width="1" stroke-dasharray="5 3"/>
+      <text x="135.0" y="162.0"
+        font-size="13" font-weight="700" fill="#5b6472">HALLE</text>
+      <text x="864.0" y="157.5"
+        font-size="9.5" font-weight="700" fill="#5b6472" text-anchor="middle">BUREAUX</text>
+      <text x="324.0" y="328.5"
+        font-size="9.5" fill="#5b6472">quais de chargement</text>
+      <text x="27.0" y="396.0"
+        font-size="13" font-weight="700" fill="#8a9099">COUR</text>
+      <rect x="43.2" y="810.0" width="63.0"
+        height="7.2" fill="#1a1d23"/>
+      <text x="43.2" y="846.0" font-size="11"
+        font-weight="700" fill="#1a1d23">PORTAIL</text>
+      <g>
+      <circle cx="187.2" cy="612.0" r="8.5" fill="#1a1d23"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="187.2" y="615.4" font-size="9.5"
+        font-weight="700" fill="#fff" text-anchor="middle">C1</text>
+    </g><g>
+      <circle cx="259.2" cy="612.0" r="8.5" fill="#1a1d23"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="259.2" y="615.4" font-size="9.5"
+        font-weight="700" fill="#fff" text-anchor="middle">C2</text>
+    </g><g>
+      <circle cx="270.0" cy="319.5" r="8.5" fill="#1a1d23"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="270.0" y="322.9" font-size="9.5"
+        font-weight="700" fill="#fff" text-anchor="middle">C3</text>
+    </g><g>
+      <circle cx="972.0" cy="585.0" r="8.5" fill="#1a1d23"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="972.0" y="588.4" font-size="9.5"
+        font-weight="700" fill="#fff" text-anchor="middle">C4</text>
+    </g><g>
+      <circle cx="621.0" cy="319.5" r="8.5" fill="#1a1d23"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="621.0" y="322.9" font-size="9.5"
+        font-weight="700" fill="#fff" text-anchor="middle">C5</text>
+    </g><g>
+      <circle cx="499.5" cy="319.5" r="8.5" fill="#1a1d23"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="499.5" y="322.9" font-size="9.5"
+        font-weight="700" fill="#fff" text-anchor="middle">C6</text>
+    </g><g>
+      <circle cx="139.5" cy="230.8" r="8.5" fill="#1a1d23"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="139.5" y="234.2" font-size="9.5"
+        font-weight="700" fill="#fff" text-anchor="middle">C7</text>
+    </g><g>
+      <circle cx="751.5" cy="230.8" r="8.5" fill="#1a1d23"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="751.5" y="234.2" font-size="9.5"
+        font-weight="700" fill="#fff" text-anchor="middle">C8</text>
+    </g><g>
+      <circle cx="459.0" cy="135.0" r="8.5" fill="#1a1d23"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="459.0" y="138.4" font-size="9.5"
+        font-weight="700" fill="#fff" text-anchor="middle">C9</text>
+    </g>
+      <g stroke="#1a1d23" stroke-width="1" fill="#1a1d23">
+    <line x1="108.0" y1="63.0"
+      x2="783.0" y2="63.0"/>
+    <line x1="108.0" y1="45.0" x2="108.0"
+      y2="81.0"/>
+    <line x1="783.0" y1="45.0"
+      x2="783.0" y2="81.0"/>
+    <text x="445.5" y="40.5"
+      font-size="12.5" font-weight="700" text-anchor="middle" stroke="none"
+      >75 m — longueur supposée, à confirmer</text>
+  </g>
+      <g stroke="#1a1d23" stroke-width="1.5" fill="#1a1d23">
+    <line x1="783.0" y1="855.0" x2="963.0" y2="855.0"/>
+    <line x1="783.0" y1="841.5" x2="783.0" y2="868.5"/>
+    <line x1="963.0" y1="841.5" x2="963.0" y2="868.5"/>
+    <text x="873.0" y="832.5" font-size="11" text-anchor="middle"
+      stroke="none">20 m</text>
+  </g>
+    </g>
+  </svg>
+
+<p class="cles">
+  <span><i style="background:#c8102e;opacity:.5"></i> identifie un inconnu</span>
+  <span><i style="background:#9d0c24;opacity:.22"></i> reconnaît une personne connue</span>
+  <span><i style="background:#5b6472;opacity:.16"></i> observe une action</span>
+</p>
+
+<p class="legende-plan"><b>Lecture.</b> Chaque secteur montre trois profondeurs
+  pour une même caméra&nbsp;: en gris clair jusqu'où elle permet d'observer une
+  action, en rouge sombre jusqu'où elle permet de reconnaître une personne
+  connue, en rouge vif jusqu'où elle identifie un inconnu. C'est le rouge vif
+  qui compte devant un tribunal, et l'on voit d'un coup d'œil qu'il ne couvre
+  presque rien de la cour&nbsp;: c'est voulu, et c'est la raison pour laquelle
+  les turrets sont placées aux seuils et non en surplomb.</p>
+
 <div class="avert">
-  <b>Ce qui manque pour tracer le plan d'implantation.</b>
-  Une seule longueur. La façade du bâtiment, la largeur du portail, l'entraxe
-  de deux poteaux d'éclairage&nbsp;: n'importe laquelle suffit, et tout le reste
-  s'en déduit par report sur la vue aérienne. Tant qu'elle manque, aucun plan à
-  l'échelle ne peut être produit — et un plan tracé au jugé serait pire
-  qu'aucun plan.
+  <b>Une longueur, et le plan devient exact.</b>
+  La façade du bâtiment, la largeur du portail, l'entraxe de deux poteaux
+  d'éclairage&nbsp;: n'importe laquelle suffit. Tout le reste se recale dessus,
+  y compris les longueurs de câble et les distances de pose. Tant qu'elle n'est
+  pas confirmée, <b>ce plan vaut comme schéma de principe, pas comme document
+  d'exécution</b>.
 </div>
 
 <section class="vue">
@@ -753,6 +947,10 @@
     prix&nbsp;: aucun montant n'y figure.</li>
   <li>Les caractéristiques optiques sont à confirmer sur les fiches
     constructeur des références exactes commandées.</li>
+  <li>Le plan d'implantation est tracé pour une longueur de bâtiment supposée
+    de 75 m. Aucune dimension du site n'a été
+    mesurée. Le plan est un schéma de principe ; il ne vaut pas plan
+    d'exécution et ne doit pas servir à commander des longueurs de câble.</li>
   <li>Les vues aériennes proviennent d'un service de cartographie grand public.
     Elles datent de la prise de vue du service, pas d'aujourd'hui, et portent
     un repère commercial qui identifie le voisinage — à retirer si le document

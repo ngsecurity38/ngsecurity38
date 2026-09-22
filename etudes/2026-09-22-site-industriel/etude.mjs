@@ -497,6 +497,184 @@ function bandeSurPhoto(vue, cam) {
   </div>`;
 }
 
+/* --------------------------------------------------------- le plan masse */
+
+/**
+ * LES DIMENSIONS DU SITE — TOUTES ESTIMÉES.
+ *
+ * Aucune n'a été mesurée. Elles sont déduites des proportions lues sur la vue
+ * aérienne, rapportées à une longueur de bâtiment supposée. C'est écrit sur
+ * le plan lui-même, en toutes lettres, et ce n'est pas une précaution de
+ * style : un plan d'implantation que l'on croirait mesuré conduirait à
+ * commander des câbles trop courts et à poser une caméra là où elle ne voit
+ * rien.
+ *
+ * UNE SEULE VALEUR À CORRIGER. `longueurBatiment` ci-dessous. Tout le reste
+ * en découle : les proportions, elles, viennent bien de la vue aérienne.
+ */
+const SITE = {
+  longueurBatiment: 75,
+  profondeurBatiment: 22,
+  annexe: { longueur: 18, profondeur: 10 },
+  cour: { profondeur: 62 },
+  marge: 12,
+  estime: true,
+};
+
+/** Repère du plan : mètres, origine en haut à gauche du terrain. */
+const PLAN = (() => {
+  const b = SITE.longueurBatiment;
+  const p = SITE.profondeurBatiment;
+  const m = SITE.marge;
+  const bat = { x: m, y: m, l: b, p };
+  const annexe = {
+    x: bat.x + bat.l, y: bat.y, l: SITE.annexe.longueur, p: SITE.annexe.profondeur,
+  };
+  const cour = {
+    x: 0, y: bat.y + bat.p, l: bat.l + annexe.l + m * 2, p: SITE.cour.profondeur,
+  };
+  return {
+    bat,
+    annexe,
+    cour,
+    quai: { x: bat.x + bat.l * 0.3, y: bat.y + bat.p, l: bat.l * 0.65, p: 3.5 },
+    portail: { x: m * 0.4, y: cour.y + cour.p - 6, l: 7 },
+    largeur: cour.l,
+    hauteur: cour.y + cour.p + 4,
+  };
+})();
+
+/**
+ * Où va chaque caméra, et dans quelle direction.
+ *
+ * `azimut` en degrés, 0 = vers le haut du plan, sens horaire. Ce ne sont pas
+ * des points relevés : ce sont les emplacements que les photos et la vue
+ * aérienne désignent, à confirmer au passage.
+ *
+ * Les deux caméras d'entrée sont posées EN RETRAIT du portail et regardent
+ * vers lui. C'est la seule façon de tenir une plaque : le véhicule entre dans
+ * le champ de face, et le téléobjectif l'identifie à vingt-huit mètres. Une
+ * caméra posée sur le portail même ne verrait que des toits de voiture.
+ */
+const IMPLANTATION = {
+  C1: { x: PLAN.portail.x + 16, y: PLAN.portail.y - 22, azimut: 180 },
+  C2: { x: PLAN.portail.x + 24, y: PLAN.portail.y - 22, azimut: 180 },
+  C3: { x: PLAN.bat.x + PLAN.bat.l * 0.24, y: PLAN.cour.y + 1.5, azimut: 168 },
+  C4: { x: PLAN.cour.x + PLAN.cour.l - 9, y: PLAN.cour.y + PLAN.cour.p * 0.5, azimut: 250 },
+  C5: { x: PLAN.bat.x + PLAN.bat.l * 0.76, y: PLAN.cour.y + 1.5, azimut: 196 },
+  C6: { x: PLAN.bat.x + PLAN.bat.l * 0.58, y: PLAN.cour.y + 1.5, azimut: 180 },
+  C7: { x: PLAN.bat.x + 3.5, y: PLAN.bat.y + PLAN.bat.p * 0.62, azimut: 90 },
+  C8: { x: PLAN.bat.x + PLAN.bat.l - 3.5, y: PLAN.bat.y + PLAN.bat.p * 0.62, azimut: 270 },
+  C9: { x: PLAN.bat.x + PLAN.bat.l * 0.52, y: PLAN.bat.y + 3, azimut: 180 },
+};
+
+/**
+ * Le plan d'implantation, à l'échelle de la longueur supposée.
+ *
+ * L'ordre de tracé compte : le fond, puis les bâtiments PLEINS, puis les
+ * champs, puis les contours. Les champs des caméras intérieures se voyaient
+ * autrement recouverts par la halle, et le plan donnait à croire qu'elles ne
+ * couvraient rien.
+ */
+function planMasse() {
+  const E = 9; // pixels par mètre
+  const L = PLAN.largeur * E;
+  const H = PLAN.hauteur * E;
+  const px = (m) => (m * E).toFixed(1);
+  const rect = (r, attrs) => `<rect x="${px(r.x)}" y="${px(r.y)}" width="${px(r.l)}"
+    height="${px(r.p)}" ${attrs}/>`;
+
+  /** Un secteur circulaire, en mètres, sur le plan. */
+  const secteur = (c, rayon, angle, couleur, opacite) => {
+    const a0 = ((c.azimut - angle / 2) * Math.PI) / 180;
+    const a1 = ((c.azimut + angle / 2) * Math.PI) / 180;
+    const pt = (a) => [px(c.x + rayon * Math.sin(a)), px(c.y - rayon * Math.cos(a))];
+    const [x0, y0] = pt(a0);
+    const [x1, y1] = pt(a1);
+    const grand = angle > 180 ? 1 : 0;
+    return `<path d="M ${px(c.x)} ${px(c.y)} L ${x0} ${y0} A ${px(rayon)} ${px(rayon)}
+      0 ${grand} 1 ${x1} ${y1} Z" fill="${couleur}" opacity="${opacite}"/>`;
+  };
+
+  const champs = CAMERAS.map((cam) => {
+    const c = IMPLANTATION[cam.cle];
+    const m = MODELES[cam.modele];
+    const o = optiqueUtile(m, cam.tele);
+    const p = portees(m, cam.tele);
+    // Le panoramique couvre le double de ce que dit son capteur unique.
+    const angle = m.capteurUnique ? 180 : o.angleH;
+    return `<g>
+      ${secteur(c, p.observation, angle, '#5b6472', 0.16)}
+      ${secteur(c, p.reconnaissance, angle, '#9d0c24', 0.22)}
+      ${secteur(c, p.identification, angle, '#c8102e', 0.5)}
+    </g>`;
+  }).join('');
+
+  const pastilles = CAMERAS.map((cam) => {
+    const c = IMPLANTATION[cam.cle];
+    return `<g>
+      <circle cx="${px(c.x)}" cy="${px(c.y)}" r="8.5" fill="#1a1d23"
+        stroke="#fff" stroke-width="1.5"/>
+      <text x="${px(c.x)}" y="${(c.y * E + 3.4).toFixed(1)}" font-size="9.5"
+        font-weight="700" fill="#fff" text-anchor="middle">${ech(cam.cle)}</text>
+    </g>`;
+  }).join('');
+
+  const cote = `<g stroke="#1a1d23" stroke-width="1" fill="#1a1d23">
+    <line x1="${px(PLAN.bat.x)}" y1="${px(PLAN.bat.y - 5)}"
+      x2="${px(PLAN.bat.x + PLAN.bat.l)}" y2="${px(PLAN.bat.y - 5)}"/>
+    <line x1="${px(PLAN.bat.x)}" y1="${px(PLAN.bat.y - 7)}" x2="${px(PLAN.bat.x)}"
+      y2="${px(PLAN.bat.y - 3)}"/>
+    <line x1="${px(PLAN.bat.x + PLAN.bat.l)}" y1="${px(PLAN.bat.y - 7)}"
+      x2="${px(PLAN.bat.x + PLAN.bat.l)}" y2="${px(PLAN.bat.y - 3)}"/>
+    <text x="${px(PLAN.bat.x + PLAN.bat.l / 2)}" y="${px(PLAN.bat.y - 7.5)}"
+      font-size="12.5" font-weight="700" text-anchor="middle" stroke="none"
+      >${ech(SITE.longueurBatiment)} m — longueur supposée, à confirmer</text>
+  </g>`;
+
+  const xE = PLAN.largeur - 30;
+  const yE = PLAN.hauteur - 5;
+  const echelle = `<g stroke="#1a1d23" stroke-width="1.5" fill="#1a1d23">
+    <line x1="${px(xE)}" y1="${px(yE)}" x2="${px(xE + 20)}" y2="${px(yE)}"/>
+    <line x1="${px(xE)}" y1="${px(yE - 1.5)}" x2="${px(xE)}" y2="${px(yE + 1.5)}"/>
+    <line x1="${px(xE + 20)}" y1="${px(yE - 1.5)}" x2="${px(xE + 20)}" y2="${px(yE + 1.5)}"/>
+    <text x="${px(xE + 10)}" y="${px(yE - 2.5)}" font-size="11" text-anchor="middle"
+      stroke="none">20 m</text>
+  </g>`;
+
+  return `<svg viewBox="0 0 ${L.toFixed(0)} ${H.toFixed(0)}" class="plan" role="img"
+    aria-label="Plan d'implantation des neuf caméras, avec leurs champs">
+    <defs><clipPath id="cadre">
+      <rect x="0" y="0" width="${L.toFixed(0)}" height="${H.toFixed(0)}"/>
+    </clipPath></defs>
+    <g clip-path="url(#cadre)">
+      ${rect(PLAN.cour, 'fill="#eceef1"')}
+      ${rect(PLAN.bat, 'fill="#dfe3e9"')}
+      ${rect(PLAN.annexe, 'fill="#eef0f3"')}
+      ${champs}
+      ${rect(PLAN.cour, 'fill="none" stroke="#c9cfd8" stroke-width="1"')}
+      ${rect(PLAN.bat, 'fill="none" stroke="#5b6472" stroke-width="1.6"')}
+      ${rect(PLAN.annexe, 'fill="none" stroke="#5b6472" stroke-width="1.6"')}
+      ${rect(PLAN.quai, 'fill="none" stroke="#5b6472" stroke-width="1" stroke-dasharray="5 3"')}
+      <text x="${px(PLAN.bat.x + 3)}" y="${px(PLAN.bat.y + 6)}"
+        font-size="13" font-weight="700" fill="#5b6472">HALLE</text>
+      <text x="${px(PLAN.annexe.x + PLAN.annexe.l / 2)}" y="${px(PLAN.annexe.y + 5.5)}"
+        font-size="9.5" font-weight="700" fill="#5b6472" text-anchor="middle">BUREAUX</text>
+      <text x="${px(PLAN.quai.x + 1.5)}" y="${px(PLAN.quai.y + 2.5)}"
+        font-size="9.5" fill="#5b6472">quais de chargement</text>
+      <text x="${px(PLAN.cour.x + 3)}" y="${px(PLAN.cour.y + 10)}"
+        font-size="13" font-weight="700" fill="#8a9099">COUR</text>
+      <rect x="${px(PLAN.portail.x)}" y="${px(PLAN.portail.y)}" width="${px(PLAN.portail.l)}"
+        height="${px(0.8)}" fill="#1a1d23"/>
+      <text x="${px(PLAN.portail.x)}" y="${px(PLAN.portail.y + 4)}" font-size="11"
+        font-weight="700" fill="#1a1d23">PORTAIL</text>
+      ${pastilles}
+      ${cote}
+      ${echelle}
+    </g>
+  </svg>`;
+}
+
 /* ------------------------------------------------------------ le document */
 
 const lignesDori = (m, tele) => {
@@ -633,6 +811,14 @@ const html = `<!doctype html>
   figure.ensemble img { width:100%; display:block; border-radius:8px;
     border:1px solid var(--bord); }
   figure.ensemble figcaption { font-size:13.5px; color:var(--doux); margin-top:6px; }
+  svg.plan { width:100%; height:auto; display:block; border:1px solid var(--bord);
+    border-radius:8px; background:#fff; margin:14px 0 10px; }
+  .legende-plan { font-size:13.5px; color:var(--doux); }
+  .cles { display:flex; flex-wrap:wrap; gap:6px 22px; font-size:13px; color:var(--doux);
+    margin:0 0 10px; }
+  .cles span { display:flex; align-items:center; gap:7px; }
+  .cles i { width:22px; height:12px; border-radius:3px; display:block;
+    border:1px solid #c9cfd8; }
   .camera { border:1px solid var(--bord); border-radius:10px; padding:16px 18px;
     margin:16px 0; page-break-inside:avoid; }
   .puce { display:inline-block; min-width:34px; padding:2px 8px; border-radius:20px;
@@ -777,13 +963,38 @@ ${ENSEMBLE.map((v) => `<figure class="ensemble">
     définition : à relever un par un lors du passage.</li>
 </ul>
 
+<h3>Plan d'implantation</h3>
+
+<p>Les proportions du plan ci-dessous sont relevées sur la vue aérienne. Sa
+  dimension, elle, repose sur <b>une seule valeur supposée</b> : une longueur
+  de bâtiment de ${ech(SITE.longueurBatiment)}&nbsp;m. Les champs des caméras,
+  eux, sont exacts — ils ne dépendent que de l'optique. Ce que le plan montre
+  donc, c'est le rapport entre ce que couvrent vos caméras et l'étendue du
+  site&nbsp;; ce rapport se corrige d'un chiffre.</p>
+
+${planMasse()}
+
+<p class="cles">
+  <span><i style="background:#c8102e;opacity:.5"></i> identifie un inconnu</span>
+  <span><i style="background:#9d0c24;opacity:.22"></i> reconnaît une personne connue</span>
+  <span><i style="background:#5b6472;opacity:.16"></i> observe une action</span>
+</p>
+
+<p class="legende-plan"><b>Lecture.</b> Chaque secteur montre trois profondeurs
+  pour une même caméra&nbsp;: en gris clair jusqu'où elle permet d'observer une
+  action, en rouge sombre jusqu'où elle permet de reconnaître une personne
+  connue, en rouge vif jusqu'où elle identifie un inconnu. C'est le rouge vif
+  qui compte devant un tribunal, et l'on voit d'un coup d'œil qu'il ne couvre
+  presque rien de la cour&nbsp;: c'est voulu, et c'est la raison pour laquelle
+  les turrets sont placées aux seuils et non en surplomb.</p>
+
 <div class="avert">
-  <b>Ce qui manque pour tracer le plan d'implantation.</b>
-  Une seule longueur. La façade du bâtiment, la largeur du portail, l'entraxe
-  de deux poteaux d'éclairage&nbsp;: n'importe laquelle suffit, et tout le reste
-  s'en déduit par report sur la vue aérienne. Tant qu'elle manque, aucun plan à
-  l'échelle ne peut être produit — et un plan tracé au jugé serait pire
-  qu'aucun plan.
+  <b>Une longueur, et le plan devient exact.</b>
+  La façade du bâtiment, la largeur du portail, l'entraxe de deux poteaux
+  d'éclairage&nbsp;: n'importe laquelle suffit. Tout le reste se recale dessus,
+  y compris les longueurs de câble et les distances de pose. Tant qu'elle n'est
+  pas confirmée, <b>ce plan vaut comme schéma de principe, pas comme document
+  d'exécution</b>.
 </div>
 
 ${VUES.map(sectionVue).join('')}
@@ -853,6 +1064,10 @@ ${VUES.map(sectionVue).join('')}
     prix&nbsp;: aucun montant n'y figure.</li>
   <li>Les caractéristiques optiques sont à confirmer sur les fiches
     constructeur des références exactes commandées.</li>
+  <li>Le plan d'implantation est tracé pour une longueur de bâtiment supposée
+    de ${ech(SITE.longueurBatiment)} m. Aucune dimension du site n'a été
+    mesurée. Le plan est un schéma de principe ; il ne vaut pas plan
+    d'exécution et ne doit pas servir à commander des longueurs de câble.</li>
   <li>Les vues aériennes proviennent d'un service de cartographie grand public.
     Elles datent de la prise de vue du service, pas d'aujourd'hui, et portent
     un repère commercial qui identifie le voisinage — à retirer si le document
