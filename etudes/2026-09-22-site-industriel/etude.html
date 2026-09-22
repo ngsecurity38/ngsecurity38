@@ -3240,8 +3240,8 @@
 
 <h2>5. Enregistrement et stockage</h2>
 
-<p>L'enregistreur retenu est un <b>Hikvision DS-7616NXI-K2/…</b> —
-  Enregistreur réseau 16 voies AcuSense, 2 baies SATA. Le dimensionnement ci-dessous est
+<p>L'enregistreur retenu est un <b>Hikvision DS-7616NXI-K2/16P</b> —
+  Enregistreur réseau 16 voies AcuSense, 2 baies SATA, 16 ports PoE intégrés. Le dimensionnement ci-dessous est
   calculé sur un codec H.265 et un enregistrement continu ; un débit réel
   relevé à la mise en service le remplacera.</p>
 
@@ -3278,6 +3278,47 @@
   64,9 Mbit/s, soit
   41 %
   — l'extension tient donc dans la machine.</p>
+
+<h3>Ce que les seize ports PoE changent</h3>
+
+<p>La variante retenue est la <b>/16P</b> : l'enregistreur porte ses seize
+  ports PoE. <b>Le commutateur séparé sort du projet</b> — il n'a plus rien à
+  alimenter que l'enregistreur n'alimente déjà.</p>
+
+<p>Les deux coffrets déportés, eux, restent nécessaires. Ils ne répondaient
+  pas à un manque de ports mais à une question de distance, et cette
+  question-là ne change pas avec le modèle d'enregistreur.</p>
+
+<table>
+  <tbody>
+    <tr><td>Caméras raccordées directement à l'enregistreur</td>
+      <td class="n"><b>5</b> —
+        C3, C5, C6, C7, C9</td></tr>
+    <tr><td>Caméras raccordées derrière un coffret</td>
+      <td class="n"><b>4</b> —
+        C1, C2, C4, C8</td></tr>
+    <tr><td>Liaisons montantes des coffrets</td>
+      <td class="n"><b>2</b></td></tr>
+    <tr><td><b>Ports occupés sur l'enregistreur</b></td>
+      <td class="n"><b>7</b> sur
+        16 — il en reste
+        9</td></tr>
+    <tr><td>Avec les 5 caméras d'extension</td>
+      <td class="n"><b>11</b> ports occupés</td></tr>
+  </tbody>
+</table>
+
+<p class="largeur">Une caméra posée derrière un coffret n'occupe pas un port
+  de l'enregistreur&nbsp;: elle occupe un port du coffret, et c'est la liaison
+  montante qui consomme le port. Les compter autrement ferait croire la
+  machine plus chargée qu'elle n'est.</p>
+
+<p class="largeur"><b>Seize ports ne veulent pas dire seize caméras
+  alimentées.</b> Un enregistreur distribue une puissance TOTALE, et les
+  caméras à infrarouge et à stroboscope sont les plus gourmandes du parc.
+  Ce budget en watts ne figure pas au relevé fournisseur&nbsp;: c'est le
+  chiffre à relever sur la fiche avant de considérer l'alimentation comme
+  réglée.</p>
 
 <h3>Les deux disques</h3>
 
@@ -3325,9 +3366,9 @@
   la durée de conservation est aussi une question juridique.</p>
 
 <div class="avert">
-  <b>Trois points à vérifier sur la fiche de l'enregistreur</b>, qu'aucun
+  <b>Ce qui reste à vérifier sur la fiche de l'enregistreur</b>, qu'aucun
   relevé fournisseur ne donne&nbsp;:
-  <br>— La variante exacte. La référence du relevé s&#39;arrête sur une barre oblique : « DS-7616NXI-K2/… ». Le suffixe décide de tout — un K2/16P embarque seize ports PoE et rend le commutateur inutile, un K2 nu impose de l&#39;acheter. Cette étude retient le K2 nu, puisqu&#39;un commutateur est demandé par ailleurs.<br>— La capacité maximale admise par baie. Elle n&#39;est pas au relevé, et elle conditionne le choix des disques ci-dessus.<br>— La présence et le niveau de RAID. Un deux-baies ne fait pas toujours de miroir ; sans miroir, la perte d&#39;un disque emporte sa part des images.
+  <br>— Le budget PoE total des seize ports, en watts. Seize ports ne veulent pas dire seize caméras alimentées : un enregistreur distribue une puissance totale, et les caméras à infrarouge et à stroboscope sont les plus gourmandes du parc. C&#39;est le chiffre qui manque au relevé et qui décide si tout tient sur la machine.<br>— Comment les coffrets déportés s&#39;y raccordent. Un commutateur placé derrière un port PoE d&#39;enregistreur Hikvision fonctionne, mais sort de la reconnaissance automatique : les caméras qui sont derrière s&#39;ajoutent alors à la main, par leur adresse. Le raccordement par le port réseau est plus sain. À arrêter à la mise en service, pas sur le chantier.<br>— La capacité maximale admise par baie. Elle n&#39;est pas au relevé, et elle conditionne le choix des disques ci-dessus.<br>— La présence et le niveau de RAID. Un deux-baies ne fait pas toujours de miroir ; sans miroir, la perte d&#39;un disque emporte sa part des images.
 </div>
 
 <h2>6. Interphonie et contrôle d'accès</h2>
@@ -3390,7 +3431,7 @@
 </div>
 
 <div class="avert">
-  <b>Trois points à vérifier sur la fiche du kit&nbsp;:</b>
+  <b>Ce qui reste à vérifier sur la fiche du kit&nbsp;:</b>
   <br>— Le nombre de ports du commutateur fourni, et son budget PoE. Le kit alimente au moins la platine et le moniteur ; savoir s&#39;il peut porter davantage évite d&#39;en acheter un second.<br>— Les contacts de commande disponibles sur la platine : nature (sec ou alimenté), nombre, pouvoir de coupure. C&#39;est ce qui décide si la platine commande directement le verrouillage ou passe par un relais.<br>— La compatibilité des badges déjà en service sur le site, le cas échéant. Le 13,56 MHz recouvre plusieurs protocoles qui ne se lisent pas entre eux.
 </div>
 

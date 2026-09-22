@@ -180,10 +180,13 @@ const MODELES = {
  */
 const EQUIPEMENTS = {
   enregistreur: {
-    reference: 'Hikvision DS-7616NXI-K2/…',
-    type: 'Enregistreur réseau 16 voies AcuSense, 2 baies SATA',
+    reference: 'Hikvision DS-7616NXI-K2/16P',
+    type: 'Enregistreur réseau 16 voies AcuSense, 2 baies SATA, 16 ports PoE intégrés',
     canaux: 16,
     baies: 2,
+    // Confirmé par l'agence : c'est bien la variante /16P, celle qui porte
+    // ses seize ports PoE. Le commutateur séparé sort donc du projet.
+    portsPoe: 16,
     // Mbit/s, entrée comme sortie. C'est le chiffre qui plafonne le parc
     // bien avant le nombre de voies : seize caméras 12 MP dépasseraient
     // cette bande passante longtemps avant d'avoir épuisé les canaux.
@@ -191,11 +194,17 @@ const EQUIPEMENTS = {
     resolutionMax: '12 MP',
     codec: 'H.265+',
     aVerifier: [
-      'La variante exacte. La référence du relevé s\'arrête sur une barre '
-        + 'oblique : « DS-7616NXI-K2/… ». Le suffixe décide de tout — un '
-        + 'K2/16P embarque seize ports PoE et rend le commutateur inutile, '
-        + 'un K2 nu impose de l\'acheter. Cette étude retient le K2 nu, '
-        + 'puisqu\'un commutateur est demandé par ailleurs.',
+      'Le budget PoE total des seize ports, en watts. Seize ports ne veulent '
+        + 'pas dire seize caméras alimentées : un enregistreur distribue une '
+        + 'puissance totale, et les caméras à infrarouge et à stroboscope '
+        + 'sont les plus gourmandes du parc. C\'est le chiffre qui manque au '
+        + 'relevé et qui décide si tout tient sur la machine.',
+      'Comment les coffrets déportés s\'y raccordent. Un commutateur placé '
+        + 'derrière un port PoE d\'enregistreur Hikvision fonctionne, mais '
+        + 'sort de la reconnaissance automatique : les caméras qui sont '
+        + 'derrière s\'ajoutent alors à la main, par leur adresse. Le '
+        + 'raccordement par le port réseau est plus sain. À arrêter à la '
+        + 'mise en service, pas sur le chantier.',
       'La capacité maximale admise par baie. Elle n\'est pas au relevé, et '
         + 'elle conditionne le choix des disques ci-dessus.',
       'La présence et le niveau de RAID. Un deux-baies ne fait pas toujours '
@@ -1526,6 +1535,20 @@ const couvertes = VUES.filter((v) => PARC.some((c) => c.vue === v.cle));
 const decouvertes = VUES.filter((v) => !PARC.some((c) => c.vue === v.cle));
 const restantes = VUES.filter((v) => !CAMERAS.some((c) => c.vue === v.cle));
 
+/*
+ * Ce que les seize ports PoE de l'enregistreur portent réellement.
+ *
+ * Une caméra derrière un coffret déporté n'occupe PAS un port de
+ * l'enregistreur : elle occupe un port du coffret, et c'est la liaison
+ * montante du coffret qui consomme le port. Compter les caméras au lieu des
+ * liaisons ferait croire la machine plus chargée qu'elle n'est.
+ */
+const POE_DIRECT = PARC.filter((c) => !RATTACHEMENT[c.cle]);
+const POE_COFFRET = PARC.filter((c) => RATTACHEMENT[c.cle]);
+const PORTS_UTILISES = POE_DIRECT.length + Object.keys(RELAIS).length;
+const POE_DIRECT_ETENDU = CAMERAS.filter((c) => !RATTACHEMENT[c.cle]);
+const PORTS_ETENDUS = POE_DIRECT_ETENDU.length + Object.keys(RELAIS).length;
+
 const AUJOURD_HUI = new Date().toLocaleDateString('fr-FR', {
   day: '2-digit', month: 'long', year: 'numeric',
 });
@@ -1933,6 +1956,47 @@ ${VUES.map(sectionVue).join('')}
     ? 'l\'extension tient donc dans la machine'
     : 'l\'extension NE TIENT PAS : un second enregistreur serait nécessaire'}.</p>
 
+<h3>Ce que les seize ports PoE changent</h3>
+
+<p>La variante retenue est la <b>/16P</b> : l'enregistreur porte ses seize
+  ports PoE. <b>Le commutateur séparé sort du projet</b> — il n'a plus rien à
+  alimenter que l'enregistreur n'alimente déjà.</p>
+
+<p>Les deux coffrets déportés, eux, restent nécessaires. Ils ne répondaient
+  pas à un manque de ports mais à une question de distance, et cette
+  question-là ne change pas avec le modèle d'enregistreur.</p>
+
+<table>
+  <tbody>
+    <tr><td>Caméras raccordées directement à l'enregistreur</td>
+      <td class="n"><b>${POE_DIRECT.length}</b> —
+        ${POE_DIRECT.map((c) => ech(c.cle)).join(', ')}</td></tr>
+    <tr><td>Caméras raccordées derrière un coffret</td>
+      <td class="n"><b>${POE_COFFRET.length}</b> —
+        ${POE_COFFRET.map((c) => ech(c.cle)).join(', ')}</td></tr>
+    <tr><td>Liaisons montantes des coffrets</td>
+      <td class="n"><b>${Object.keys(RELAIS).length}</b></td></tr>
+    <tr><td><b>Ports occupés sur l'enregistreur</b></td>
+      <td class="n"><b>${PORTS_UTILISES}</b> sur
+        ${EQUIPEMENTS.enregistreur.portsPoe} — il en reste
+        ${EQUIPEMENTS.enregistreur.portsPoe - PORTS_UTILISES}</td></tr>
+    <tr><td>Avec les ${EXTENSION.length} caméras d'extension</td>
+      <td class="n"><b>${PORTS_ETENDUS}</b> ports occupés</td></tr>
+  </tbody>
+</table>
+
+<p class="largeur">Une caméra posée derrière un coffret n'occupe pas un port
+  de l'enregistreur&nbsp;: elle occupe un port du coffret, et c'est la liaison
+  montante qui consomme le port. Les compter autrement ferait croire la
+  machine plus chargée qu'elle n'est.</p>
+
+<p class="largeur"><b>Seize ports ne veulent pas dire seize caméras
+  alimentées.</b> Un enregistreur distribue une puissance TOTALE, et les
+  caméras à infrarouge et à stroboscope sont les plus gourmandes du parc.
+  Ce budget en watts ne figure pas au relevé fournisseur&nbsp;: c'est le
+  chiffre à relever sur la fiche avant de considérer l'alimentation comme
+  réglée.</p>
+
 <h3>Les deux disques</h3>
 
 <p>L'enregistreur a ${EQUIPEMENTS.enregistreur.baies} baies. Ce n'est pas
@@ -1979,7 +2043,7 @@ ${VUES.map(sectionVue).join('')}
   la durée de conservation est aussi une question juridique.</p>
 
 <div class="avert">
-  <b>Trois points à vérifier sur la fiche de l'enregistreur</b>, qu'aucun
+  <b>Ce qui reste à vérifier sur la fiche de l'enregistreur</b>, qu'aucun
   relevé fournisseur ne donne&nbsp;:
   ${EQUIPEMENTS.enregistreur.aVerifier.map((x) => `<br>— ${ech(x)}`).join('')}
 </div>
@@ -2037,7 +2101,7 @@ ${ACCES.map((a) => `<p class="largeur"><b>${ech(a.cle)} — ${ech(a.nom)}.</b>
 </div>
 
 <div class="avert">
-  <b>Trois points à vérifier sur la fiche du kit&nbsp;:</b>
+  <b>Ce qui reste à vérifier sur la fiche du kit&nbsp;:</b>
   ${EQUIPEMENTS.interphonie.aVerifier.map((x) => `<br>— ${ech(x)}`).join('')}
 </div>
 
