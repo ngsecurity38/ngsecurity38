@@ -32,6 +32,8 @@ import { cheminement, verdictEthernet, bobines, sectionContinu, LIAISON_PERMANEN
   from '../../outils/analyse-vue-angle/js/cable.js';
 import { bilan as bilanSecours, energieNecessaire, calibreOnduleur, RENDEMENT, RESERVE }
   from '../../outils/analyse-vue-angle/js/secours.js';
+import { ecranConseille, mosaique, VIGNETTE_MINI, RECUL }
+  from '../../outils/analyse-vue-angle/js/ecran.js';
 import { fr, frGroupe } from '../../outils/analyse-vue-angle/js/format.js';
 
 const ici = dirname(fileURLToPath(import.meta.url));
@@ -232,7 +234,17 @@ const EQUIPEMENTS = {
  * Déplacer le local change toutes les longueurs. C'est la première chose à
  * arrêter au relevé, avant même les emplacements de caméras.
  */
-const LOCAL = { x: null, y: null, hauteurChemin: 3 };
+/**
+ * Hauteur franchie pour monter à l'étage, en mètres.
+ *
+ * L'agence place l'enregistreur À L'ÉTAGE. Ce n'est pas un détail de
+ * métré : chaque liaison qui rejoint le local gagne cette hauteur, plus
+ * le cheminement horizontal jusqu'à la gaine. Sur quatorze liaisons, le
+ * supplément se compte en dizaines de mètres.
+ */
+const HAUTEUR_ETAGE = 3.5;
+
+const LOCAL = { x: null, y: null, hauteurChemin: 3 + HAUTEUR_ETAGE, etage: true };
 
 const ACCES = [
   {
@@ -1536,6 +1548,9 @@ const POE_COFFRET = PARC.filter((c) => RATTACHEMENT[c.cle]);
 const PORTS_UTILISES = POE_DIRECT.length + Object.keys(RELAIS).length;
 const POE_DIRECT_ETENDU = CAMERAS.filter((c) => !RATTACHEMENT[c.cle]);
 const PORTS_ETENDUS = POE_DIRECT_ETENDU.length + Object.keys(RELAIS).length;
+
+/** La mosaïque qu'impose le parc à l'écran de supervision. */
+const mosaiqueParc = mosaique(PARC.length);
 /*
  * Ce que le parc demande réellement aux ports PoE de l'enregistreur.
  *
@@ -1593,6 +1608,9 @@ const ZONES_SECOURS = [
  * haut-parleur. Aucune fiche n'a pu être ouverte : on encadre.
  */
 const COURANTS_CAMERA = [0.35, 0.5, 1];
+
+/** Reculs d'opérateur testés devant l'écran de supervision, en mètres. */
+const RECULS_TESTES = [1.5, 2, 3];
 
 /** Charges testées, en watts : on ignore la vraie, on encadre. */
 const CHARGES_TESTEES = [80, 120, 160, 200];
@@ -2533,7 +2551,114 @@ ${ACCES.map((a) => `<p class="largeur"><b>${ech(a.cle)} — ${ech(a.nom)}.</b>
     à porter au contrat d'entretien.</li>
 </ul>
 
-<h2>9. Ce qu'il reste à mesurer sur place</h2>
+<h2>9. Options et prestations</h2>
+
+<p>Ce chapitre ne fait pas partie de l'installation de base. Il chiffre
+  techniquement ce qui s'y ajoute sur demande, et énonce ce que l'agence
+  engage à la livraison.</p>
+
+<h3>Option — écran de supervision</h3>
+
+<p>La question arrive toujours sous la forme «&nbsp;il me faut combien de
+  pouces&nbsp;?&nbsp;», et le nombre de pouces est justement ce qui se
+  déduit en dernier. Deux grandeurs commandent, et pas la même chose&nbsp;:</p>
+
+<ul class="liste">
+  <li><b>Le nombre de caméras décide la définition.</b> ${PARC.length} caméras
+    s'affichent en mosaïque de ${mosaiqueParc.cases} cases, soit
+    ${mosaiqueParc.colonnes}&nbsp;×&nbsp;${mosaiqueParc.lignes}. Chaque
+    vignette reçoit alors
+    ${ech(String(Math.floor(1920 / mosaiqueParc.colonnes)))}&nbsp;×&nbsp;${ech(String(Math.floor(1080 / mosaiqueParc.lignes)))} pixels
+    en Full HD, et
+    ${ech(String(Math.floor(3840 / mosaiqueParc.colonnes)))}&nbsp;×&nbsp;${ech(String(Math.floor(2160 / mosaiqueParc.lignes)))} en 4K.
+    ${Math.floor(1080 / mosaiqueParc.lignes) >= VIGNETTE_MINI.hauteur
+    ? `Le Full HD tient donc${Math.floor(1080 / mosaiqueParc.lignes) === VIGNETTE_MINI.hauteur
+      ? ' — tout juste, au seuil exact' : ''}. <b>Une caméra de plus fait
+    basculer la mosaïque au carré supérieur, et le 4K devient
+    nécessaire</b> : c'est l'arbitrage à connaître avant d'acheter l'écran.`
+    : '<b>Le 4K n\'est pas un confort ici, c\'est le minimum</b> : en Full HD, une silhouette tiendrait sur quelques dizaines de pixels.'}</li>
+  <li><b>Le recul de l'opérateur décide la diagonale</b>, et lui seul. Un
+    écran trop grand de près force à balayer de la tête&nbsp;; trop petit de
+    loin, il cache ce que sa définition contenait pourtant.</li>
+</ul>
+
+<table>
+  <thead>
+    <tr><th class="n">Recul de l'opérateur</th><th class="n">Diagonale</th>
+      <th class="n">Définition</th><th class="n">Vignette</th></tr>
+  </thead>
+  <tbody>
+    ${RECULS_TESTES.map((d) => {
+    const e = ecranConseille({ cameras: PARC.length, distance: d });
+    return `<tr>
+      <td class="n">${ech(fr(d, 1))} m</td>
+      <td class="n"><b>${e.pouces}"</b></td>
+      <td class="n">${ech(e.definition.label)}</td>
+      <td class="n">${e.tuile.largeur} × ${e.tuile.hauteur} px</td>
+    </tr>`;
+  }).join('')}
+  </tbody>
+</table>
+
+<p class="largeur">Le seuil retenu pour qu'une vignette montre encore
+  quelque chose est de ${VIGNETTE_MINI.largeur}&nbsp;×&nbsp;${VIGNETTE_MINI.hauteur} pixels. En deçà, une silhouette tient sur
+  quelques dizaines de pixels&nbsp;: on voit qu'elle bouge, jamais qui c'est.
+  Le recul retenu est de ${RECUL.retenu} hauteurs d'écran, usage courant en
+  salle de contrôle.</p>
+
+<p class="point"><b>La finesse qui dépasse l'œil n'est pas perdue.</b> À
+  deux mètres d'un écran 4K, l'œil ne sépare plus les pixels. Ils ne sont
+  pas gaspillés pour autant&nbsp;: c'est cette réserve qui fait qu'une
+  vignette passée en plein écran montre <i>davantage</i>, et non la même
+  image agrandie. C'est là que se lit une plaque.</p>
+
+<h3>Option — contrôle d'accès et interphonie</h3>
+
+<p>Le chapitre 6 en donne le détail technique. En résumé, ce que l'option
+  apporte&nbsp;:</p>
+
+<ul class="liste">
+  <li><b>Ouverture à distance</b> depuis le moniteur intérieur ou depuis le
+    téléphone, où que se trouve le responsable.</li>
+  <li><b>Quatre moyens d'identification</b> qui coexistent&nbsp;: visage,
+    badge, code, QR code. Le visage pour les habitués, le badge pour le
+    personnel, le code pour les livraisons régulières, le QR code pour un
+    visiteur annoncé une seule fois.</li>
+  <li><b>Droits programmables</b>&nbsp;: qui ouvre quelle porte, et à quelles
+    heures. Un livreur qui n'entre plus le dimanche n'est pas une consigne
+    affichée, c'est un réglage.</li>
+  <li><b>Traçabilité</b>&nbsp;: chaque ouverture est datée et attribuée. C'est
+    souvent ce qui sert, plus que la vidéo elle-même.</li>
+</ul>
+
+<h3>Ce que l'agence engage à la livraison</h3>
+
+<table>
+  <tbody>
+    <tr><td><b>Dossier technique de fin d'installation</b></td>
+      <td>Remis à la réception&nbsp;: implantation réelle des caméras, plan
+        de câblage, adresses, mots de passe, réglages retenus. C'est ce qui
+        permet à un tiers de reprendre l'installation sans la redécouvrir.</td></tr>
+    <tr><td><b>Formation au logiciel d'exploitation</b></td>
+      <td>Sur site, sur l'installation réelle&nbsp;: relecture, export d'une
+        séquence, recherche par date, gestion des accès.</td></tr>
+    <tr><td><b>Connexion de l'application sur téléphone</b></td>
+      <td>Mise en service et vérification de l'accès à distance sur les
+        téléphones désignés.</td></tr>
+    <tr><td><b>Garantie du matériel&nbsp;: 3 ans</b></td>
+      <td>Sur les matériels fournis et posés par l'agence.</td></tr>
+    <tr><td><b>Maintenance gratuite&nbsp;: 1 an</b></td>
+      <td>À compter de la réception.</td></tr>
+  </tbody>
+</table>
+
+<p class="point"><b>Une installation secourue se contrôle.</b> Les batteries
+  d'onduleur perdent l'essentiel de leur capacité en quatre à cinq ans, sans
+  prévenir et sans que rien ne le signale. Le contrôle périodique n'est pas
+  une formalité de contrat&nbsp;: sans lui, l'installation n'est secourue que
+  sur le papier.</p>
+
+<h2>10. Ce qu'il reste à mesurer sur place</h2>
 <ul class="liste">
   <li><b>L'emplacement du local technique.</b> Tout le métré en dépend, et
     il en dépend plus que du nombre de caméras : c'est la première cote à
@@ -2564,7 +2689,7 @@ ${ACCES.map((a) => `<p class="largeur"><b>${ech(a.cle)} — ${ech(a.nom)}.</b>
     mètres et demi.</li>
 </ul>
 
-<h2>10. Réserves et obligations</h2>
+<h2>11. Réserves et obligations</h2>
 <ul class="liste">
   <li>Ce document est une étude technique. Il ne vaut ni devis ni engagement de
     prix&nbsp;: aucun montant n'y figure.</li>

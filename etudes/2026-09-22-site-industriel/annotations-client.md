@@ -158,3 +158,39 @@ varifocals placés en cour.
 2. **Le parc passe de 14 repères à 10** — quatre extérieures et six
    intérieures. Les cinq caméras d'extension et la numérotation actuelle
    disparaissent au profit de la numérotation 1 à 10. À confirmer.
+
+
+## Commande complémentaire du 22/09/2026
+
+Reçue après la relecture annotée. Ce qui est fait, ce qui attend les
+emplacements.
+
+### Fait
+
+- **Écran de supervision, en option** — chapitre 9. La définition se
+  déduit du nombre de caméras, la diagonale du recul de l'opérateur, et
+  les deux ne se commandent pas l'une l'autre. Calcul dans
+  `js/ecran.js`, onze tests.
+- **L'enregistreur passe à l'étage.** Chaque liaison qui rejoint le
+  local gagne 3,5 m de montée, plus son cheminement jusqu'à la gaine.
+  Le métré en tient compte.
+- **Contrôle d'accès et interphonie posés en OPTION**, avec ouverture à
+  distance, droits programmables et traçabilité — chapitre 9.
+- **Engagements de livraison** — chapitre 9 : dossier technique de fin
+  d'installation, formation au logiciel, connexion de l'application sur
+  téléphone, garantie matériel 3 ans, maintenance gratuite 1 an.
+
+### En attente des emplacements
+
+- **Le métré précis, point par point.** Les longueurs se calculent déjà,
+  mais elles partent des positions du dossier, pas encore de celles de
+  la page 6. Neuf emplacements sur dix restent à dicter.
+- **La superficie du bâtiment.** Le plan repose toujours sur une
+  longueur supposée de 75 m. Une seule cote réelle recale tout.
+
+### Point d'attention sur l'écran
+
+À neuf caméras, la mosaïque est de 3 × 3 et le Full HD suffit — tout
+juste, au seuil exact de 640 × 360 par vignette. **À dix caméras, la
+mosaïque passe à 4 × 4 et le 4K devient nécessaire.** Le plan de la
+page 6 en compte dix : l'écran à prévoir est donc un 4K.
