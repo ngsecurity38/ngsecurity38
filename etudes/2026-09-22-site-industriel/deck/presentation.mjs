@@ -507,7 +507,7 @@ for (const v of COUVERTES) {
   const s = pres.addSlide();
   s.background = { color: BLANC };
   titre(s, 'Repérage sur la vue aérienne', 'Le site');
-  const rp = a('reperage.png');
+  const rp = a('reperage.jpg');
   if (rp) s.addImage({ ...rp, x: 0.6, y: 1.75, w: 12.1, h: 4.35 });
   s.addText(
     'Le secteur indique la direction de visée, pas la portée : une vue '

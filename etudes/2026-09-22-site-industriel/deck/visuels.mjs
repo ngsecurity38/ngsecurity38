@@ -13,6 +13,12 @@ import { writeFileSync } from 'node:fs';
 
 const out = new URL('.', import.meta.url).pathname;
 const nav = await chromium.launch();
+/*
+ * Deux fois la densité pour les tracés — un plan doit rester net — mais les
+ * PHOTOS partent en JPEG : en PNG, les dix vues pesaient trente mégaoctets
+ * à elles seules, et un fichier qu'on ne peut pas envoyer par courriel ne
+ * sert à personne.
+ */
 const p = await nav.newPage({ viewport: { width: 1400, height: 1000 }, deviceScaleFactor: 2 });
 await p.goto('file:///home/user/ngsecurity38/etudes/2026-09-22-site-industriel/etude.html');
 await p.waitForTimeout(2500);
@@ -28,7 +34,11 @@ await p.locator('svg').nth(best).screenshot({ path: `${out}/plan.png` });
 
 /* Le repérage aérien : l'IMAGE seule — la figure embarque sa légende. */
 const fig = p.locator('figure.aerien').first();
-if (await fig.count()) await fig.locator('img').first().screenshot({ path: `${out}/reperage.png` });
+if (await fig.count()) {
+  await fig.locator('img').first().screenshot({
+    path: `${out}/reperage.jpg`, type: 'jpeg', quality: 82,
+  });
+}
 
 /* Un diagramme DORI, pour la fiche modèle. */
 const mod = p.locator('.modele').first();
@@ -51,8 +61,8 @@ for (let i = 0; i < total; i += 1) {
   const combien = await reports.count();
   const photos = [];
   for (let k = 0; k < combien; k += 1) {
-    const nom = `vue-${i + 1}-${k + 1}.png`;
-    await reports.nth(k).screenshot({ path: `${out}/${nom}` });
+    const nom = `vue-${i + 1}-${k + 1}.jpg`;
+    await reports.nth(k).screenshot({ path: `${out}/${nom}`, type: 'jpeg', quality: 80 });
     photos.push(nom);
   }
   const cams = (await s.locator('.camera h4 .puce').allTextContents()).map((t) => t.trim());

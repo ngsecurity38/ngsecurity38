@@ -9,8 +9,8 @@
    "Aucune clôture n'est visible de part et d'autre du portail : la haie et le talus ne sont pas un obstacle. Le portail protège du véhicule, pas du piéton."
   ],
   "photos": [
-   "vue-1-1.png",
-   "vue-1-2.png"
+   "vue-1-1.jpg",
+   "vue-1-2.jpg"
   ],
   "cams": [
    "C1",
@@ -26,8 +26,8 @@
    "Éclairage nocturne non constaté. Au-delà de la portée de l'infrarouge, une caméra ne voit rien la nuit, quels que soient ses pixels."
   ],
   "photos": [
-   "vue-2-1.png",
-   "vue-2-2.png"
+   "vue-2-1.jpg",
+   "vue-2-2.jpg"
   ],
   "cams": [
    "C3",
@@ -43,8 +43,8 @@
    "Un projecteur est déjà fixé en façade, au-dessus de la porte : point d'alimentation possible, à vérifier."
   ],
   "photos": [
-   "vue-3-1.png",
-   "vue-3-2.png"
+   "vue-3-1.jpg",
+   "vue-3-2.jpg"
   ],
   "cams": [
    "C5",
@@ -60,7 +60,7 @@
    "Volume libre au moment de la prise de vue. Le jour où les racks seront remontés, ils couperont les champs : l'implantation doit être arrêtée sur le plan de stockage définitif, pas sur une halle vide."
   ],
   "photos": [
-   "vue-4-1.png"
+   "vue-4-1.jpg"
   ],
   "cams": [
    "C7"
@@ -76,7 +76,7 @@
    "La charpente métallique et le bandeau technique en partie haute offrent des appuis et un cheminement de câble déjà en place, à vérifier."
   ],
   "photos": [
-   "vue-5-1.png"
+   "vue-5-1.jpg"
   ],
   "cams": [
    "C9"
@@ -91,7 +91,7 @@
    "Racks en cours de montage sur la droite : ils définiront les allées, donc les seuls axes où une caméra voit quelque chose."
   ],
   "photos": [
-   "vue-6-1.png"
+   "vue-6-1.jpg"
   ],
   "cams": [
    "C8"
@@ -108,7 +108,7 @@
    "Des locaux isolés donnent sur ce sas. S'il s'agit de chambres froides, la température et la condensation conditionnent le choix du matériel et sa fixation — à relever."
   ],
   "photos": [
-   "vue-7-1.png"
+   "vue-7-1.jpg"
   ],
   "cams": [
    "C10"
