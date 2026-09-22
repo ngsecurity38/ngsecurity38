@@ -59,6 +59,24 @@ placée et son ouverture dessinée en éventail.
 « C'est pas le v… / c'est mais c'est …s ju… / de stockat… ». Le sens
 n'est pas établi ; la phrase est à redemander avant d'agir dessus.
 
+## Le parc, tel que l'agence l'a arrêté
+
+| N° | Modèle | Où |
+|---|---|---|
+| 1 | Bullet varifocal DS-2CD2683G2-IZS | extérieure |
+| 2 | Bullet varifocal DS-2CD2683G2-IZS | extérieure |
+| 3 | Bullet varifocal DS-2CD2683G2-IZS | extérieure |
+| 4 | Panoramique 180° DS-2CD2346G2P-ISU/SL | extérieure |
+| 5 à 10 | Turret DS-2CD2346G2H-IU | intérieures |
+
+**Il manque une caméra.** Les trois varifocals et la panoramique sont
+commandés, et les quatre postes extérieurs les consomment exactement.
+Restent six postes intérieurs pour **cinq** turrets commandés : il en
+faut **un sixième**, référence DS-2CD2346G2H-IU.
+
+La seule autre issue est de retirer un poste intérieur du plan. C'est
+un arbitrage de commande, pas de dossier.
+
 ## Deux points à lever avant de reconstruire le plan
 
 1. **C1 et C4 portent « OK » sur leur fiche et sont barrés sur les deux
