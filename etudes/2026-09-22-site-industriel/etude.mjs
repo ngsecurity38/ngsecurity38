@@ -277,6 +277,28 @@ const VUES = [
     cameras: ['C7'],
   },
   {
+    cle: 'stock',
+    fichier: 'p6-coin-stock.jpg',
+    titre: 'Halle — angle de travail et stock',
+    prise: 'Depuis l\'intérieur, vers l\'angle des deux murs.',
+    observations: [
+      'Un angle de murs est le meilleur point de fixation d\'une halle : un seul '
+        + 'objectif grand-angle y couvre les deux directions à la fois, sans mur '
+        + 'dans son dos et sans angle mort derrière lui. C\'est là que se pose la '
+        + 'caméra de cette zone, et nulle part ailleurs.',
+      'Rayonnage garni à portée de main. Ce n\'est pas du volume à surveiller, '
+        + 'c\'est de la marchandise à prouver : l\'exigence y est l\'identification, '
+        + 'et un objectif de 2,8 mm ne l\'atteint qu\'à quatre mètres et demi. La '
+        + 'caméra doit donc être posée SUR la zone, pas à l\'autre bout de la halle.',
+      'Aucune ouverture sur l\'extérieur dans cet angle : tout l\'éclairage y est '
+        + 'artificiel. Lumières éteintes, il ne reste que l\'infrarouge — et ce qu\'il '
+        + 'éclaire, il l\'éclaire en noir et blanc.',
+      'La charpente métallique et le bandeau technique en partie haute offrent des '
+        + 'appuis et un cheminement de câble déjà en place, à vérifier.',
+    ],
+    cameras: ['C9'],
+  },
+  {
     cle: 'rideau',
     fichier: 'p5-rideau.jpg',
     titre: 'Halle — rideau métallique et zone de stockage',
@@ -389,13 +411,15 @@ const CAMERAS = [
   },
   {
     cle: 'C9',
-    vue: 'rideau',
+    vue: 'stock',
     modele: 'turret',
-    role: 'Zone de stockage',
-    pose: 'Angle opposé, 4 m, vers les racks',
+    role: 'Angle de travail et stock',
+    pose: 'En angle des deux murs, 3 m, bissectrice — emplacement exact à confirmer',
     bande: 0.5,
-    attendu: 'Détecter une présence entre les racks. Champ à reprendre une fois '
-      + 'le plan de stockage arrêté.',
+    attendu: 'Couvrir les deux directions d\'un seul appareil et tenir le rayonnage '
+      + 'à portée d\'identification. Posée en angle à trois mètres, elle identifie '
+      + 'jusqu\'à quatre mètres et demi : le rayonnage doit se trouver dans cette '
+      + 'distance, sinon elle ne fera que reconnaître.',
   },
 ];
 
@@ -565,7 +589,8 @@ const IMPLANTATION = {
   C6: { x: PLAN.bat.x + PLAN.bat.l * 0.58, y: PLAN.cour.y + 1.5, azimut: 180 },
   C7: { x: PLAN.bat.x + 3.5, y: PLAN.bat.y + PLAN.bat.p * 0.62, azimut: 90 },
   C8: { x: PLAN.bat.x + PLAN.bat.l - 3.5, y: PLAN.bat.y + PLAN.bat.p * 0.62, azimut: 270 },
-  C9: { x: PLAN.bat.x + PLAN.bat.l * 0.52, y: PLAN.bat.y + 3, azimut: 180 },
+  // En angle : la bissectrice des deux murs, soit 135° dans ce coin du plan.
+  C9: { x: PLAN.bat.x + PLAN.bat.l * 0.34, y: PLAN.bat.y + 2.5, azimut: 135 },
 };
 
 /**
@@ -1083,6 +1108,9 @@ ${VUES.map(sectionVue).join('')}
   <li><b>Le plan de stockage définitif</b> de la halle. Une implantation
     arrêtée sur une halle vide sera coupée par les racks.</li>
   <li><b>Les limites de propriété</b>, et ce que chaque caméra verra au-delà.</li>
+  <li><b>La distance entre l'angle retenu et le rayonnage.</b> Elle décide si
+    C9 identifie ou se contente de reconnaître : la bascule se fait à quatre
+    mètres et demi.</li>
 </ul>
 
 <h2>7. Réserves et obligations</h2>
@@ -1106,9 +1134,15 @@ ${VUES.map(sectionVue).join('')}
     peut varier selon la révision livrée.</li>
   <li>Une caméra qui filme au-delà de la propriété — voie publique, parcelle
     voisine — relève d'une autorisation préfectorale. À cadrer avant la pose.</li>
-  <li>Sur un lieu de travail, l'information des salariés et la consultation des
-    représentants du personnel obéissent à des règles propres, distinctes de
-    l'information des visiteurs.</li>
+  <li><b>Une caméra qui couvre un poste de travail n'obéit pas aux mêmes règles
+    qu'une caméra de cour.</b> L'angle relevé en halle comporte des bureaux
+    occupés : filmer en continu un salarié à son poste est encadré, et une
+    installation qui le ferait sans justification proportionnée s'expose à être
+    contestée — y compris par le salarié lui-même. Le champ de C9 est à orienter
+    sur le rayonnage et les circulations, pas sur les plans de travail.
+    L'information des salariés et la consultation des représentants du personnel
+    obéissent par ailleurs à des règles propres, distinctes de l'information des
+    visiteurs.</li>
   <li>La durée de conservation des images doit être arrêtée et justifiée. Elle
     conditionne le dimensionnement du stockage retenu plus haut.</li>
 </ul>
