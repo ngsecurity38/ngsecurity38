@@ -39,6 +39,27 @@ const ech = (t) => String(t ?? '').replace(/[&<>"']/g, (c) => ({
 const image = (chemin, type = 'jpeg') => `data:image/${type};base64,`
   + readFileSync(chemin).toString('base64');
 
+/**
+ * L'agence, telle qu'elle apparaît sur le document.
+ *
+ * `aCompleter` n'est pas un oubli : ce sont les mentions que seule l'agence
+ * peut fournir, et qu'un document remis à un client doit porter. Elles
+ * s'affichent en clair, en attente — plutôt que d'être inventées, ou tues.
+ */
+const AGENCE = {
+  nom: 'NG Security 38',
+  accroche: 'Vidéosurveillance et alarme anti-intrusion',
+  courriel: 'contact@ngsecurity38.com',
+  sites: ['ngsecurity38.fr', 'ngsecurity38.com'],
+  zone: 'Intervention France et Belgique',
+  aCompleter: [
+    'Adresse du siège',
+    'Numéro SIRET',
+    'Téléphone',
+    'Assurance responsabilité civile professionnelle (compagnie et numéro de police)',
+  ],
+};
+
 /* ------------------------------------------------------------- le parc */
 
 /**
@@ -104,6 +125,17 @@ const MODELES = {
       + 'DS-2CD2346G2P-ISU/SL, éd. 27/03/2024). À CONFIRMER sur la fiche.',
   },
 };
+
+/**
+ * Les vues qui se trouvent dehors.
+ *
+ * C'est ce qui décide de la couleur d'un repère sur la vue aérienne : noir
+ * dehors, bleu dedans. La distinction n'est pas décorative — une caméra
+ * extérieure se pose sous un débord de toiture, subit le gel et le
+ * ruissellement, et se câble depuis l'extérieur du volume.
+ */
+const VUES_EXTERIEURES = new Set(['entree', 'cour', 'quai']);
+const dehors = (cam) => VUES_EXTERIEURES.has(cam.vue);
 
 /** L'optique servant au calcul : un capteur pour le panoramique. */
 const optiqueUtile = (m, tele = false) => (
@@ -890,6 +922,96 @@ function planMasse(options = {}) {
   </svg>`;
 }
 
+
+/* ------------------------------------------- le repérage sur vue aérienne */
+
+/**
+ * Où poser chaque repère sur la vue aérienne, en fraction de l'image.
+ *
+ * `x` et `y` de 0 à 1, `azimut` en degrés — 0 vers le haut de l'image, sens
+ * horaire.
+ *
+ * CES POSITIONS SONT INDICATIVES, et le document le dit sous l'image. La vue
+ * est OBLIQUE : une même longueur n'y couvre pas le même nombre de pixels
+ * selon qu'elle est au premier ou à l'arrière-plan. On ne peut donc pas y
+ * reporter une portée à l'échelle — seulement une DIRECTION. Les distances,
+ * elles, sont au plan masse.
+ */
+const REPERAGE = {
+  C1: { x: 0.300, y: 0.880, azimut: 200 },
+  C2: { x: 0.362, y: 0.880, azimut: 190 },
+  C3: { x: 0.245, y: 0.575, azimut: 160 },
+  C4: { x: 0.830, y: 0.800, azimut: 285 },
+  C5: { x: 0.655, y: 0.575, azimut: 200 },
+  C6: { x: 0.500, y: 0.580, azimut: 180 },
+  C7: { x: 0.160, y: 0.420, azimut: 95 },
+  C8: { x: 0.660, y: 0.505, azimut: 275 },
+  C9: { x: 0.320, y: 0.285, azimut: 145 },
+  C10: { x: 0.800, y: 0.300, azimut: 205 },
+  C11: { x: 0.175, y: 0.300, azimut: 105 },
+  C12: { x: 0.400, y: 0.270, azimut: 165 },
+  C13: { x: 0.805, y: 0.520, azimut: 310 },
+  C14: { x: 0.545, y: 0.485, azimut: 25 },
+};
+
+/** Noir dehors, bleu dedans — c'est la clé de lecture de l'image. */
+const COULEUR_DEHORS = '#111418';
+const COULEUR_DEDANS = '#1d5fb4';
+
+/**
+ * La vue aérienne, avec les repères et les directions de visée.
+ *
+ * Le secteur tracé dit la DIRECTION, pas la portée : sa longueur est la même
+ * pour toutes les caméras. Lui donner la portée réelle sur une vue oblique
+ * reviendrait à afficher une mesure fausse.
+ */
+function repereAerien(vueAerienne) {
+  const L = 1000;
+  const H = 561;
+  const marques = CAMERAS.map((cam) => {
+    const r = REPERAGE[cam.cle];
+    if (!r) return '';
+    const couleur = dehors(cam) ? COULEUR_DEHORS : COULEUR_DEDANS;
+    const x = r.x * L;
+    const y = r.y * H;
+    const angle = (cam.tele ? 26 : 74) / 2;
+    const portee = cam.tele ? 92 : 62;
+    const pt = (d) => {
+      const a = ((r.azimut + d) * Math.PI) / 180;
+      return `${(x + portee * Math.sin(a)).toFixed(1)} ${(y - portee * Math.cos(a)).toFixed(1)}`;
+    };
+    return `<g>
+      <path d="M ${x.toFixed(1)} ${y.toFixed(1)} L ${pt(-angle)} L ${pt(angle)} Z"
+        fill="${couleur}" opacity=".34" stroke="${couleur}" stroke-width="1.6"
+        stroke-opacity=".8" ${cam.extension ? 'stroke-dasharray="6 4"' : ''}/>
+      <circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="12" fill="${couleur}"
+        stroke="#fff" stroke-width="2.4"
+        ${cam.extension ? 'stroke-dasharray="4 3"' : ''}/>
+      <text x="${x.toFixed(1)}" y="${(y + 4).toFixed(1)}" font-size="11.5"
+        font-weight="700" fill="#fff" text-anchor="middle">${ech(cam.cle)}</text>
+    </g>`;
+  }).join('');
+
+  return `<figure class="aerien">
+    <div class="calque">
+      <img src="${vueAerienne.src}" alt="Vue aérienne du site avec le repérage des caméras">
+      <svg viewBox="0 0 ${L} ${H}" preserveAspectRatio="none" aria-hidden="true">
+        ${marques}
+      </svg>
+    </div>
+    <figcaption>Repérage de principe sur la vue aérienne. Le secteur indique la
+      <b>direction de visée</b>, pas la portée&nbsp;: la vue est oblique, une
+      distance ne s'y mesure pas. Les portées à l'échelle sont au plan masse.</figcaption>
+  </figure>
+
+  <p class="cles">
+    <span><i style="background:${COULEUR_DEHORS}"></i> caméra extérieure</span>
+    <span><i style="background:${COULEUR_DEDANS}"></i> caméra intérieure</span>
+    <span><i style="background:#fff;border:2px dashed ${COULEUR_DEDANS}"></i>
+      cerclée de pointillés&nbsp;: extension proposée</span>
+  </p>`;
+}
+
 /* ------------------------------------------------------------ le document */
 
 const lignesDori = (m, tele) => {
@@ -970,7 +1092,16 @@ function sectionVue(vue) {
         <h4><span class="puce${c.extension ? ' ext' : ''}">${ech(c.cle)}</span>
           ${ech(c.role)}${c.extension
     ? ' <span class="badge">extension proposée</span>' : ''}</h4>
-        <p class="modele-nom">${ech(m.reference)}${c.tele ? ' — réglée au téléobjectif' : ''}</p>
+        <div class="ligne-modele">
+          ${m.vignetteSrc ? `<img class="mini" src="${m.vignetteSrc}"
+            alt="${ech(m.reference)}">` : ''}
+          <div>
+            <p class="modele-nom">${ech(m.reference)}${
+  c.tele ? ' — réglée au téléobjectif' : ''}</p>
+            <p class="situe" style="color:${dehors(c) ? COULEUR_DEHORS : COULEUR_DEDANS}"
+              >${dehors(c) ? '● Caméra extérieure' : '● Caméra intérieure'}</p>
+          </div>
+        </div>
         <p class="pose"><b>Pose proposée :</b> ${ech(c.pose)}</p>
         <p>${ech(c.attendu)}</p>
         ${bandeSurPhoto(vue, c)}
@@ -1044,7 +1175,13 @@ const html = `<!doctype html>
   h4 { font-size:15px; margin:18px 0 6px; }
   p { margin:0 0 10px; }
   .garde { text-align:left; }
-  .garde img { height:120px; display:block; margin-bottom:22px; }
+  .bandeau-agence { display:flex; gap:22px; align-items:center; margin-bottom:26px;
+    padding-bottom:20px; border-bottom:3px solid var(--rouge); }
+  .bandeau-agence img { height:104px; width:auto; display:block; flex:none; }
+  .coordonnees { font-size:13.5px; color:var(--doux); line-height:1.5; }
+  .coordonnees p { margin:0; }
+  .coordonnees .nom { font-size:19px; font-weight:800; color:var(--encre);
+    letter-spacing:-.01em; }
   .garde .surtitre { color:var(--rouge); font-weight:700; letter-spacing:.1em;
     text-transform:uppercase; font-size:12px; margin-bottom:10px; }
   .garde .meta { margin-top:26px; border-top:1px solid var(--bord); padding-top:16px;
@@ -1088,7 +1225,18 @@ const html = `<!doctype html>
     background:#fff5f6; color:var(--rouge); border:1px solid var(--rouge); }
   tr.ext td { color:var(--rouge); }
   .alerte h3.sous { font-size:16px; margin:18px 0 8px; }
-  .modele-nom { color:var(--doux); font-size:14px; margin-bottom:6px; }
+  .modele-nom { color:var(--doux); font-size:14px; margin-bottom:2px; }
+  .ligne-modele { display:flex; gap:12px; align-items:center; margin-bottom:8px; }
+  .ligne-modele .mini { width:62px; height:auto; flex:none; border:1px solid var(--bord);
+    border-radius:6px; background:#fff; }
+  .situe { font-size:12.5px; font-weight:700; margin:0; }
+  figure.aerien { margin:0 0 10px; page-break-inside:avoid; }
+  figure.aerien .calque { position:relative; line-height:0; }
+  figure.aerien img { width:100%; display:block; border-radius:8px;
+    border:1px solid var(--bord); }
+  figure.aerien svg { position:absolute; inset:0; width:100%; height:100%; }
+  figure.aerien figcaption { font-size:13.5px; color:var(--doux); margin-top:6px;
+    line-height:1.5; }
   .report { position:relative; margin:12px 0; }
   .report img { width:100%; display:block; border-radius:8px; }
   .report .champ { position:absolute; top:0; bottom:0; border-left:2px solid var(--rouge);
@@ -1130,7 +1278,16 @@ const html = `<!doctype html>
 <div class="feuille">
 
 <header class="garde">
-  <img src="${logo}" alt="NG Security 38">
+  <div class="bandeau-agence">
+    <img src="${logo}" alt="${ech(AGENCE.nom)}">
+    <div class="coordonnees">
+      <p class="nom">${ech(AGENCE.nom)}</p>
+      <p>${ech(AGENCE.accroche)}</p>
+      <p>${ech(AGENCE.courriel)}</p>
+      <p>${AGENCE.sites.map((s) => ech(s)).join(' · ')}</p>
+      <p>${ech(AGENCE.zone)}</p>
+    </div>
+  </div>
   <p class="surtitre">Étude technique</p>
   <h1>Vidéosurveillance d'un site industriel</h1>
   <p>Implantation des caméras extérieures et intérieures, portées calculées,
@@ -1141,6 +1298,13 @@ const html = `<!doctype html>
     <p><b>Sur la base de :</b> cinq vues du site et de trois références matériel
       communiquées par le client.</p>
     <p><b>Référence :</b> ETU-2026-09-22</p>
+  </div>
+
+  <div class="avert">
+    <b>Mentions à compléter avant remise.</b> Un document remis à un client
+    porte l'identité complète de l'entreprise. Ces éléments ne figurent pas au
+    dossier et n'ont pas été inventés&nbsp;:
+    ${AGENCE.aCompleter.map((x) => `<br>— ${ech(x)}`).join('')}
   </div>
 </header>
 
@@ -1227,6 +1391,15 @@ ${ENSEMBLE.map((v) => `<figure class="ensemble">
     décideront de ce que les caméras voient la nuit bien plus que leur
     définition : à relever un par un lors du passage.</li>
 </ul>
+
+<h3>Repérage des caméras sur la vue aérienne</h3>
+
+<p>Chaque caméra est posée sur la vue du ciel, avec sa direction de visée.
+  <b>Les repères noirs sont les caméras extérieures</b>, les <b>bleus les
+  caméras intérieures</b>. Un cercle en pointillés marque une caméra de
+  l'extension proposée.</p>
+
+${repereAerien(ENSEMBLE[0])}
 
 <h3>Plan d'implantation</h3>
 
