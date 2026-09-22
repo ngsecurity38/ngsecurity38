@@ -314,6 +314,35 @@ const VUES = [
     ],
     cameras: ['C8', 'C9'],
   },
+  {
+    cle: 'sas',
+    fichier: 'p7-sas-secours.jpg',
+    titre: 'Sas isolé et issue de secours',
+    prise: 'Depuis le sas, vers le fond et l\'issue.',
+    observations: [
+      'Une issue de secours au fond, barre anti-panique et extincteur. Elle '
+        + 's\'ouvre de l\'intérieur SANS clé, et c\'est la loi : on ne la '
+        + 'condamne pas. Du point de vue du vol, c\'est donc une porte de '
+        + 'sortie permanente — celle par laquelle la marchandise part une fois '
+        + 'qu\'on est entré par ailleurs. Elle se surveille, elle ne se ferme pas.',
+      'Un couloir est la meilleure position pour un objectif de 2,8 mm. Il force '
+        + 'le passage dans un goulot étroit et à courte distance : les quatre '
+        + 'mètres et demi d\'identification, insuffisants dans une cour, '
+        + 'suffisent ici largement.',
+      'Les deux portes isolantes, ouvertes, masquent une bonne part du volume. '
+        + 'Une caméra posée derrière un battant ouvert ne voit rien : le point de '
+        + 'fixation doit être choisi portes OUVERTES, pas portes fermées.',
+      'Plafond bas et poutres apparentes, éclairage au néon uniquement. Aucune '
+        + 'lumière du jour : si l\'éclairage est coupé, seul l\'infrarouge reste.',
+      'Des locaux isolés donnent sur ce sas. S\'il s\'agit de chambres froides, '
+        + 'la température et la condensation conditionnent le choix du matériel '
+        + 'et sa fixation — à relever.',
+    ],
+    cameras: [],
+    manque: 'Aucune des neuf caméras ne couvre ce sas ni son issue de secours. '
+      + 'C\'est une lacune, pas un oubli de rédaction : le parc a été arrêté sur '
+      + 'cinq vues, et cette zone n\'en faisait pas partie.',
+  },
 ];
 
 /**
@@ -765,16 +794,28 @@ function sectionVue(vue) {
       ${ech(fr(vue.champ))}°.</p>
 
     <div class="situation">
-      ${planMasse({ focus: cams.map((c) => c.cle), compact: true })}
-      <p>Où l'on se trouve dans le site, et ce que couvrent les caméras de
-        cette vue — ${ech(cams.map((c) => c.cle).join(' et '))}. Le reste du
-        parc reste posé, en gris.</p>
+      ${planMasse({ focus: cams.length ? cams.map((c) => c.cle) : ['—'], compact: true })}
+      <p>${cams.length
+    ? `Où l'on se trouve dans le site, et ce que couvrent les caméras de cette
+       vue — ${ech(cams.map((c) => c.cle).join(' et '))}. Le reste du parc reste
+       posé, en gris.`
+    : 'Aucun secteur n\'est éclairé : cette zone n\'est couverte par aucune des '
+      + 'neuf caméras. Le parc figure en gris, à titre de repère.'}</p>
     </div>
 
     <h3>Ce que montre la vue</h3>
     <ul class="obs">${vue.observations.map((o) => `<li>${ech(o)}</li>`).join('')}</ul>
 
-    <h3>Caméras proposées</h3>
+    ${vue.manque ? `<div class="avert">
+      <b>Zone non couverte.</b> ${ech(vue.manque)}
+      Deux façons d'y répondre, et elles n'ont pas le même prix&nbsp;:
+      déplacer C7, qui ne fait aujourd'hui qu'une vue d'ensemble de la halle
+      et dont l'apport est le plus faible du parc&nbsp;; ou ajouter une
+      dixième caméra. Le choix appartient au client, et il se fait sur
+      l'enjeu&nbsp;: ce qui est stocké derrière ces portes.
+    </div>` : ''}
+
+    <h3>${cams.length ? 'Caméras proposées' : 'Aucune caméra proposée à ce jour'}</h3>
     ${cams.map((c) => {
     const m = MODELES[c.modele];
     const p = portees(m, c.tele);
