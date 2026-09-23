@@ -88,12 +88,12 @@
    "source": "Prix relevé par l'agence sur Internet chez des professionnels, 24/09/2026 : 315 € de fourniture pour les 181 m de cheminement apparent relevés."
   },
   "ecran": {
-   "designation": "Moniteur de supervision 27 pouces 4K UHD, dalle IPS, fonctionnement continu 24 h/24",
-   "reference": "Hikvision DS-D5227U3-1P0",
+   "designation": "Moniteur de supervision professionnel 27 pouces 4K UHD, dalle IPS, fonctionnement continu 24 h/24, cordons compris",
+   "reference": null,
    "option": true,
-   "marche": 498.35,
-   "note": "Dimensionné sur les dix caméras : une mosaïque de 4 x 4 laisse chaque vue en 960 x 540 px, lisible à un mètre vingt du poste, et garde six cases libres pour les extensions.",
-   "source": "Prix public hors taxes constaté le 24/09/2026 chez un distributeur européen (orbitadigital.com, 498,35 € HT). Le même distributeur affiche 953,24 € pour ce moniteur, mais taxes comprises à 35 % : c'est le même prix. À confirmer auprès de votre distributeur français."
+   "marche": 520.0,
+   "note": "Dimensionné sur les dix caméras : une mosaïque de 4 x 4 laisse chaque vue en 960 x 540 px, lisible à un mètre vingt du poste, et garde six cases libres pour les extensions. Livré complet, cordon HDMI de 5 m et alimentation compris. Marque au choix de l'installateur, à condition que la dalle soit donnée pour un fonctionnement continu.",
+   "source": "Prix public hors taxes constaté le 24/09/2026 pour un 27 pouces 4K donné 24 h/24 chez un distributeur européen (498,35 € HT), plus le cordon HDMI de 5 m. Aucune marque n'est imposée : c'est la classe de matériel qui est chiffrée, pas une référence."
   },
   "ventouseSimple": {
    "designation": "Ventouse électromagnétique 300 kg avec équerre",
