@@ -34,6 +34,7 @@ function tarifNu() {
   for (const a of Object.values(d.articles)) a.marche = null;
   if (d.kitAcces) d.kitAcces.marche = null;
   d.tauxHoraire = null;
+  d.exemple = true;
   return d;
 }
 const trouver = (r, cle) => r.lots.flatMap((l) => l.lignes).find((x) => x.cle === cle);
@@ -169,7 +170,7 @@ test('la TVA s\'applique au total hors taxes', () => {
 
 test('le devis non chiffré le dit, et ne montre aucun montant inventé', () => {
   const html = ficheDevis(REELLE, tarifNu(), AGENCE);
-  assert.ok(html.includes('Devis non contractuel'));
+  assert.ok(html.includes('Document de travail'));
   assert.ok(!/\d+,\d\d €/.test(html), 'aucun montant ne doit apparaître');
   // Une case sans prix reste vide : un tiret long est la signature d'un
   // document écrit à la machine, et ce devis part sous la signature de
@@ -183,8 +184,10 @@ test('le devis chiffré perd le bandeau et porte les montants', () => {
   d.tauxHoraire = 55;
   d.prix.turret = 100;
   const html = ficheDevis(REELLE, d, AGENCE);
-  assert.ok(!html.includes('Devis non contractuel'));
-  assert.ok(html.includes('Chiffrage partiel'), 'il reste des lignes sans prix');
+  assert.ok(!html.includes('Document de travail'));
+  // Ce qui manque se dit sous le total, d'une ligne, pas en bandeau rouge.
+  assert.ok(/postes restent\s+à chiffrer/.test(html), 'il reste des lignes sans prix');
+  assert.ok(!html.includes('class="avis"'), 'aucun bandeau sur un devis chiffré');
   assert.ok(/\d,\d\d €/.test(html));
 });
 

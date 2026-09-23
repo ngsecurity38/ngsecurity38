@@ -19,7 +19,7 @@
   "qu'il n'est pas contractuel. Passez-le a false quand les prix manquants",
   "et vos temps sont saisis."
  ],
- "exemple": true,
+ "exemple": false,
  "reference": "DEV-2026-09-22",
  "maj": "23/09/2026",
  "validite": 30,
@@ -72,7 +72,8 @@
   "connecteur": {
    "designation": "Connecteur RJ45 Cat 6 blindé",
    "reference": null,
-   "marche": null
+   "marche": 1.35,
+   "source": "Prix donné par l'agence, 24/09/2026 : 35 € pour les 26 connecteurs du métré."
   },
   "presseEtoupe": {
    "designation": "Presse-étoupe et jeu d'étanchéité",
@@ -86,10 +87,12 @@
    "source": "Prix relevé par l'agence sur Internet chez des professionnels, 24/09/2026 : 315 € de fourniture pour les 181 m de cheminement apparent relevés."
   },
   "ecran": {
-   "designation": "Écran de supervision",
-   "reference": null,
+   "designation": "Moniteur de supervision 27 pouces 4K UHD, dalle IPS, fonctionnement continu 24 h/24",
+   "reference": "Hikvision DS-D5227U3-1P0",
    "option": true,
-   "marche": null
+   "marche": null,
+   "note": "Dimensionné sur les dix caméras : une mosaïque de 4 x 4 laisse chaque vue en 960 x 540 px, lisible à un mètre vingt du poste, et garde six cases libres pour les extensions.",
+   "source": "Modèle arrêté d'après le calcul de mosaïque de l'étude. PRIX NON RELEVÉ : aucun revendeur français ne le publie, et le seul chiffre trouvé (953 € TTC) est très au-dessus de ce que ce moniteur vaut. À demander à votre distributeur."
   },
   "ventouseSimple": {
    "designation": "Ventouse électromagnétique 300 kg avec équerre",
@@ -138,9 +141,9 @@
   "sireneInterieure": {
    "designation": "Sirène intérieure à flash Hikvision AX PRO, 90 dB",
    "reference": "Hikvision DS-PS1-I-WE",
-   "marche": null,
+   "marche": 53.0,
    "famille": "video",
-   "source": "Référence relevée le 24/09/2026 (cfpsecurite.com). Prix NON PUBLIÉ chez les revendeurs français.",
+   "source": "Prix donné par l'agence, 24/09/2026 : 53 €.",
    "note": "Sirène et flash dans le même appareil. Elle appartient à la gamme d'alarme AX PRO : sans fil, sur pile, elle se déclenche depuis une centrale d'alarme, pas depuis l'enregistreur vidéo."
   },
   "flash": {

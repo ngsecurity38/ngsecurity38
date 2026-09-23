@@ -249,7 +249,11 @@ test('avec devis, le dossier porte le bordereau et change sa réserve', () => {
   const html = fiche(copie(), AGENCE, PLAN, DEVIS);
   assert.ok(titres(html).includes('Le chiffrage'));
   assert.ok(html.includes('Supports, coffrets et accessoires'), 'les lots du devis y sont');
-  assert.ok(html.includes('Devis non contractuel'), 'et le bandeau suit le devis');
+  // Le tarif est renseigné : le bandeau de brouillon a disparu. « Document
+  // de travail » subsiste en pied de page, mais c'est l'étude qui le dit,
+  // pas un bandeau d'alerte au-dessus du prix.
+  assert.ok(!html.includes('class="avis"'), 'aucun bandeau rouge');
+  assert.ok(/postes restent\s+à chiffrer/.test(html));
   assert.ok(html.includes('Total TTC'));
   assert.ok(!html.includes('Il ne vaut ni devis ni engagement'),
     'la réserve ne peut plus dire qu\'aucun montant n\'y figure');

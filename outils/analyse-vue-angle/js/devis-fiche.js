@@ -116,23 +116,35 @@ ${opt ? `<p class="det">Ce qui suit n'est pas compris dans le prix ci-dessus.
       <td class="n">${euros(lot.total)}</td></tr>
   </tbody>
 </table>
-${lot.sansPrix ? `<p class="det">${lot.sansPrix} ligne(s) de ce lot ne sont pas encore chiffrées.</p>` : ''}`;
+`;
   }).join('\n');
 }
 
 /** Le bandeau qui dit ce que le chiffrage vaut — ou ne vaut pas encore. */
 export function bandeauDevis(devis, t) {
+  /*
+   * Un seul bandeau, et seulement sur un brouillon.
+   *
+   * Le chiffrage partiel avait le sien, rouge, en tête du devis : le client
+   * lisait un avertissement avant de lire un prix. Ce qu'il doit savoir se
+   * dit sous le total, d'une ligne, sans alarme.
+   */
   if (devis.exemple) {
-    return `<div class="avis"><b>Devis non contractuel.</b> Les prix et les
-      temps de pose ne sont pas encore saisis : ce document sert à valider le
-      contenu de la prestation, pas son montant.</div>`;
-  }
-  if (!t.complet) {
-    return `<div class="avis"><b>Chiffrage partiel.</b> ${t.sansPrix} ligne(s)
-      sur ${t.lignes} n'ont pas de prix. Le total ci-dessous ne vaut que pour
-      les lignes chiffrées.</div>`;
+    return `<div class="avis"><b>Document de travail.</b> Les prix ne sont pas
+      encore arrêtés : ce document sert à valider le contenu de la prestation,
+      pas son montant.</div>`;
   }
   return '';
+}
+
+/** Ce qui manque encore, dit au client sans l'alarmer. */
+export function resteAChiffrer(t) {
+  if (t.complet) return '';
+  const n = t.sansPrix;
+  return `<p class="det">${n === 1 ? 'Un poste reste' : `${n} postes restent`}
+    à chiffrer et vous ${n === 1 ? 'sera communiqué' : 'seront communiqués'}
+    avant signature. ${n === 1 ? 'Il n\'est' : 'Ils ne sont'} pas compté${n === 1 ? '' : 's'}
+    dans le total ci-dessus.</p>`;
 }
 
 /** Le bloc des totaux, repris à l'identique par le dossier. */
@@ -143,6 +155,7 @@ export function totauxHtml(t) {
   <div><span>TVA ${echapper(fr(t.tauxTva * 100, 1))} %</span><b>${m(t.montantTva)}</b></div>
   <div><span>Total TTC</span><b>${m(t.ttc)}</b></div>
 </div>
+${resteAChiffrer(t)}
 <p class="apres-total">Ce prix comprend la fourniture du matériel, sa pose, son
   raccordement, la mise en service, le réglage de chaque caméra sur son champ,
   la formation de vos équipes et le dossier de fin d'installation. Le matériel

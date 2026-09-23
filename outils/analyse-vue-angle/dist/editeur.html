@@ -1102,7 +1102,7 @@ main { display:flex; gap:16px; padding:16px; align-items:flex-start; }
   "qu'il n'est pas contractuel. Passez-le a false quand les prix manquants",
   "et vos temps sont saisis."
  ],
- "exemple": true,
+ "exemple": false,
  "reference": "DEV-2026-09-22",
  "maj": "23/09/2026",
  "validite": 30,
@@ -1155,7 +1155,8 @@ main { display:flex; gap:16px; padding:16px; align-items:flex-start; }
   "connecteur": {
    "designation": "Connecteur RJ45 Cat 6 blindé",
    "reference": null,
-   "marche": null
+   "marche": 1.35,
+   "source": "Prix donné par l'agence, 24/09/2026 : 35 € pour les 26 connecteurs du métré."
   },
   "presseEtoupe": {
    "designation": "Presse-étoupe et jeu d'étanchéité",
@@ -1169,10 +1170,12 @@ main { display:flex; gap:16px; padding:16px; align-items:flex-start; }
    "source": "Prix relevé par l'agence sur Internet chez des professionnels, 24/09/2026 : 315 € de fourniture pour les 181 m de cheminement apparent relevés."
   },
   "ecran": {
-   "designation": "Écran de supervision",
-   "reference": null,
+   "designation": "Moniteur de supervision 27 pouces 4K UHD, dalle IPS, fonctionnement continu 24 h/24",
+   "reference": "Hikvision DS-D5227U3-1P0",
    "option": true,
-   "marche": null
+   "marche": null,
+   "note": "Dimensionné sur les dix caméras : une mosaïque de 4 x 4 laisse chaque vue en 960 x 540 px, lisible à un mètre vingt du poste, et garde six cases libres pour les extensions.",
+   "source": "Modèle arrêté d'après le calcul de mosaïque de l'étude. PRIX NON RELEVÉ : aucun revendeur français ne le publie, et le seul chiffre trouvé (953 € TTC) est très au-dessus de ce que ce moniteur vaut. À demander à votre distributeur."
   },
   "ventouseSimple": {
    "designation": "Ventouse électromagnétique 300 kg avec équerre",
@@ -1221,9 +1224,9 @@ main { display:flex; gap:16px; padding:16px; align-items:flex-start; }
   "sireneInterieure": {
    "designation": "Sirène intérieure à flash Hikvision AX PRO, 90 dB",
    "reference": "Hikvision DS-PS1-I-WE",
-   "marche": null,
+   "marche": 53.0,
    "famille": "video",
-   "source": "Référence relevée le 24/09/2026 (cfpsecurite.com). Prix NON PUBLIÉ chez les revendeurs français.",
+   "source": "Prix donné par l'agence, 24/09/2026 : 53 €.",
    "note": "Sirène et flash dans le même appareil. Elle appartient à la gamme d'alarme AX PRO : sans fil, sur pile, elle se déclenche depuis une centrale d'alarme, pas depuis l'enregistreur vidéo."
   },
   "flash": {
@@ -3246,23 +3249,35 @@ ${opt ? `<p class="det">Ce qui suit n'est pas compris dans le prix ci-dessus.
       <td class="n">${euros(lot.total)}</td></tr>
   </tbody>
 </table>
-${lot.sansPrix ? `<p class="det">${lot.sansPrix} ligne(s) de ce lot ne sont pas encore chiffrées.</p>` : ''}`;
+`;
   }).join('\n');
 }
 
 /** Le bandeau qui dit ce que le chiffrage vaut — ou ne vaut pas encore. */
 function bandeauDevis(devis, t) {
+  /*
+   * Un seul bandeau, et seulement sur un brouillon.
+   *
+   * Le chiffrage partiel avait le sien, rouge, en tête du devis : le client
+   * lisait un avertissement avant de lire un prix. Ce qu'il doit savoir se
+   * dit sous le total, d'une ligne, sans alarme.
+   */
   if (devis.exemple) {
-    return `<div class="avis"><b>Devis non contractuel.</b> Les prix et les
-      temps de pose ne sont pas encore saisis : ce document sert à valider le
-      contenu de la prestation, pas son montant.</div>`;
-  }
-  if (!t.complet) {
-    return `<div class="avis"><b>Chiffrage partiel.</b> ${t.sansPrix} ligne(s)
-      sur ${t.lignes} n'ont pas de prix. Le total ci-dessous ne vaut que pour
-      les lignes chiffrées.</div>`;
+    return `<div class="avis"><b>Document de travail.</b> Les prix ne sont pas
+      encore arrêtés : ce document sert à valider le contenu de la prestation,
+      pas son montant.</div>`;
   }
   return '';
+}
+
+/** Ce qui manque encore, dit au client sans l'alarmer. */
+function resteAChiffrer(t) {
+  if (t.complet) return '';
+  const n = t.sansPrix;
+  return `<p class="det">${n === 1 ? 'Un poste reste' : `${n} postes restent`}
+    à chiffrer et vous ${n === 1 ? 'sera communiqué' : 'seront communiqués'}
+    avant signature. ${n === 1 ? 'Il n\'est' : 'Ils ne sont'} pas compté${n === 1 ? '' : 's'}
+    dans le total ci-dessus.</p>`;
 }
 
 /** Le bloc des totaux, repris à l'identique par le dossier. */
@@ -3273,6 +3288,7 @@ function totauxHtml(t) {
   <div><span>TVA ${echapper(fr(t.tauxTva * 100, 1))} %</span><b>${m(t.montantTva)}</b></div>
   <div><span>Total TTC</span><b>${m(t.ttc)}</b></div>
 </div>
+${resteAChiffrer(t)}
 <p class="apres-total">Ce prix comprend la fourniture du matériel, sa pose, son
   raccordement, la mise en service, le réglage de chaque caméra sur son champ,
   la formation de vos équipes et le dossier de fin d'installation. Le matériel
