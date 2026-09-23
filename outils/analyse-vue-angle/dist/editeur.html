@@ -3244,12 +3244,16 @@ ${opt ? `<p class="det">Ce qui suit n'est pas compris dans le prix ci-dessus.
     <th class="n">P.U. HT</th><th class="n">Total HT</th></tr></thead>
   <tbody>${lignesHtml(lot)}
     <tr class="sous-total"><td colspan="4">${opt
-  ? 'Total des options, à ajouter au prix ci-dessus'
+  ? `Total des options chiffrées, à ajouter au prix ci-dessus`
   : `Sous-total ${echapper(lot.titre.toLowerCase())}`}</td>
       <td class="n">${euros(lot.total)}</td></tr>
   </tbody>
 </table>
-`;
+${opt && lot.sansPrix ? `<p class="det">${lot.sansPrix === 1
+  ? 'Une option reste à chiffrer et vous sera communiquée'
+  : `${lot.sansPrix} options restent à chiffrer et vous seront communiquées`}
+  avant signature. ${lot.sansPrix === 1 ? 'Elle n\'est' : 'Elles ne sont'} pas
+  compté${lot.sansPrix === 1 ? 'e' : 'es'} dans le total ci-dessus.</p>` : ''}`;
   }).join('\n');
 }
 

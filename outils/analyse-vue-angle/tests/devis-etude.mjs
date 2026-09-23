@@ -417,3 +417,26 @@ test('une option affiche son total : elle est chiffrée, pas cachée', () => {
   assert.ok(html.split(montant).length - 1 >= 2,
     `${montant} doit apparaître en prix unitaire ET en total`);
 });
+
+test('le total des options dit qu\'il ne compte que ce qui est chiffré', () => {
+  /*
+   * Deux des quatre options n'ont pas de prix. Présenter leur somme comme
+   * « le total des options » ferait croire à un surcoût deux fois moindre
+   * que le vrai : c'est l'erreur que le lot doit rendre impossible.
+   */
+  const r = bordereau(REELLE, DEVIS);
+  const lot = r.lots.find((l) => l.cle === 'options');
+  assert.ok(lot.sansPrix > 0, 'le cas se présente bien');
+  const html = ficheDevis(REELLE, DEVIS, AGENCE);
+  assert.ok(html.includes('Total des options chiffrées'),
+    'le mot « chiffrées » manque à l\'intitulé du total');
+  assert.ok(/options restent à chiffrer/.test(html));
+});
+
+test('une fois tout chiffré, le lot des options ne réserve plus rien', () => {
+  const d = copie(DEVIS);
+  for (const a of Object.values(d.articles)) if (!a.marche) a.marche = 100;
+  const lot = bordereau(REELLE, d).lots.find((l) => l.cle === 'options');
+  assert.equal(lot.sansPrix, 0);
+  assert.ok(!/options restent à chiffrer/.test(ficheDevis(REELLE, d, AGENCE)));
+});
