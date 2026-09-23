@@ -38,8 +38,9 @@ test('un équipement sans coffret forme le groupe du local, en dernier', () => {
   const g = gs(REELLE);
   const dernier = g[g.length - 1];
   assert.equal(dernier.cle, null);
-  assert.ok(dernier.equipements.some((e) => e.cle === 'C10'));
+  // Le moniteur d'interphonie est dans le local même : il n'a pas de coffret.
   assert.ok(dernier.equipements.some((e) => e.cle === 'M1'));
+  assert.ok(g.slice(0, -1).every((x) => x.cle), 'les autres groupes sont des coffrets');
 });
 
 test('la cascade est celle de l\'étude : R3 part de R2, pas du local', () => {

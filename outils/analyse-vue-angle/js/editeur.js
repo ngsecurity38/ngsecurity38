@@ -537,6 +537,8 @@ const DESCRIPTION = {
   synoptique: 'Qui se raccorde à quel coffret, et par combien de mètres.',
   vues: 'Vos photos, avec le champ de chaque caméra reporté dessus.',
   cablage: 'Le métré, les boîtes à commander, les liaisons hors norme.',
+  fiches: 'Une fiche par modèle posé : optique, portées, alimentation.',
+  garantie: 'Garantie trois ans, maintenance un an, formation et dossier.',
   devis: 'Le bordereau chiffré, lots et sous-totaux, depuis devis.json.',
   reserves: 'Ce que l\'étude ne promet pas. À garder.',
 };

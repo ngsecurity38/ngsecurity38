@@ -39,7 +39,9 @@ const titres = (html) => [...html.matchAll(/<h2[^>]*>(.*?)<\/h2>/gs)].map((m) =>
 /* ------------------------------------------------------ la liste réglée */
 
 test('sans réglage, le dossier garde l\'ordre naturel et tout est visible', () => {
-  const s = sectionsDuDossier(copie());
+  const nu = copie();
+  delete nu.dossier;
+  const s = sectionsDuDossier(nu);
   assert.deepEqual(s.map((x) => x.cle), SECTIONS_STANDARD.map((x) => x.cle));
   assert.ok(s.every((x) => x.visible !== false));
 });
@@ -263,13 +265,12 @@ test('tous les chapitres tiennent dans un seul fichier, sans lien externe', () =
   const e = copie();
   e.dossier = dossierParDefaut();
   // Sans photo, le chapitre des vues ne sort pas : sept titres, pas huit.
-  assert.equal(titres(fiche(e, AGENCE, PLAN, DEVIS)).length, 7);
-  e.photos = [{
-    cle: 'V1', titre: 'Entrée', champ: 67, src: 'data:image/gif;base64,R0lGODlhAQABAAAAACw=',
-    reperes: [{ camera: 'C1', bande: 0.5 }],
-  }];
+  const sansPhoto = { ...e, photos: [] };
+  assert.equal(titres(fiche(sansPhoto, AGENCE, PLAN, DEVIS)).length,
+    SECTIONS_STANDARD.length - 1, 'sans photo, le chapitre des vues ne sort pas');
   const html = fiche(e, AGENCE, PLAN, DEVIS);
-  assert.equal(titres(html).length, 8, 'avec une photo, les huit y sont');
+  assert.equal(titres(html).length, SECTIONS_STANDARD.length,
+    'avec ses photos, tous les chapitres y sont');
   assert.deepEqual([...html.matchAll(/(?:src|href)="(https?:)?\/\/[^"]*/g)].map((m) => m[0]), []);
   assert.equal((html.match(/<html/g) || []).length, 1, 'un seul document');
 });
@@ -283,4 +284,30 @@ test('le chiffrage s\'écarte et se déplace comme n\'importe quel chapitre', ()
   assert.equal(titres(fiche(e, AGENCE, PLAN, DEVIS))[0], 'Le chiffrage');
   d[0].visible = false;
   assert.ok(!titres(fiche(e, AGENCE, PLAN, DEVIS)).includes('Le chiffrage'));
+});
+
+test('le dossier porte la garantie et la maintenance', () => {
+  const html = fiche(copie(), AGENCE, PLAN);
+  assert.ok(titres(html).includes('Garantie, maintenance et suivi'));
+  assert.ok(html.includes('<b>3 ans</b>'));
+  assert.ok(html.includes('<b>1 an offert</b>'));
+});
+
+test('une fiche modèle n\'imprime jamais un NaN', () => {
+  const e = copie();
+  delete e.modeles.panoramique.focale;
+  delete e.modeles.varifocal.ir;
+  // Les images embarquées sont du base64 : « NaN » s'y trouve par hasard.
+  // On ne cherche que dans le texte de la page.
+  const html = fiche(e, AGENCE, PLAN).replace(/data:[^"]+/g, '');
+  assert.ok(!/NaN/.test(html), 'une donnée absente se tait, elle n\'écrit pas NaN');
+  assert.ok(!/undefined/.test(html));
+});
+
+test('la fiche technique ne parle que des modèles posés', () => {
+  const e = copie();
+  e.modeles.fantome = { reference: 'Modèle jamais posé', resH: 100, resV: 100, angleH: 90 };
+  const html = fiche(e, AGENCE, PLAN);
+  assert.ok(!html.includes('Modèle jamais posé'));
+  assert.ok(html.includes(e.modeles.turret.reference));
 });

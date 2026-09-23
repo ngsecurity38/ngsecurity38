@@ -1,185 +1,216 @@
 {
-  "_lisez_moi": [
-    "Ce que le devis ajoute à l'étude.",
-    "",
-    "L'étude sait déjà compter : dix caméras, trois coffrets, 746 m de réseau,",
-    "493 m de commande, deux disques. Ces quantités-là ne sont PAS ici — elles",
-    "se déduisent de etude.json, et les recopier serait signer deux chiffres",
-    "qui divergeront un jour.",
-    "",
-    "Ici vivent les trois choses qu'aucun calcul ne donne :",
-    "  1. les références et les prix, qui sont votre affaire de distributeur ;",
-    "  2. les ratios d'accessoires (combien de presse-étoupes par caméra) ;",
-    "  3. les temps de pose, qui sont vos temps à vous.",
-    "",
-    "TANT QUE exemple VAUT true, le devis produit porte un bandeau disant",
-    "qu'il n'est pas contractuel. Passez-le à false quand vos prix et vos",
-    "temps sont saisis — pas avant.",
-    "",
-    "Un prix à null s'imprime « — » et ne compte pas dans le total. Un devis",
-    "à moitié chiffré doit se voir, pas s'arrondir."
-  ],
-
-  "exemple": true,
-  "reference": "DEV-2026-09-22",
-  "maj": "23/09/2026",
-  "validite": 30,
-  "tauxHoraire": null,
-  "tva": 0.2,
-
-  "_materiel": [
-    "Le matériel que l'étude nomme déjà (caméras, enregistreur, interphonie)",
-    "prend sa référence dans etude.json. On ne met ici que le prix, par la",
-    "clé du modèle, et ce que l'étude ne nomme pas."
-  ],
-  "prix": {
-    "turret": null,
-    "varifocal": null,
-    "panoramique": null,
-    "enregistreur": null,
-    "disque": null,
-    "interphonie": null
+ "_lisez_moi": [
+  "Ce que le devis ajoute à l'étude.",
+  "",
+  "L'étude sait déjà compter : dix caméras, trois coffrets, les mètres de",
+  "câble, les disques. Ces quantités-là ne sont PAS ici — elles se déduisent",
+  "de etude.json, et les recopier serait signer deux chiffres qui",
+  "divergeront un jour.",
+  "",
+  "PRIX. Chaque article porte `marche` : le prix public hors taxes constaté",
+  "chez un revendeur français, avec sa source et sa date dans `source`. Le",
+  "prix facturé se calcule tout seul : marche x (1 - remise). La remise ne",
+  "s'imprime nulle part — le client lit un prix, pas un rabais.",
+  "",
+  "Un article sans `marche` s'imprime « — » et ne compte pas dans le total.",
+  "Ceux-là attendent VOS prix d'achat : je ne les invente pas.",
+  "",
+  "TANT QUE exemple VAUT true, le devis produit porte un bandeau disant",
+  "qu'il n'est pas contractuel. Passez-le a false quand les prix manquants",
+  "et vos temps sont saisis."
+ ],
+ "exemple": true,
+ "reference": "DEV-2026-09-22",
+ "maj": "23/09/2026",
+ "validite": 30,
+ "tauxHoraire": null,
+ "tva": 0.2,
+ "_materiel": [
+  "Le matériel que l'étude nomme déjà (caméras, enregistreur, interphonie)",
+  "prend sa référence dans etude.json. On ne met ici que le prix, par la",
+  "clé du modèle, et ce que l'étude ne nomme pas."
+ ],
+ "prix": {
+  "turret": null,
+  "varifocal": null,
+  "panoramique": null,
+  "enregistreur": null,
+  "disque": null,
+  "interphonie": null
+ },
+ "articles": {
+  "switchPoe": {
+   "designation": "Commutateur 8 ports PoE+ administrable, boîtier coffret",
+   "reference": null,
+   "note": "Un par coffret déporté. PoE+ (802.3at, 30 W par port) et non PoE : les caméras varifocales à chauffage dépassent les 15,4 W du PoE simple.",
+   "marche": 120.0,
+   "source": "Prix public HT constaté chez un revendeur français, relevé le 23/09/2026 (camera-videosurveillance.fr) — switch 8 ports PoE+, 250 m."
   },
-
-  "articles": {
-    "switchPoe": {
-      "designation": "Commutateur 8 ports PoE+ administrable, boîtier coffret",
-      "reference": null,
-      "prix": null,
-      "note": "Un par coffret déporté. PoE+ (802.3at, 30 W par port) et non PoE : les caméras varifocales à chauffage dépassent les 15,4 W du PoE simple."
-    },
-    "coffret": {
-      "designation": "Coffret technique IP55 avec platine, serrure et parafoudre",
-      "reference": null,
-      "prix": null
-    },
-    "cableReseau": {
-      "designation": "Câble Cat 6 U/UTP 4 paires, touret de 305 m",
-      "reference": null,
-      "prix": null,
-      "conditionnement": 305
-    },
-    "cableCommande": {
-      "designation": "Câble d'alimentation et commande 2 x 1,5 mm², couronne de 100 m",
-      "reference": null,
-      "prix": null,
-      "conditionnement": 100
-    },
-    "support": {
-      "designation": "Support de caméra avec boîte de raccordement",
-      "reference": null,
-      "prix": null
-    },
-    "connecteur": {
-      "designation": "Connecteur RJ45 Cat 6 blindé",
-      "reference": null,
-      "prix": null
-    },
-    "presseEtoupe": {
-      "designation": "Presse-étoupe et jeu d'étanchéité",
-      "reference": null,
-      "prix": null
-    },
-    "goulotte": {
-      "designation": "Goulotte, collier et fixation, au mètre de cheminement apparent",
-      "reference": null,
-      "prix": null
-    },
-    "ecran": {
-      "designation": "Écran de supervision",
-      "reference": null,
-      "prix": null,
-      "option": true
-    },
-    "ventouseSimple": {
-      "designation": "Ventouse électromagnétique 300 kg avec équerre",
-      "reference": null,
-      "prix": null
-    },
-    "ventouseDouble": {
-      "designation": "Ventouse électromagnétique double 2 x 300 kg avec équerres",
-      "reference": null,
-      "prix": null
-    },
-    "lecteur": {
-      "designation": "Lecteur de badge extérieur IP65",
-      "reference": null,
-      "prix": null
-    },
-    "badge": {
-      "designation": "Badge de proximité",
-      "reference": null,
-      "prix": null
-    },
-    "boutonSortie": {
-      "designation": "Bouton de sortie et déclencheur manuel d'urgence",
-      "reference": null,
-      "prix": null,
-      "note": "Le déclencheur d'urgence est obligatoire sur une issue : une ventouse doit retomber sans électronique."
-    },
-    "alimSecourue": {
-      "designation": "Alimentation 12 V secourue avec batterie",
-      "reference": null,
-      "prix": null
-    },
-    "faciale": {
-      "designation": "Terminal de reconnaissance faciale en remplacement du lecteur de badge",
-      "reference": null,
-      "prix": null,
-      "option": true,
-      "aConfirmer": "Référence à arrêter avec vous. Le kit DS-KIS902-S retenu dans l'étude filme et ouvre, il ne reconnaît pas de visage : la reconnaissance faciale demande un terminal séparé. Et elle relève du traitement de données biométriques — analyse d'impact et information des personnes avant la pose, pas après."
-    },
-    "sireneInterieure": {
-      "designation": "Sirène intérieure autoprotégée",
-      "reference": null,
-      "prix": null
-    },
-    "flash": {
-      "designation": "Sirène extérieure à flash, autoprotégée",
-      "reference": null,
-      "prix": null
-    }
+  "coffret": {
+   "designation": "Coffret technique IP55 avec platine, serrure et parafoudre",
+   "reference": null,
+   "marche": null
   },
-
-  "_ratios": [
-    "Ce qui se compte par caméra ou au mètre. Deux connecteurs par liaison :",
-    "un à la caméra, un au coffret."
-  ],
-  "ratios": {
-    "connecteursParLiaison": 2,
-    "presseEtoupeParCameraExterieure": 1,
-    "partCheminementApparent": 0.35
+  "cableReseau": {
+   "designation": "Câble Cat 6 U/UTP 4 paires, touret de 305 m",
+   "reference": null,
+   "conditionnement": 305,
+   "marche": null
   },
-
-  "_signalisation": [
-    "Hypothèse, à confirmer au relevé : une sirène par volume fermé — la",
-    "halle et les bureaux ne s'entendent pas l'un l'autre — et un flash en",
-    "façade, visible depuis la voie. C'est ce qui fait qu'un voisin regarde."
-  ],
-  "signalisation": {
-    "sirenesInterieures": 2,
-    "flashs": 1
+  "cableCommande": {
+   "designation": "Câble d'alimentation et commande 2 x 1,5 mm², couronne de 100 m",
+   "reference": null,
+   "conditionnement": 100,
+   "marche": null
   },
-
-  "_mainOeuvre": [
-    "VOS TEMPS, pas les miens. Ceux-ci sont des ordres de grandeur posés",
-    "pour que le bordereau ait une forme : relisez-les ligne à ligne avant",
-    "d'envoyer quoi que ce soit. En heures.",
-    "",
-    "parCamera couvre la pose, le support, le raccordement et le réglage du",
-    "champ — pas le tirage du câble, qui est compté au mètre."
-  ],
-  "mainOeuvre": {
-    "parCamera": 1.5,
-    "parCameraNacelle": 2.5,
-    "tirageAuCentMetres": 2,
-    "parCoffret": 2,
-    "enregistreur": 3,
-    "parAcces": 3,
-    "interphonie": 2.5,
-    "parSignalisation": 0.75,
-    "miseEnService": 4,
-    "formation": 2,
-    "dossierFinChantier": 2
+  "support": {
+   "designation": "Support de caméra avec boîte de raccordement",
+   "reference": null,
+   "marche": null
+  },
+  "connecteur": {
+   "designation": "Connecteur RJ45 Cat 6 blindé",
+   "reference": null,
+   "marche": null
+  },
+  "presseEtoupe": {
+   "designation": "Presse-étoupe et jeu d'étanchéité",
+   "reference": null,
+   "marche": null
+  },
+  "goulotte": {
+   "designation": "Goulotte, collier et fixation, au mètre de cheminement apparent",
+   "reference": null,
+   "marche": null
+  },
+  "ecran": {
+   "designation": "Écran de supervision",
+   "reference": null,
+   "option": true,
+   "marche": null
+  },
+  "ventouseSimple": {
+   "designation": "Ventouse électromagnétique 300 kg avec équerre",
+   "reference": null,
+   "marche": null,
+   "option": true
+  },
+  "ventouseDouble": {
+   "designation": "Ventouse électromagnétique double 2 x 300 kg avec équerres",
+   "reference": null,
+   "marche": null,
+   "option": true
+  },
+  "lecteur": {
+   "designation": "Lecteur de badge extérieur IP65",
+   "reference": null,
+   "marche": null,
+   "option": true
+  },
+  "badge": {
+   "designation": "Badge de proximité",
+   "reference": null,
+   "marche": null,
+   "option": true
+  },
+  "boutonSortie": {
+   "designation": "Bouton de sortie et déclencheur manuel d'urgence",
+   "reference": null,
+   "note": "Le déclencheur d'urgence est obligatoire sur une issue : une ventouse doit retomber sans électronique.",
+   "marche": null,
+   "option": true
+  },
+  "alimSecourue": {
+   "designation": "Alimentation 12 V secourue avec batterie",
+   "reference": null,
+   "marche": null,
+   "option": true
+  },
+  "faciale": {
+   "designation": "Terminal de reconnaissance faciale en remplacement du lecteur de badge",
+   "reference": null,
+   "option": true,
+   "aConfirmer": "Référence à arrêter avec vous. Le kit DS-KIS902-S retenu dans l'étude filme et ouvre, il ne reconnaît pas de visage : la reconnaissance faciale demande un terminal séparé. Et elle relève du traitement de données biométriques — analyse d'impact et information des personnes avant la pose, pas après.",
+   "marche": null
+  },
+  "sireneInterieure": {
+   "designation": "Sirène intérieure autoprotégée",
+   "reference": null,
+   "marche": null,
+   "famille": "video"
+  },
+  "flash": {
+   "designation": "Sirène extérieure à flash, autoprotégée",
+   "reference": null,
+   "marche": null,
+   "famille": "video"
   }
+ },
+ "_ratios": [
+  "Ce qui se compte par caméra ou au mètre. Deux connecteurs par liaison :",
+  "un à la caméra, un au coffret."
+ ],
+ "ratios": {
+  "connecteursParLiaison": 2,
+  "presseEtoupeParCameraExterieure": 1,
+  "partCheminementApparent": 0.35
+ },
+ "_signalisation": [
+  "Hypothèse, à confirmer au relevé : une sirène par volume fermé — la",
+  "halle et les bureaux ne s'entendent pas l'un l'autre — et un flash en",
+  "façade, visible depuis la voie. C'est ce qui fait qu'un voisin regarde."
+ ],
+ "signalisation": {
+  "sirenesInterieures": 2,
+  "flashs": 1
+ },
+ "_mainOeuvre": [
+  "VOS TEMPS, pas les miens. Ceux-ci sont des ordres de grandeur posés",
+  "pour que le bordereau ait une forme : relisez-les ligne à ligne avant",
+  "d'envoyer quoi que ce soit. En heures.",
+  "",
+  "parCamera couvre la pose, le support, le raccordement et le réglage du",
+  "champ — pas le tirage du câble, qui est compté au mètre."
+ ],
+ "mainOeuvre": {
+  "parCamera": 1.5,
+  "parCameraNacelle": 2.5,
+  "tirageAuCentMetres": 2,
+  "parCoffret": 2,
+  "enregistreur": 3,
+  "parAcces": 3,
+  "interphonie": 2.5,
+  "parSignalisation": 0.75,
+  "miseEnService": 4,
+  "formation": 2,
+  "dossierFinChantier": 2
+ },
+ "remise": 0.1,
+ "_remise": [
+  "La remise sur le prix marché, appliquée automatiquement à chaque ligne",
+  "qui porte un `marche`. 0.10 = 10 % sous le prix public constaté.",
+  "Elle n'apparaît nulle part dans le document remis au client."
+ ],
+ "marche": {
+  "turret": 181.11,
+  "varifocal": 266.0,
+  "panoramique": 184.06,
+  "enregistreur": 515.0,
+  "disque": null,
+  "interphonie": null
+ },
+ "sources": {
+  "turret": "Prix public HT constaté chez un revendeur français, relevé le 23/09/2026 (getic.fr) — DS-2CD2346G2H-IU.",
+  "varifocal": "Prix public HT constaté chez un revendeur français, relevé le 23/09/2026 (w3cam.fr, 319,20 € TTC) — DS-2CD2683G2-IZS.",
+  "panoramique": "Prix public HT constaté chez un revendeur français, relevé le 23/09/2026 (idealo.fr) — DS-2CD2346G2P-ISU/SL.",
+  "enregistreur": "Prix public HT constaté chez un revendeur français, relevé le 23/09/2026 (camera-videosurveillance.fr, 618,00 € TTC) — DS-7616NXI-K2/16P.",
+  "disque": "NON RELEVÉ. Disque 10 To vidéosurveillance : à saisir.",
+  "interphonie": "NON RELEVÉ. Kit DS-KIS902-S : aucun revendeur français ne publie son prix."
+ },
+ "optionInterphonie": true,
+ "_optionInterphonie": [
+  "L'interphonie et le contrôle d'accès sont proposés EN OPTION : ils ne",
+  "comptent pas dans le total de la vidéosurveillance. Passez à false pour",
+  "les faire entrer dans la prestation de base."
+ ]
 }

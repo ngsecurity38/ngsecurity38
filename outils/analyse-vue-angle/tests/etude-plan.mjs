@@ -155,10 +155,16 @@ test('l\'étude réelle : les totaux que le dossier imprime', () => {
   // Ces valeurs sont celles du dossier remis. Si elles bougent ici sans
   // bouger là-bas, les deux se contredisent — et c'est tout l'objet de ce
   // module de l'empêcher.
-  proche(b.reseau, 746, 1, 'câble réseau');
+  //
+  // Relevées à nouveau après le recalage du plan sur la vue aérienne : les
+  // caméras ont changé de place, et chacune a été rattachée au coffret le
+  // plus proche. Le réseau passe de 746 à 516 m.
+  proche(b.reseau, 516, 1, 'câble réseau');
   proche(b.commande, 493, 1, 'alimentation et commande');
-  assert.equal(b.boites.boites, 3);
-  assert.equal(b.ports, 3);
+  assert.equal(b.boites.boites, 2);
+  // Deux ports seulement : R3 cascade derrière R2, et plus aucune caméra
+  // n'est branchée en direct sur l'enregistreur.
+  assert.equal(b.ports, 2);
   proche(b.consoPoe, 111.5, 0.01);
   proche(b.capaciteGo / 1000, 18.2, 0.1, 'stockage 30 jours');
 });

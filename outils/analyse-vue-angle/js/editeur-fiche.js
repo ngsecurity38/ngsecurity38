@@ -38,11 +38,13 @@ const paragraphes = (t) => String(t ?? '')
 export const SECTIONS_STANDARD = [
   { cle: 'chiffres', titre: 'Ce que l\'installation compte' },
   { cle: 'cameras', titre: 'Les caméras' },
+  { cle: 'fiches', titre: 'Fiche technique des caméras' },
   { cle: 'plan', titre: 'Le plan d\'implantation' },
   { cle: 'synoptique', titre: 'Le synoptique de raccordement' },
   { cle: 'vues', titre: 'Le site, vue par vue' },
   { cle: 'cablage', titre: 'Câblage' },
   { cle: 'devis', titre: 'Le chiffrage' },
+  { cle: 'garantie', titre: 'Garantie, maintenance et suivi' },
   { cle: 'reserves', titre: 'Réserves' },
 ];
 
@@ -120,6 +122,15 @@ figcaption { font-size:13px; color:var(--doux); margin-top:6px; }
   line-height:1.4; white-space:nowrap; }
 ul.liste li { margin-bottom:7px; }
 .libre p { margin:10px 0; }
+.modele { display:flex; gap:18px; align-items:flex-start; border:1px solid var(--bord);
+  border-radius:10px; padding:14px 16px; margin:14px 0; }
+.modele img { flex:0 0 168px; width:168px; height:auto; border-radius:8px;
+  background:var(--fond); }
+.modele-txt { flex:1 1 auto; min-width:0; }
+.modele h3 { margin:0 0 4px; }
+table.specs { margin:8px 0 0; font-size:13.5px; }
+table.specs th { text-transform:none; letter-spacing:0; font-size:13px;
+  width:200px; color:var(--doux); font-weight:600; vertical-align:top; }
 figure.large svg { width:100%; }
 /* Le chiffrage repris du devis : mêmes tableaux, donc mêmes règles. Les
    largeurs sont posées sur la classe et non sur tous les tableaux, sans
@@ -164,6 +175,7 @@ tr.option td { color:var(--doux); }
   h1 { font-size:22pt; }
   h2 { font-size:14pt; margin-top:20px; break-after:avoid; page-break-after:avoid; }
   h3 { break-after:avoid; page-break-after:avoid; }
+  .modele { break-inside:avoid; page-break-inside:avoid; }
   figure, .report, .chiffres, .point, table, li, tr, .libre p {
     break-inside:avoid; page-break-inside:avoid; }
   /* Sauf les tableaux du chiffrage : sept lots insécables laissaient une
@@ -180,6 +192,52 @@ tr.option td { color:var(--doux); }
   .pied { position:relative; margin-top:16px; padding-top:12px;
     break-before:avoid; page-break-before:avoid; }
 }`;
+
+/**
+ * La fiche technique des modèles posés.
+ *
+ * Un modèle n'y figure que s'il est au plan : une fiche pour une caméra
+ * qu'on ne pose pas fait un dossier plus épais, pas plus vrai. Les angles
+ * sont ceux retenus dans l'étude, réglage téléobjectif compris — pas les
+ * angles du catalogue.
+ */
+function fiches(etude) {
+  const poses = [...new Set(etude.cameras.map((c) => c.modele))];
+  return poses.map((cle) => {
+    const m = etude.modeles[cle];
+    if (!m) return '';
+    const sur = etude.cameras.filter((c) => c.modele === cle);
+    const tele = sur.some((c) => c.tele);
+    const p = porteesDori(m, false);
+    const pt = m.angleHTele ? porteesDori(m, true) : null;
+    const ligne = (t, v) => (v ? `<tr><th>${echapper(t)}</th><td>${v}</td></tr>` : '');
+    return `<div class="modele">
+      ${m.src ? `<img src="${m.src}" alt="${echapper(m.reference)}">` : ''}
+      <div class="modele-txt">
+        <h3>${echapper(m.reference)}</h3>
+        <p class="det">${echapper(m.type || '')} — ${sur.length} exemplaire(s) au plan :
+          ${echapper(sur.map((c) => c.cle).join(', '))}.</p>
+        <table class="specs">
+          ${ligne('Définition', `${m.resH} × ${m.resV} px`)}
+          ${ligne('Champ horizontal retenu', m.angleHTele
+    ? `${echapper(fr(m.angleH))}° au grand-angle, ${echapper(fr(m.angleHTele))}° au téléobjectif`
+    : `${echapper(fr(m.angleH))}°`)}
+          ${ligne('Optique', m.focaleMin
+    ? `${echapper(fr(m.focaleMin))} – ${echapper(fr(m.focaleMax))} mm motorisé`
+    : (m.focale ? `${echapper(fr(m.focale))} mm fixe${
+  m.capteurUnique ? ' × 2 objectifs' : ''}` : null))}
+          ${ligne('Infrarouge', m.ir ? `${m.ir} m` : null)}
+          ${ligne('Alimentation', `${echapper(m.classePoe || 'PoE')} — ${echapper(fr(m.consoPoe))} W`)}
+          ${ligne('Reconnaît jusqu\'à', `${echapper(fr(p.reconnaissance))} m${
+  pt && tele ? ` · ${echapper(fr(pt.reconnaissance))} m au téléobjectif` : ''}`)}
+          ${ligne('Identifie jusqu\'à', `<b class="fort">${echapper(fr(p.identification))} m</b>${
+  pt && tele ? ` · <b class="fort">${echapper(fr(pt.identification))} m</b> au téléobjectif` : ''}`)}
+        </table>
+        ${m.noteCone ? `<p class="det">${echapper(m.noteCone)}</p>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
 
 /**
  * Compose le dossier.
@@ -229,9 +287,11 @@ export function fiche(etude, agence, planSvg, devis = null) {
       const c = etude.cameras.find((x) => x.cle === cle);
       if (!c) return '';
       const p = porteesDori(etude.modeles[c.modele], c.tele);
-      return `<li><b>${echapper(c.cle)}</b> — ${echapper(c.role || '')} :
-        identifie jusqu'à <b>${echapper(fr(p.identification))} m</b>,
-        reconnaît jusqu'à ${echapper(fr(p.reconnaissance))} m.</li>`;
+      return `<li><b>${echapper(c.cle)} — ${echapper(c.role || '')}.</b>
+        ${c.attendu ? `${echapper(c.attendu)} ` : ''}
+        Identifie jusqu'à <b>${echapper(fr(p.identification))} m</b>,
+        reconnaît jusqu'à ${echapper(fr(p.reconnaissance))} m.
+        ${c.pose ? `<span class="det">Pose : ${echapper(c.pose)}.</span>` : ''}</li>`;
     }).join('');
     return `<h3>${echapper(ph.titre || ph.cle)}</h3>
       <div class="report">${`<img src="${ph.src}" alt="${echapper(ph.titre || '')}">`}${bandes}</div>
@@ -282,6 +342,8 @@ export function fiche(etude, agence, planSvg, devis = null) {
   la norme EN 62676-4. En deçà, la caméra montre une silhouette ; elle ne
   prouve rien.</p>`,
 
+    fiches: fiches(etude),
+
     plan: `<figure>${planSvg}
   <figcaption>Bâtiment de ${echapper(fr(etude.site.longueurBatiment, 0))} m.
     Chaque secteur montre trois profondeurs : en gris jusqu'où la caméra
@@ -307,6 +369,27 @@ export function fiche(etude, agence, planSvg, devis = null) {
   <div><span>Liaisons hors norme</span><b>${b.horsNorme.length}</b></div>
 </div>
 ${hors}`,
+
+    garantie: `<div class="chiffres">
+  <div><span>Garantie du matériel</span><b>3 ans</b></div>
+  <div><span>Maintenance</span><b>1 an offert</b></div>
+  <div><span>Formation</span><b>incluse</b></div>
+</div>
+<ul class="liste">
+  <li><b>Garantie du matériel trois ans</b> à compter de la mise en service :
+    caméras, enregistreur, disques, commutateurs et coffrets. Un appareil
+    défaillant est remplacé, pose comprise.</li>
+  <li><b>Maintenance gratuite la première année.</b> Une visite annuelle —
+    nettoyage des optiques, vérification des fixations et de l'étanchéité,
+    contrôle de l'enregistrement et de la profondeur d'archive, mise à jour
+    des microprogrammes — et l'assistance à distance en cas de panne.</li>
+  <li><b>Remise du dossier de fin d'installation :</b> plans de récolement,
+    adresses réseau, identifiants, notices et procès-verbal de réception.</li>
+  <li><b>Formation à l'exploitation</b> du système sur site, et connexion de
+    l'application sur vos téléphones.</li>
+  <li>Au-delà de la première année, la maintenance se poursuit par contrat
+    annuel, sans obligation.</li>
+</ul>`,
 
     reserves: `<ul class="liste">
   <li>${avecPrix

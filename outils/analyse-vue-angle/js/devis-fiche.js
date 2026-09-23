@@ -11,11 +11,11 @@
  * `exemple` vaut true un bandeau prévient que rien n'est contractuel.
  */
 
-import { fr, frGroupe, echapper } from './format.js';
+import { fr, echapper, enEuros } from './format.js';
 import { bordereau } from './devis-etude.js';
 import { reglagesPdf, MARGES } from './papier.js';
 
-const euros = (v) => (v === null || v === undefined ? '—' : `${frGroupe(v, 2)} €`);
+const euros = (v) => (Number.isFinite(v) ? `${enEuros(v)} €` : '—');
 
 const STYLE_DEVIS = (papier) => `
 :root { --rouge:#c8102e; --encre:#1a1d23; --doux:#5b6472; --bord:#dde1e7; --fond:#f6f7f9; }

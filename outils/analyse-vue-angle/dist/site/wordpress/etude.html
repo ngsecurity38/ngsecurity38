@@ -293,6 +293,20 @@ const echapper = (t) => String(t ?? '').replace(/[&<>"']/g, (c) => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
 }[c]));
 
+/**
+ * Un montant en euros.
+ *
+ * `frGroupe` laisse tomber les zéros de fin : 239,4 pour 239,40 et 163 pour
+ * 163,00. Sur une facture, ça ne se fait pas — deux décimales, toujours,
+ * même nulles. Le séparateur de milliers reste l'espace insécable.
+ */
+const enEuros = (v, n = 2) => {
+  if (!Number.isFinite(v)) return null;
+  const [entier, decimales] = Math.abs(v).toFixed(n).split('.');
+  const groupe = entier.replace(/\d(?=(\d{3})+$)/g, '$& ');
+  return `${v < 0 ? '-' : ''}${groupe}${decimales ? `,${decimales}` : ''}`;
+};
+
 /* ===== menu.js ===== */
 /**
  * Le menu du site, porté par les pages d'outil.

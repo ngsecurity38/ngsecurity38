@@ -13,7 +13,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { bordereau, parcParModele } from '../js/devis-etude.js';
+import { bordereau, parcParModele, prixFacture } from '../js/devis-etude.js';
 import { ficheDevis } from '../js/devis-fiche.js';
 import { bilanEtude } from '../js/etude-plan.js';
 
@@ -24,6 +24,16 @@ const DEVIS = JSON.parse(readFileSync(join(etudes, 'devis.json'), 'utf8'));
 const AGENCE = JSON.parse(readFileSync(join(ici, '..', '..', '..', 'agence.json'), 'utf8'));
 
 const copie = (o) => JSON.parse(JSON.stringify(o));
+
+/** Un tarif sans le moindre prix : ce qu'était devis.json avant les relevés. */
+function tarifNu() {
+  const d = copie(DEVIS);
+  d.marche = Object.fromEntries(Object.keys(d.marche).map((k) => [k, null]));
+  d.prix = Object.fromEntries(Object.keys(d.prix).map((k) => [k, null]));
+  for (const a of Object.values(d.articles)) a.marche = null;
+  d.tauxHoraire = null;
+  return d;
+}
 const trouver = (r, cle) => r.lots.flatMap((l) => l.lignes).find((x) => x.cle === cle);
 
 /* ------------------------------------------------------------ le parc */
@@ -99,7 +109,7 @@ test('la nacelle se déduit de la hauteur de pose, pas d\'une saisie', () => {
 /* ------------------------------------------------------------ les prix */
 
 test('un prix absent reste absent : rien ne s\'arrondit à zéro', () => {
-  const r = bordereau(REELLE, DEVIS);
+  const r = bordereau(REELLE, tarifNu());
   const toutes = r.lots.flatMap((l) => l.lignes);
   assert.ok(toutes.every((l) => l.prix === null && l.total === null));
   assert.equal(r.totaux.ht, 0);
@@ -108,7 +118,7 @@ test('un prix absent reste absent : rien ne s\'arrondit à zéro', () => {
 });
 
 test('un prix saisi se multiplie par la quantité et monte au sous-total', () => {
-  const d = copie(DEVIS);
+  const d = tarifNu();
   d.prix.turret = 180;
   const r = bordereau(REELLE, d);
   const n = trouver(r, 'camera-turret');
@@ -130,7 +140,7 @@ test('la main d\'œuvre prend le taux horaire, une fois qu\'il existe', () => {
 });
 
 test('une option ne compte ni dans le lot ni dans le total', () => {
-  const d = copie(DEVIS);
+  const d = tarifNu();
   d.articles.ecran.prix = 400;
   d.prix.turret = 100;
   const r = bordereau(REELLE, d);
@@ -141,7 +151,7 @@ test('une option ne compte ni dans le lot ni dans le total', () => {
 });
 
 test('la TVA s\'applique au total hors taxes', () => {
-  const d = copie(DEVIS);
+  const d = tarifNu();
   d.prix.turret = 100;
   const r = bordereau(REELLE, d);
   assert.equal(r.totaux.montantTva, r.totaux.ht * d.tva);
@@ -151,14 +161,14 @@ test('la TVA s\'applique au total hors taxes', () => {
 /* ------------------------------------------------------- le document */
 
 test('le devis non chiffré le dit, et ne montre aucun montant inventé', () => {
-  const html = ficheDevis(REELLE, DEVIS, AGENCE);
+  const html = ficheDevis(REELLE, tarifNu(), AGENCE);
   assert.ok(html.includes('Devis non contractuel'));
   assert.ok(!/\d+,\d\d €/.test(html), 'aucun montant ne doit apparaître');
   assert.ok(html.includes('—'));
 });
 
 test('le devis chiffré perd le bandeau et porte les montants', () => {
-  const d = copie(DEVIS);
+  const d = tarifNu();
   d.exemple = false;
   d.tauxHoraire = 55;
   d.prix.turret = 100;
@@ -187,4 +197,68 @@ test('tout ce que le client tape ou que le tarif porte est échappé', () => {
   const html = ficheDevis(e, d, AGENCE);
   assert.ok(html.includes('Dupont &amp; &lt;fils&gt;'));
   assert.ok(html.includes('Support &quot;renforcé&quot; &amp; platine'));
+});
+
+/* --------------------------------------------- le prix marché et la remise */
+
+test('le prix facturé est le prix marché, remise faite', () => {
+  assert.equal(prixFacture(100, 0.1), 90);
+  assert.equal(prixFacture(266, 0.1), 239.4);
+  assert.equal(prixFacture(181.11, 0.1), 163);
+  assert.equal(prixFacture(null, 0.1), null, 'pas de marché, pas de prix');
+  assert.equal(prixFacture(100, undefined), 100, 'pas de remise, prix marché');
+});
+
+test('la remise s\'applique à chaque ligne qui porte un prix marché', () => {
+  const r = bordereau(REELLE, DEVIS);
+  const t = trouver(r, 'camera-turret');
+  assert.equal(t.prix, prixFacture(DEVIS.marche.turret, DEVIS.remise));
+  assert.equal(trouver(r, 'switchPoe').prix,
+    prixFacture(DEVIS.articles.switchPoe.marche, DEVIS.remise));
+});
+
+test('un prix ferme saisi l\'emporte sur le prix marché remisé', () => {
+  const d = copie(DEVIS);
+  d.prix.turret = 99;
+  assert.equal(trouver(bordereau(REELLE, d), 'camera-turret').prix, 99);
+});
+
+test('NI le prix marché NI la remise ne sortent du document', () => {
+  /*
+   * C'est la règle que l'agence a posée : le client lit un prix, pas un
+   * rabais. Un prix marché imprimé quelque part, et deux clients comparent
+   * deux remises.
+   */
+  const html = ficheDevis(REELLE, DEVIS, AGENCE);
+  for (const [cle, m] of Object.entries(DEVIS.marche)) {
+    if (!m) continue;
+    assert.ok(!html.includes(m.toFixed(2).replace('.', ',')),
+      `le prix marché de ${cle} (${m}) apparaît dans le devis`);
+  }
+  assert.ok(!html.includes(String(DEVIS.articles.switchPoe.marche.toFixed(2)).replace('.', ',')));
+  assert.ok(!/remise/i.test(html), 'le mot « remise » n\'a rien à faire là');
+  assert.ok(!/\b10\s*%/.test(html), 'ni le taux');
+  // Le prix facturé, lui, y est bien.
+  assert.ok(html.includes('239,40 €'));
+});
+
+test('l\'interphonie et le contrôle d\'accès sortent en option', () => {
+  const r = bordereau(REELLE, DEVIS);
+  const opt = (cle) => trouver(r, cle).option;
+  assert.equal(opt('interphonie'), true);
+  assert.equal(opt('ventouseSimple'), true);
+  assert.equal(opt('ventouseDouble'), true);
+  assert.equal(opt('lecteur'), true);
+  // Les sirènes, elles, font partie du système vidéo.
+  assert.equal(opt('sireneInterieure'), false);
+  assert.equal(opt('flash'), false);
+});
+
+test('une option ne gonfle pas le total de la vidéosurveillance', () => {
+  const d = copie(DEVIS);
+  d.marche.interphonie = 500;
+  const avec = bordereau(REELLE, d).totaux.ht;
+  d.marche.interphonie = null;
+  assert.equal(avec, bordereau(REELLE, d).totaux.ht,
+    'chiffrer une option ne doit rien changer au total');
 });

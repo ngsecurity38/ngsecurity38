@@ -22,6 +22,20 @@
 
 import { bilanEtude } from './etude-plan.js';
 
+/**
+ * Le prix facturé : le prix marché, remise faite.
+ *
+ * L'agence relève le prix public d'un revendeur français et se place dessous.
+ * Le calcul se fait ici, une fois ; ni le prix marché ni la remise ne sortent
+ * du bordereau. Le client lit un prix, pas un rabais — et deux clients ne
+ * peuvent pas comparer deux rabais.
+ */
+export function prixFacture(marche, remise) {
+  if (!Number.isFinite(marche)) return null;
+  const r = Number.isFinite(remise) ? remise : 0;
+  return Math.round(marche * (1 - r) * 100) / 100;
+}
+
 /** Une ligne de bordereau. Le prix peut manquer ; la quantité, jamais. */
 function ligne(cle, designation, quantite, unite, extra = {}) {
   const prix = Number.isFinite(extra.prix) ? extra.prix : null;
@@ -67,7 +81,16 @@ export function parcParModele(etude) {
 export function bordereau(etude, devis) {
   const b = bilanEtude(etude);
   const art = devis.articles || {};
-  const prix = devis.prix || {};
+  const remise = devis.remise;
+  /*
+   * Le prix d'un article : celui saisi en dur s'il existe, sinon le prix
+   * marché remisé. Saisir un prix ferme l'emporte toujours — c'est ainsi
+   * qu'une négociation fournisseur entre dans le devis.
+   */
+  const prixDe = (o) => (Number.isFinite(o.prix) ? o.prix : prixFacture(o.marche, remise));
+  const prix = Object.fromEntries(Object.entries(devis.prix || {}).map(([k, v]) => [
+    k, Number.isFinite(v) ? v : prixFacture((devis.marche || {})[k], remise),
+  ]));
   const ratios = devis.ratios || {};
   const heures = devis.mainOeuvre || {};
   const a = (cle) => art[cle] || {};
@@ -99,7 +122,7 @@ export function bordereau(etude, devis) {
 
   if (coffrets.length) {
     materiel.push(ligne('switchPoe', a('switchPoe').designation || 'Commutateur PoE+',
-      coffrets.length, 'u', { ...a('switchPoe'), prix: a('switchPoe').prix }));
+      coffrets.length, 'u', { ...a('switchPoe'), prix: prixDe(a('switchPoe')) }));
   }
 
   if (a('ecran').designation) {
@@ -122,8 +145,7 @@ export function bordereau(etude, devis) {
       note: `${Math.round(b.commande)} m relevés : alimentation du verrouillage, interphonie, moniteur.`,
     }),
     ligne('connecteur', a('connecteur').designation || 'Connecteur RJ45',
-      liaisons * (ratios.connecteursParLiaison || 2), 'u', {
-        ...a('connecteur'),
+      liaisons * (ratios.connecteursParLiaison || 2), 'u', { ...a('connecteur'), prix: prixDe(a('connecteur')),
         note: `${liaisons} liaisons, deux bouts chacune.`,
       }),
   ];
@@ -131,8 +153,7 @@ export function bordereau(etude, devis) {
   const apparent = Math.round(b.reseau * (ratios.partCheminementApparent || 0));
   if (apparent > 0) {
     cablage.push(ligne('goulotte', a('goulotte').designation || 'Goulotte et fixation',
-      apparent, 'm', {
-        ...a('goulotte'),
+      apparent, 'm', { ...a('goulotte'), prix: prixDe(a('goulotte')),
         note: `Part apparente estimée à ${Math.round((ratios.partCheminementApparent || 0) * 100)} % du cheminement — à trancher au relevé.`,
       }));
   }
@@ -140,19 +161,17 @@ export function bordereau(etude, devis) {
   /* -------------------------------------------- 3. les supports et coffrets */
   const supports = [
     ligne('support', a('support').designation || 'Support de caméra',
-      etude.cameras.length, 'u', a('support')),
+      etude.cameras.length, 'u', { ...a('support'), prix: prixDe(a('support')) }),
   ];
   if (exterieures) {
     supports.push(ligne('presseEtoupe', a('presseEtoupe').designation || 'Presse-étoupe',
-      exterieures * (ratios.presseEtoupeParCameraExterieure || 1), 'u', {
-        ...a('presseEtoupe'),
+      exterieures * (ratios.presseEtoupeParCameraExterieure || 1), 'u', { ...a('presseEtoupe'), prix: prixDe(a('presseEtoupe')),
         note: `${exterieures} caméras exposées aux intempéries sur ${etude.cameras.length}.`,
       }));
   }
   if (coffrets.length) {
     supports.push(ligne('coffret', a('coffret').designation || 'Coffret technique',
-      coffrets.length, 'u', {
-        ...a('coffret'),
+      coffrets.length, 'u', { ...a('coffret'), prix: prixDe(a('coffret')),
         note: coffrets.map((c) => `${c.cle} — ${c.nom}`).join(', '),
       }));
   }
@@ -163,12 +182,11 @@ export function bordereau(etude, devis) {
   const doubles = acces.filter((x) => /double/i.test(x.verrouillage || '')).length;
   if (simples) {
     controle.push(ligne('ventouseSimple', a('ventouseSimple').designation || 'Ventouse simple',
-      simples, 'u', a('ventouseSimple')));
+      simples, 'u', { ...a('ventouseSimple'), prix: prixDe(a('ventouseSimple')) }));
   }
   if (doubles) {
     controle.push(ligne('ventouseDouble', a('ventouseDouble').designation || 'Ventouse double',
-      doubles, 'u', {
-        ...a('ventouseDouble'),
+      doubles, 'u', { ...a('ventouseDouble'), prix: prixDe(a('ventouseDouble')),
         note: acces.filter((x) => /double/i.test(x.verrouillage || ''))
           .map((x) => `${x.cle} — ${x.nom}`).join(', '),
       }));
@@ -179,12 +197,11 @@ export function bordereau(etude, devis) {
   const alimentations = pointsAlim.size;
   if (acces.length) {
     controle.push(
-      ligne('lecteur', a('lecteur').designation || 'Lecteur', acces.length, 'u', a('lecteur')),
+      ligne('lecteur', a('lecteur').designation || 'Lecteur', acces.length, 'u', { ...a('lecteur'), prix: prixDe(a('lecteur')) }),
       ligne('boutonSortie', a('boutonSortie').designation || 'Bouton de sortie',
-        acces.length, 'u', a('boutonSortie')),
+        acces.length, 'u', { ...a('boutonSortie'), prix: prixDe(a('boutonSortie')) }),
       ligne('alimSecourue', a('alimSecourue').designation || 'Alimentation secourue',
-        alimentations, 'u', {
-          ...a('alimSecourue'),
+        alimentations, 'u', { ...a('alimSecourue'), prix: prixDe(a('alimSecourue')),
           note: alimentations > 1
             ? `Une par point d'alimentation : ${[...pointsAlim].join(', ')}. Une ventouse ne se tire pas d'un bout à l'autre du site sans perdre sa tension.`
             : null,
@@ -205,8 +222,11 @@ export function bordereau(etude, devis) {
   const interphonie = [];
   const kit = etude.equipements.interphonie;
   if (kit) {
-    interphonie.push(ligne('interphonie', kit.type, 1, 'u',
-      { reference: kit.reference, prix: prix.interphonie }));
+    interphonie.push(ligne('interphonie', kit.type, 1, 'u', {
+      reference: kit.reference,
+      prix: prix.interphonie,
+      option: devis.optionInterphonie !== false,
+    }));
   }
 
   /* --------------------------------------------------- 6. la signalisation */
@@ -215,11 +235,11 @@ export function bordereau(etude, devis) {
   if (sig.sirenesInterieures) {
     signalisation.push(ligne('sireneInterieure',
       a('sireneInterieure').designation || 'Sirène intérieure',
-      sig.sirenesInterieures, 'u', a('sireneInterieure')));
+      sig.sirenesInterieures, 'u', { ...a('sireneInterieure'), prix: prixDe(a('sireneInterieure')) }));
   }
   if (sig.flashs) {
     signalisation.push(ligne('flash', a('flash').designation || 'Flash extérieur',
-      sig.flashs, 'u', a('flash')));
+      sig.flashs, 'u', { ...a('flash'), prix: prixDe(a('flash')) }));
   }
 
   /* ------------------------------------------------------ 7. la main d'œuvre */
@@ -276,8 +296,8 @@ export function bordereau(etude, devis) {
     { cle: 'materiel', titre: 'Vidéosurveillance — matériel', lignes: materiel },
     { cle: 'cablage', titre: 'Câblage', lignes: cablage },
     { cle: 'supports', titre: 'Supports, coffrets et accessoires', lignes: supports },
-    { cle: 'controle', titre: 'Contrôle d\'accès', lignes: controle },
-    { cle: 'interphonie', titre: 'Interphonie vidéo', lignes: interphonie },
+    { cle: 'controle', titre: 'Contrôle d\'accès et verrouillage', lignes: controle },
+    { cle: 'interphonie', titre: 'Interphonie et visiophone', lignes: interphonie },
     { cle: 'signalisation', titre: 'Signalisation et dissuasion', lignes: signalisation },
     { cle: 'oeuvre', titre: 'Main d\'œuvre', lignes: oeuvre },
   ].filter((l) => l.lignes.length);
