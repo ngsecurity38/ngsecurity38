@@ -1,0 +1,185 @@
+{
+  "_lisez_moi": [
+    "Ce que le devis ajoute à l'étude.",
+    "",
+    "L'étude sait déjà compter : dix caméras, trois coffrets, 746 m de réseau,",
+    "493 m de commande, deux disques. Ces quantités-là ne sont PAS ici — elles",
+    "se déduisent de etude.json, et les recopier serait signer deux chiffres",
+    "qui divergeront un jour.",
+    "",
+    "Ici vivent les trois choses qu'aucun calcul ne donne :",
+    "  1. les références et les prix, qui sont votre affaire de distributeur ;",
+    "  2. les ratios d'accessoires (combien de presse-étoupes par caméra) ;",
+    "  3. les temps de pose, qui sont vos temps à vous.",
+    "",
+    "TANT QUE exemple VAUT true, le devis produit porte un bandeau disant",
+    "qu'il n'est pas contractuel. Passez-le à false quand vos prix et vos",
+    "temps sont saisis — pas avant.",
+    "",
+    "Un prix à null s'imprime « — » et ne compte pas dans le total. Un devis",
+    "à moitié chiffré doit se voir, pas s'arrondir."
+  ],
+
+  "exemple": true,
+  "reference": "DEV-2026-09-22",
+  "maj": "23/09/2026",
+  "validite": 30,
+  "tauxHoraire": null,
+  "tva": 0.2,
+
+  "_materiel": [
+    "Le matériel que l'étude nomme déjà (caméras, enregistreur, interphonie)",
+    "prend sa référence dans etude.json. On ne met ici que le prix, par la",
+    "clé du modèle, et ce que l'étude ne nomme pas."
+  ],
+  "prix": {
+    "turret": null,
+    "varifocal": null,
+    "panoramique": null,
+    "enregistreur": null,
+    "disque": null,
+    "interphonie": null
+  },
+
+  "articles": {
+    "switchPoe": {
+      "designation": "Commutateur 8 ports PoE+ administrable, boîtier coffret",
+      "reference": null,
+      "prix": null,
+      "note": "Un par coffret déporté. PoE+ (802.3at, 30 W par port) et non PoE : les caméras varifocales à chauffage dépassent les 15,4 W du PoE simple."
+    },
+    "coffret": {
+      "designation": "Coffret technique IP55 avec platine, serrure et parafoudre",
+      "reference": null,
+      "prix": null
+    },
+    "cableReseau": {
+      "designation": "Câble Cat 6 U/UTP 4 paires, touret de 305 m",
+      "reference": null,
+      "prix": null,
+      "conditionnement": 305
+    },
+    "cableCommande": {
+      "designation": "Câble d'alimentation et commande 2 x 1,5 mm², couronne de 100 m",
+      "reference": null,
+      "prix": null,
+      "conditionnement": 100
+    },
+    "support": {
+      "designation": "Support de caméra avec boîte de raccordement",
+      "reference": null,
+      "prix": null
+    },
+    "connecteur": {
+      "designation": "Connecteur RJ45 Cat 6 blindé",
+      "reference": null,
+      "prix": null
+    },
+    "presseEtoupe": {
+      "designation": "Presse-étoupe et jeu d'étanchéité",
+      "reference": null,
+      "prix": null
+    },
+    "goulotte": {
+      "designation": "Goulotte, collier et fixation, au mètre de cheminement apparent",
+      "reference": null,
+      "prix": null
+    },
+    "ecran": {
+      "designation": "Écran de supervision",
+      "reference": null,
+      "prix": null,
+      "option": true
+    },
+    "ventouseSimple": {
+      "designation": "Ventouse électromagnétique 300 kg avec équerre",
+      "reference": null,
+      "prix": null
+    },
+    "ventouseDouble": {
+      "designation": "Ventouse électromagnétique double 2 x 300 kg avec équerres",
+      "reference": null,
+      "prix": null
+    },
+    "lecteur": {
+      "designation": "Lecteur de badge extérieur IP65",
+      "reference": null,
+      "prix": null
+    },
+    "badge": {
+      "designation": "Badge de proximité",
+      "reference": null,
+      "prix": null
+    },
+    "boutonSortie": {
+      "designation": "Bouton de sortie et déclencheur manuel d'urgence",
+      "reference": null,
+      "prix": null,
+      "note": "Le déclencheur d'urgence est obligatoire sur une issue : une ventouse doit retomber sans électronique."
+    },
+    "alimSecourue": {
+      "designation": "Alimentation 12 V secourue avec batterie",
+      "reference": null,
+      "prix": null
+    },
+    "faciale": {
+      "designation": "Terminal de reconnaissance faciale en remplacement du lecteur de badge",
+      "reference": null,
+      "prix": null,
+      "option": true,
+      "aConfirmer": "Référence à arrêter avec vous. Le kit DS-KIS902-S retenu dans l'étude filme et ouvre, il ne reconnaît pas de visage : la reconnaissance faciale demande un terminal séparé. Et elle relève du traitement de données biométriques — analyse d'impact et information des personnes avant la pose, pas après."
+    },
+    "sireneInterieure": {
+      "designation": "Sirène intérieure autoprotégée",
+      "reference": null,
+      "prix": null
+    },
+    "flash": {
+      "designation": "Sirène extérieure à flash, autoprotégée",
+      "reference": null,
+      "prix": null
+    }
+  },
+
+  "_ratios": [
+    "Ce qui se compte par caméra ou au mètre. Deux connecteurs par liaison :",
+    "un à la caméra, un au coffret."
+  ],
+  "ratios": {
+    "connecteursParLiaison": 2,
+    "presseEtoupeParCameraExterieure": 1,
+    "partCheminementApparent": 0.35
+  },
+
+  "_signalisation": [
+    "Hypothèse, à confirmer au relevé : une sirène par volume fermé — la",
+    "halle et les bureaux ne s'entendent pas l'un l'autre — et un flash en",
+    "façade, visible depuis la voie. C'est ce qui fait qu'un voisin regarde."
+  ],
+  "signalisation": {
+    "sirenesInterieures": 2,
+    "flashs": 1
+  },
+
+  "_mainOeuvre": [
+    "VOS TEMPS, pas les miens. Ceux-ci sont des ordres de grandeur posés",
+    "pour que le bordereau ait une forme : relisez-les ligne à ligne avant",
+    "d'envoyer quoi que ce soit. En heures.",
+    "",
+    "parCamera couvre la pose, le support, le raccordement et le réglage du",
+    "champ — pas le tirage du câble, qui est compté au mètre."
+  ],
+  "mainOeuvre": {
+    "parCamera": 1.5,
+    "parCameraNacelle": 2.5,
+    "tirageAuCentMetres": 2,
+    "parCoffret": 2,
+    "enregistreur": 3,
+    "parAcces": 3,
+    "interphonie": 2.5,
+    "parSignalisation": 0.75,
+    "miseEnService": 4,
+    "formation": 2,
+    "dossierFinChantier": 2
+  }
+}

@@ -356,12 +356,13 @@ aDeposer('alarme', alarme, lire('tarif-alarme.json'), 'tarif-alarme.json');
  * s'ouvre d'un double-clic sans serveur ni réseau.
  */
 const MODULES_EDITEUR = ['dom.js', 'format.js', 'optique.js', 'cable.js',
-  'stockage.js', 'etude-plan.js', 'editeur-fiche.js', 'editeur.js'];
+  'stockage.js', 'etude-plan.js', 'devis-etude.js', 'editeur-fiche.js',
+  'devis-fiche.js', 'editeur.js'];
 verifierListe(MODULES_EDITEUR);
 
-const etudeJson = readFileSync(
-  join(ici, '..', '..', 'etudes', '2026-09-22-site-industriel', 'etude.json'), 'utf8',
-);
+const dossierEtude = join(ici, '..', '..', 'etudes', '2026-09-22-site-industriel');
+const etudeJson = readFileSync(join(dossierEtude, 'etude.json'), 'utf8');
+const devisJson = readFileSync(join(dossierEtude, 'devis.json'), 'utf8');
 const paquetEditeur = paqueter(MODULES_EDITEUR, '\ndemarrer();');
 
 let editeur = marque(lire('editeur.html'));
@@ -378,6 +379,7 @@ editeur = injecter(editeur, '<link rel="stylesheet" href="editeur.css">',
 editeur = editeur.replace(
   /<script type="module">[\s\S]*?<\/script>/,
   () => `<script>window.__etude=${inerte(etudeJson)};</script>\n`
+    + `<script>window.__devis=${inerte(devisJson)};</script>\n`
     + `<script>window.__agence=${inerte(JSON.stringify({
     ...JSON.parse(readFileSync(join(ici, '..', '..', 'agence.json'), 'utf8')),
     logo,

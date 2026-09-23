@@ -23,6 +23,7 @@ import {
   fiche, dossierParDefaut, sectionsDuDossier, pdfParDefaut, reglagesPdf,
   FORMATS, ORIENTATIONS, MARGES,
 } from './editeur-fiche.js';
+import { ficheDevis } from './devis-fiche.js';
 
 const SVG = 'http://www.w3.org/2000/svg';
 
@@ -758,6 +759,34 @@ function produirePdf() {
   else f.addEventListener('load', () => setTimeout(imprimer, 250));
 }
 
+/**
+ * Le devis.
+ *
+ * Il se monte depuis la MÊME étude que le dossier : si l'agence déplace une
+ * caméra ou ajoute un coffret, le bordereau suit au clic suivant. Les prix
+ * et les temps, eux, vivent dans devis.json — l'éditeur ne les invente pas
+ * et ne les modifie pas.
+ */
+function produireDevis() {
+  const devis = globalThis.__devis;
+  if (!devis) {
+    $('#alertes').hidden = false;
+    $('#alertes').innerHTML = '<b>Pas de tarif.</b> Le fichier '
+      + '<code>devis.json</code> n\'est pas embarqué dans cette page : '
+      + 'le bordereau ne peut pas être monté.';
+    return;
+  }
+  const html = ficheDevis(etat.etude, devis, globalThis.__agence || {});
+  const f = window.open('', '_blank');
+  if (!f) {
+    telecharger(`devis-${(devis.reference || 'sans-reference').toLowerCase()}.html`,
+      html, 'text/html;charset=utf-8');
+    return;
+  }
+  f.document.write(html);
+  f.document.close();
+}
+
 function exporter() {
   telecharger('etude.json', `${JSON.stringify(etat.etude, null, 1)}\n`, 'application/json');
   etat.modifie = false;
@@ -922,6 +951,7 @@ export function monter(etude) {
   entete('#d-client', 'client');
 
   $('#b-pdf').addEventListener('click', produirePdf);
+  $('#b-devis').addEventListener('click', produireDevis);
   $('#b-texte').addEventListener('click', ajouterTexte);
   $('#f-saut').addEventListener('change', () => {
     memoriser();
