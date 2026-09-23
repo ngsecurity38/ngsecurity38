@@ -19,10 +19,10 @@ import {
   geometrie, optiqueUtile, bilanEtude, bandePhoto, porteesDori,
 } from './etude-plan.js';
 import { LIAISON_PERMANENTE } from './cable.js';
+import { fiche, dossierParDefaut, sectionsDuDossier } from './editeur-fiche.js';
 import {
-  fiche, dossierParDefaut, sectionsDuDossier, pdfParDefaut, reglagesPdf,
-  FORMATS, ORIENTATIONS, MARGES,
-} from './editeur-fiche.js';
+  pdfParDefaut, reglagesPdf, FORMATS, ORIENTATIONS, MARGES,
+} from './papier.js';
 import { ficheDevis } from './devis-fiche.js';
 
 const SVG = 'http://www.w3.org/2000/svg';
@@ -534,8 +534,10 @@ const DESCRIPTION = {
   chiffres: 'Le bandeau de tête : caméras, débit, stockage, PoE, câble.',
   cameras: 'Le tableau des caméras et leurs distances d\'identification.',
   plan: 'Le plan tel qu\'il est à l\'écran, secteurs compris.',
+  synoptique: 'Qui se raccorde à quel coffret, et par combien de mètres.',
   vues: 'Vos photos, avec le champ de chaque caméra reporté dessus.',
   cablage: 'Le métré, les boîtes à commander, les liaisons hors norme.',
+  devis: 'Le bordereau chiffré, lots et sous-totaux, depuis devis.json.',
   reserves: 'Ce que l\'étude ne promet pas. À garder.',
 };
 
@@ -721,7 +723,7 @@ function dossierHtml() {
   const svg = new XMLSerializer().serializeToString($('#plan'));
   etat.selection = garde;
   dessinerPlan();
-  return fiche(etat.etude, globalThis.__agence || {}, svg);
+  return fiche(etat.etude, globalThis.__agence || {}, svg, globalThis.__devis || null);
 }
 
 function produireFiche() {

@@ -48,6 +48,20 @@ test('le raccourci $$ survit à la concaténation', () => {
   }
 });
 
+test('chaque page produite est du JavaScript qui se lit', () => {
+  /*
+   * Un accent grave dans un commentaire CSS, à l'intérieur d'un gabarit de
+   * chaîne, ferme la chaîne et casse tout le fichier. La fabrication, elle,
+   * ne lit pas le JavaScript : elle concatène. Sans ce test, la page part
+   * cassée et ne se voit qu'à l'ouverture.
+   */
+  for (const page of PAGES) {
+    const script = lire(page).match(/\(function \(\) \{\n'use strict';[\s\S]*?\n\}\(\)\);/);
+    assert.ok(script, `${page} : paquet introuvable`);
+    assert.doesNotThrow(() => new Function(script[0]), `${page} : le paquet ne se lit pas`);
+  }
+});
+
 test('aucune page ne déclare deux fois le même nom', () => {
   /*
    * La concaténation passe sans broncher sur deux `function portees` — la

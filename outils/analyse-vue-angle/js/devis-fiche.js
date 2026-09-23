@@ -13,7 +13,7 @@
 
 import { fr, frGroupe, echapper } from './format.js';
 import { bordereau } from './devis-etude.js';
-import { reglagesPdf, MARGES } from './editeur-fiche.js';
+import { reglagesPdf, MARGES } from './papier.js';
 
 const euros = (v) => (v === null || v === undefined ? '—' : `${frGroupe(v, 2)} €`);
 
@@ -86,6 +86,54 @@ tr.option td { color:var(--doux); }
   tr, li { break-inside:avoid; page-break-inside:avoid; }
 }`;
 
+/**
+ * Les tableaux du bordereau, sans en-tête de document.
+ *
+ * Le devis les imprime seuls ; le dossier technique les reprend tels quels
+ * dans son chapitre « Le chiffrage ». Un seul rendu pour les deux : deux
+ * mises en page du même tableau finiraient par ne plus dire la même chose.
+ */
+export function tablesDevis(lots) {
+  return lots.map((lot) => `<h3>${echapper(lot.titre)}</h3>
+<table>
+  <thead><tr><th>Désignation</th><th class="n">Qté</th><th class="n">Un.</th>
+    <th class="n">P.U. HT</th><th class="n">Total HT</th></tr></thead>
+  <tbody>${lignesHtml(lot)}
+    <tr class="sous-total"><td colspan="4">Sous-total ${echapper(lot.titre.toLowerCase())}</td>
+      <td class="n">${euros(lot.total)}</td></tr>
+  </tbody>
+</table>
+${lot.sansPrix ? `<p class="det">${lot.sansPrix} ligne(s) de ce lot ne sont pas encore chiffrées.</p>` : ''}`).join('\n');
+}
+
+/** Le bandeau qui dit ce que le chiffrage vaut — ou ne vaut pas encore. */
+export function bandeauDevis(devis, t) {
+  if (devis.exemple) {
+    return `<div class="avis"><b>Devis non contractuel.</b> Les prix et les
+      temps de pose ne sont pas encore saisis : ce document sert à valider le
+      contenu de la prestation, pas son montant.</div>`;
+  }
+  if (!t.complet) {
+    return `<div class="avis"><b>Chiffrage partiel.</b> ${t.sansPrix} ligne(s)
+      sur ${t.lignes} n'ont pas de prix. Le total ci-dessous ne vaut que pour
+      les lignes chiffrées.</div>`;
+  }
+  return '';
+}
+
+/** Le bloc des totaux, repris à l'identique par le dossier. */
+export function totauxHtml(t) {
+  const m = (v) => euros(t.complet || t.ht ? v : null);
+  return `<div class="total">
+  <div><span>Total HT</span><b>${m(t.ht)}</b></div>
+  <div><span>TVA ${echapper(fr(t.tauxTva * 100, 1))} %</span><b>${m(t.montantTva)}</b></div>
+  <div><span>Total TTC</span><b>${m(t.ttc)}</b></div>
+</div>
+<p class="det">${echapper(fr(t.heures, 2))} heures de main d'œuvre au total.
+  ${t.options ? `${t.options} ligne(s) en option, non comptées dans le total.` : ''}
+  ${t.aConfirmer ? `${t.aConfirmer} ligne(s) restent à arrêter avec vous.` : ''}</p>`;
+}
+
 function lignesHtml(lot) {
   return lot.lignes.map((l) => `<tr class="${l.option ? 'option' : ''}">
     <td>${echapper(l.designation)}${l.option ? ' <span class="marque-option">option</span>' : ''}
@@ -115,27 +163,8 @@ export function ficheDevis(etude, devis, agence) {
     day: '2-digit', month: 'long', year: 'numeric',
   });
 
-  const tables = lots.map((lot) => `<h2>${echapper(lot.titre)}</h2>
-<table>
-  <thead><tr><th>Désignation</th><th class="n">Qté</th><th class="n">Un.</th>
-    <th class="n">P.U. HT</th><th class="n">Total HT</th></tr></thead>
-  <tbody>${lignesHtml(lot)}
-    <tr class="sous-total"><td colspan="4">Sous-total ${echapper(lot.titre.toLowerCase())}</td>
-      <td class="n">${euros(lot.total)}</td></tr>
-  </tbody>
-</table>
-${lot.sansPrix ? `<p class="det">${lot.sansPrix} ligne(s) de ce lot ne sont pas encore chiffrées.</p>` : ''}`).join('\n');
-
-  const avis = [];
-  if (devis.exemple) {
-    avis.push(`<div class="avis"><b>Devis non contractuel.</b> Les prix et les
-      temps de pose ne sont pas encore saisis : ce document sert à valider le
-      contenu de la prestation, pas son montant.</div>`);
-  } else if (!t.complet) {
-    avis.push(`<div class="avis"><b>Chiffrage partiel.</b> ${t.sansPrix} ligne(s)
-      sur ${t.lignes} n'ont pas de prix. Le total ci-dessous ne vaut que pour
-      les lignes chiffrées.</div>`);
-  }
+  const tables = tablesDevis(lots).replace(/<h3>/g, '<h2>').replace(/<\/h3>/g, '</h2>');
+  const avis = bandeauDevis(devis, t);
 
   return `<!doctype html>
 <html lang="fr"><head><meta charset="utf-8">
@@ -167,19 +196,11 @@ ${lot.sansPrix ? `<p class="det">${lot.sansPrix} ligne(s) de ce lot ne sont pas 
   </div>
 </header>
 
-${avis.join('')}
+${avis}
 
 ${tables}
 
-<div class="total">
-  <div><span>Total HT</span><b>${euros(t.complet || t.ht ? t.ht : null)}</b></div>
-  <div><span>TVA ${echapper(fr(t.tauxTva * 100, 1))} %</span>
-    <b>${euros(t.complet || t.ht ? t.montantTva : null)}</b></div>
-  <div><span>Total TTC</span><b>${euros(t.complet || t.ht ? t.ttc : null)}</b></div>
-</div>
-<p class="det">${echapper(fr(t.heures, 2))} heures de main d'œuvre au total.
-  ${t.options ? `${t.options} ligne(s) en option, non comptées dans le total.` : ''}
-  ${t.aConfirmer ? `${t.aConfirmer} ligne(s) restent à arrêter avec vous.` : ''}</p>
+${totauxHtml(t)}
 
 <h2>Ce que le prix comprend</h2>
 <ul class="mentions">

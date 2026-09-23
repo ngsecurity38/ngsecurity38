@@ -16,8 +16,8 @@ import { fileURLToPath } from 'node:url';
 
 import {
   fiche, sectionsDuDossier, dossierParDefaut, SECTIONS_STANDARD,
-  reglagesPdf, pdfParDefaut, MARGES,
 } from '../js/editeur-fiche.js';
+import { reglagesPdf, pdfParDefaut, MARGES } from '../js/papier.js';
 
 const ici = dirname(fileURLToPath(import.meta.url));
 const REELLE = JSON.parse(readFileSync(
@@ -26,6 +26,9 @@ const REELLE = JSON.parse(readFileSync(
 const AGENCE = JSON.parse(readFileSync(
   join(ici, '..', '..', '..', 'agence.json'), 'utf8',
 ));
+const DEVIS = JSON.parse(readFileSync(join(
+  ici, '..', '..', '..', 'etudes', '2026-09-22-site-industriel', 'devis.json',
+), 'utf8'));
 
 const copie = () => JSON.parse(JSON.stringify(REELLE));
 const PLAN = '<svg xmlns="http://www.w3.org/2000/svg"><rect/></svg>';
@@ -228,4 +231,56 @@ test('le dossier ne va rien chercher sur Internet', () => {
   const liens = [...html.matchAll(/(?:src|href)="(https?:)?\/\/[^"]*/g)];
   assert.deepEqual(liens.map((m) => m[0]), [],
     'une ressource externe s\'affiche vide le jour où le serveur tombe');
+});
+
+/* ------------------------------------------- le dossier en un seul bloc */
+
+test('sans devis, le chapitre du chiffrage n\'existe pas', () => {
+  const html = fiche(copie(), AGENCE, PLAN);
+  assert.ok(!titres(html).includes('Le chiffrage'));
+  assert.ok(html.includes('Il ne vaut ni devis ni engagement'),
+    'et la réserve dit bien qu\'aucun montant n\'y figure');
+});
+
+test('avec devis, le dossier porte le bordereau et change sa réserve', () => {
+  const html = fiche(copie(), AGENCE, PLAN, DEVIS);
+  assert.ok(titres(html).includes('Le chiffrage'));
+  assert.ok(html.includes('Supports, coffrets et accessoires'), 'les lots du devis y sont');
+  assert.ok(html.includes('Devis non contractuel'), 'et le bandeau suit le devis');
+  assert.ok(html.includes('Total TTC'));
+  assert.ok(!html.includes('Il ne vaut ni devis ni engagement'),
+    'la réserve ne peut plus dire qu\'aucun montant n\'y figure');
+});
+
+test('le dossier porte le synoptique, et il vaut celui du module', () => {
+  const html = fiche(copie(), AGENCE, PLAN);
+  assert.ok(titres(html).includes('Le synoptique de raccordement'));
+  assert.ok(html.includes('COFFRETS DÉPORTÉS'));
+  assert.ok(html.includes('LOCAL TECHNIQUE'));
+});
+
+test('tous les chapitres tiennent dans un seul fichier, sans lien externe', () => {
+  const e = copie();
+  e.dossier = dossierParDefaut();
+  // Sans photo, le chapitre des vues ne sort pas : sept titres, pas huit.
+  assert.equal(titres(fiche(e, AGENCE, PLAN, DEVIS)).length, 7);
+  e.photos = [{
+    cle: 'V1', titre: 'Entrée', champ: 67, src: 'data:image/gif;base64,R0lGODlhAQABAAAAACw=',
+    reperes: [{ camera: 'C1', bande: 0.5 }],
+  }];
+  const html = fiche(e, AGENCE, PLAN, DEVIS);
+  assert.equal(titres(html).length, 8, 'avec une photo, les huit y sont');
+  assert.deepEqual([...html.matchAll(/(?:src|href)="(https?:)?\/\/[^"]*/g)].map((m) => m[0]), []);
+  assert.equal((html.match(/<html/g) || []).length, 1, 'un seul document');
+});
+
+test('le chiffrage s\'écarte et se déplace comme n\'importe quel chapitre', () => {
+  const e = copie();
+  e.dossier = dossierParDefaut();
+  const d = e.dossier.sections;
+  const i = d.findIndex((s) => s.cle === 'devis');
+  d.unshift(...d.splice(i, 1));
+  assert.equal(titres(fiche(e, AGENCE, PLAN, DEVIS))[0], 'Le chiffrage');
+  d[0].visible = false;
+  assert.ok(!titres(fiche(e, AGENCE, PLAN, DEVIS)).includes('Le chiffrage'));
 });

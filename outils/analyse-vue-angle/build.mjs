@@ -356,8 +356,8 @@ aDeposer('alarme', alarme, lire('tarif-alarme.json'), 'tarif-alarme.json');
  * s'ouvre d'un double-clic sans serveur ni réseau.
  */
 const MODULES_EDITEUR = ['dom.js', 'format.js', 'optique.js', 'cable.js',
-  'stockage.js', 'etude-plan.js', 'devis-etude.js', 'editeur-fiche.js',
-  'devis-fiche.js', 'editeur.js'];
+  'stockage.js', 'etude-plan.js', 'papier.js', 'synoptique.js',
+  'devis-etude.js', 'devis-fiche.js', 'editeur-fiche.js', 'editeur.js'];
 verifierListe(MODULES_EDITEUR);
 
 const dossierEtude = join(ici, '..', '..', 'etudes', '2026-09-22-site-industriel');

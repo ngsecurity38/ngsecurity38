@@ -2131,6 +2131,334 @@ function bilanEtude(etude, { jours = 30, heuresParJour = 24 } = {}) {
   };
 }
 
+/* ===== papier.js ===== */
+/**
+ * Le papier : format, sens, marges.
+ *
+ * Le dossier technique et le devis s'impriment sur la même feuille, réglée
+ * une fois. Ils vivent dans deux modules qui ne doivent pas s'importer l'un
+ * l'autre — d'où ce troisième, que les deux prennent sans se croiser.
+ *
+ * Module pur, testé sous Node.
+ */
+
+/**
+ * Le papier.
+ *
+ * C'est la seule chose qu'un dossier ne peut pas deviner : une étude de dix
+ * caméras tient en A4 portrait, un plan de site large se lit en paysage, et
+ * un dossier qui part à la reliure demande une marge de gauche plus grande.
+ */
+const FORMATS = { A4: 'A4', A3: 'A3', Letter: 'Lettre US' };
+const ORIENTATIONS = { portrait: 'Portrait', landscape: 'Paysage' };
+const MARGES = {
+  etroites: { label: 'Étroites', css: '8mm 8mm 10mm' },
+  normales: { label: 'Normales', css: '14mm 12mm 15mm' },
+  larges: { label: 'Larges', css: '22mm 20mm 24mm' },
+};
+
+const pdfParDefaut = () => ({
+  format: 'A4', orientation: 'portrait', marges: 'normales',
+});
+
+/** Les réglages retenus, quoi qu'il y ait dans le fichier. */
+function reglagesPdf(etude) {
+  const lu = (etude.dossier && etude.dossier.pdf) || {};
+  const d = pdfParDefaut();
+  return {
+    format: FORMATS[lu.format] ? lu.format : d.format,
+    orientation: ORIENTATIONS[lu.orientation] ? lu.orientation : d.orientation,
+    marges: MARGES[lu.marges] ? lu.marges : d.marges,
+  };
+}
+
+/* ===== synoptique.js ===== */
+/**
+ * Le synoptique technique : qui se raccorde à quoi, et par combien de mètres.
+ *
+ * Le plan d'implantation dit OÙ sont les caméras. Il ne dit pas comment
+ * elles remontent. Sur un site de cent mètres où trois coffrets se
+ * cascadent, c'est pourtant la question que pose l'électricien qui reprend
+ * le chantier, et celle que pose le client quand il demande ce qui tombe si
+ * un coffret tombe.
+ *
+ * Le schéma se lit de droite à gauche : les équipements, leur coffret, le
+ * local. Chaque trait porte sa longueur, et vire au rouge si la liaison
+ * dépasse ce qu'une paire torsadée tient. Rien n'y est dessiné à la main —
+ * tout vient du métré de l'étude.
+ *
+ * Module pur : il rend une chaîne SVG, sans DOM. Testé sous Node.
+ */
+
+
+
+
+const COULEUR_LIEN = {
+  ok: '#9aa3ae',
+  limite: '#b8860b',
+  'hors-norme': '#c8102e',
+};
+
+const LARGEUR = 940;
+/*
+ * Le schéma est réduit à la largeur d'une page A4 : une ligne de 26 px y
+ * tombait à six points, illisible sur papier. Deux lignes plus hautes, plus
+ * grasses, et le modèle sous le rôle plutôt qu'à côté — le schéma s'allonge,
+ * mais il se lit sur le chantier.
+ */
+const HAUT_LIGNE = 34;
+const ESPACE_GROUPE = 20;
+const X_LOCAL = 18;
+const L_LOCAL = 168;
+const X_COFFRET = 300;
+const L_COFFRET = 196;
+const X_EQUIP = 566;
+const L_EQUIP = 356;
+
+const ech = echapper;
+
+/*
+ * Le SVG ne sait pas couper une ligne. On compte donc les caractères, à la
+ * largeur moyenne près : mieux vaut une désignation abrégée qu'un modèle de
+ * caméra imprimé par-dessus le rôle qu'il décrit.
+ */
+const couper = (t, max) => {
+  const s = String(t || '');
+  return s.length > max ? `${s.slice(0, max - 1).trimEnd()}…` : s;
+};
+
+/** Coupe un texte en lignes d'au plus `max` caractères, aux espaces. */
+function lignesDe(texte, max, limite = 2) {
+  const mots = String(texte || '').split(/\s+/).filter(Boolean);
+  const out = [];
+  let courante = '';
+  for (const mot of mots) {
+    if (!courante) courante = mot;
+    else if (`${courante} ${mot}`.length <= max) courante += ` ${mot}`;
+    else { out.push(courante); courante = mot; }
+    if (out.length === limite) break;
+  }
+  if (out.length < limite && courante) out.push(courante);
+  if (out.length === limite && mots.join(' ').length > out.join(' ').length) {
+    out[limite - 1] = couper(`${out[limite - 1]}…`, max);
+  }
+  return out;
+}
+
+/** Le texte porté par un équipement : son repère, son rôle, son modèle. */
+function etiquette(etude, cle) {
+  const c = etude.cameras.find((x) => x.cle === cle);
+  if (c) {
+    const m = etude.modeles[c.modele];
+    return {
+      titre: `${c.cle} — ${c.role || 'caméra'}`,
+      // Le synoptique nomme le modèle, pas son optique : les millimètres et
+      // les suffixes de révision sont dans le tableau des caméras, et ici
+      // ils passeraient par-dessus le rôle qu'ils sont censés préciser.
+      detail: m ? m.reference.replace('Hikvision ', '').replace(/\s*\(.*$/, '') : '',
+    };
+  }
+  const a = (etude.acces || []).find((x) => x.cle === cle);
+  if (a) {
+    return { titre: `${a.cle} — ${a.nom}`, detail: a.verrouillage || 'contrôle d\'accès' };
+  }
+  const o = (etude.autres || []).find((x) => x.cle === cle);
+  if (o) return { titre: `${o.cle} — ${o.designation}`, detail: '' };
+  return { titre: cle, detail: '' };
+}
+
+/**
+ * Le squelette du schéma : les groupes, dans l'ordre où on les empile.
+ *
+ * Un équipement sans coffret remonte au local : il forme son propre groupe,
+ * en dernier, parce que c'est l'exception et qu'une exception se lit mieux
+ * en bas qu'au milieu.
+ */
+function groupes(etude, liaisons) {
+  /*
+   * Un accès ne tire pas un câble mais cinq — alimentation du verrouillage,
+   * lecteur, bouton, contact de porte, platine — que le métré repère
+   * « A1·V », « A1·L »… On les regroupe et on retient la plus longue : c'est
+   * elle qui décide si la liaison passe ou non.
+   */
+  const desc = (cle) => {
+    const liens = liaisons.filter((l) => !l.montante
+      && (l.repere === cle || String(l.repere).startsWith(`${cle}·`)));
+    if (!liens.length) return null;
+    const pire = liens.reduce((a, b) => (b.longueur > a.longueur ? b : a));
+    return { ...pire, cables: liens.length };
+  };
+
+  const rattaches = (coffret) => [
+    ...etude.cameras, ...(etude.acces || []), ...(etude.autres || []),
+  ].filter((x) => (x.coffret || null) === coffret)
+    .map((x) => ({ cle: x.cle, liaison: desc(x.cle) || null }));
+
+  const liste = (etude.coffrets || []).map((r) => ({
+    cle: r.cle,
+    nom: r.nom,
+    contenu: r.contenu || '',
+    depuis: r.depuis || 'local',
+    montante: liaisons.find((l) => l.repere === r.cle && l.montante) || null,
+    equipements: rattaches(r.cle),
+  }));
+
+  const directs = rattaches(null);
+  if (directs.length) {
+    liste.push({
+      cle: null, nom: 'Raccordé directement au local', contenu: '',
+      depuis: 'local', montante: null, equipements: directs,
+    });
+  }
+  return liste.filter((g) => g.equipements.length || g.cle);
+}
+
+const boite = (x, y, l, h, attrs = '') => `<rect x="${x}" y="${y}" width="${l}" height="${h}" rx="7" ${attrs}/>`;
+
+/**
+ * Dessine le synoptique.
+ *
+ * @param {object} etude
+ * @returns {string} un SVG complet, autonome
+ */
+function synoptique(etude) {
+  const b = bilanEtude(etude);
+  const gs = groupes(etude, b.liaisons);
+
+  /* --- on empile les groupes et on retient la position de chaque ligne --- */
+  let y = 54;
+  const rangs = [];
+  for (const g of gs) {
+    const haut = g.equipements.length * HAUT_LIGNE;
+    rangs.push({ groupe: g, y, haut, milieu: y + haut / 2 });
+    y += haut + ESPACE_GROUPE;
+  }
+  const hauteur = Math.max(y + 24, 220);
+  const yLocal = 54;
+  const hLocal = Math.max(hauteur - 100, 120);
+  const milieuLocal = yLocal + hLocal / 2;
+
+  const traits = [];
+  const blocs = [];
+
+  /* ------------------------------------------------------- le local */
+  const nvr = etude.equipements.enregistreur;
+  blocs.push(`<g>
+    ${boite(X_LOCAL, yLocal, L_LOCAL, hLocal, 'fill="#fff" stroke="#1a1d23" stroke-width="2"')}
+    <text x="${X_LOCAL + 12}" y="${yLocal + 22}" class="t-titre">LOCAL TECHNIQUE</text>
+    <text x="${X_LOCAL + 12}" y="${yLocal + 38}" class="t-det">${ech(
+  etude.local && etude.local.etage ? 'à l\'étage' : 'rez-de-chaussée')}</text>
+    ${boite(X_LOCAL + 12, milieuLocal - 42, L_LOCAL - 24, 46, 'fill="#1a1d23"')}
+    <text x="${X_LOCAL + 22}" y="${milieuLocal - 24}" class="t-blanc">Enregistreur ${nvr.canaux} voies</text>
+    <text x="${X_LOCAL + 22}" y="${milieuLocal - 10}" class="t-blanc-det">${ech(
+  (nvr.reference || '').replace('Hikvision ', ''))}</text>
+    ${boite(X_LOCAL + 12, milieuLocal + 8, L_LOCAL - 24, 34, 'fill="#f6f7f9" stroke="#dde1e7"')}
+    <text x="${X_LOCAL + 22}" y="${milieuLocal + 22}" class="t-det">${b.ports} port(s) réseau utilisés</text>
+    <text x="${X_LOCAL + 22}" y="${milieuLocal + 35}" class="t-det">${ech(fr(b.consoPoe))} W PoE · ${ech(fr(b.debitTotal))} Mbit/s</text>
+  </g>`);
+
+  /* -------------------------------------------- les coffrets et leurs liens */
+  for (const r of rangs) {
+    const g = r.groupe;
+    const yc = r.milieu - 30;
+
+    if (g.cle) {
+      const parent = g.depuis === 'local' ? null : rangs.find((x) => x.groupe.cle === g.depuis);
+      const v = g.montante && g.montante.verdict ? g.montante.verdict.niveau : 'ok';
+      const depart = parent
+        ? { x: X_COFFRET + L_COFFRET / 2, y: parent.milieu + 36 }
+        : { x: X_LOCAL + L_LOCAL, y: milieuLocal };
+      // Un coffret cascadé descend de son parent : le trait part du bas du
+      // coffret amont, pas du local, sans quoi le schéma mentirait sur ce
+      // qui tombe quand le coffret amont tombe.
+      const d = parent
+        ? `M ${depart.x} ${depart.y} V ${r.milieu} H ${X_COFFRET}`
+        : `M ${depart.x} ${depart.y} H ${(X_LOCAL + L_LOCAL + X_COFFRET) / 2} V ${r.milieu} H ${X_COFFRET}`;
+      traits.push(`<path d="${d}" fill="none" stroke="${COULEUR_LIEN[v]}" stroke-width="2.5"/>`);
+      if (g.montante) {
+        traits.push(`<text x="${parent ? depart.x + 8 : (X_LOCAL + L_LOCAL + X_COFFRET) / 2 + 8}" y="${
+          r.milieu - 6}" class="t-lien" fill="${COULEUR_LIEN[v]}">${ech(fr(g.montante.longueur, 0))} m</text>`);
+      }
+
+      const poe = g.equipements.length;
+      const contenu = lignesDe(g.contenu, 28, 2);
+      const hBoite = 50 + contenu.length * 15;
+      const yBoite = r.milieu - hBoite / 2;
+      blocs.push(`<g>
+        ${boite(X_COFFRET, yBoite, L_COFFRET, hBoite, `fill="#fff" stroke="${COULEUR_LIEN[v]}" stroke-width="2"`)}
+        <text x="${X_COFFRET + 11}" y="${yBoite + 19}" class="t-titre">${ech(g.cle)} — ${ech(couper(g.nom, 19))}</text>
+        ${contenu.map((t, n) => `<text x="${X_COFFRET + 11}" y="${yBoite + 37 + n * 15}" class="t-det">${ech(t)}</text>`).join('')}
+        <text x="${X_COFFRET + 11}" y="${yBoite + hBoite - 9}" class="t-mini">${poe} équipements · depuis ${ech(g.depuis === 'local' ? 'le local' : g.depuis)}</text>
+      </g>`);
+    } else {
+      blocs.push(`<g>
+        <text x="${X_COFFRET + 11}" y="${r.milieu + 4}" class="t-det">${ech(g.nom)}</text>
+      </g>`);
+    }
+
+    /* ----------------------------------------- les équipements du groupe */
+    g.equipements.forEach((e, i) => {
+      const ye = r.y + i * HAUT_LIGNE;
+      const centre = ye + HAUT_LIGNE / 2;
+      const l = e.liaison;
+      // Les liaisons d'alimentation et de commande n'ont pas de verdict
+      // Ethernet : elles ne sont pas des paires torsadées de 90 m.
+      const v = l && l.verdict ? l.verdict.niveau : 'ok';
+      const xDepart = g.cle ? X_COFFRET + L_COFFRET : X_LOCAL + L_LOCAL;
+      const coude = g.cle ? X_COFFRET + L_COFFRET + 30 : X_EQUIP - 40;
+      traits.push(`<path d="M ${xDepart} ${g.cle ? r.milieu : milieuLocal} H ${coude} V ${centre} H ${X_EQUIP}"
+        fill="none" stroke="${COULEUR_LIEN[v]}" stroke-width="${v === 'ok' ? 1.4 : 2.2}"/>`);
+      if (l) {
+        // Calée à droite, contre la boîte : un accès porte cinq câbles et
+        // son étiquette, alignée à gauche, finissait sous l'équipement.
+        traits.push(`<text x="${X_EQUIP - 7}" y="${centre - 4}" text-anchor="end" class="t-lien" fill="${COULEUR_LIEN[v]}">${
+          ech(fr(l.longueur, 0))} m${l.cables > 1 ? ` × ${l.cables}` : ''}</text>`);
+      }
+      const et = etiquette(etude, e.cle);
+      const detail = couper(et.detail, 44);
+      const titre = couper(et.titre, 44);
+      blocs.push(`<g>
+        ${boite(X_EQUIP, ye + 2, L_EQUIP, HAUT_LIGNE - 6,
+    `fill="${v === 'ok' ? '#fff' : '#fff4f5'}" stroke="${v === 'ok' ? '#dde1e7' : COULEUR_LIEN[v]}"`)}
+        <text x="${X_EQUIP + 11}" y="${centre - 2}" class="t-equip">${ech(titre)}</text>
+        ${detail ? `<text x="${X_EQUIP + 11}" y="${centre + 12}" class="t-det">${ech(detail)}</text>` : ''}
+      </g>`);
+    });
+  }
+
+  const hors = b.horsNorme.length;
+  const legende = `<g>
+    <text x="${X_LOCAL}" y="${hauteur - 8}" class="t-det">Chaque trait porte la longueur de câble relevée au cheminement.
+      ${hors ? `${hors} liaison(s) au-delà de ${LIAISON_PERMANENTE} m, en rouge.`
+    : `Toutes les liaisons tiennent sous les ${LIAISON_PERMANENTE} m.`}</text>
+  </g>`;
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${LARGEUR} ${hauteur}"
+  role="img" aria-label="Synoptique de raccordement">
+<style>
+  .t-titre { font:700 14px -apple-system,"Segoe UI",Roboto,Arial,sans-serif; fill:#1a1d23; }
+  .t-det { font:11.5px -apple-system,"Segoe UI",Roboto,Arial,sans-serif; fill:#5b6472; }
+  .t-equip { font:600 14px -apple-system,"Segoe UI",Roboto,Arial,sans-serif; fill:#1a1d23; }
+  /* Halo blanc : l'étiquette d'un accès à cinq câbles passait sur le trait
+     vertical qui dessert le groupe. On la peint par-dessus. */
+  .t-lien { font:11px -apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+    stroke:#fff; stroke-width:3.5; paint-order:stroke; stroke-linejoin:round; }
+  .t-blanc { font:700 13px -apple-system,"Segoe UI",Roboto,Arial,sans-serif; fill:#fff; }
+  .t-blanc-det { font:11px -apple-system,"Segoe UI",Roboto,Arial,sans-serif; fill:#c9ced6; }
+  .t-mini { font:10px -apple-system,"Segoe UI",Roboto,Arial,sans-serif; fill:#5b6472; }
+  .t-entete { font:700 12.5px -apple-system,"Segoe UI",Roboto,Arial,sans-serif; fill:#5b6472;
+    letter-spacing:.08em; }
+<\/style>
+<rect width="${LARGEUR}" height="${hauteur}" fill="#fff"/>
+<text x="${X_LOCAL}" y="28" class="t-entete">LOCAL</text>
+<text x="${X_COFFRET}" y="28" class="t-entete">COFFRETS DÉPORTÉS</text>
+<text x="${X_EQUIP}" y="28" class="t-entete">ÉQUIPEMENTS</text>
+${traits.join('\n')}
+${blocs.join('\n')}
+${legende}
+</svg>`;
+}
+
 /* ===== devis-etude.js ===== */
 /**
  * Le bordereau du devis, monté depuis l'étude.
@@ -2452,367 +2780,6 @@ function totaux(lots, devis) {
   };
 }
 
-/* ===== editeur-fiche.js ===== */
-/**
- * Le dossier client, produit depuis l'éditeur.
- *
- * L'agence modifie l'étude sur son ordinateur, puis clique ici : il en sort
- * un fichier HTML autonome — plan, photos, tableaux, réserves — qui s'ouvre
- * dans n'importe quel navigateur, s'enregistre en PDF d'un bouton, et part
- * par courriel tel quel. Rien à installer, rien à commander en ligne.
- *
- * Autonome veut dire sans aucun lien vers l'extérieur : les images sont
- * dedans, le style est dedans. Un dossier qui irait chercher une image sur
- * un serveur s'afficherait vide chez le client le jour où le serveur
- * tombe — ou révélerait, par la requête, qu'il vient d'être ouvert.
- *
- * L'ordre des chapitres, leur intitulé, ceux qu'on écarte et les textes que
- * l'agence ajoute elle-même sont dans `etude.dossier`. Le dossier n'est donc
- * pas une sortie figée : c'est une mise en page que l'agence arrête.
- */
-
-
-
-
-/** Un texte libre devient des paragraphes : une ligne vide sépare, une seule revient. */
-const paragraphes = (t) => String(t ?? '')
-  .split(/\n{2,}/)
-  .map((p) => p.trim())
-  .filter(Boolean)
-  .map((p) => `<p>${echapper(p).replace(/\n/g, '<br>')}</p>`)
-  .join('');
-
-/** Les chapitres que le dossier sait écrire tout seul, dans leur ordre naturel. */
-const SECTIONS_STANDARD = [
-  { cle: 'chiffres', titre: 'Ce que l\'installation compte' },
-  { cle: 'cameras', titre: 'Les caméras' },
-  { cle: 'plan', titre: 'Le plan d\'implantation' },
-  { cle: 'vues', titre: 'Le site, vue par vue' },
-  { cle: 'cablage', titre: 'Câblage' },
-  { cle: 'reserves', titre: 'Réserves' },
-];
-
-/**
- * Le papier.
- *
- * C'est la seule chose qu'un dossier ne peut pas deviner : une étude de dix
- * caméras tient en A4 portrait, un plan de site large se lit en paysage, et
- * un dossier qui part à la reliure demande une marge de gauche plus grande.
- */
-const FORMATS = { A4: 'A4', A3: 'A3', Letter: 'Lettre US' };
-const ORIENTATIONS = { portrait: 'Portrait', landscape: 'Paysage' };
-const MARGES = {
-  etroites: { label: 'Étroites', css: '8mm 8mm 10mm' },
-  normales: { label: 'Normales', css: '14mm 12mm 15mm' },
-  larges: { label: 'Larges', css: '22mm 20mm 24mm' },
-};
-
-const pdfParDefaut = () => ({
-  format: 'A4', orientation: 'portrait', marges: 'normales',
-});
-
-/** Les réglages retenus, quoi qu'il y ait dans le fichier. */
-function reglagesPdf(etude) {
-  const lu = (etude.dossier && etude.dossier.pdf) || {};
-  const d = pdfParDefaut();
-  return {
-    format: FORMATS[lu.format] ? lu.format : d.format,
-    orientation: ORIENTATIONS[lu.orientation] ? lu.orientation : d.orientation,
-    marges: MARGES[lu.marges] ? lu.marges : d.marges,
-  };
-}
-
-const dossierParDefaut = () => ({
-  sautDePage: false,
-  pdf: pdfParDefaut(),
-  sections: SECTIONS_STANDARD.map((s) => ({ ...s, visible: true })),
-});
-
-/**
- * La liste des chapitres telle qu'on va l'écrire.
- *
- * Une étude enregistrée avant qu'un chapitre n'existe ne le connaît pas : on
- * l'ajoute à la fin plutôt que de perdre l'ordre choisi par l'agence. Et une
- * clé inconnue qui n'est pas un texte libre est écartée — sans quoi un
- * fichier bricolé ferait un trou dans le dossier.
- */
-function sectionsDuDossier(etude) {
-  const d = etude.dossier;
-  if (!d || !Array.isArray(d.sections) || !d.sections.length) return dossierParDefaut().sections;
-  const connues = new Set(SECTIONS_STANDARD.map((s) => s.cle));
-  const gardees = d.sections.filter((s) => s.type === 'texte' || connues.has(s.cle));
-  const presentes = new Set(gardees.map((s) => s.cle));
-  const manquantes = SECTIONS_STANDARD
-    .filter((s) => !presentes.has(s.cle))
-    .map((s) => ({ ...s, visible: true }));
-  return [...gardees, ...manquantes];
-}
-
-const STYLE = (papier) => `
-:root { --rouge:#c8102e; --encre:#1a1d23; --doux:#5b6472; --bord:#dde1e7; --fond:#f6f7f9; }
-* { box-sizing:border-box; }
-body { margin:0; background:var(--fond); color:var(--encre);
-  font:15px/1.62 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
-.feuille { max-width:900px; margin:0 auto; background:#fff; padding:34px 40px 48px;
-  border:1px solid var(--bord); }
-.garde { border-bottom:3px solid var(--rouge); padding-bottom:18px; margin-bottom:26px; }
-.bandeau { display:flex; gap:18px; align-items:flex-start; }
-.bandeau img { width:96px; height:auto; }
-.coord { font-size:13.5px; color:var(--doux); line-height:1.5; }
-.coord .nom { font-size:19px; font-weight:800; color:var(--encre); margin:0 0 3px; }
-.coord p { margin:0; }
-.surtitre { color:var(--rouge); font-weight:700; letter-spacing:.1em; font-size:12px;
-  margin:22px 0 6px; }
-h1 { font-size:30px; margin:0 0 8px; }
-h2 { font-size:19px; margin:34px 0 10px; padding-bottom:6px;
-  border-bottom:2px solid var(--rouge); }
-h3 { font-size:15.5px; margin:22px 0 8px; }
-table { border-collapse:collapse; width:100%; font-size:14px; margin:10px 0; }
-th, td { text-align:left; padding:7px 9px; border-bottom:1px solid var(--bord); }
-th { font-size:11.5px; text-transform:uppercase; letter-spacing:.04em; color:var(--doux); }
-td.n, th.n { text-align:right; }
-.fort { color:var(--rouge); font-weight:700; }
-.meta p { margin:3px 0; font-size:14px; }
-.point { border-left:3px solid var(--rouge); padding:2px 0 2px 16px; margin:16px 0; }
-/* En grille, jamais en flex : cinq cases « flex:1 1 130px » tiennent sur une
-   ligne au calcul, puis refusent de descendre sous leur contenu — et la
-   cinquième sortait de la feuille A4 à l'impression. La grille, elle, replie. */
-.chiffres { display:grid; grid-template-columns:repeat(auto-fit, minmax(128px, 1fr));
-  gap:1px; background:var(--bord); border:1px solid var(--bord); margin:12px 0; }
-.chiffres div { background:#fff; padding:9px 14px; min-width:0; }
-.chiffres span { display:block; font-size:11.5px; color:var(--doux); }
-.chiffres b { font-size:19px; }
-figure { margin:14px 0 20px; }
-figure svg, figure img { max-width:100%; height:auto; border:1px solid var(--bord);
-  border-radius:8px; }
-figcaption { font-size:13px; color:var(--doux); margin-top:6px; }
-.report { position:relative; line-height:0; border-radius:8px; overflow:hidden;
-  border:1px solid var(--bord); }
-.report img { width:100%; display:block; }
-.report .champ { position:absolute; top:0; bottom:0; background:rgba(200,16,46,.24);
-  border-left:2px solid var(--rouge); border-right:2px solid var(--rouge); }
-.report .champ span { position:absolute; top:5px; left:5px; font-size:11px;
-  background:var(--rouge); color:#fff; padding:1px 6px; border-radius:3px;
-  line-height:1.4; white-space:nowrap; }
-ul.liste li { margin-bottom:7px; }
-.libre p { margin:10px 0; }
-.pied { color:var(--doux); font-size:13px; text-align:center; padding:22px 0 0;
-  border-top:1px solid var(--bord); margin-top:34px; }
-.pdf { position:fixed; right:20px; bottom:20px; z-index:9;
-  background:var(--rouge); color:#fff; border:0; border-radius:999px;
-  padding:13px 22px; font:600 15px/1 inherit; cursor:pointer;
-  box-shadow:0 6px 20px rgba(0,0,0,.25); }
-.pdf:hover { background:#a50d26; }
-.pdf small { display:block; font-weight:400; font-size:11.5px; opacity:.85;
-  margin-top:4px; }
-
-/* Le PDF se fait par l'impression du navigateur : c'est le seul chemin qui
-   ne demande ni logiciel ni connexion. Reste à ce que les pages tombent
-   juste — un titre ne se sépare pas de son tableau, une photo ne se coupe
-   pas en deux. */
-@page { size:${papier.taille}; margin:${papier.marge}; }
-@media print {
-  body { background:#fff; font-size:11.5pt; }
-  .feuille { border:0; max-width:none; padding:0; }
-  .pdf { display:none; }
-  h1 { font-size:22pt; }
-  h2 { font-size:14pt; margin-top:20px; break-after:avoid; page-break-after:avoid; }
-  h3 { break-after:avoid; page-break-after:avoid; }
-  figure, .report, .chiffres, .point, table, li, tr, .libre p {
-    break-inside:avoid; page-break-inside:avoid; }
-  figure img, .report img, figure svg { max-height:170mm; }
-  .chiffres { grid-template-columns:repeat(auto-fit, minmax(112px, 1fr)); }
-  .chiffres b { font-size:13pt; }
-  .saut { break-before:page; page-break-before:always; }
-  .pied { position:relative; }
-}`;
-
-/**
- * Compose le dossier.
- *
- * @param {object} etude
- * @param {object} agence
- * @param {string} planSvg le plan, déjà dessiné, sérialisé
- */
-function fiche(etude, agence, planSvg) {
-  const b = bilanEtude(etude);
-  const r = reglagesPdf(etude);
-  const papier = {
-    taille: `${r.format} ${r.orientation}`,
-    marge: MARGES[r.marges].css,
-  };
-  const date = new Date().toLocaleDateString('fr-FR', {
-    day: '2-digit', month: 'long', year: 'numeric',
-  });
-
-  const lignes = etude.cameras.map((c) => {
-    const m = etude.modeles[c.modele];
-    const p = porteesDori(m, c.tele);
-    const fort = p.identification > 5;
-    return `<tr>
-      <td><b>${echapper(c.cle)}</b></td>
-      <td>${echapper(c.role || '—')}</td>
-      <td>${echapper(m.reference.replace('Hikvision ', ''))}${c.tele ? ' · télé' : ''}</td>
-      <td class="n">${echapper(fr(p.reconnaissance))} m</td>
-      <td class="n${fort ? ' fort' : ''}">${echapper(fr(p.identification))} m</td>
-    </tr>`;
-  }).join('');
-
-  const vues = (etude.photos || []).map((ph) => {
-    const bandes = (ph.reperes || []).map((r) => {
-      const c = etude.cameras.find((x) => x.cle === r.camera);
-      if (!c) return '';
-      const m = etude.modeles[c.modele];
-      const o = optiqueUtile(m, c.tele);
-      const angle = m.capteurUnique ? 180 : o.angleH;
-      const bd = bandePhoto(ph.champ, angle, r.bande);
-      return `<div class="champ" style="left:${(bd.gauche * 100).toFixed(1)}%;
-        width:${(bd.largeur * 100).toFixed(1)}%"><span>${echapper(c.cle)} — ${
-  echapper(fr(angle))}°${bd.deborde ? ' · déborde du cadre' : ''}</span></div>`;
-    }).join('');
-    const cams = (ph.reperes || []).map((r) => r.camera);
-    const detail = cams.map((cle) => {
-      const c = etude.cameras.find((x) => x.cle === cle);
-      if (!c) return '';
-      const p = porteesDori(etude.modeles[c.modele], c.tele);
-      return `<li><b>${echapper(c.cle)}</b> — ${echapper(c.role || '')} :
-        identifie jusqu'à <b>${echapper(fr(p.identification))} m</b>,
-        reconnaît jusqu'à ${echapper(fr(p.reconnaissance))} m.</li>`;
-    }).join('');
-    return `<h3>${echapper(ph.titre || ph.cle)}</h3>
-      <div class="report">${`<img src="${ph.src}" alt="${echapper(ph.titre || '')}">`}${bandes}</div>
-      <figcaption>La bande rouge est le champ réel de la caméra, reporté à
-        l'échelle de la prise de vue — champ de la photo estimé à
-        ${echapper(fr(ph.champ))}°.</figcaption>
-      ${detail ? `<ul class="liste">${detail}</ul>` : ''}`;
-  }).join('');
-
-  const hors = b.horsNorme.length
-    ? `<p class="point"><b>${b.horsNorme.length} liaison(s) au-delà de la limite.</b>
-       ${b.horsNorme.map((l) => `${echapper(l.repere)} (${echapper(fr(l.longueur, 0))} m)`).join(', ')}.
-       Une liaison Ethernet tient ${LIAISON_PERMANENTE} m de câble posé : au-delà,
-       il faut un coffret déporté ou une fibre.</p>`
-    : '';
-
-  /* Le corps de chaque chapitre, sans son titre : l'agence choisit le titre. */
-  const corps = {
-    chiffres: `<div class="chiffres">
-  <div><span>Caméras</span><b>${b.cameras}</b></div>
-  <div><span>Débit estimé</span><b>${echapper(fr(b.debitTotal))} Mbit/s</b></div>
-  <div><span>Stockage 30 jours</span><b>${echapper(fr(b.capaciteGo / 1000))} To</b></div>
-  <div><span>PoE demandé</span><b>${echapper(fr(b.consoPoe))} W</b></div>
-  <div><span>Câble réseau</span><b>${echapper(frGroupe(Math.round(b.reseau)))} m</b></div>
-</div>`,
-
-    cameras: `<table>
-  <thead><tr><th>Repère</th><th>Rôle</th><th>Modèle</th>
-    <th class="n">Reconnaît</th><th class="n">Identifie</th></tr></thead>
-  <tbody>${lignes}</tbody>
-</table>
-<p class="point"><b>Identifier n'est pas voir.</b> La dernière colonne est la
-  distance à laquelle un inconnu devient nommable — 250 pixels par mètre selon
-  la norme EN 62676-4. En deçà, la caméra montre une silhouette ; elle ne
-  prouve rien.</p>`,
-
-    plan: `<figure>${planSvg}
-  <figcaption>Bâtiment de ${echapper(fr(etude.site.longueurBatiment, 0))} m.
-    Chaque secteur montre trois profondeurs : en gris jusqu'où la caméra
-    observe, en rouge pâle jusqu'où elle reconnaît, en rouge vif jusqu'où elle
-    identifie.</figcaption>
-</figure>`,
-
-    vues,
-
-    cablage: `<div class="chiffres">
-  <div><span>Câble réseau</span><b>${echapper(frGroupe(Math.round(b.reseau)))} m</b></div>
-  <div><span>À commander</span><b>${b.boites.boites} boîtes de 305 m</b></div>
-  <div><span>Alimentation et commande</span><b>${echapper(frGroupe(Math.round(b.commande)))} m</b></div>
-  <div><span>Liaisons hors norme</span><b>${b.horsNorme.length}</b></div>
-</div>
-${hors}`,
-
-    reserves: `<ul class="liste">
-  <li>Ce document est une étude technique. Il ne vaut ni devis ni engagement
-    de prix : aucun montant n'y figure.</li>
-  <li>Les portées sont calculées sur l'optique annoncée par le constructeur et
-    la norme EN 62676-4. Elles sont vraies pour ces caméras, où qu'on les
-    pose.</li>
-  <li>Les emplacements sont proposés d'après les vues transmises. Ils se
-    confirment par un relevé sur place, qui arrête aussi le cheminement réel
-    des câbles.</li>
-  <li>Le plan est tracé sur une longueur de bâtiment de
-    ${echapper(fr(etude.site.longueurBatiment, 0))} m. La profondeur et l'étendue
-    de la cour restent proportionnelles au relevé sur vue aérienne.</li>
-  <li>Une caméra qui filme au-delà de la propriété relève d'une autorisation
-    préfectorale. Une caméra qui couvre un poste de travail obéit à des règles
-    propres. À cadrer avant la pose.</li>
-</ul>`,
-  };
-
-  const saut = etude.dossier && etude.dossier.sautDePage;
-  let ecrits = 0;
-  const chapitres = sectionsDuDossier(etude).map((s) => {
-    if (s.visible === false) return '';
-    let dedans;
-    if (s.type === 'texte') {
-      // Un chapitre dont le texte n'a pas encore été écrit ne doit pas sortir
-      // son titre tout seul : le client lirait un intertitre suivi de rien.
-      const ecrit = paragraphes(s.corps);
-      dedans = ecrit ? `<div class="libre">${ecrit}</div>` : '';
-    } else {
-      dedans = corps[s.cle];
-    }
-    if (!dedans || !dedans.trim()) return '';
-    const classe = saut && ecrits > 0 ? ' class="saut"' : '';
-    ecrits += 1;
-    const titre = s.titre ? `<h2${classe}>${echapper(s.titre)}</h2>` : `<div${classe}></div>`;
-    return `${titre}\n${dedans}`;
-  }).join('\n\n');
-
-  return `<!doctype html>
-<html lang="fr"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Étude technique — ${echapper(agence.nomCommercial || '')}</title>
-<style>${STYLE(papier)}<\/style></head>
-<body><div class="feuille">
-
-<header class="garde">
-  <div class="bandeau">
-    ${agence.logo ? `<img src="${agence.logo}" alt="">` : ''}
-    <div class="coord">
-      <p class="nom">${echapper(agence.nomCommercial || '')}</p>
-      <p>${echapper(agence.accroche || '')}</p>
-      <p>${echapper(agence.adresse || '')}</p>
-      <p>${echapper(agence.telephone || '')} · ${echapper(agence.courriel || '')}</p>
-      <p>${echapper(agence.formeCourte || '')} · SIRET ${echapper(agence.siret || '')}
-        · TVA ${echapper(agence.tva || '')}</p>
-      <p>${echapper(agence.zone || '')}</p>
-    </div>
-  </div>
-  <p class="surtitre">ÉTUDE TECHNIQUE</p>
-  <h1>${echapper(etude.titre || 'Vidéosurveillance')}</h1>
-  <div class="meta">
-    ${etude.client ? `<p><b>Pour :</b> ${echapper(etude.client)}</p>` : ''}
-    <p><b>Établie le :</b> ${echapper(date)}</p>
-    <p><b>Référence :</b> ${echapper(etude.reference || '')}</p>
-    <p><b>Parc :</b> ${b.cameras} caméras</p>
-  </div>
-</header>
-
-${chapitres}
-
-<p class="pied">${echapper(agence.nomCommercial || '')} ·
-  ${echapper(agence.telephone || '')} · ${echapper(agence.courriel || '')} —
-  étude établie le ${echapper(date)} — document de travail, à confirmer par un
-  relevé sur place.</p>
-
-</div>
-<button type="button" class="pdf" onclick="window.print()"
-  title="Ouvre la fenêtre d'impression : choisissez « Enregistrer au format PDF » comme imprimante.">
-  Enregistrer en PDF<small>Imprimante : « Enregistrer au format PDF »</small></button>
-</body></html>`;
-}
-
 /* ===== devis-fiche.js ===== */
 /**
  * Le devis remis au client.
@@ -2901,6 +2868,54 @@ tr.option td { color:var(--doux); }
   tr, li { break-inside:avoid; page-break-inside:avoid; }
 }`;
 
+/**
+ * Les tableaux du bordereau, sans en-tête de document.
+ *
+ * Le devis les imprime seuls ; le dossier technique les reprend tels quels
+ * dans son chapitre « Le chiffrage ». Un seul rendu pour les deux : deux
+ * mises en page du même tableau finiraient par ne plus dire la même chose.
+ */
+function tablesDevis(lots) {
+  return lots.map((lot) => `<h3>${echapper(lot.titre)}</h3>
+<table>
+  <thead><tr><th>Désignation</th><th class="n">Qté</th><th class="n">Un.</th>
+    <th class="n">P.U. HT</th><th class="n">Total HT</th></tr></thead>
+  <tbody>${lignesHtml(lot)}
+    <tr class="sous-total"><td colspan="4">Sous-total ${echapper(lot.titre.toLowerCase())}</td>
+      <td class="n">${euros(lot.total)}</td></tr>
+  </tbody>
+</table>
+${lot.sansPrix ? `<p class="det">${lot.sansPrix} ligne(s) de ce lot ne sont pas encore chiffrées.</p>` : ''}`).join('\n');
+}
+
+/** Le bandeau qui dit ce que le chiffrage vaut — ou ne vaut pas encore. */
+function bandeauDevis(devis, t) {
+  if (devis.exemple) {
+    return `<div class="avis"><b>Devis non contractuel.</b> Les prix et les
+      temps de pose ne sont pas encore saisis : ce document sert à valider le
+      contenu de la prestation, pas son montant.</div>`;
+  }
+  if (!t.complet) {
+    return `<div class="avis"><b>Chiffrage partiel.</b> ${t.sansPrix} ligne(s)
+      sur ${t.lignes} n'ont pas de prix. Le total ci-dessous ne vaut que pour
+      les lignes chiffrées.</div>`;
+  }
+  return '';
+}
+
+/** Le bloc des totaux, repris à l'identique par le dossier. */
+function totauxHtml(t) {
+  const m = (v) => euros(t.complet || t.ht ? v : null);
+  return `<div class="total">
+  <div><span>Total HT</span><b>${m(t.ht)}</b></div>
+  <div><span>TVA ${echapper(fr(t.tauxTva * 100, 1))} %</span><b>${m(t.montantTva)}</b></div>
+  <div><span>Total TTC</span><b>${m(t.ttc)}</b></div>
+</div>
+<p class="det">${echapper(fr(t.heures, 2))} heures de main d'œuvre au total.
+  ${t.options ? `${t.options} ligne(s) en option, non comptées dans le total.` : ''}
+  ${t.aConfirmer ? `${t.aConfirmer} ligne(s) restent à arrêter avec vous.` : ''}</p>`;
+}
+
 function lignesHtml(lot) {
   return lot.lignes.map((l) => `<tr class="${l.option ? 'option' : ''}">
     <td>${echapper(l.designation)}${l.option ? ' <span class="marque-option">option</span>' : ''}
@@ -2930,27 +2945,8 @@ function ficheDevis(etude, devis, agence) {
     day: '2-digit', month: 'long', year: 'numeric',
   });
 
-  const tables = lots.map((lot) => `<h2>${echapper(lot.titre)}</h2>
-<table>
-  <thead><tr><th>Désignation</th><th class="n">Qté</th><th class="n">Un.</th>
-    <th class="n">P.U. HT</th><th class="n">Total HT</th></tr></thead>
-  <tbody>${lignesHtml(lot)}
-    <tr class="sous-total"><td colspan="4">Sous-total ${echapper(lot.titre.toLowerCase())}</td>
-      <td class="n">${euros(lot.total)}</td></tr>
-  </tbody>
-</table>
-${lot.sansPrix ? `<p class="det">${lot.sansPrix} ligne(s) de ce lot ne sont pas encore chiffrées.</p>` : ''}`).join('\n');
-
-  const avis = [];
-  if (devis.exemple) {
-    avis.push(`<div class="avis"><b>Devis non contractuel.</b> Les prix et les
-      temps de pose ne sont pas encore saisis : ce document sert à valider le
-      contenu de la prestation, pas son montant.</div>`);
-  } else if (!t.complet) {
-    avis.push(`<div class="avis"><b>Chiffrage partiel.</b> ${t.sansPrix} ligne(s)
-      sur ${t.lignes} n'ont pas de prix. Le total ci-dessous ne vaut que pour
-      les lignes chiffrées.</div>`);
-  }
+  const tables = tablesDevis(lots).replace(/<h3>/g, '<h2>').replace(/<\/h3>/g, '</h2>');
+  const avis = bandeauDevis(devis, t);
 
   return `<!doctype html>
 <html lang="fr"><head><meta charset="utf-8">
@@ -2982,19 +2978,11 @@ ${lot.sansPrix ? `<p class="det">${lot.sansPrix} ligne(s) de ce lot ne sont pas 
   </div>
 </header>
 
-${avis.join('')}
+${avis}
 
 ${tables}
 
-<div class="total">
-  <div><span>Total HT</span><b>${euros(t.complet || t.ht ? t.ht : null)}</b></div>
-  <div><span>TVA ${echapper(fr(t.tauxTva * 100, 1))} %</span>
-    <b>${euros(t.complet || t.ht ? t.montantTva : null)}</b></div>
-  <div><span>Total TTC</span><b>${euros(t.complet || t.ht ? t.ttc : null)}</b></div>
-</div>
-<p class="det">${echapper(fr(t.heures, 2))} heures de main d'œuvre au total.
-  ${t.options ? `${t.options} ligne(s) en option, non comptées dans le total.` : ''}
-  ${t.aConfirmer ? `${t.aConfirmer} ligne(s) restent à arrêter avec vous.` : ''}</p>
+${totauxHtml(t)}
 
 <h2>Ce que le prix comprend</h2>
 <ul class="mentions">
@@ -3051,6 +3039,400 @@ ${tables}
 </body></html>`;
 }
 
+/* ===== editeur-fiche.js ===== */
+/**
+ * Le dossier client, produit depuis l'éditeur.
+ *
+ * L'agence modifie l'étude sur son ordinateur, puis clique ici : il en sort
+ * un fichier HTML autonome — plan, photos, tableaux, réserves — qui s'ouvre
+ * dans n'importe quel navigateur, s'enregistre en PDF d'un bouton, et part
+ * par courriel tel quel. Rien à installer, rien à commander en ligne.
+ *
+ * Autonome veut dire sans aucun lien vers l'extérieur : les images sont
+ * dedans, le style est dedans. Un dossier qui irait chercher une image sur
+ * un serveur s'afficherait vide chez le client le jour où le serveur
+ * tombe — ou révélerait, par la requête, qu'il vient d'être ouvert.
+ *
+ * L'ordre des chapitres, leur intitulé, ceux qu'on écarte et les textes que
+ * l'agence ajoute elle-même sont dans `etude.dossier`. Le dossier n'est donc
+ * pas une sortie figée : c'est une mise en page que l'agence arrête.
+ */
+
+
+
+
+
+
+
+
+/** Un texte libre devient des paragraphes : une ligne vide sépare, une seule revient. */
+const paragraphes = (t) => String(t ?? '')
+  .split(/\n{2,}/)
+  .map((p) => p.trim())
+  .filter(Boolean)
+  .map((p) => `<p>${echapper(p).replace(/\n/g, '<br>')}</p>`)
+  .join('');
+
+/** Les chapitres que le dossier sait écrire tout seul, dans leur ordre naturel. */
+const SECTIONS_STANDARD = [
+  { cle: 'chiffres', titre: 'Ce que l\'installation compte' },
+  { cle: 'cameras', titre: 'Les caméras' },
+  { cle: 'plan', titre: 'Le plan d\'implantation' },
+  { cle: 'synoptique', titre: 'Le synoptique de raccordement' },
+  { cle: 'vues', titre: 'Le site, vue par vue' },
+  { cle: 'cablage', titre: 'Câblage' },
+  { cle: 'devis', titre: 'Le chiffrage' },
+  { cle: 'reserves', titre: 'Réserves' },
+];
+
+const dossierParDefaut = () => ({
+  sautDePage: false,
+  pdf: pdfParDefaut(),
+  sections: SECTIONS_STANDARD.map((s) => ({ ...s, visible: true })),
+});
+
+/**
+ * La liste des chapitres telle qu'on va l'écrire.
+ *
+ * Une étude enregistrée avant qu'un chapitre n'existe ne le connaît pas : on
+ * l'ajoute à la fin plutôt que de perdre l'ordre choisi par l'agence. Et une
+ * clé inconnue qui n'est pas un texte libre est écartée — sans quoi un
+ * fichier bricolé ferait un trou dans le dossier.
+ */
+function sectionsDuDossier(etude) {
+  const d = etude.dossier;
+  if (!d || !Array.isArray(d.sections) || !d.sections.length) return dossierParDefaut().sections;
+  const connues = new Set(SECTIONS_STANDARD.map((s) => s.cle));
+  const gardees = d.sections.filter((s) => s.type === 'texte' || connues.has(s.cle));
+  const presentes = new Set(gardees.map((s) => s.cle));
+  const manquantes = SECTIONS_STANDARD
+    .filter((s) => !presentes.has(s.cle))
+    .map((s) => ({ ...s, visible: true }));
+  return [...gardees, ...manquantes];
+}
+
+const STYLE = (papier) => `
+:root { --rouge:#c8102e; --encre:#1a1d23; --doux:#5b6472; --bord:#dde1e7; --fond:#f6f7f9; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--fond); color:var(--encre);
+  font:15px/1.62 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
+.feuille { max-width:900px; margin:0 auto; background:#fff; padding:34px 40px 48px;
+  border:1px solid var(--bord); }
+.garde { border-bottom:3px solid var(--rouge); padding-bottom:18px; margin-bottom:26px; }
+.bandeau { display:flex; gap:18px; align-items:flex-start; }
+.bandeau img { width:96px; height:auto; }
+.coord { font-size:13.5px; color:var(--doux); line-height:1.5; }
+.coord .nom { font-size:19px; font-weight:800; color:var(--encre); margin:0 0 3px; }
+.coord p { margin:0; }
+.surtitre { color:var(--rouge); font-weight:700; letter-spacing:.1em; font-size:12px;
+  margin:22px 0 6px; }
+h1 { font-size:30px; margin:0 0 8px; }
+h2 { font-size:19px; margin:34px 0 10px; padding-bottom:6px;
+  border-bottom:2px solid var(--rouge); }
+h3 { font-size:15.5px; margin:22px 0 8px; }
+table { border-collapse:collapse; width:100%; font-size:14px; margin:10px 0; }
+th, td { text-align:left; padding:7px 9px; border-bottom:1px solid var(--bord); }
+th { font-size:11.5px; text-transform:uppercase; letter-spacing:.04em; color:var(--doux); }
+td.n, th.n { text-align:right; }
+.fort { color:var(--rouge); font-weight:700; }
+.meta p { margin:3px 0; font-size:14px; }
+.point { border-left:3px solid var(--rouge); padding:2px 0 2px 16px; margin:16px 0; }
+/* En grille, jamais en flex : cinq cases « flex:1 1 130px » tiennent sur une
+   ligne au calcul, puis refusent de descendre sous leur contenu — et la
+   cinquième sortait de la feuille A4 à l'impression. La grille, elle, replie. */
+.chiffres { display:grid; grid-template-columns:repeat(auto-fit, minmax(128px, 1fr));
+  gap:1px; background:var(--bord); border:1px solid var(--bord); margin:12px 0; }
+.chiffres div { background:#fff; padding:9px 14px; min-width:0; }
+.chiffres span { display:block; font-size:11.5px; color:var(--doux); }
+.chiffres b { font-size:19px; }
+figure { margin:14px 0 20px; }
+figure svg, figure img { max-width:100%; height:auto; border:1px solid var(--bord);
+  border-radius:8px; }
+figcaption { font-size:13px; color:var(--doux); margin-top:6px; }
+.report { position:relative; line-height:0; border-radius:8px; overflow:hidden;
+  border:1px solid var(--bord); }
+.report img { width:100%; display:block; }
+.report .champ { position:absolute; top:0; bottom:0; background:rgba(200,16,46,.24);
+  border-left:2px solid var(--rouge); border-right:2px solid var(--rouge); }
+.report .champ span { position:absolute; top:5px; left:5px; font-size:11px;
+  background:var(--rouge); color:#fff; padding:1px 6px; border-radius:3px;
+  line-height:1.4; white-space:nowrap; }
+ul.liste li { margin-bottom:7px; }
+.libre p { margin:10px 0; }
+figure.large svg { width:100%; }
+/* Le chiffrage repris du devis : mêmes tableaux, donc mêmes règles. Les
+   largeurs sont posées sur la classe et non sur tous les tableaux, sans
+   quoi celui des caméras s'y plierait aussi. */
+.chiffrage th:nth-child(2), .chiffrage td:nth-child(2) { width:58px; }
+.chiffrage th:nth-child(3), .chiffrage td:nth-child(3) { width:62px; }
+.chiffrage th:nth-child(4), .chiffrage td:nth-child(4) { width:94px; }
+.chiffrage th:nth-child(5), .chiffrage td:nth-child(5) { width:100px; }
+.chiffrage h3 { margin-top:20px; }
+tr.option td { color:var(--doux); }
+.marque-option { font-size:10.5px; text-transform:uppercase; letter-spacing:.05em;
+  color:var(--rouge); font-weight:700; }
+.det { display:block; font-size:11.5px; color:var(--doux); margin-top:2px; }
+.sous-total td { border-top:2px solid var(--encre); border-bottom:0;
+  font-weight:700; font-size:14px; }
+.avis { background:#fff4f5; border:1px solid #f0c8ce; border-left:4px solid var(--rouge);
+  border-radius:6px; padding:11px 14px; margin:16px 0; font-size:13.5px; color:#7a0a1c; }
+.total { margin:20px 0 0; border:1px solid var(--bord); border-radius:8px; overflow:hidden; }
+.total div { display:flex; justify-content:space-between; padding:9px 14px;
+  border-bottom:1px solid var(--bord); font-size:14px; }
+.total div:last-child { border-bottom:0; background:var(--encre); color:#fff;
+  font-size:17px; font-weight:800; }
+.pied { color:var(--doux); font-size:13px; text-align:center; padding:22px 0 0;
+  border-top:1px solid var(--bord); margin-top:34px; }
+.pdf { position:fixed; right:20px; bottom:20px; z-index:9;
+  background:var(--rouge); color:#fff; border:0; border-radius:999px;
+  padding:13px 22px; font:600 15px/1 inherit; cursor:pointer;
+  box-shadow:0 6px 20px rgba(0,0,0,.25); }
+.pdf:hover { background:#a50d26; }
+.pdf small { display:block; font-weight:400; font-size:11.5px; opacity:.85;
+  margin-top:4px; }
+
+/* Le PDF se fait par l'impression du navigateur : c'est le seul chemin qui
+   ne demande ni logiciel ni connexion. Reste à ce que les pages tombent
+   juste — un titre ne se sépare pas de son tableau, une photo ne se coupe
+   pas en deux. */
+@page { size:${papier.taille}; margin:${papier.marge}; }
+@media print {
+  body { background:#fff; font-size:11.5pt; }
+  .feuille { border:0; max-width:none; padding:0; }
+  .pdf { display:none; }
+  h1 { font-size:22pt; }
+  h2 { font-size:14pt; margin-top:20px; break-after:avoid; page-break-after:avoid; }
+  h3 { break-after:avoid; page-break-after:avoid; }
+  figure, .report, .chiffres, .point, table, li, tr, .libre p {
+    break-inside:avoid; page-break-inside:avoid; }
+  /* Sauf les tableaux du chiffrage : sept lots insécables laissaient une
+     demi-page blanche à chaque fois. Ils se coupent, mais jamais au milieu
+     d'une ligne, et l'en-tête se répète en haut de page. */
+  .chiffrage table { break-inside:auto; page-break-inside:auto; }
+  .chiffrage thead { display:table-header-group; }
+  figure img, .report img, figure svg { max-height:170mm; }
+  .chiffres { grid-template-columns:repeat(auto-fit, minmax(112px, 1fr)); }
+  .chiffres b { font-size:13pt; }
+  .saut { break-before:page; page-break-before:always; }
+  /* Le pied repartait seul sur une page, sous une page vide. Serré, il
+     remonte avec le dernier chapitre. */
+  .pied { position:relative; margin-top:16px; padding-top:12px;
+    break-before:avoid; page-break-before:avoid; }
+}`;
+
+/**
+ * Compose le dossier.
+ *
+ * @param {object} etude
+ * @param {object} agence
+ * @param {string} planSvg le plan, déjà dessiné, sérialisé
+ */
+function fiche(etude, agence, planSvg, devis = null) {
+  const b = bilanEtude(etude);
+  const r = reglagesPdf(etude);
+  const papier = {
+    taille: `${r.format} ${r.orientation}`,
+    marge: MARGES[r.marges].css,
+  };
+  const date = new Date().toLocaleDateString('fr-FR', {
+    day: '2-digit', month: 'long', year: 'numeric',
+  });
+
+  const lignes = etude.cameras.map((c) => {
+    const m = etude.modeles[c.modele];
+    const p = porteesDori(m, c.tele);
+    const fort = p.identification > 5;
+    return `<tr>
+      <td><b>${echapper(c.cle)}</b></td>
+      <td>${echapper(c.role || '—')}</td>
+      <td>${echapper(m.reference.replace('Hikvision ', ''))}${c.tele ? ' · télé' : ''}</td>
+      <td class="n">${echapper(fr(p.reconnaissance))} m</td>
+      <td class="n${fort ? ' fort' : ''}">${echapper(fr(p.identification))} m</td>
+    </tr>`;
+  }).join('');
+
+  const vues = (etude.photos || []).map((ph) => {
+    const bandes = (ph.reperes || []).map((r) => {
+      const c = etude.cameras.find((x) => x.cle === r.camera);
+      if (!c) return '';
+      const m = etude.modeles[c.modele];
+      const o = optiqueUtile(m, c.tele);
+      const angle = m.capteurUnique ? 180 : o.angleH;
+      const bd = bandePhoto(ph.champ, angle, r.bande);
+      return `<div class="champ" style="left:${(bd.gauche * 100).toFixed(1)}%;
+        width:${(bd.largeur * 100).toFixed(1)}%"><span>${echapper(c.cle)} — ${
+  echapper(fr(angle))}°${bd.deborde ? ' · déborde du cadre' : ''}</span></div>`;
+    }).join('');
+    const cams = (ph.reperes || []).map((r) => r.camera);
+    const detail = cams.map((cle) => {
+      const c = etude.cameras.find((x) => x.cle === cle);
+      if (!c) return '';
+      const p = porteesDori(etude.modeles[c.modele], c.tele);
+      return `<li><b>${echapper(c.cle)}</b> — ${echapper(c.role || '')} :
+        identifie jusqu'à <b>${echapper(fr(p.identification))} m</b>,
+        reconnaît jusqu'à ${echapper(fr(p.reconnaissance))} m.</li>`;
+    }).join('');
+    return `<h3>${echapper(ph.titre || ph.cle)}</h3>
+      <div class="report">${`<img src="${ph.src}" alt="${echapper(ph.titre || '')}">`}${bandes}</div>
+      <figcaption>La bande rouge est le champ réel de la caméra, reporté à
+        l'échelle de la prise de vue — champ de la photo estimé à
+        ${echapper(fr(ph.champ))}°.</figcaption>
+      ${detail ? `<ul class="liste">${detail}</ul>` : ''}`;
+  }).join('');
+
+  const hors = b.horsNorme.length
+    ? `<p class="point"><b>${b.horsNorme.length} liaison(s) au-delà de la limite.</b>
+       ${b.horsNorme.map((l) => `${echapper(l.repere)} (${echapper(fr(l.longueur, 0))} m)`).join(', ')}.
+       Une liaison Ethernet tient ${LIAISON_PERMANENTE} m de câble posé : au-delà,
+       il faut un coffret déporté ou une fibre.</p>`
+    : '';
+
+  /*
+   * Le chiffrage n'entre dans le dossier que si un devis est fourni. Sans
+   * lui, le chapitre n'existe pas — il ne faut pas qu'un dossier sorte avec
+   * un intertitre « Le chiffrage » suivi de rien.
+   */
+  let chiffrage = '';
+  let avecPrix = false;
+  if (devis) {
+    const { lots, totaux: tdev } = bordereau(etude, devis);
+    avecPrix = true;
+    chiffrage = `<div class="chiffrage">${bandeauDevis(devis, tdev)}${
+  tablesDevis(lots)}${totauxHtml(tdev)}</div>`;
+  }
+
+  /* Le corps de chaque chapitre, sans son titre : l'agence choisit le titre. */
+  const corps = {
+    chiffres: `<div class="chiffres">
+  <div><span>Caméras</span><b>${b.cameras}</b></div>
+  <div><span>Débit estimé</span><b>${echapper(fr(b.debitTotal))} Mbit/s</b></div>
+  <div><span>Stockage 30 jours</span><b>${echapper(fr(b.capaciteGo / 1000))} To</b></div>
+  <div><span>PoE demandé</span><b>${echapper(fr(b.consoPoe))} W</b></div>
+  <div><span>Câble réseau</span><b>${echapper(frGroupe(Math.round(b.reseau)))} m</b></div>
+</div>`,
+
+    cameras: `<table>
+  <thead><tr><th>Repère</th><th>Rôle</th><th>Modèle</th>
+    <th class="n">Reconnaît</th><th class="n">Identifie</th></tr></thead>
+  <tbody>${lignes}</tbody>
+</table>
+<p class="point"><b>Identifier n'est pas voir.</b> La dernière colonne est la
+  distance à laquelle un inconnu devient nommable — 250 pixels par mètre selon
+  la norme EN 62676-4. En deçà, la caméra montre une silhouette ; elle ne
+  prouve rien.</p>`,
+
+    plan: `<figure>${planSvg}
+  <figcaption>Bâtiment de ${echapper(fr(etude.site.longueurBatiment, 0))} m.
+    Chaque secteur montre trois profondeurs : en gris jusqu'où la caméra
+    observe, en rouge pâle jusqu'où elle reconnaît, en rouge vif jusqu'où elle
+    identifie.</figcaption>
+</figure>`,
+
+    vues,
+
+    synoptique: `<figure class="large">${synoptique(etude)}
+  <figcaption>Qui se raccorde à quoi, et par combien de mètres. Le schéma se
+    lit de droite à gauche : l'équipement, son coffret, le local. Chaque trait
+    porte la longueur relevée au cheminement ; un trait rouge signale une
+    liaison au-delà de ce qu'une paire torsadée tient.</figcaption>
+</figure>`,
+
+    devis: chiffrage,
+
+    cablage: `<div class="chiffres">
+  <div><span>Câble réseau</span><b>${echapper(frGroupe(Math.round(b.reseau)))} m</b></div>
+  <div><span>À commander</span><b>${b.boites.boites} boîtes de 305 m</b></div>
+  <div><span>Alimentation et commande</span><b>${echapper(frGroupe(Math.round(b.commande)))} m</b></div>
+  <div><span>Liaisons hors norme</span><b>${b.horsNorme.length}</b></div>
+</div>
+${hors}`,
+
+    reserves: `<ul class="liste">
+  <li>${avecPrix
+    ? `Le chiffrage porté ici vaut pour ${etude.cameras.length} caméras et le
+       cheminement relevé en étude. Toute modification du parc ou du
+       cheminement le change.`
+    : `Ce document est une étude technique. Il ne vaut ni devis ni engagement
+       de prix : aucun montant n'y figure.`}</li>
+  <li>Les portées sont calculées sur l'optique annoncée par le constructeur et
+    la norme EN 62676-4. Elles sont vraies pour ces caméras, où qu'on les
+    pose.</li>
+  <li>Les emplacements sont proposés d'après les vues transmises. Ils se
+    confirment par un relevé sur place, qui arrête aussi le cheminement réel
+    des câbles.</li>
+  <li>Le plan est tracé sur une longueur de bâtiment de
+    ${echapper(fr(etude.site.longueurBatiment, 0))} m. La profondeur et l'étendue
+    de la cour restent proportionnelles au relevé sur vue aérienne.</li>
+  <li>Une caméra qui filme au-delà de la propriété relève d'une autorisation
+    préfectorale. Une caméra qui couvre un poste de travail obéit à des règles
+    propres. À cadrer avant la pose.</li>
+</ul>`,
+  };
+
+  const saut = etude.dossier && etude.dossier.sautDePage;
+  let ecrits = 0;
+  const chapitres = sectionsDuDossier(etude).map((s) => {
+    if (s.visible === false) return '';
+    let dedans;
+    if (s.type === 'texte') {
+      // Un chapitre dont le texte n'a pas encore été écrit ne doit pas sortir
+      // son titre tout seul : le client lirait un intertitre suivi de rien.
+      const ecrit = paragraphes(s.corps);
+      dedans = ecrit ? `<div class="libre">${ecrit}</div>` : '';
+    } else {
+      dedans = corps[s.cle];
+    }
+    if (!dedans || !dedans.trim()) return '';
+    const classe = saut && ecrits > 0 ? ' class="saut"' : '';
+    ecrits += 1;
+    const titre = s.titre ? `<h2${classe}>${echapper(s.titre)}</h2>` : `<div${classe}></div>`;
+    return `${titre}\n${dedans}`;
+  }).join('\n\n');
+
+  return `<!doctype html>
+<html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Étude technique — ${echapper(agence.nomCommercial || '')}</title>
+<style>${STYLE(papier)}<\/style></head>
+<body><div class="feuille">
+
+<header class="garde">
+  <div class="bandeau">
+    ${agence.logo ? `<img src="${agence.logo}" alt="">` : ''}
+    <div class="coord">
+      <p class="nom">${echapper(agence.nomCommercial || '')}</p>
+      <p>${echapper(agence.accroche || '')}</p>
+      <p>${echapper(agence.adresse || '')}</p>
+      <p>${echapper(agence.telephone || '')} · ${echapper(agence.courriel || '')}</p>
+      <p>${echapper(agence.formeCourte || '')} · SIRET ${echapper(agence.siret || '')}
+        · TVA ${echapper(agence.tva || '')}</p>
+      <p>${echapper(agence.zone || '')}</p>
+    </div>
+  </div>
+  <p class="surtitre">ÉTUDE TECHNIQUE</p>
+  <h1>${echapper(etude.titre || 'Vidéosurveillance')}</h1>
+  <div class="meta">
+    ${etude.client ? `<p><b>Pour :</b> ${echapper(etude.client)}</p>` : ''}
+    <p><b>Établie le :</b> ${echapper(date)}</p>
+    <p><b>Référence :</b> ${echapper(etude.reference || '')}</p>
+    <p><b>Parc :</b> ${b.cameras} caméras</p>
+  </div>
+</header>
+
+${chapitres}
+
+<p class="pied">${echapper(agence.nomCommercial || '')} ·
+  ${echapper(agence.telephone || '')} · ${echapper(agence.courriel || '')} —
+  étude établie le ${echapper(date)} — document de travail, à confirmer par un
+  relevé sur place.</p>
+
+</div>
+<button type="button" class="pdf" onclick="window.print()"
+  title="Ouvre la fenêtre d'impression : choisissez « Enregistrer au format PDF » comme imprimante.">
+  Enregistrer en PDF<small>Imprimante : « Enregistrer au format PDF »</small></button>
+</body></html>`;
+}
+
 /* ===== editeur.js ===== */
 /**
  * L'éditeur d'étude : le plan à l'écran, les caméras à la souris.
@@ -3066,6 +3448,7 @@ ${tables}
  * d'autres longueurs que l'étude qu'il modifie ne servirait qu'à se
  * tromper plus vite.
  */
+
 
 
 
@@ -3582,8 +3965,10 @@ const DESCRIPTION = {
   chiffres: 'Le bandeau de tête : caméras, débit, stockage, PoE, câble.',
   cameras: 'Le tableau des caméras et leurs distances d\'identification.',
   plan: 'Le plan tel qu\'il est à l\'écran, secteurs compris.',
+  synoptique: 'Qui se raccorde à quel coffret, et par combien de mètres.',
   vues: 'Vos photos, avec le champ de chaque caméra reporté dessus.',
   cablage: 'Le métré, les boîtes à commander, les liaisons hors norme.',
+  devis: 'Le bordereau chiffré, lots et sous-totaux, depuis devis.json.',
   reserves: 'Ce que l\'étude ne promet pas. À garder.',
 };
 
@@ -3769,7 +4154,7 @@ function dossierHtml() {
   const svg = new XMLSerializer().serializeToString($('#plan'));
   etat.selection = garde;
   dessinerPlan();
-  return fiche(etat.etude, globalThis.__agence || {}, svg);
+  return fiche(etat.etude, globalThis.__agence || {}, svg, globalThis.__devis || null);
 }
 
 function produireFiche() {

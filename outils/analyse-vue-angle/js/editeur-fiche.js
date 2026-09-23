@@ -17,6 +17,10 @@
  */
 
 import { fr, frGroupe, echapper } from './format.js';
+import { reglagesPdf, MARGES, pdfParDefaut } from './papier.js';
+import { synoptique } from './synoptique.js';
+import { bordereau } from './devis-etude.js';
+import { tablesDevis, bandeauDevis, totauxHtml } from './devis-fiche.js';
 import {
   bilanEtude, optiqueUtile, bandePhoto, porteesDori,
 } from './etude-plan.js';
@@ -35,40 +39,12 @@ export const SECTIONS_STANDARD = [
   { cle: 'chiffres', titre: 'Ce que l\'installation compte' },
   { cle: 'cameras', titre: 'Les caméras' },
   { cle: 'plan', titre: 'Le plan d\'implantation' },
+  { cle: 'synoptique', titre: 'Le synoptique de raccordement' },
   { cle: 'vues', titre: 'Le site, vue par vue' },
   { cle: 'cablage', titre: 'Câblage' },
+  { cle: 'devis', titre: 'Le chiffrage' },
   { cle: 'reserves', titre: 'Réserves' },
 ];
-
-/**
- * Le papier.
- *
- * C'est la seule chose qu'un dossier ne peut pas deviner : une étude de dix
- * caméras tient en A4 portrait, un plan de site large se lit en paysage, et
- * un dossier qui part à la reliure demande une marge de gauche plus grande.
- */
-export const FORMATS = { A4: 'A4', A3: 'A3', Letter: 'Lettre US' };
-export const ORIENTATIONS = { portrait: 'Portrait', landscape: 'Paysage' };
-export const MARGES = {
-  etroites: { label: 'Étroites', css: '8mm 8mm 10mm' },
-  normales: { label: 'Normales', css: '14mm 12mm 15mm' },
-  larges: { label: 'Larges', css: '22mm 20mm 24mm' },
-};
-
-export const pdfParDefaut = () => ({
-  format: 'A4', orientation: 'portrait', marges: 'normales',
-});
-
-/** Les réglages retenus, quoi qu'il y ait dans le fichier. */
-export function reglagesPdf(etude) {
-  const lu = (etude.dossier && etude.dossier.pdf) || {};
-  const d = pdfParDefaut();
-  return {
-    format: FORMATS[lu.format] ? lu.format : d.format,
-    orientation: ORIENTATIONS[lu.orientation] ? lu.orientation : d.orientation,
-    marges: MARGES[lu.marges] ? lu.marges : d.marges,
-  };
-}
 
 export const dossierParDefaut = () => ({
   sautDePage: false,
@@ -144,6 +120,28 @@ figcaption { font-size:13px; color:var(--doux); margin-top:6px; }
   line-height:1.4; white-space:nowrap; }
 ul.liste li { margin-bottom:7px; }
 .libre p { margin:10px 0; }
+figure.large svg { width:100%; }
+/* Le chiffrage repris du devis : mêmes tableaux, donc mêmes règles. Les
+   largeurs sont posées sur la classe et non sur tous les tableaux, sans
+   quoi celui des caméras s'y plierait aussi. */
+.chiffrage th:nth-child(2), .chiffrage td:nth-child(2) { width:58px; }
+.chiffrage th:nth-child(3), .chiffrage td:nth-child(3) { width:62px; }
+.chiffrage th:nth-child(4), .chiffrage td:nth-child(4) { width:94px; }
+.chiffrage th:nth-child(5), .chiffrage td:nth-child(5) { width:100px; }
+.chiffrage h3 { margin-top:20px; }
+tr.option td { color:var(--doux); }
+.marque-option { font-size:10.5px; text-transform:uppercase; letter-spacing:.05em;
+  color:var(--rouge); font-weight:700; }
+.det { display:block; font-size:11.5px; color:var(--doux); margin-top:2px; }
+.sous-total td { border-top:2px solid var(--encre); border-bottom:0;
+  font-weight:700; font-size:14px; }
+.avis { background:#fff4f5; border:1px solid #f0c8ce; border-left:4px solid var(--rouge);
+  border-radius:6px; padding:11px 14px; margin:16px 0; font-size:13.5px; color:#7a0a1c; }
+.total { margin:20px 0 0; border:1px solid var(--bord); border-radius:8px; overflow:hidden; }
+.total div { display:flex; justify-content:space-between; padding:9px 14px;
+  border-bottom:1px solid var(--bord); font-size:14px; }
+.total div:last-child { border-bottom:0; background:var(--encre); color:#fff;
+  font-size:17px; font-weight:800; }
 .pied { color:var(--doux); font-size:13px; text-align:center; padding:22px 0 0;
   border-top:1px solid var(--bord); margin-top:34px; }
 .pdf { position:fixed; right:20px; bottom:20px; z-index:9;
@@ -168,11 +166,19 @@ ul.liste li { margin-bottom:7px; }
   h3 { break-after:avoid; page-break-after:avoid; }
   figure, .report, .chiffres, .point, table, li, tr, .libre p {
     break-inside:avoid; page-break-inside:avoid; }
+  /* Sauf les tableaux du chiffrage : sept lots insécables laissaient une
+     demi-page blanche à chaque fois. Ils se coupent, mais jamais au milieu
+     d'une ligne, et l'en-tête se répète en haut de page. */
+  .chiffrage table { break-inside:auto; page-break-inside:auto; }
+  .chiffrage thead { display:table-header-group; }
   figure img, .report img, figure svg { max-height:170mm; }
   .chiffres { grid-template-columns:repeat(auto-fit, minmax(112px, 1fr)); }
   .chiffres b { font-size:13pt; }
   .saut { break-before:page; page-break-before:always; }
-  .pied { position:relative; }
+  /* Le pied repartait seul sur une page, sous une page vide. Serré, il
+     remonte avec le dernier chapitre. */
+  .pied { position:relative; margin-top:16px; padding-top:12px;
+    break-before:avoid; page-break-before:avoid; }
 }`;
 
 /**
@@ -182,7 +188,7 @@ ul.liste li { margin-bottom:7px; }
  * @param {object} agence
  * @param {string} planSvg le plan, déjà dessiné, sérialisé
  */
-export function fiche(etude, agence, planSvg) {
+export function fiche(etude, agence, planSvg, devis = null) {
   const b = bilanEtude(etude);
   const r = reglagesPdf(etude);
   const papier = {
@@ -242,6 +248,20 @@ export function fiche(etude, agence, planSvg) {
        il faut un coffret déporté ou une fibre.</p>`
     : '';
 
+  /*
+   * Le chiffrage n'entre dans le dossier que si un devis est fourni. Sans
+   * lui, le chapitre n'existe pas — il ne faut pas qu'un dossier sorte avec
+   * un intertitre « Le chiffrage » suivi de rien.
+   */
+  let chiffrage = '';
+  let avecPrix = false;
+  if (devis) {
+    const { lots, totaux: tdev } = bordereau(etude, devis);
+    avecPrix = true;
+    chiffrage = `<div class="chiffrage">${bandeauDevis(devis, tdev)}${
+  tablesDevis(lots)}${totauxHtml(tdev)}</div>`;
+  }
+
   /* Le corps de chaque chapitre, sans son titre : l'agence choisit le titre. */
   const corps = {
     chiffres: `<div class="chiffres">
@@ -271,6 +291,15 @@ export function fiche(etude, agence, planSvg) {
 
     vues,
 
+    synoptique: `<figure class="large">${synoptique(etude)}
+  <figcaption>Qui se raccorde à quoi, et par combien de mètres. Le schéma se
+    lit de droite à gauche : l'équipement, son coffret, le local. Chaque trait
+    porte la longueur relevée au cheminement ; un trait rouge signale une
+    liaison au-delà de ce qu'une paire torsadée tient.</figcaption>
+</figure>`,
+
+    devis: chiffrage,
+
     cablage: `<div class="chiffres">
   <div><span>Câble réseau</span><b>${echapper(frGroupe(Math.round(b.reseau)))} m</b></div>
   <div><span>À commander</span><b>${b.boites.boites} boîtes de 305 m</b></div>
@@ -280,8 +309,12 @@ export function fiche(etude, agence, planSvg) {
 ${hors}`,
 
     reserves: `<ul class="liste">
-  <li>Ce document est une étude technique. Il ne vaut ni devis ni engagement
-    de prix : aucun montant n'y figure.</li>
+  <li>${avecPrix
+    ? `Le chiffrage porté ici vaut pour ${etude.cameras.length} caméras et le
+       cheminement relevé en étude. Toute modification du parc ou du
+       cheminement le change.`
+    : `Ce document est une étude technique. Il ne vaut ni devis ni engagement
+       de prix : aucun montant n'y figure.`}</li>
   <li>Les portées sont calculées sur l'optique annoncée par le constructeur et
     la norme EN 62676-4. Elles sont vraies pour ces caméras, où qu'on les
     pose.</li>
