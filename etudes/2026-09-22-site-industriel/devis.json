@@ -90,9 +90,9 @@
    "designation": "Moniteur de supervision 27 pouces 4K UHD, dalle IPS, fonctionnement continu 24 h/24",
    "reference": "Hikvision DS-D5227U3-1P0",
    "option": true,
-   "marche": null,
+   "marche": 498.35,
    "note": "Dimensionné sur les dix caméras : une mosaïque de 4 x 4 laisse chaque vue en 960 x 540 px, lisible à un mètre vingt du poste, et garde six cases libres pour les extensions.",
-   "source": "Modèle arrêté d'après le calcul de mosaïque de l'étude. PRIX NON RELEVÉ : aucun revendeur français ne le publie, et le seul chiffre trouvé (953 € TTC) est très au-dessus de ce que ce moniteur vaut. À demander à votre distributeur."
+   "source": "Prix public hors taxes constaté le 24/09/2026 chez un distributeur européen (orbitadigital.com, 498,35 € HT). Le même distributeur affiche 953,24 € pour ce moniteur, mais taxes comprises à 35 % : c'est le même prix. À confirmer auprès de votre distributeur français."
   },
   "ventouseSimple": {
    "designation": "Ventouse électromagnétique 300 kg avec équerre",

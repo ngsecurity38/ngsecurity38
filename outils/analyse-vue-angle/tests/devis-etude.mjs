@@ -430,7 +430,7 @@ test('le total des options dit qu\'il ne compte que ce qui est chiffré', () => 
   const html = ficheDevis(REELLE, DEVIS, AGENCE);
   assert.ok(html.includes('Total des options chiffrées'),
     'le mot « chiffrées » manque à l\'intitulé du total');
-  assert.ok(/options restent à chiffrer/.test(html));
+  assert.ok(/(Une option reste|options restent) à chiffrer/.test(html));
 });
 
 test('une fois tout chiffré, le lot des options ne réserve plus rien', () => {
@@ -438,5 +438,5 @@ test('une fois tout chiffré, le lot des options ne réserve plus rien', () => {
   for (const a of Object.values(d.articles)) if (!a.marche) a.marche = 100;
   const lot = bordereau(REELLE, d).lots.find((l) => l.cle === 'options');
   assert.equal(lot.sansPrix, 0);
-  assert.ok(!/options restent à chiffrer/.test(ficheDevis(REELLE, d, AGENCE)));
+  assert.ok(!/(Une option reste|options restent) à chiffrer/.test(ficheDevis(REELLE, d, AGENCE)));
 });
