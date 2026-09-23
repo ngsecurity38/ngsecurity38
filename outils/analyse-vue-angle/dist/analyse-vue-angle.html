@@ -4295,6 +4295,40 @@ const optiqueUtile = (m, tele = false) => (
 );
 
 /**
+ * Le champ d'une caméra reporté sur une photo.
+ *
+ * Une photo n'est pas une fenêtre neutre : elle a son propre angle. Reporter
+ * un champ de 100° sur une image qui en couvre 53 sans en tenir compte
+ * donnerait une bande deux fois trop étroite, et un client à qui l'on aurait
+ * promis ce qu'il ne verra pas.
+ *
+ * Le rapport se prend sur les TANGENTES des demi-angles, jamais sur les
+ * angles eux-mêmes : une image est une projection, pas un rapporteur.
+ *
+ * @param {number} champPhoto angle horizontal de la photo, en degrés
+ * @param {number} champCamera angle horizontal de la caméra, en degrés
+ * @param {number} bande position visée dans l'image, de 0 (gauche) à 1
+ * @returns {{gauche:number, largeur:number, deborde:boolean, part:number}}
+ */
+function bandePhoto(champPhoto, champCamera, bande = 0.5) {
+  const t = (a) => Math.tan((a * Math.PI) / 360);
+  if (!(champPhoto > 0) || !(champCamera > 0)) {
+    return { gauche: 0, largeur: 0, deborde: false, part: 0 };
+  }
+  const part = t(champCamera) / t(champPhoto);
+  const largeur = Math.min(1, part);
+  const centre = Math.min(1, Math.max(0, bande));
+  return {
+    // La bande reste dans l'image : une caméra visant le bord ne dessine
+    // pas la moitié de son champ dans le vide.
+    gauche: Math.min(1 - largeur, Math.max(0, centre - largeur / 2)),
+    largeur,
+    deborde: part > 1,
+    part,
+  };
+}
+
+/**
  * Le métré, liaison par liaison.
  *
  * Chaque longueur passe par `cheminement` : somme des écarts du plan — un

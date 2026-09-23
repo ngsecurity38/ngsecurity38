@@ -21,8 +21,13 @@
   <div class="actions">
     <button type="button" id="b-importer" class="btn">Ouvrir une étude…</button>
     <input type="file" id="fichier" accept=".json,application/json" hidden>
+    <button type="button" id="b-photos" class="btn">Ajouter des photos…</button>
+    <input type="file" id="fichier-photos" accept="image/*" multiple hidden>
+    <button type="button" id="b-fond" class="btn">Ajouter une vue aérienne…</button>
+    <input type="file" id="fichier-fond" accept="image/*" hidden>
     <button type="button" id="b-defaire" class="btn">Défaire</button>
-    <button type="button" id="b-exporter" class="btn btn-plein">Enregistrer etude.json</button>
+    <button type="button" id="b-exporter" class="btn">Enregistrer etude.json</button>
+    <button type="button" id="b-fiche" class="btn btn-plein">Produire le dossier client</button>
   </div>
 </header>
 
@@ -41,6 +46,16 @@
 <main>
   <div class="plan">
     <svg id="plan" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div class="fond-reglages" id="fond-reglages" hidden>
+      <label class="case"><input type="checkbox" id="f-calage">
+        Déplacer la vue aérienne</label>
+      <label>Largeur au sol (m)
+        <input type="number" id="f-largeur" min="10" max="600" step="1"></label>
+      <label>Transparence
+        <input type="range" id="f-opacite" min="10" max="100" step="5"></label>
+      <button type="button" id="b-fond-retirer" class="btn btn-petit btn-retrait">Retirer</button>
+    </div>
+
     <p class="aide">Glissez une caméra pour la déplacer. Sélectionnez-la, puis
       tirez la poignée rouge pour l'orienter. Les flèches du clavier la
       déplacent d'un demi-mètre, cinq mètres avec Maj. Ctrl+Z défait.</p>
@@ -103,9 +118,42 @@
       <p class="cable" id="p-cable"></p>
     </div>
 
-    <p class="note">Ce que vous enregistrez ici regénère le dossier et la
-      présentation&nbsp;: <code>node etudes/&hellip;/etude.mjs</code>, puis
-      <code>pdf.mjs</code> et <code>deck/presentation.mjs</code>.</p>
+    <div class="bloc">
+      <div class="entete-bloc">
+        <h2>Les photos du site</h2>
+      </div>
+      <ul id="photos" class="liste photos"></ul>
+    </div>
+
+    <div class="bloc" id="photo-panneau" hidden>
+      <div class="entete-bloc">
+        <h2>La vue</h2>
+        <button type="button" id="b-photo-retirer" class="btn btn-petit btn-retrait">Retirer</button>
+      </div>
+      <label>Intitulé
+        <input type="text" id="ph-titre" maxlength="80">
+      </label>
+      <label>Champ de la photo
+        <input type="range" id="ph-champ" min="20" max="120" step="0.2">
+        <small id="ph-champ-txt">—</small>
+        <small>L'angle que couvre la photo elle-même. Un téléphone tenu droit
+          voit environ 53°, tenu en travers environ 67°. C'est lui qui donne
+          l'échelle du champ reporté.</small>
+      </label>
+      <label>Caméras visibles sur cette vue
+        <div id="ph-cameras" class="cases"></div>
+      </label>
+      <div id="photo-zone" class="photo-zone"></div>
+      <p class="aide-photo">Tirez une bande rouge sur la photo pour viser :
+        c'est ce que la caméra cadrera.</p>
+    </div>
+
+    <p class="note"><b>Produire le dossier client</b> écrit un fichier HTML
+      autonome — plan, photos, tableaux, réserves. Il s'ouvre dans n'importe
+      quel navigateur, s'imprime en PDF (Ctrl+P) et s'envoie tel quel.
+      <br><br><b>Enregistrer etude.json</b> garde votre travail : c'est ce
+      fichier qu'on rouvre ici, et celui qui regénère le dossier complet et la
+      présentation.</p>
   </aside>
 </main>
 

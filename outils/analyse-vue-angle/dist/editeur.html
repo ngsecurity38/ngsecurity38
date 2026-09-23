@@ -88,15 +88,16 @@ main { display:flex; gap:16px; padding:16px; align-items:flex-start; }
 .aucune { margin:0; padding:14px 16px; font-size:13.5px; color:var(--doux);
   background:#fff; border:1px dashed var(--bord); border-radius:10px; }
 
-#panneau label { display:block; margin-top:12px; font-size:13px; font-weight:600; }
-#panneau label.case { font-weight:400; display:flex; gap:8px; flex-wrap:wrap; align-items:flex-start; }
-#panneau label.case small { flex-basis:100%; }
-#panneau input[type=text], #panneau input[type=number], #panneau select {
+#panneau label, #photo-panneau label { display:block; margin-top:12px; font-size:13px; font-weight:600; }
+#panneau label.case, #photo-panneau label.case { font-weight:400; display:flex; gap:8px; flex-wrap:wrap; align-items:flex-start; }
+#panneau label.case small, #photo-panneau label.case small { flex-basis:100%; }
+#panneau input[type=text], #panneau input[type=number], #panneau select,
+#photo-panneau input[type=text] {
   width:100%; font:inherit; font-size:14px; font-weight:400; margin-top:4px;
   padding:7px 9px; border:1px solid var(--bord); border-radius:7px; background:#fff;
 }
-#panneau input[type=range] { width:100%; margin-top:6px; }
-#panneau small { display:block; font-weight:400; font-size:11.5px; color:var(--doux); margin-top:3px; }
+#panneau input[type=range], #photo-panneau input[type=range] { width:100%; margin-top:6px; }
+#panneau small, #photo-panneau small { display:block; font-weight:400; font-size:11.5px; color:var(--doux); margin-top:3px; }
 .paire { display:flex; gap:10px; }
 .paire label { flex:1; }
 
@@ -120,6 +121,56 @@ main { display:flex; gap:16px; padding:16px; align-items:flex-start; }
   main { flex-direction:column; }
   .cote { flex:1 1 auto; width:100%; }
 }
+
+/* ------------------------------------------------ photos et fond de plan */
+
+.fond-reglages {
+  display:flex; align-items:flex-end; gap:14px; flex-wrap:wrap;
+  background:#fff; border:1px solid var(--bord); border-radius:10px;
+  padding:10px 14px; margin-top:10px;
+}
+.fond-reglages label { font-size:12.5px; font-weight:600; }
+.fond-reglages input[type=number] {
+  display:block; width:96px; font:inherit; font-size:14px; font-weight:400;
+  margin-top:3px; padding:5px 8px; border:1px solid var(--bord); border-radius:6px;
+}
+.fond-reglages input[type=range] { display:block; width:130px; margin-top:6px; }
+.fond-reglages .case { display:flex; align-items:center; gap:7px; font-weight:400; }
+#plan.calage { cursor:move; outline:2px dashed var(--rouge); outline-offset:-2px; }
+
+.liste.photos li { grid-template-columns:auto 1fr; }
+.liste.photos img {
+  grid-row:span 2; width:54px; height:38px; object-fit:cover; border-radius:5px;
+  border:1px solid var(--bord);
+}
+.liste.photos li.vide { display:block; font-size:12.5px; color:var(--doux); cursor:default; }
+.liste.photos li.vide:hover { background:none; }
+
+.cases { display:flex; flex-wrap:wrap; gap:6px 10px; margin-top:6px; }
+.case-mini {
+  display:inline-flex; align-items:center; gap:5px; font-weight:400; font-size:13px;
+  background:var(--fond); border-radius:6px; padding:3px 8px;
+}
+
+.photo-zone { margin-top:12px; }
+/*
+ * Le report du champ sur la photo. Le nom de classe reprend celui du
+ * dossier : c'est le même objet, et on doit pouvoir passer de l'un à
+ * l'autre sans se demander si c'est la même chose.
+ */
+.photo-zone .report { position:relative; line-height:0; border-radius:8px; overflow:hidden; }
+.photo-zone .report img { width:100%; height:auto; display:block; }
+.photo-zone .champ {
+  position:absolute; top:0; bottom:0; cursor:ew-resize;
+  background:rgba(200,16,46,.26); border-left:2px solid var(--rouge);
+  border-right:2px solid var(--rouge);
+}
+.photo-zone .champ span {
+  position:absolute; top:4px; left:4px; font-size:10.5px; line-height:1.3;
+  background:var(--rouge); color:#fff; padding:1px 5px; border-radius:3px;
+  white-space:nowrap;
+}
+.aide-photo { font-size:12px; color:var(--doux); margin:8px 0 0; }
 </style>
 </head>
 <body>
@@ -135,8 +186,13 @@ main { display:flex; gap:16px; padding:16px; align-items:flex-start; }
   <div class="actions">
     <button type="button" id="b-importer" class="btn">Ouvrir une étude…</button>
     <input type="file" id="fichier" accept=".json,application/json" hidden>
+    <button type="button" id="b-photos" class="btn">Ajouter des photos…</button>
+    <input type="file" id="fichier-photos" accept="image/*" multiple hidden>
+    <button type="button" id="b-fond" class="btn">Ajouter une vue aérienne…</button>
+    <input type="file" id="fichier-fond" accept="image/*" hidden>
     <button type="button" id="b-defaire" class="btn">Défaire</button>
-    <button type="button" id="b-exporter" class="btn btn-plein">Enregistrer etude.json</button>
+    <button type="button" id="b-exporter" class="btn">Enregistrer etude.json</button>
+    <button type="button" id="b-fiche" class="btn btn-plein">Produire le dossier client</button>
   </div>
 </header>
 
@@ -155,6 +211,16 @@ main { display:flex; gap:16px; padding:16px; align-items:flex-start; }
 <main>
   <div class="plan">
     <svg id="plan" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div class="fond-reglages" id="fond-reglages" hidden>
+      <label class="case"><input type="checkbox" id="f-calage">
+        Déplacer la vue aérienne</label>
+      <label>Largeur au sol (m)
+        <input type="number" id="f-largeur" min="10" max="600" step="1"></label>
+      <label>Transparence
+        <input type="range" id="f-opacite" min="10" max="100" step="5"></label>
+      <button type="button" id="b-fond-retirer" class="btn btn-petit btn-retrait">Retirer</button>
+    </div>
+
     <p class="aide">Glissez une caméra pour la déplacer. Sélectionnez-la, puis
       tirez la poignée rouge pour l'orienter. Les flèches du clavier la
       déplacent d'un demi-mètre, cinq mètres avec Maj. Ctrl+Z défait.</p>
@@ -217,9 +283,42 @@ main { display:flex; gap:16px; padding:16px; align-items:flex-start; }
       <p class="cable" id="p-cable"></p>
     </div>
 
-    <p class="note">Ce que vous enregistrez ici regénère le dossier et la
-      présentation&nbsp;: <code>node etudes/&hellip;/etude.mjs</code>, puis
-      <code>pdf.mjs</code> et <code>deck/presentation.mjs</code>.</p>
+    <div class="bloc">
+      <div class="entete-bloc">
+        <h2>Les photos du site</h2>
+      </div>
+      <ul id="photos" class="liste photos"></ul>
+    </div>
+
+    <div class="bloc" id="photo-panneau" hidden>
+      <div class="entete-bloc">
+        <h2>La vue</h2>
+        <button type="button" id="b-photo-retirer" class="btn btn-petit btn-retrait">Retirer</button>
+      </div>
+      <label>Intitulé
+        <input type="text" id="ph-titre" maxlength="80">
+      </label>
+      <label>Champ de la photo
+        <input type="range" id="ph-champ" min="20" max="120" step="0.2">
+        <small id="ph-champ-txt">—</small>
+        <small>L'angle que couvre la photo elle-même. Un téléphone tenu droit
+          voit environ 53°, tenu en travers environ 67°. C'est lui qui donne
+          l'échelle du champ reporté.</small>
+      </label>
+      <label>Caméras visibles sur cette vue
+        <div id="ph-cameras" class="cases"></div>
+      </label>
+      <div id="photo-zone" class="photo-zone"></div>
+      <p class="aide-photo">Tirez une bande rouge sur la photo pour viser :
+        c'est ce que la caméra cadrera.</p>
+    </div>
+
+    <p class="note"><b>Produire le dossier client</b> écrit un fichier HTML
+      autonome — plan, photos, tableaux, réserves. Il s'ouvre dans n'importe
+      quel navigateur, s'imprime en PDF (Ctrl+P) et s'envoie tel quel.
+      <br><br><b>Enregistrer etude.json</b> garde votre travail : c'est ce
+      fichier qu'on rouvre ici, et celui qui regénère le dossier complet et la
+      présentation.</p>
   </aside>
 </main>
 
@@ -661,6 +760,7 @@ main { display:flex; gap:16px; padding:16px; align-items:flex-start; }
  ]
 }
 ;</script>
+<script>window.__agence={"_lisez_moi":["L'identité de l'agence, à un seul endroit. Tout document produit dans ce","dépôt la lit ici : une correction faite dans ce fichier se propage, et","aucun document ne peut plus porter une identité périmée pendant qu'un","autre porte la bonne.","","Relevé Insee du 22/09/2026, communiqué par l'agence. Ce ne sont pas des","valeurs trouvées par recherche : elles viennent du répertoire officiel."],"nomCommercial":"NG Security 38","accroche":"Vidéosurveillance et alarme anti-intrusion","formeJuridique":"Société par actions simplifiée","formeCourte":"SAS","dateCreation":"2026-06-01","dirigeant":"Ezechiel NGOMA YENGO","siren":"104 732 458","siret":"104 732 458 00013","tva":"FR30104732458","naf":"8020Z","nafLibelle":"Activités liées aux systèmes de sécurité","adresse":"2 rue des Drillons, 89150 Vernoy","telephone":"07 74 11 24 56","courriel":"contact@ngsecurity38.com","sites":["ngsecurity38.fr","ngsecurity38.com"],"zone":"Intervention France et Belgique","aCompleter":{"_note":["Deux mentions qu'une SAS porte sur ses documents commerciaux et que","le relevé Insee ne donne pas. Les renseigner ici les fait apparaître","partout d'un coup."],"capitalSocial":null,"rcsGreffe":null,"assuranceRcPro":null},"aCorrigerAilleurs":["Les pages publiques du site (mentions légales, CGV) annoncent encore","« NGS38, entreprise individuelle » et « RCS Sens 518 723 366 ». C'est","la structure précédente : la SAS ci-dessus a été créée le 1er juin 2026.","À corriger sur le site, pas dans les documents."],"logo":"data:image/png;base64,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"};</script>
 <script>(function () {
 'use strict';
 
@@ -1498,6 +1598,40 @@ const optiqueUtile = (m, tele = false) => (
 );
 
 /**
+ * Le champ d'une caméra reporté sur une photo.
+ *
+ * Une photo n'est pas une fenêtre neutre : elle a son propre angle. Reporter
+ * un champ de 100° sur une image qui en couvre 53 sans en tenir compte
+ * donnerait une bande deux fois trop étroite, et un client à qui l'on aurait
+ * promis ce qu'il ne verra pas.
+ *
+ * Le rapport se prend sur les TANGENTES des demi-angles, jamais sur les
+ * angles eux-mêmes : une image est une projection, pas un rapporteur.
+ *
+ * @param {number} champPhoto angle horizontal de la photo, en degrés
+ * @param {number} champCamera angle horizontal de la caméra, en degrés
+ * @param {number} bande position visée dans l'image, de 0 (gauche) à 1
+ * @returns {{gauche:number, largeur:number, deborde:boolean, part:number}}
+ */
+function bandePhoto(champPhoto, champCamera, bande = 0.5) {
+  const t = (a) => Math.tan((a * Math.PI) / 360);
+  if (!(champPhoto > 0) || !(champCamera > 0)) {
+    return { gauche: 0, largeur: 0, deborde: false, part: 0 };
+  }
+  const part = t(champCamera) / t(champPhoto);
+  const largeur = Math.min(1, part);
+  const centre = Math.min(1, Math.max(0, bande));
+  return {
+    // La bande reste dans l'image : une caméra visant le bord ne dessine
+    // pas la moitié de son champ dans le vide.
+    gauche: Math.min(1 - largeur, Math.max(0, centre - largeur / 2)),
+    largeur,
+    deborde: part > 1,
+    part,
+  };
+}
+
+/**
  * Le métré, liaison par liaison.
  *
  * Chaque longueur passe par `cheminement` : somme des écarts du plan — un
@@ -1655,6 +1789,249 @@ function bilanEtude(etude, { jours = 30, heuresParJour = 24 } = {}) {
   };
 }
 
+/* ===== editeur-fiche.js ===== */
+/**
+ * Le dossier client, produit depuis l'éditeur.
+ *
+ * L'agence modifie l'étude sur son ordinateur, puis clique ici : il en sort
+ * un fichier HTML autonome — plan, photos, tableaux, réserves — qui s'ouvre
+ * dans n'importe quel navigateur et s'imprime en PDF. Rien à installer,
+ * rien à commander en ligne, et le fichier part par courriel tel quel.
+ *
+ * Autonome veut dire sans aucun lien vers l'extérieur : les images sont
+ * dedans, le style est dedans. Un dossier qui irait chercher une image sur
+ * un serveur s'afficherait vide chez le client le jour où le serveur
+ * tombe — ou révélerait, par la requête, qu'il vient d'être ouvert.
+ */
+
+
+
+
+
+const ech = (t) => String(t ?? '').replace(/[&<>"']/g, (c) => ({
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+}[c]));
+
+/** Les quatre portées d'un modèle, en mètres. */
+function portees(modele, tele) {
+  const o = optiqueUtile(modele, tele);
+  const d = {};
+  for (const cle of Object.keys(SEUILS_DORI)) {
+    d[cle] = distanceDori(o.resH, o.angleH, SEUILS_DORI[cle].ppm);
+  }
+  return d;
+}
+
+const STYLE = `
+:root { --rouge:#c8102e; --encre:#1a1d23; --doux:#5b6472; --bord:#dde1e7; --fond:#f6f7f9; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--fond); color:var(--encre);
+  font:15px/1.62 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
+.feuille { max-width:900px; margin:0 auto; background:#fff; padding:34px 40px 48px;
+  border:1px solid var(--bord); }
+.garde { border-bottom:3px solid var(--rouge); padding-bottom:18px; margin-bottom:26px; }
+.bandeau { display:flex; gap:18px; align-items:flex-start; }
+.bandeau img { width:96px; height:auto; }
+.coord { font-size:13.5px; color:var(--doux); line-height:1.5; }
+.coord .nom { font-size:19px; font-weight:800; color:var(--encre); margin:0 0 3px; }
+.coord p { margin:0; }
+.surtitre { color:var(--rouge); font-weight:700; letter-spacing:.1em; font-size:12px;
+  margin:22px 0 6px; }
+h1 { font-size:30px; margin:0 0 8px; }
+h2 { font-size:19px; margin:34px 0 10px; padding-bottom:6px;
+  border-bottom:2px solid var(--rouge); }
+h3 { font-size:15.5px; margin:22px 0 8px; }
+table { border-collapse:collapse; width:100%; font-size:14px; margin:10px 0; }
+th, td { text-align:left; padding:7px 9px; border-bottom:1px solid var(--bord); }
+th { font-size:11.5px; text-transform:uppercase; letter-spacing:.04em; color:var(--doux); }
+td.n, th.n { text-align:right; }
+.fort { color:var(--rouge); font-weight:700; }
+.meta p { margin:3px 0; font-size:14px; }
+.point { border-left:3px solid var(--rouge); padding:2px 0 2px 16px; margin:16px 0; }
+.chiffres { display:flex; flex-wrap:wrap; gap:1px; background:var(--bord);
+  border:1px solid var(--bord); margin:12px 0; }
+.chiffres div { background:#fff; padding:9px 14px; flex:1 1 130px; }
+.chiffres span { display:block; font-size:11.5px; color:var(--doux); }
+.chiffres b { font-size:19px; }
+figure { margin:14px 0 20px; }
+figure svg, figure img { max-width:100%; height:auto; border:1px solid var(--bord);
+  border-radius:8px; }
+figcaption { font-size:13px; color:var(--doux); margin-top:6px; }
+.report { position:relative; line-height:0; border-radius:8px; overflow:hidden;
+  border:1px solid var(--bord); }
+.report img { width:100%; display:block; }
+.report .champ { position:absolute; top:0; bottom:0; background:rgba(200,16,46,.24);
+  border-left:2px solid var(--rouge); border-right:2px solid var(--rouge); }
+.report .champ span { position:absolute; top:5px; left:5px; font-size:11px;
+  background:var(--rouge); color:#fff; padding:1px 6px; border-radius:3px;
+  line-height:1.4; white-space:nowrap; }
+ul.liste li { margin-bottom:7px; }
+.pied { color:var(--doux); font-size:13px; text-align:center; padding:22px 0 0;
+  border-top:1px solid var(--bord); margin-top:34px; }
+@media print {
+  body { background:#fff; }
+  .feuille { border:0; max-width:none; padding:0; }
+  h2 { page-break-after:avoid; }
+  figure, .report { page-break-inside:avoid; }
+}`;
+
+/**
+ * Compose le dossier.
+ *
+ * @param {object} etude
+ * @param {object} agence
+ * @param {string} planSvg le plan, déjà dessiné, sérialisé
+ */
+function fiche(etude, agence, planSvg) {
+  const b = bilanEtude(etude);
+  const g = geometrie(etude.site);
+  const date = new Date().toLocaleDateString('fr-FR', {
+    day: '2-digit', month: 'long', year: 'numeric',
+  });
+
+  const lignes = etude.cameras.map((c) => {
+    const m = etude.modeles[c.modele];
+    const p = portees(m, c.tele);
+    const fort = p.identification > 5;
+    return `<tr>
+      <td><b>${ech(c.cle)}</b></td>
+      <td>${ech(c.role || '—')}</td>
+      <td>${ech(m.reference.replace('Hikvision ', ''))}${c.tele ? ' · télé' : ''}</td>
+      <td class="n">${ech(fr(p.reconnaissance))} m</td>
+      <td class="n${fort ? ' fort' : ''}">${ech(fr(p.identification))} m</td>
+    </tr>`;
+  }).join('');
+
+  const vues = (etude.photos || []).map((ph) => {
+    const bandes = (ph.reperes || []).map((r) => {
+      const c = etude.cameras.find((x) => x.cle === r.camera);
+      if (!c) return '';
+      const m = etude.modeles[c.modele];
+      const o = optiqueUtile(m, c.tele);
+      const angle = m.capteurUnique ? 180 : o.angleH;
+      const bd = bandePhoto(ph.champ, angle, r.bande);
+      return `<div class="champ" style="left:${(bd.gauche * 100).toFixed(1)}%;
+        width:${(bd.largeur * 100).toFixed(1)}%"><span>${ech(c.cle)} — ${
+  ech(fr(angle))}°${bd.deborde ? ' · déborde du cadre' : ''}</span></div>`;
+    }).join('');
+    const cams = (ph.reperes || []).map((r) => r.camera);
+    const detail = cams.map((cle) => {
+      const c = etude.cameras.find((x) => x.cle === cle);
+      if (!c) return '';
+      const p = portees(etude.modeles[c.modele], c.tele);
+      return `<li><b>${ech(c.cle)}</b> — ${ech(c.role || '')} :
+        identifie jusqu'à <b>${ech(fr(p.identification))} m</b>,
+        reconnaît jusqu'à ${ech(fr(p.reconnaissance))} m.</li>`;
+    }).join('');
+    return `<h3>${ech(ph.titre || ph.cle)}</h3>
+      <div class="report">${`<img src="${ph.src}" alt="${ech(ph.titre || '')}">`}${bandes}</div>
+      <figcaption>La bande rouge est le champ réel de la caméra, reporté à
+        l'échelle de la prise de vue — champ de la photo estimé à
+        ${ech(fr(ph.champ))}°.</figcaption>
+      ${detail ? `<ul class="liste">${detail}</ul>` : ''}`;
+  }).join('');
+
+  const hors = b.horsNorme.length
+    ? `<p class="point"><b>${b.horsNorme.length} liaison(s) au-delà de la limite.</b>
+       ${b.horsNorme.map((l) => `${ech(l.repere)} (${ech(fr(l.longueur, 0))} m)`).join(', ')}.
+       Une liaison Ethernet tient ${LIAISON_PERMANENTE} m de câble posé : au-delà,
+       il faut un coffret déporté ou une fibre.</p>`
+    : '';
+
+  return `<!doctype html>
+<html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Étude technique — ${ech(agence.nomCommercial || '')}</title>
+<style>${STYLE}<\/style></head>
+<body><div class="feuille">
+
+<header class="garde">
+  <div class="bandeau">
+    ${agence.logo ? `<img src="${agence.logo}" alt="">` : ''}
+    <div class="coord">
+      <p class="nom">${ech(agence.nomCommercial || '')}</p>
+      <p>${ech(agence.accroche || '')}</p>
+      <p>${ech(agence.adresse || '')}</p>
+      <p>${ech(agence.telephone || '')} · ${ech(agence.courriel || '')}</p>
+      <p>${ech(agence.formeCourte || '')} · SIRET ${ech(agence.siret || '')}
+        · TVA ${ech(agence.tva || '')}</p>
+      <p>${ech(agence.zone || '')}</p>
+    </div>
+  </div>
+  <p class="surtitre">ÉTUDE TECHNIQUE</p>
+  <h1>${ech(etude.titre || 'Vidéosurveillance')}</h1>
+  <div class="meta">
+    <p><b>Établie le :</b> ${ech(date)}</p>
+    <p><b>Référence :</b> ${ech(etude.reference || '')}</p>
+    <p><b>Parc :</b> ${b.cameras} caméras</p>
+  </div>
+</header>
+
+<h2>Ce que l'installation compte</h2>
+<div class="chiffres">
+  <div><span>Caméras</span><b>${b.cameras}</b></div>
+  <div><span>Débit estimé</span><b>${ech(fr(b.debitTotal))} Mbit/s</b></div>
+  <div><span>Stockage 30 jours</span><b>${ech(fr(b.capaciteGo / 1000))} To</b></div>
+  <div><span>PoE demandé</span><b>${ech(fr(b.consoPoe))} W</b></div>
+  <div><span>Câble réseau</span><b>${ech(frGroupe(Math.round(b.reseau)))} m</b></div>
+</div>
+
+<h2>Les caméras</h2>
+<table>
+  <thead><tr><th>Repère</th><th>Rôle</th><th>Modèle</th>
+    <th class="n">Reconnaît</th><th class="n">Identifie</th></tr></thead>
+  <tbody>${lignes}</tbody>
+</table>
+<p class="point"><b>Identifier n'est pas voir.</b> La dernière colonne est la
+  distance à laquelle un inconnu devient nommable — 250 pixels par mètre selon
+  la norme EN 62676-4. En deçà, la caméra montre une silhouette ; elle ne
+  prouve rien.</p>
+
+<h2>Le plan d'implantation</h2>
+<figure>${planSvg}
+  <figcaption>Bâtiment de ${ech(fr(etude.site.longueurBatiment, 0))} m.
+    Chaque secteur montre trois profondeurs : en gris jusqu'où la caméra
+    observe, en rouge pâle jusqu'où elle reconnaît, en rouge vif jusqu'où elle
+    identifie.</figcaption>
+</figure>
+
+${vues ? `<h2>Le site, vue par vue</h2>${vues}` : ''}
+
+<h2>Câblage</h2>
+<div class="chiffres">
+  <div><span>Câble réseau</span><b>${ech(frGroupe(Math.round(b.reseau)))} m</b></div>
+  <div><span>À commander</span><b>${b.boites.boites} boîtes de 305 m</b></div>
+  <div><span>Alimentation et commande</span><b>${ech(frGroupe(Math.round(b.commande)))} m</b></div>
+  <div><span>Liaisons hors norme</span><b>${b.horsNorme.length}</b></div>
+</div>
+${hors}
+
+<h2>Réserves</h2>
+<ul class="liste">
+  <li>Ce document est une étude technique. Il ne vaut ni devis ni engagement
+    de prix : aucun montant n'y figure.</li>
+  <li>Les portées sont calculées sur l'optique annoncée par le constructeur et
+    la norme EN 62676-4. Elles sont vraies pour ces caméras, où qu'on les
+    pose.</li>
+  <li>Les emplacements sont proposés d'après les vues transmises. Ils se
+    confirment par un relevé sur place, qui arrête aussi le cheminement réel
+    des câbles.</li>
+  <li>Le plan est tracé sur une longueur de bâtiment de
+    ${ech(fr(etude.site.longueurBatiment, 0))} m. La profondeur et l'étendue
+    de la cour restent proportionnelles au relevé sur vue aérienne.</li>
+  <li>Une caméra qui filme au-delà de la propriété relève d'une autorisation
+    préfectorale. Une caméra qui couvre un poste de travail obéit à des règles
+    propres. À cadrer avant la pose.</li>
+</ul>
+
+<p class="pied">${ech(agence.nomCommercial || '')} ·
+  ${ech(agence.telephone || '')} · ${ech(agence.courriel || '')} —
+  étude établie le ${ech(date)} — document de travail, à confirmer par un
+  relevé sur place.</p>
+
+</div></body></html>`;
+}
+
 /* ===== editeur.js ===== */
 /**
  * L'éditeur d'étude : le plan à l'écran, les caméras à la souris.
@@ -1676,6 +2053,7 @@ function bilanEtude(etude, { jours = 30, heuresParJour = 24 } = {}) {
 
 
 
+
 const SVG = 'http://www.w3.org/2000/svg';
 const el = (nom, attrs = {}) => {
   const n = document.createElementNS(SVG, nom);
@@ -1688,6 +2066,8 @@ const el = (nom, attrs = {}) => {
 const etat = {
   etude: null,
   selection: null,
+  photo: null,
+  calage: false,
   echelle: 1,          // pixels par mètre
   histoire: [],        // pour défaire
   modifie: false,
@@ -1753,13 +2133,30 @@ function dessinerPlan() {
   svg.setAttribute('height', g.hauteur * E);
   svg.replaceChildren();
 
+  /*
+   * La vue aérienne, s'il y en a une, passe SOUS tout le reste : elle sert
+   * à poser les caméras sur ce qui existe, pas à décorer. On la cale une
+   * fois pour toutes sur une longueur connue, et le plan devient un calque
+   * sur la photo du site.
+   */
+  if (e.fond && e.fond.src) {
+    svg.append(el('image', {
+      href: e.fond.src, x: e.fond.x * E, y: e.fond.y * E,
+      width: e.fond.largeur * E,
+      height: (e.fond.hauteur || e.fond.largeur * 0.6) * E,
+      opacity: e.fond.opacite ?? 0.55,
+      preserveAspectRatio: 'none',
+    }));
+  }
+
   const rect = (r, fill, stroke) => el('rect', {
     x: r.x * E, y: r.y * E, width: r.l * E, height: r.p * E,
     fill, stroke: stroke || 'none', 'stroke-width': 1.5,
   });
-  svg.append(rect(g.cour, '#eef0f3'));
-  svg.append(rect(g.bat, '#dfe3e9', '#6e7682'));
-  svg.append(rect(g.annexe, '#e7eaf0', '#9aa2ae'));
+  const voile = e.fond && e.fond.src;
+  svg.append(rect(g.cour, voile ? 'none' : '#eef0f3'));
+  svg.append(rect(g.bat, voile ? 'rgba(255,255,255,.35)' : '#dfe3e9', '#6e7682'));
+  svg.append(rect(g.annexe, voile ? 'rgba(255,255,255,.3)' : '#e7eaf0', '#9aa2ae'));
   const q = el('rect', {
     x: g.quai.x * E, y: g.quai.y * E, width: g.quai.l * E, height: g.quai.p * E,
     fill: 'none', stroke: '#9aa2ae', 'stroke-width': 1, 'stroke-dasharray': '4 3',
@@ -1877,6 +2274,14 @@ function brancherSouris() {
   let saisie = null;
 
   svg.addEventListener('pointerdown', (ev) => {
+    // Mode « caler le fond » : la souris déplace l'image, pas les caméras.
+    if (etat.calage && etat.etude.fond) {
+      memoriser();
+      const p = metresDepuisEvenement(ev);
+      saisie = { mode: 'fond', dx: p.x - etat.etude.fond.x, dy: p.y - etat.etude.fond.y };
+      svg.setPointerCapture(ev.pointerId);
+      return;
+    }
     const poignee = ev.target.closest('.poignee');
     const pion = ev.target.closest('.pion');
     if (!pion && !poignee) { etat.selection = null; tout(); return; }
@@ -1890,6 +2295,13 @@ function brancherSouris() {
 
   svg.addEventListener('pointermove', (ev) => {
     if (!saisie) return;
+    if (saisie.mode === 'fond') {
+      const p = metresDepuisEvenement(ev);
+      etat.etude.fond.x = Math.round((p.x - saisie.dx) * 2) / 2;
+      etat.etude.fond.y = Math.round((p.y - saisie.dy) * 2) / 2;
+      dessinerPlan();
+      return;
+    }
     const c = etat.etude.cameras.find((x) => x.cle === saisie.cle);
     if (!c) return;
     const p = metresDepuisEvenement(ev);
@@ -1946,6 +2358,153 @@ function remplirPanneau() {
     : '';
 }
 
+/* ------------------------------------------------------------ les photos */
+
+/** Lit un fichier image et rend une adresse de données, utilisable hors ligne. */
+function lireImage(fichier) {
+  return new Promise((ok, non) => {
+    const l = new FileReader();
+    l.onload = () => ok(l.result);
+    l.onerror = () => non(new Error(`Image illisible : ${fichier.name}`));
+    l.readAsDataURL(fichier);
+  });
+}
+
+/**
+ * Champ horizontal supposé d'une photo, en degrés.
+ *
+ * Un téléphone tenu DROIT ne cadre pas comme un téléphone tenu en travers :
+ * le capteur est le même, la moitié qu'on en garde ne l'est pas. Une image
+ * au format portrait ou carré voit donc nettement moins large, et c'est la
+ * plus fréquente sur un chantier.
+ */
+const CHAMP_PAYSAGE = 67;
+const CHAMP_PORTRAIT = 52.8;
+const champSuppose = (l, h) => (l > h * 1.25 ? CHAMP_PAYSAGE : CHAMP_PORTRAIT);
+
+/** Le bloc d'une photo : l'image, et les bandes de champ dessus. */
+function dessinerPhoto(photo) {
+  const zone = $('#photo-zone');
+  zone.replaceChildren();
+  if (!photo) return;
+
+  const cadre = document.createElement('div');
+  cadre.className = 'report';
+  const img = document.createElement('img');
+  img.src = photo.src;
+  img.alt = photo.titre || '';
+  cadre.append(img);
+
+  for (const r of photo.reperes || []) {
+    const c = etat.etude.cameras.find((x) => x.cle === r.camera);
+    if (!c) continue;
+    const m = etat.etude.modeles[c.modele];
+    const o = optiqueUtile(m, c.tele);
+    const angle = m.capteurUnique ? 180 : o.angleH;
+    const b = bandePhoto(photo.champ, angle, r.bande);
+    const band = document.createElement('div');
+    band.className = 'champ';
+    band.dataset.camera = c.cle;
+    band.style.left = `${(b.gauche * 100).toFixed(1)}%`;
+    band.style.width = `${(b.largeur * 100).toFixed(1)}%`;
+    const t = document.createElement('span');
+    t.textContent = `${c.cle} — ${Math.round(angle)}°${b.deborde ? ' (déborde)' : ''}`;
+    band.append(t);
+    cadre.append(band);
+  }
+  zone.append(cadre);
+
+  // La bande se tire à la souris : on vise sur la photo, pas au chiffre.
+  let tirage = null;
+  const position = (ev) => {
+    const r = cadre.getBoundingClientRect();
+    return Math.min(1, Math.max(0, (ev.clientX - r.left) / r.width));
+  };
+  cadre.addEventListener('pointerdown', (ev) => {
+    const band = ev.target.closest('.champ');
+    if (!band) return;
+    memoriser();
+    tirage = band.dataset.camera;
+    cadre.setPointerCapture(ev.pointerId);
+  });
+  cadre.addEventListener('pointermove', (ev) => {
+    if (!tirage) return;
+    const r = (photo.reperes || []).find((x) => x.camera === tirage);
+    if (!r) return;
+    r.bande = Math.round(position(ev) * 100) / 100;
+    dessinerPhoto(photo);
+  });
+  const fin = () => { tirage = null; };
+  cadre.addEventListener('pointerup', fin);
+  cadre.addEventListener('pointercancel', fin);
+}
+
+function listePhotos() {
+  const photos = etat.etude.photos || [];
+  $('#photos').innerHTML = photos.map((p) => `<li data-cle="${p.cle}"
+    class="${etat.photo === p.cle ? 'active' : ''}">
+    <img src="${p.src}" alt="">
+    <span class="nom">${p.titre || p.cle}</span>
+    <span class="det">${(p.reperes || []).map((r) => r.camera).join(', ') || 'aucune caméra'}
+      — champ ${fr(p.champ)}°</span>
+  </li>`).join('') || '<li class="vide">Aucune photo. Ajoutez les vues du site : '
+    + 'ce sont elles qui convainquent un client.</li>';
+  $$('#photos li[data-cle]').forEach((n) => n.addEventListener('click', () => {
+    etat.photo = n.dataset.cle;
+    panneauPhoto();
+    listePhotos();
+  }));
+}
+
+function panneauPhoto() {
+  const photo = (etat.etude.photos || []).find((p) => p.cle === etat.photo);
+  $('#photo-panneau').hidden = !photo;
+  if (!photo) { dessinerPhoto(null); return; }
+  $('#ph-titre').value = photo.titre || '';
+  $('#ph-champ').value = photo.champ;
+  $('#ph-champ-txt').textContent = `${fr(photo.champ)}°`;
+  $('#ph-cameras').innerHTML = etat.etude.cameras.map((c) => {
+    const pose = (photo.reperes || []).some((r) => r.camera === c.cle);
+    return `<label class="case-mini"><input type="checkbox" data-cam="${c.cle}"
+      ${pose ? 'checked' : ''}> ${c.cle}</label>`;
+  }).join('');
+  $$('#ph-cameras input').forEach((n) => n.addEventListener('change', () => {
+    memoriser();
+    photo.reperes = photo.reperes || [];
+    if (n.checked) photo.reperes.push({ camera: n.dataset.cam, bande: 0.5 });
+    else photo.reperes = photo.reperes.filter((r) => r.camera !== n.dataset.cam);
+    dessinerPhoto(photo);
+    listePhotos();
+  }));
+  dessinerPhoto(photo);
+}
+
+async function ajouterPhotos(fichiers) {
+  memoriser();
+  etat.etude.photos = etat.etude.photos || [];
+  for (const f of fichiers) {
+    const src = await lireImage(f);
+    const dim = await new Promise((ok) => {
+      const i = new Image();
+      i.onload = () => ok({ l: i.naturalWidth, h: i.naturalHeight });
+      i.onerror = () => ok({ l: 4, h: 3 });
+      i.src = src;
+    });
+    const n = etat.etude.photos.length + 1;
+    etat.etude.photos.push({
+      cle: `V${n}`,
+      titre: f.name.replace(/\.[^.]+$/, ''),
+      src,
+      champ: champSuppose(dim.l, dim.h),
+      reperes: [],
+    });
+  }
+  etat.photo = etat.etude.photos[etat.etude.photos.length - 1].cle;
+  listePhotos();
+  panneauPhoto();
+  majFond();
+}
+
 /* ------------------------------------------------------------- les chiffres */
 
 function chiffres() {
@@ -1995,11 +2554,24 @@ function listeCameras() {
   }));
 }
 
+/** Le bloc du fond n'a de sens que s'il y a un fond. */
+function majFond() {
+  const f = etat.etude.fond;
+  $('#fond-reglages').hidden = !f;
+  $('#b-fond').textContent = f ? 'Remplacer la vue aérienne…' : 'Ajouter une vue aérienne…';
+  if (!f) { etat.calage = false; $('#f-calage').checked = false; $('#plan').classList.remove('calage'); return; }
+  $('#f-opacite').value = Math.round((f.opacite ?? 0.55) * 100);
+  $('#f-largeur').value = Math.round(f.largeur);
+}
+
 function tout() {
   chiffres();
   dessinerPlan();
   listeCameras();
   remplirPanneau();
+  listePhotos();
+  panneauPhoto();
+  majFond();
 }
 
 /* ------------------------------------------------------------- commandes */
@@ -2042,13 +2614,38 @@ function supprimer() {
   tout();
 }
 
-function exporter() {
-  const texte = `${JSON.stringify(etat.etude, null, 1)}\n`;
+/** Enregistre un fichier sans passer par le moindre serveur. */
+function telecharger(nom, texte, type) {
   const lien = document.createElement('a');
-  lien.href = URL.createObjectURL(new Blob([texte], { type: 'application/json' }));
-  lien.download = 'etude.json';
+  lien.href = URL.createObjectURL(new Blob([texte], { type }));
+  lien.download = nom;
   lien.click();
   URL.revokeObjectURL(lien.href);
+}
+
+/**
+ * Le dossier client.
+ *
+ * Le plan part tel qu'il est à l'écran — on le désélectionne d'abord, sans
+ * quoi le cercle de sélection et la poignée d'orientation se retrouveraient
+ * imprimés chez le client.
+ */
+function produireFiche() {
+  const garde = etat.selection;
+  etat.selection = null;
+  dessinerPlan();
+  const svg = new XMLSerializer().serializeToString($('#plan'));
+  etat.selection = garde;
+  dessinerPlan();
+
+  const agence = globalThis.__agence || {};
+  const nom = `etude-${(etat.etude.reference || 'sans-reference')
+    .toLowerCase().replace(/[^a-z0-9-]+/g, '-')}.html`;
+  telecharger(nom, fiche(etat.etude, agence, svg), 'text/html;charset=utf-8');
+}
+
+function exporter() {
+  telecharger('etude.json', `${JSON.stringify(etat.etude, null, 1)}\n`, 'application/json');
   etat.modifie = false;
 }
 
@@ -2105,10 +2702,85 @@ function monter(etude) {
   });
   $('#p-azimut').addEventListener('change', () => { etat.modifie = true; });
 
+  // --- les photos
+  $('#b-photos').addEventListener('click', () => $('#fichier-photos').click());
+  $('#fichier-photos').addEventListener('change', async (ev) => {
+    if (ev.target.files.length) await ajouterPhotos([...ev.target.files]);
+    ev.target.value = '';
+  });
+  $('#ph-titre').addEventListener('change', () => {
+    const p = (etat.etude.photos || []).find((x) => x.cle === etat.photo);
+    if (!p) return;
+    memoriser(); p.titre = $('#ph-titre').value; listePhotos();
+  });
+  $('#ph-champ').addEventListener('input', () => {
+    const p = (etat.etude.photos || []).find((x) => x.cle === etat.photo);
+    if (!p) return;
+    p.champ = Number($('#ph-champ').value);
+    $('#ph-champ-txt').textContent = `${fr(p.champ)}°`;
+    dessinerPhoto(p);
+  });
+  $('#ph-champ').addEventListener('change', () => { etat.modifie = true; listePhotos(); });
+  $('#b-photo-retirer').addEventListener('click', () => {
+    if (!etat.photo) return;
+    memoriser();
+    etat.etude.photos = etat.etude.photos.filter((p) => p.cle !== etat.photo);
+    etat.photo = null;
+    listePhotos(); panneauPhoto();
+  });
+
+  // --- le fond de plan
+  $('#b-fond').addEventListener('click', () => $('#fichier-fond').click());
+  $('#fichier-fond').addEventListener('change', async (ev) => {
+    const f = ev.target.files[0];
+    if (!f) return;
+    memoriser();
+    const src = await lireImage(f);
+    const dim = await new Promise((ok) => {
+      const i = new Image();
+      i.onload = () => ok({ l: i.naturalWidth, h: i.naturalHeight });
+      i.onerror = () => ok({ l: 4, h: 3 });
+      i.src = src;
+    });
+    const g = geometrie(etat.etude.site);
+    etat.etude.fond = {
+      src, x: 0, y: 0, largeur: g.largeur,
+      hauteur: (g.largeur * dim.h) / dim.l, opacite: 0.55,
+    };
+    ev.target.value = '';
+    majFond();
+    tout();
+  });
+  $('#f-opacite').addEventListener('input', () => {
+    if (!etat.etude.fond) return;
+    etat.etude.fond.opacite = Number($('#f-opacite').value) / 100;
+    dessinerPlan();
+  });
+  $('#f-largeur').addEventListener('change', () => {
+    if (!etat.etude.fond) return;
+    memoriser();
+    const f = etat.etude.fond;
+    const rapport = f.hauteur / f.largeur;
+    f.largeur = Number($('#f-largeur').value);
+    f.hauteur = f.largeur * rapport;
+    dessinerPlan();
+  });
+  $('#f-calage').addEventListener('change', () => {
+    etat.calage = $('#f-calage').checked;
+    $('#plan').classList.toggle('calage', etat.calage);
+  });
+  $('#b-fond-retirer').addEventListener('click', () => {
+    memoriser();
+    delete etat.etude.fond;
+    majFond();
+    tout();
+  });
+
   $('#b-ajouter').addEventListener('click', ajouter);
   $('#b-supprimer').addEventListener('click', supprimer);
   $('#b-defaire').addEventListener('click', defaire);
   $('#b-exporter').addEventListener('click', exporter);
+  $('#b-fiche').addEventListener('click', produireFiche);
   $('#b-importer').addEventListener('click', () => $('#fichier').click());
   $('#fichier').addEventListener('change', async (ev) => {
     const f = ev.target.files[0];

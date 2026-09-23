@@ -15,9 +15,10 @@
 
 import { $, $$ } from './dom.js';
 import { fr, frGroupe } from './format.js';
-import { geometrie, optiqueUtile, bilanEtude } from './etude-plan.js';
+import { geometrie, optiqueUtile, bilanEtude, bandePhoto } from './etude-plan.js';
 import { distanceDori, SEUILS_DORI } from './optique.js';
 import { LIAISON_PERMANENTE } from './cable.js';
+import { fiche } from './editeur-fiche.js';
 
 const SVG = 'http://www.w3.org/2000/svg';
 const el = (nom, attrs = {}) => {
@@ -31,6 +32,8 @@ const el = (nom, attrs = {}) => {
 const etat = {
   etude: null,
   selection: null,
+  photo: null,
+  calage: false,
   echelle: 1,          // pixels par mètre
   histoire: [],        // pour défaire
   modifie: false,
@@ -96,13 +99,30 @@ function dessinerPlan() {
   svg.setAttribute('height', g.hauteur * E);
   svg.replaceChildren();
 
+  /*
+   * La vue aérienne, s'il y en a une, passe SOUS tout le reste : elle sert
+   * à poser les caméras sur ce qui existe, pas à décorer. On la cale une
+   * fois pour toutes sur une longueur connue, et le plan devient un calque
+   * sur la photo du site.
+   */
+  if (e.fond && e.fond.src) {
+    svg.append(el('image', {
+      href: e.fond.src, x: e.fond.x * E, y: e.fond.y * E,
+      width: e.fond.largeur * E,
+      height: (e.fond.hauteur || e.fond.largeur * 0.6) * E,
+      opacity: e.fond.opacite ?? 0.55,
+      preserveAspectRatio: 'none',
+    }));
+  }
+
   const rect = (r, fill, stroke) => el('rect', {
     x: r.x * E, y: r.y * E, width: r.l * E, height: r.p * E,
     fill, stroke: stroke || 'none', 'stroke-width': 1.5,
   });
-  svg.append(rect(g.cour, '#eef0f3'));
-  svg.append(rect(g.bat, '#dfe3e9', '#6e7682'));
-  svg.append(rect(g.annexe, '#e7eaf0', '#9aa2ae'));
+  const voile = e.fond && e.fond.src;
+  svg.append(rect(g.cour, voile ? 'none' : '#eef0f3'));
+  svg.append(rect(g.bat, voile ? 'rgba(255,255,255,.35)' : '#dfe3e9', '#6e7682'));
+  svg.append(rect(g.annexe, voile ? 'rgba(255,255,255,.3)' : '#e7eaf0', '#9aa2ae'));
   const q = el('rect', {
     x: g.quai.x * E, y: g.quai.y * E, width: g.quai.l * E, height: g.quai.p * E,
     fill: 'none', stroke: '#9aa2ae', 'stroke-width': 1, 'stroke-dasharray': '4 3',
@@ -220,6 +240,14 @@ function brancherSouris() {
   let saisie = null;
 
   svg.addEventListener('pointerdown', (ev) => {
+    // Mode « caler le fond » : la souris déplace l'image, pas les caméras.
+    if (etat.calage && etat.etude.fond) {
+      memoriser();
+      const p = metresDepuisEvenement(ev);
+      saisie = { mode: 'fond', dx: p.x - etat.etude.fond.x, dy: p.y - etat.etude.fond.y };
+      svg.setPointerCapture(ev.pointerId);
+      return;
+    }
     const poignee = ev.target.closest('.poignee');
     const pion = ev.target.closest('.pion');
     if (!pion && !poignee) { etat.selection = null; tout(); return; }
@@ -233,6 +261,13 @@ function brancherSouris() {
 
   svg.addEventListener('pointermove', (ev) => {
     if (!saisie) return;
+    if (saisie.mode === 'fond') {
+      const p = metresDepuisEvenement(ev);
+      etat.etude.fond.x = Math.round((p.x - saisie.dx) * 2) / 2;
+      etat.etude.fond.y = Math.round((p.y - saisie.dy) * 2) / 2;
+      dessinerPlan();
+      return;
+    }
     const c = etat.etude.cameras.find((x) => x.cle === saisie.cle);
     if (!c) return;
     const p = metresDepuisEvenement(ev);
@@ -289,6 +324,153 @@ function remplirPanneau() {
     : '';
 }
 
+/* ------------------------------------------------------------ les photos */
+
+/** Lit un fichier image et rend une adresse de données, utilisable hors ligne. */
+function lireImage(fichier) {
+  return new Promise((ok, non) => {
+    const l = new FileReader();
+    l.onload = () => ok(l.result);
+    l.onerror = () => non(new Error(`Image illisible : ${fichier.name}`));
+    l.readAsDataURL(fichier);
+  });
+}
+
+/**
+ * Champ horizontal supposé d'une photo, en degrés.
+ *
+ * Un téléphone tenu DROIT ne cadre pas comme un téléphone tenu en travers :
+ * le capteur est le même, la moitié qu'on en garde ne l'est pas. Une image
+ * au format portrait ou carré voit donc nettement moins large, et c'est la
+ * plus fréquente sur un chantier.
+ */
+export const CHAMP_PAYSAGE = 67;
+export const CHAMP_PORTRAIT = 52.8;
+const champSuppose = (l, h) => (l > h * 1.25 ? CHAMP_PAYSAGE : CHAMP_PORTRAIT);
+
+/** Le bloc d'une photo : l'image, et les bandes de champ dessus. */
+function dessinerPhoto(photo) {
+  const zone = $('#photo-zone');
+  zone.replaceChildren();
+  if (!photo) return;
+
+  const cadre = document.createElement('div');
+  cadre.className = 'report';
+  const img = document.createElement('img');
+  img.src = photo.src;
+  img.alt = photo.titre || '';
+  cadre.append(img);
+
+  for (const r of photo.reperes || []) {
+    const c = etat.etude.cameras.find((x) => x.cle === r.camera);
+    if (!c) continue;
+    const m = etat.etude.modeles[c.modele];
+    const o = optiqueUtile(m, c.tele);
+    const angle = m.capteurUnique ? 180 : o.angleH;
+    const b = bandePhoto(photo.champ, angle, r.bande);
+    const band = document.createElement('div');
+    band.className = 'champ';
+    band.dataset.camera = c.cle;
+    band.style.left = `${(b.gauche * 100).toFixed(1)}%`;
+    band.style.width = `${(b.largeur * 100).toFixed(1)}%`;
+    const t = document.createElement('span');
+    t.textContent = `${c.cle} — ${Math.round(angle)}°${b.deborde ? ' (déborde)' : ''}`;
+    band.append(t);
+    cadre.append(band);
+  }
+  zone.append(cadre);
+
+  // La bande se tire à la souris : on vise sur la photo, pas au chiffre.
+  let tirage = null;
+  const position = (ev) => {
+    const r = cadre.getBoundingClientRect();
+    return Math.min(1, Math.max(0, (ev.clientX - r.left) / r.width));
+  };
+  cadre.addEventListener('pointerdown', (ev) => {
+    const band = ev.target.closest('.champ');
+    if (!band) return;
+    memoriser();
+    tirage = band.dataset.camera;
+    cadre.setPointerCapture(ev.pointerId);
+  });
+  cadre.addEventListener('pointermove', (ev) => {
+    if (!tirage) return;
+    const r = (photo.reperes || []).find((x) => x.camera === tirage);
+    if (!r) return;
+    r.bande = Math.round(position(ev) * 100) / 100;
+    dessinerPhoto(photo);
+  });
+  const fin = () => { tirage = null; };
+  cadre.addEventListener('pointerup', fin);
+  cadre.addEventListener('pointercancel', fin);
+}
+
+function listePhotos() {
+  const photos = etat.etude.photos || [];
+  $('#photos').innerHTML = photos.map((p) => `<li data-cle="${p.cle}"
+    class="${etat.photo === p.cle ? 'active' : ''}">
+    <img src="${p.src}" alt="">
+    <span class="nom">${p.titre || p.cle}</span>
+    <span class="det">${(p.reperes || []).map((r) => r.camera).join(', ') || 'aucune caméra'}
+      — champ ${fr(p.champ)}°</span>
+  </li>`).join('') || '<li class="vide">Aucune photo. Ajoutez les vues du site : '
+    + 'ce sont elles qui convainquent un client.</li>';
+  $$('#photos li[data-cle]').forEach((n) => n.addEventListener('click', () => {
+    etat.photo = n.dataset.cle;
+    panneauPhoto();
+    listePhotos();
+  }));
+}
+
+function panneauPhoto() {
+  const photo = (etat.etude.photos || []).find((p) => p.cle === etat.photo);
+  $('#photo-panneau').hidden = !photo;
+  if (!photo) { dessinerPhoto(null); return; }
+  $('#ph-titre').value = photo.titre || '';
+  $('#ph-champ').value = photo.champ;
+  $('#ph-champ-txt').textContent = `${fr(photo.champ)}°`;
+  $('#ph-cameras').innerHTML = etat.etude.cameras.map((c) => {
+    const pose = (photo.reperes || []).some((r) => r.camera === c.cle);
+    return `<label class="case-mini"><input type="checkbox" data-cam="${c.cle}"
+      ${pose ? 'checked' : ''}> ${c.cle}</label>`;
+  }).join('');
+  $$('#ph-cameras input').forEach((n) => n.addEventListener('change', () => {
+    memoriser();
+    photo.reperes = photo.reperes || [];
+    if (n.checked) photo.reperes.push({ camera: n.dataset.cam, bande: 0.5 });
+    else photo.reperes = photo.reperes.filter((r) => r.camera !== n.dataset.cam);
+    dessinerPhoto(photo);
+    listePhotos();
+  }));
+  dessinerPhoto(photo);
+}
+
+async function ajouterPhotos(fichiers) {
+  memoriser();
+  etat.etude.photos = etat.etude.photos || [];
+  for (const f of fichiers) {
+    const src = await lireImage(f);
+    const dim = await new Promise((ok) => {
+      const i = new Image();
+      i.onload = () => ok({ l: i.naturalWidth, h: i.naturalHeight });
+      i.onerror = () => ok({ l: 4, h: 3 });
+      i.src = src;
+    });
+    const n = etat.etude.photos.length + 1;
+    etat.etude.photos.push({
+      cle: `V${n}`,
+      titre: f.name.replace(/\.[^.]+$/, ''),
+      src,
+      champ: champSuppose(dim.l, dim.h),
+      reperes: [],
+    });
+  }
+  etat.photo = etat.etude.photos[etat.etude.photos.length - 1].cle;
+  listePhotos();
+  panneauPhoto();
+  majFond();
+}
+
 /* ------------------------------------------------------------- les chiffres */
 
 function chiffres() {
@@ -338,11 +520,24 @@ function listeCameras() {
   }));
 }
 
+/** Le bloc du fond n'a de sens que s'il y a un fond. */
+function majFond() {
+  const f = etat.etude.fond;
+  $('#fond-reglages').hidden = !f;
+  $('#b-fond').textContent = f ? 'Remplacer la vue aérienne…' : 'Ajouter une vue aérienne…';
+  if (!f) { etat.calage = false; $('#f-calage').checked = false; $('#plan').classList.remove('calage'); return; }
+  $('#f-opacite').value = Math.round((f.opacite ?? 0.55) * 100);
+  $('#f-largeur').value = Math.round(f.largeur);
+}
+
 function tout() {
   chiffres();
   dessinerPlan();
   listeCameras();
   remplirPanneau();
+  listePhotos();
+  panneauPhoto();
+  majFond();
 }
 
 /* ------------------------------------------------------------- commandes */
@@ -385,13 +580,38 @@ function supprimer() {
   tout();
 }
 
-function exporter() {
-  const texte = `${JSON.stringify(etat.etude, null, 1)}\n`;
+/** Enregistre un fichier sans passer par le moindre serveur. */
+function telecharger(nom, texte, type) {
   const lien = document.createElement('a');
-  lien.href = URL.createObjectURL(new Blob([texte], { type: 'application/json' }));
-  lien.download = 'etude.json';
+  lien.href = URL.createObjectURL(new Blob([texte], { type }));
+  lien.download = nom;
   lien.click();
   URL.revokeObjectURL(lien.href);
+}
+
+/**
+ * Le dossier client.
+ *
+ * Le plan part tel qu'il est à l'écran — on le désélectionne d'abord, sans
+ * quoi le cercle de sélection et la poignée d'orientation se retrouveraient
+ * imprimés chez le client.
+ */
+function produireFiche() {
+  const garde = etat.selection;
+  etat.selection = null;
+  dessinerPlan();
+  const svg = new XMLSerializer().serializeToString($('#plan'));
+  etat.selection = garde;
+  dessinerPlan();
+
+  const agence = globalThis.__agence || {};
+  const nom = `etude-${(etat.etude.reference || 'sans-reference')
+    .toLowerCase().replace(/[^a-z0-9-]+/g, '-')}.html`;
+  telecharger(nom, fiche(etat.etude, agence, svg), 'text/html;charset=utf-8');
+}
+
+function exporter() {
+  telecharger('etude.json', `${JSON.stringify(etat.etude, null, 1)}\n`, 'application/json');
   etat.modifie = false;
 }
 
@@ -448,10 +668,85 @@ export function monter(etude) {
   });
   $('#p-azimut').addEventListener('change', () => { etat.modifie = true; });
 
+  // --- les photos
+  $('#b-photos').addEventListener('click', () => $('#fichier-photos').click());
+  $('#fichier-photos').addEventListener('change', async (ev) => {
+    if (ev.target.files.length) await ajouterPhotos([...ev.target.files]);
+    ev.target.value = '';
+  });
+  $('#ph-titre').addEventListener('change', () => {
+    const p = (etat.etude.photos || []).find((x) => x.cle === etat.photo);
+    if (!p) return;
+    memoriser(); p.titre = $('#ph-titre').value; listePhotos();
+  });
+  $('#ph-champ').addEventListener('input', () => {
+    const p = (etat.etude.photos || []).find((x) => x.cle === etat.photo);
+    if (!p) return;
+    p.champ = Number($('#ph-champ').value);
+    $('#ph-champ-txt').textContent = `${fr(p.champ)}°`;
+    dessinerPhoto(p);
+  });
+  $('#ph-champ').addEventListener('change', () => { etat.modifie = true; listePhotos(); });
+  $('#b-photo-retirer').addEventListener('click', () => {
+    if (!etat.photo) return;
+    memoriser();
+    etat.etude.photos = etat.etude.photos.filter((p) => p.cle !== etat.photo);
+    etat.photo = null;
+    listePhotos(); panneauPhoto();
+  });
+
+  // --- le fond de plan
+  $('#b-fond').addEventListener('click', () => $('#fichier-fond').click());
+  $('#fichier-fond').addEventListener('change', async (ev) => {
+    const f = ev.target.files[0];
+    if (!f) return;
+    memoriser();
+    const src = await lireImage(f);
+    const dim = await new Promise((ok) => {
+      const i = new Image();
+      i.onload = () => ok({ l: i.naturalWidth, h: i.naturalHeight });
+      i.onerror = () => ok({ l: 4, h: 3 });
+      i.src = src;
+    });
+    const g = geometrie(etat.etude.site);
+    etat.etude.fond = {
+      src, x: 0, y: 0, largeur: g.largeur,
+      hauteur: (g.largeur * dim.h) / dim.l, opacite: 0.55,
+    };
+    ev.target.value = '';
+    majFond();
+    tout();
+  });
+  $('#f-opacite').addEventListener('input', () => {
+    if (!etat.etude.fond) return;
+    etat.etude.fond.opacite = Number($('#f-opacite').value) / 100;
+    dessinerPlan();
+  });
+  $('#f-largeur').addEventListener('change', () => {
+    if (!etat.etude.fond) return;
+    memoriser();
+    const f = etat.etude.fond;
+    const rapport = f.hauteur / f.largeur;
+    f.largeur = Number($('#f-largeur').value);
+    f.hauteur = f.largeur * rapport;
+    dessinerPlan();
+  });
+  $('#f-calage').addEventListener('change', () => {
+    etat.calage = $('#f-calage').checked;
+    $('#plan').classList.toggle('calage', etat.calage);
+  });
+  $('#b-fond-retirer').addEventListener('click', () => {
+    memoriser();
+    delete etat.etude.fond;
+    majFond();
+    tout();
+  });
+
   $('#b-ajouter').addEventListener('click', ajouter);
   $('#b-supprimer').addEventListener('click', supprimer);
   $('#b-defaire').addEventListener('click', defaire);
   $('#b-exporter').addEventListener('click', exporter);
+  $('#b-fiche').addEventListener('click', produireFiche);
   $('#b-importer').addEventListener('click', () => $('#fichier').click());
   $('#fichier').addEventListener('change', async (ev) => {
     const f = ev.target.files[0];

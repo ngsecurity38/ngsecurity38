@@ -8,7 +8,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { geometrie, optiqueUtile, metre, bilanEtude } from '../js/etude-plan.js';
+import { geometrie, optiqueUtile, metre, bilanEtude, bandePhoto } from '../js/etude-plan.js';
 import { LIAISON_PERMANENTE } from '../js/cable.js';
 
 const ici = dirname(fileURLToPath(import.meta.url));
@@ -170,4 +170,41 @@ test('l\'étude réelle : déplacer une caméra change le métré', () => {
     cameras: REELLE.cameras.map((c) => (c.cle === 'C1' ? { ...c, x: c.x + 30 } : c)),
   };
   assert.notEqual(bilanEtude(bougee).reseau, avant);
+});
+
+/* ------------------------------------------------- le champ sur la photo */
+
+test('bande photo : un champ égal à celui de la photo la remplit', () => {
+  const b = bandePhoto(52.8, 52.8, 0.5);
+  proche(b.largeur, 1, 1e-12);
+  proche(b.gauche, 0, 1e-12);
+  assert.equal(b.deborde, false);
+});
+
+test('bande photo : le rapport se prend sur les tangentes, pas sur les angles', () => {
+  const b = bandePhoto(52.8, 30, 0.5);
+  const t = (a) => Math.tan((a * Math.PI) / 360);
+  proche(b.part, t(30) / t(52.8), 1e-12);
+  // Le rapport naïf des angles — 30/52,8 = 0,568 — serait plus large que
+  // la réalité : une image est une projection, pas un rapporteur.
+  assert.ok(b.part < 30 / 52.8, `${b.part} devrait rester sous 0,568`);
+});
+
+test('bande photo : un grand-angle déborde du cadre et le dit', () => {
+  const b = bandePhoto(52.8, 100.2, 0.5);
+  assert.equal(b.deborde, true);
+  assert.equal(b.largeur, 1, 'la bande ne dépasse jamais l\'image');
+  assert.ok(b.part > 1);
+});
+
+test('bande photo : viser le bord ne dessine pas dans le vide', () => {
+  const gauche = bandePhoto(52.8, 30, 0);
+  proche(gauche.gauche, 0, 1e-12);
+  const droite = bandePhoto(52.8, 30, 1);
+  proche(droite.gauche + droite.largeur, 1, 1e-12);
+});
+
+test('bande photo : sans angle, aucune bande — pas une bande fausse', () => {
+  assert.equal(bandePhoto(0, 30).largeur, 0);
+  assert.equal(bandePhoto(52.8, 0).largeur, 0);
 });

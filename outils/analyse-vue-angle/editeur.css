@@ -80,15 +80,16 @@ main { display:flex; gap:16px; padding:16px; align-items:flex-start; }
 .aucune { margin:0; padding:14px 16px; font-size:13.5px; color:var(--doux);
   background:#fff; border:1px dashed var(--bord); border-radius:10px; }
 
-#panneau label { display:block; margin-top:12px; font-size:13px; font-weight:600; }
-#panneau label.case { font-weight:400; display:flex; gap:8px; flex-wrap:wrap; align-items:flex-start; }
-#panneau label.case small { flex-basis:100%; }
-#panneau input[type=text], #panneau input[type=number], #panneau select {
+#panneau label, #photo-panneau label { display:block; margin-top:12px; font-size:13px; font-weight:600; }
+#panneau label.case, #photo-panneau label.case { font-weight:400; display:flex; gap:8px; flex-wrap:wrap; align-items:flex-start; }
+#panneau label.case small, #photo-panneau label.case small { flex-basis:100%; }
+#panneau input[type=text], #panneau input[type=number], #panneau select,
+#photo-panneau input[type=text] {
   width:100%; font:inherit; font-size:14px; font-weight:400; margin-top:4px;
   padding:7px 9px; border:1px solid var(--bord); border-radius:7px; background:#fff;
 }
-#panneau input[type=range] { width:100%; margin-top:6px; }
-#panneau small { display:block; font-weight:400; font-size:11.5px; color:var(--doux); margin-top:3px; }
+#panneau input[type=range], #photo-panneau input[type=range] { width:100%; margin-top:6px; }
+#panneau small, #photo-panneau small { display:block; font-weight:400; font-size:11.5px; color:var(--doux); margin-top:3px; }
 .paire { display:flex; gap:10px; }
 .paire label { flex:1; }
 
@@ -112,3 +113,53 @@ main { display:flex; gap:16px; padding:16px; align-items:flex-start; }
   main { flex-direction:column; }
   .cote { flex:1 1 auto; width:100%; }
 }
+
+/* ------------------------------------------------ photos et fond de plan */
+
+.fond-reglages {
+  display:flex; align-items:flex-end; gap:14px; flex-wrap:wrap;
+  background:#fff; border:1px solid var(--bord); border-radius:10px;
+  padding:10px 14px; margin-top:10px;
+}
+.fond-reglages label { font-size:12.5px; font-weight:600; }
+.fond-reglages input[type=number] {
+  display:block; width:96px; font:inherit; font-size:14px; font-weight:400;
+  margin-top:3px; padding:5px 8px; border:1px solid var(--bord); border-radius:6px;
+}
+.fond-reglages input[type=range] { display:block; width:130px; margin-top:6px; }
+.fond-reglages .case { display:flex; align-items:center; gap:7px; font-weight:400; }
+#plan.calage { cursor:move; outline:2px dashed var(--rouge); outline-offset:-2px; }
+
+.liste.photos li { grid-template-columns:auto 1fr; }
+.liste.photos img {
+  grid-row:span 2; width:54px; height:38px; object-fit:cover; border-radius:5px;
+  border:1px solid var(--bord);
+}
+.liste.photos li.vide { display:block; font-size:12.5px; color:var(--doux); cursor:default; }
+.liste.photos li.vide:hover { background:none; }
+
+.cases { display:flex; flex-wrap:wrap; gap:6px 10px; margin-top:6px; }
+.case-mini {
+  display:inline-flex; align-items:center; gap:5px; font-weight:400; font-size:13px;
+  background:var(--fond); border-radius:6px; padding:3px 8px;
+}
+
+.photo-zone { margin-top:12px; }
+/*
+ * Le report du champ sur la photo. Le nom de classe reprend celui du
+ * dossier : c'est le même objet, et on doit pouvoir passer de l'un à
+ * l'autre sans se demander si c'est la même chose.
+ */
+.photo-zone .report { position:relative; line-height:0; border-radius:8px; overflow:hidden; }
+.photo-zone .report img { width:100%; height:auto; display:block; }
+.photo-zone .champ {
+  position:absolute; top:0; bottom:0; cursor:ew-resize;
+  background:rgba(200,16,46,.26); border-left:2px solid var(--rouge);
+  border-right:2px solid var(--rouge);
+}
+.photo-zone .champ span {
+  position:absolute; top:4px; left:4px; font-size:10.5px; line-height:1.3;
+  background:var(--rouge); color:#fff; padding:1px 5px; border-radius:3px;
+  white-space:nowrap;
+}
+.aide-photo { font-size:12px; color:var(--doux); margin:8px 0 0; }

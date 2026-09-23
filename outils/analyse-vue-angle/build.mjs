@@ -341,12 +341,11 @@ aDeposer('alarme', alarme, lire('tarif-alarme.json'), 'tarif-alarme.json');
  * `noindex` : le publier à côté des estimateurs ferait croire à un
  * visiteur qu'il peut refaire l'étude lui-même.
  *
- * Deux formes, parce que les deux servent : un fichier unique qui s'ouvre
- * d'un double-clic depuis une clé, l'étude embarquée dedans ; et un dossier
- * où l'étude reste à côté, pour la tenir à jour sans refaire la page.
+ * Une seule forme : un fichier unique, l'étude embarquée dedans, qui
+ * s'ouvre d'un double-clic sans serveur ni réseau.
  */
 const MODULES_EDITEUR = ['dom.js', 'format.js', 'optique.js', 'cable.js',
-  'stockage.js', 'etude-plan.js', 'editeur.js'];
+  'stockage.js', 'etude-plan.js', 'editeur-fiche.js', 'editeur.js'];
 verifierListe(MODULES_EDITEUR);
 
 const etudeJson = readFileSync(
@@ -370,15 +369,26 @@ editeur = injecter(editeur, '<link rel="stylesheet" href="editeur.css">',
 editeur = editeur.replace(
   /<script type="module">[\s\S]*?<\/script>/,
   () => `<script>window.__etude=${inerte(etudeJson)};</script>\n`
+    + `<script>window.__agence=${inerte(JSON.stringify({
+    ...JSON.parse(readFileSync(join(ici, '..', '..', 'agence.json'), 'utf8')),
+    logo,
+  }))};</script>\n`
     + `<script>${inerte(paquetEditeur)}</script>`,
 );
 ecrire('editeur.html', editeur);
 
-const dossierEditeur = join(ici, 'dist', 'site', 'editeur');
-mkdirSync(dossierEditeur, { recursive: true });
-writeFileSync(join(dossierEditeur, 'index.html'), editeur);
-writeFileSync(join(dossierEditeur, 'etude.json'), etudeJson);
-console.log(`${dossierEditeur} — atelier de l'agence, à ne pas lier publiquement`);
+/*
+ * L'éditeur NE SORT PAS en dossier servi.
+ *
+ * L'agence l'a demandé nettement : il reste sur son ordinateur. Un outil
+ * qui porte les photos d'un site client, ses plans et ses points faibles
+ * n'a rien à faire sur un serveur public, fût-ce derrière une adresse que
+ * personne ne devine — une adresse que personne ne devine finit toujours
+ * par se deviner.
+ *
+ * Une seule sortie, donc : dist/editeur.html, un fichier qu'on copie sur
+ * un ordinateur et qu'on ouvre d'un double-clic.
+ */
 
 /*
  * Le menu, un cran au-dessus des deux dossiers.
