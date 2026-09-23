@@ -1137,7 +1137,8 @@ main { display:flex; gap:16px; padding:16px; align-items:flex-start; }
    "designation": "Câble Cat 6 U/UTP 4 paires, touret de 305 m",
    "reference": null,
    "conditionnement": 305,
-   "marche": null
+   "marche": 320.42,
+   "source": "Prix relevé par l'agence sur Internet chez des professionnels, 24/09/2026 : 769 € TTC pour deux tourets de 305 m."
   },
   "cableCommande": {
    "designation": "Câble d'alimentation et commande 2 x 1,5 mm², couronne de 100 m",
@@ -1163,7 +1164,8 @@ main { display:flex; gap:16px; padding:16px; align-items:flex-start; }
   "goulotte": {
    "designation": "Goulotte, collier et fixation, au mètre de cheminement apparent",
    "reference": null,
-   "marche": null
+   "marche": 1.74,
+   "source": "Prix relevé par l'agence sur Internet chez des professionnels, 24/09/2026 : 315 € de fourniture pour les 181 m de cheminement apparent relevés."
   },
   "ecran": {
    "designation": "Écran de supervision",
@@ -1216,16 +1218,19 @@ main { display:flex; gap:16px; padding:16px; align-items:flex-start; }
    "marche": null
   },
   "sireneInterieure": {
-   "designation": "Sirène intérieure autoprotégée",
-   "reference": null,
+   "designation": "Sirène intérieure à flash Hikvision AX PRO, 90 dB",
+   "reference": "Hikvision DS-PS1-I-WE",
    "marche": null,
-   "famille": "video"
+   "famille": "video",
+   "source": "Référence relevée le 24/09/2026 (cfpsecurite.com). Prix NON PUBLIÉ chez les revendeurs français.",
+   "note": "Sirène et flash dans le même appareil. Elle appartient à la gamme d'alarme AX PRO : sans fil, sur pile, elle se déclenche depuis une centrale d'alarme — pas depuis l'enregistreur vidéo."
   },
   "flash": {
-   "designation": "Sirène extérieure à flash, autoprotégée",
-   "reference": null,
-   "marche": null,
-   "famille": "video"
+   "designation": "Sirène extérieure à flash Hikvision AX PRO, 110 dB, autoprotégée",
+   "reference": "Hikvision DS-PS1-E-WE",
+   "marche": 96.53,
+   "famille": "video",
+   "source": "Prix public constaté le 24/09/2026 (surveillance-camera-ip.com, 115,83 € TTC)."
   }
  },
  "_ratios": [
@@ -1238,12 +1243,17 @@ main { display:flex; gap:16px; padding:16px; align-items:flex-start; }
   "partCheminementApparent": 0.35
  },
  "_signalisation": [
-  "Hypothèse, à confirmer au relevé : une sirène par volume fermé — la",
-  "halle et les bureaux ne s'entendent pas l'un l'autre — et un flash en",
-  "façade, visible depuis la voie. C'est ce qui fait qu'un voisin regarde."
+  "Une sirène intérieure et un flash extérieur, arrêtés par l'agence.",
+  "",
+  "ATTENTION : les deux sont de la gamme AX PRO, sans fil, sur pile. Elles",
+  "se déclenchent depuis une CENTRALE D'ALARME, pas depuis l'enregistreur",
+  "vidéo — Hikvision ne fait pas de sirène alimentée en PoE qui se branche",
+  "sur le réseau des caméras. La dissuasion en PoE, sur ce site, vient des",
+  "six caméras panoramiques : stroboscope et message sonore intégrés,",
+  "déclenchés par la détection humaine AcuSense."
  ],
  "signalisation": {
-  "sirenesInterieures": 2,
+  "sirenesInterieures": 1,
   "flashs": 1
  },
  "_mainOeuvre": [
@@ -1278,7 +1288,7 @@ main { display:flex; gap:16px; padding:16px; align-items:flex-start; }
   "varifocal": 266.0,
   "panoramique": 184.06,
   "enregistreur": 515.0,
-  "disque": null,
+  "disque": 465.42,
   "interphonie": null
  },
  "sources": {
@@ -1286,7 +1296,7 @@ main { display:flex; gap:16px; padding:16px; align-items:flex-start; }
   "varifocal": "Prix public HT constaté chez un revendeur français, relevé le 23/09/2026 (w3cam.fr, 319,20 € TTC) — DS-2CD2683G2-IZS.",
   "panoramique": "Prix public HT constaté chez un revendeur français, relevé le 23/09/2026 (idealo.fr) — DS-2CD2346G2P-ISU/SL.",
   "enregistreur": "Prix public HT constaté chez un revendeur français, relevé le 23/09/2026 (camera-videosurveillance.fr, 618,00 € TTC) — DS-7616NXI-K2/16P.",
-  "disque": "NON RELEVÉ. Disque 10 To vidéosurveillance : à saisir.",
+  "disque": "Prix relevé par l'agence sur Internet chez des professionnels, 24/09/2026 : 1 117 € TTC pour deux disques.",
   "interphonie": "NON RELEVÉ. Kit DS-KIS902-S : aucun revendeur français ne publie son prix."
  },
  "optionInterphonie": true,
@@ -1306,7 +1316,7 @@ main { display:flex; gap:16px; padding:16px; align-items:flex-start; }
  "kitAcces": {
   "designation": "Kit complet contrôle d'accès et visiophone",
   "reference": null,
-  "marche": null,
+  "marche": 1148.33,
   "contenu": [
    "Platine de rue visiophone Hikvision, avec reconnaissance faciale",
    "Moniteur intérieur tactile, ouverture à distance et application sur téléphone",
@@ -1317,7 +1327,8 @@ main { display:flex; gap:16px; padding:16px; align-items:flex-start; }
    "Alimentation 12 V secourue par coffret, batterie comprise",
    "Câblage, pose, raccordement et paramétrage"
   ],
-  "aConfirmer": "Référence de la platine à reconnaissance faciale à arrêter avec vous. Un dispositif biométrique relève du RGPD : analyse d'impact et information des personnes avant la pose, pas après."
+  "aConfirmer": "Référence de la platine à reconnaissance faciale à arrêter avec vous. Un dispositif biométrique relève du RGPD : analyse d'impact et information des personnes avant la pose, pas après.",
+  "source": "Prix relevé par l'agence sur Internet chez des professionnels, 24/09/2026 : 1 378 € TTC pour l'ensemble."
  }
 }
 ;</script>
@@ -2898,7 +2909,7 @@ function bordereau(etude, devis) {
 
   if (a('ecran').designation) {
     materiel.push(ligne('ecran', a('ecran').designation, 1, 'u',
-      { ...a('ecran'), option: true }));
+      { ...a('ecran'), prix: prixDe(a('ecran')), option: true }));
   }
 
   /* -------------------------------------------------------- 2. le câblage */
@@ -2909,6 +2920,7 @@ function bordereau(etude, devis) {
   const cablage = [
     ligne('cableReseau', cableRes.designation || 'Câble réseau', tourets, 'touret', {
       ...cableRes,
+      prix: prixDe(cableRes),
       note: `${Math.round(b.reseau)} m relevés au cheminement, réserves comprises.`,
     }),
     ligne('cableCommande', cableCom.designation || 'Câble de commande', couronnes, 'couronne', {

@@ -153,7 +153,7 @@ export function bordereau(etude, devis) {
 
   if (a('ecran').designation) {
     materiel.push(ligne('ecran', a('ecran').designation, 1, 'u',
-      { ...a('ecran'), option: true }));
+      { ...a('ecran'), prix: prixDe(a('ecran')), option: true }));
   }
 
   /* -------------------------------------------------------- 2. le câblage */
@@ -164,6 +164,7 @@ export function bordereau(etude, devis) {
   const cablage = [
     ligne('cableReseau', cableRes.designation || 'Câble réseau', tourets, 'touret', {
       ...cableRes,
+      prix: prixDe(cableRes),
       note: `${Math.round(b.reseau)} m relevés au cheminement, réserves comprises.`,
     }),
     ligne('cableCommande', cableCom.designation || 'Câble de commande', couronnes, 'couronne', {

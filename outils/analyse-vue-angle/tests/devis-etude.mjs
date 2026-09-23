@@ -31,6 +31,7 @@ function tarifNu() {
   d.marche = Object.fromEntries(Object.keys(d.marche).map((k) => [k, null]));
   d.prix = Object.fromEntries(Object.keys(d.prix).map((k) => [k, null]));
   for (const a of Object.values(d.articles)) a.marche = null;
+  if (d.kitAcces) d.kitAcces.marche = null;
   d.tauxHoraire = null;
   return d;
 }
@@ -307,4 +308,22 @@ test('le second disque est une option, chiffrée au même prix', () => {
   assert.equal(sansOption, r.lots.find((l) => l.cle === 'materiel').lignes
     .filter((l) => !l.option && l.total !== null)
     .reduce((s, l) => s + l.total, 0));
+});
+
+test('tout article qui porte un prix marché se retrouve chiffré', () => {
+  /*
+   * L'oubli est toujours le même : la ligne reprend l'article par
+   * décomposition, mais personne ne calcule son prix. Le tarif porte un
+   * chiffre, le devis imprime « — », et l'agence ne s'en aperçoit qu'en
+   * relisant le total.
+   */
+  const d = copie(DEVIS);
+  for (const art of Object.values(d.articles)) art.marche = 42;
+  for (const k of Object.keys(d.marche)) d.marche[k] = 42;
+  d.kitAcces.marche = 42;
+  const attendu = prixFacture(42, d.remise);
+  for (const l of bordereau(REELLE, d).lots.flatMap((x) => x.lignes)) {
+    if (l.unite === 'h') continue;  // la main d'œuvre suit le taux horaire
+    assert.equal(l.prix, attendu, `${l.cle} ne prend pas son prix marché`);
+  }
 });
