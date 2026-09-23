@@ -14,13 +14,15 @@
  */
 
 import { $, $$ } from './dom.js';
-import { fr, frGroupe } from './format.js';
-import { geometrie, optiqueUtile, bilanEtude, bandePhoto } from './etude-plan.js';
-import { distanceDori, SEUILS_DORI } from './optique.js';
+import { fr, frGroupe, echapper } from './format.js';
+import {
+  geometrie, optiqueUtile, bilanEtude, bandePhoto, porteesDori,
+} from './etude-plan.js';
 import { LIAISON_PERMANENTE } from './cable.js';
-import { fiche } from './editeur-fiche.js';
+import { fiche, dossierParDefaut, sectionsDuDossier } from './editeur-fiche.js';
 
 const SVG = 'http://www.w3.org/2000/svg';
+
 const el = (nom, attrs = {}) => {
   const n = document.createElementNS(SVG, nom);
   for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, String(v));
@@ -63,17 +65,6 @@ const COULEUR = {
 };
 
 /** Les trois portées d'une caméra, dans l'ordre où on les empile. */
-function portees(modele, tele) {
-  const o = optiqueUtile(modele, tele);
-  const out = {};
-  for (const cle of ['observation', 'reconnaissance', 'identification']) {
-    out[cle] = distanceDori(o.resH, o.angleH, SEUILS_DORI[cle].ppm);
-  }
-  // Le panoramique couvre le double de ce que dit son capteur unique.
-  out.angle = modele.capteurUnique ? 180 : o.angleH;
-  return out;
-}
-
 /** Un secteur, en coordonnées du plan. */
 function secteur(cx, cy, rayon, azimut, angle, E) {
   const r = rayon * E;
@@ -147,7 +138,7 @@ function dessinerPlan() {
   for (const c of e.cameras) {
     const m = e.modeles[c.modele];
     if (!m) continue;
-    const p = portees(m, c.tele);
+    const p = porteesDori(m, c.tele);
     const vif = !etat.selection || etat.selection === c.cle;
     for (const cle of ['observation', 'reconnaissance', 'identification']) {
       svg.append(el('path', {
@@ -297,7 +288,7 @@ function remplirPanneau() {
   p.hidden = !c;
   if (!c) return;
   const m = etat.etude.modeles[c.modele];
-  const po = portees(m, c.tele);
+  const po = porteesDori(m, c.tele);
 
   $('#p-cle').textContent = c.cle;
   $('#p-role').value = c.role || '';
@@ -469,6 +460,7 @@ async function ajouterPhotos(fichiers) {
   listePhotos();
   panneauPhoto();
   majFond();
+  listeChapitres();
 }
 
 /* ------------------------------------------------------------- les chiffres */
@@ -506,7 +498,7 @@ function chiffres() {
 function listeCameras() {
   $('#liste').innerHTML = etat.etude.cameras.map((c) => {
     const m = etat.etude.modeles[c.modele];
-    const po = portees(m, c.tele);
+    const po = porteesDori(m, c.tele);
     return `<li data-cle="${c.cle}" class="${etat.selection === c.cle ? 'active' : ''}">
       <span class="puce">${c.cle}</span>
       <span class="nom">${c.role || '—'}</span>
@@ -530,6 +522,113 @@ function majFond() {
   $('#f-largeur').value = Math.round(f.largeur);
 }
 
+/* ------------------------------------------------------- le dossier client */
+
+/** À quoi sert chaque chapitre, dit en une ligne sous son intitulé. */
+const DESCRIPTION = {
+  chiffres: 'Le bandeau de tête : caméras, débit, stockage, PoE, câble.',
+  cameras: 'Le tableau des caméras et leurs distances d\'identification.',
+  plan: 'Le plan tel qu\'il est à l\'écran, secteurs compris.',
+  vues: 'Vos photos, avec le champ de chaque caméra reporté dessus.',
+  cablage: 'Le métré, les boîtes à commander, les liaisons hors norme.',
+  reserves: 'Ce que l\'étude ne promet pas. À garder.',
+};
+
+/**
+ * Le dossier suit l'étude.
+ *
+ * Une étude enregistrée avant que ce réglage n'existe n'a pas de chapitres :
+ * on lui donne l'ordre naturel plutôt que de lui sortir un dossier vide.
+ */
+function assurerDossier() {
+  const d = (etat.etude.dossier && typeof etat.etude.dossier === 'object')
+    ? etat.etude.dossier : {};
+  const sections = sectionsDuDossier(etat.etude);
+  etat.etude.dossier = {
+    sautDePage: !!d.sautDePage,
+    sections: sections.length ? sections : dossierParDefaut().sections,
+  };
+}
+
+function deplacerChapitre(i, vers) {
+  const l = etat.etude.dossier.sections;
+  if (vers < 0 || vers >= l.length) return;
+  memoriser();
+  const [x] = l.splice(i, 1);
+  l.splice(vers, 0, x);
+  listeChapitres();
+}
+
+function ajouterTexte() {
+  memoriser();
+  const l = etat.etude.dossier.sections;
+  const rang = l.filter((s) => s.type === 'texte').length + 1;
+  l.push({
+    cle: `texte-${Date.now().toString(36)}`,
+    type: 'texte',
+    titre: `Précision ${rang}`,
+    corps: '',
+    visible: true,
+  });
+  listeChapitres();
+  const zone = $('#chapitres li:last-child textarea');
+  if (zone) zone.focus();
+}
+
+/**
+ * La liste des chapitres.
+ *
+ * On ne redessine pas à chaque frappe : le champ perdrait le curseur au
+ * premier caractère. Le texte va droit dans l'étude, et la liste n'est
+ * refaite que lorsque sa forme change — un chapitre déplacé, écarté, ajouté.
+ */
+function listeChapitres() {
+  const d = etat.etude.dossier;
+  $('#f-saut').checked = !!d.sautDePage;
+  $('#chapitres').innerHTML = d.sections.map((s, i) => {
+    const ecarte = s.visible === false;
+    const libre = s.type === 'texte';
+    return `<li data-i="${i}" class="${ecarte ? 'ecarte' : ''}">
+      <div class="rang">
+        <input type="checkbox" data-r="visible" ${ecarte ? '' : 'checked'}
+          title="${ecarte ? 'Remettre ce chapitre' : 'Retirer ce chapitre du dossier'}">
+        <input type="text" data-r="titre" maxlength="80" value="${echapper(s.titre || '')}"
+          placeholder="Intitulé du chapitre">
+        <button type="button" class="btn btn-puce" data-r="haut"
+          ${i === 0 ? 'disabled' : ''} title="Monter">&#8593;</button>
+        <button type="button" class="btn btn-puce" data-r="bas"
+          ${i === d.sections.length - 1 ? 'disabled' : ''} title="Descendre">&#8595;</button>
+        ${libre ? '<button type="button" class="btn btn-puce btn-retrait" '
+          + 'data-r="retirer" title="Supprimer ce texte">&#215;</button>' : ''}
+      </div>
+      ${libre
+    ? `<textarea data-r="corps" rows="4" placeholder="Votre texte. Une ligne vide sépare deux paragraphes.">${echapper(s.corps || '')}</textarea>`
+    : `<small class="det">${echapper(DESCRIPTION[s.cle] || '')}</small>`}
+    </li>`;
+  }).join('');
+
+  $$('#chapitres li').forEach((n) => {
+    const i = Number(n.dataset.i);
+    const sec = () => etat.etude.dossier.sections[i];
+    const sur = (role, evenement, fait) => {
+      const champ = n.querySelector(`[data-r="${role}"]`);
+      if (champ) champ.addEventListener(evenement, () => fait(champ));
+    };
+    sur('visible', 'change', (c) => { memoriser(); sec().visible = c.checked; listeChapitres(); });
+    sur('titre', 'focus', memoriser);
+    sur('titre', 'input', (c) => { sec().titre = c.value; etat.modifie = true; });
+    sur('corps', 'focus', memoriser);
+    sur('corps', 'input', (c) => { sec().corps = c.value; etat.modifie = true; });
+    sur('haut', 'click', () => deplacerChapitre(i, i - 1));
+    sur('bas', 'click', () => deplacerChapitre(i, i + 1));
+    sur('retirer', 'click', () => {
+      memoriser();
+      etat.etude.dossier.sections.splice(i, 1);
+      listeChapitres();
+    });
+  });
+}
+
 function tout() {
   chiffres();
   dessinerPlan();
@@ -538,6 +637,7 @@ function tout() {
   listePhotos();
   panneauPhoto();
   majFond();
+  listeChapitres();
 }
 
 /* ------------------------------------------------------------- commandes */
@@ -624,6 +724,7 @@ async function importer(fichier) {
   }
   memoriser();
   etat.etude = lu;
+  assurerDossier();
   etat.selection = null;
   tout();
 }
@@ -632,6 +733,7 @@ async function importer(fichier) {
 
 export function monter(etude) {
   etat.etude = JSON.parse(JSON.stringify(etude));
+  assurerDossier();
 
   $('#p-modele').innerHTML = Object.entries(etat.etude.modeles)
     .map(([cle, m]) => `<option value="${cle}">${m.reference.replace('Hikvision ', '')}</option>`)
@@ -740,6 +842,12 @@ export function monter(etude) {
     delete etat.etude.fond;
     majFond();
     tout();
+  });
+
+  $('#b-texte').addEventListener('click', ajouterTexte);
+  $('#f-saut').addEventListener('change', () => {
+    memoriser();
+    etat.etude.dossier.sautDePage = $('#f-saut').checked;
   });
 
   $('#b-ajouter').addEventListener('click', ajouter);

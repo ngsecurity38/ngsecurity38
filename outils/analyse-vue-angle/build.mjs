@@ -74,23 +74,40 @@ function declarations(source) {
   return noms;
 }
 
-const vus = new Map();
-const morceaux = [];
-for (const nom of MODULES) {
-  const source = deModuliser(lire('js', nom));
-  for (const declaration of declarations(source)) {
-    if (vus.has(declaration)) {
-      throw new Error(
-        `Collision de noms : « ${declaration} » est déclaré dans ${vus.get(declaration)} et ${nom}. `
-        + 'Renommer l\'un des deux, sinon le fichier unique ne se chargera pas.',
-      );
+/**
+ * Concatène des modules en un seul bloc, et refuse de le faire si deux d'entre
+ * eux déclarent le même nom.
+ *
+ * Chaque page a son paquet : la vérification est donc par paquet, deux pages
+ * pouvant très bien déclarer chacune leur `ech` de leur côté. Longtemps seule
+ * la première page était vérifiée — le jour où deux modules de l'éditeur ont
+ * déclaré `const ech`, le fichier s'est fabriqué sans un mot et la page est
+ * morte au chargement. Tout paquet passe désormais par ici.
+ *
+ * @param {string[]} modules
+ * @param {string} [fin] ce qu'on ajoute à la fin, dans la fermeture
+ */
+function paqueter(modules, fin = '') {
+  const vus = new Map();
+  const morceaux = [];
+  for (const nom of modules) {
+    const source = deModuliser(lire('js', nom));
+    for (const declaration of declarations(source)) {
+      if (vus.has(declaration)) {
+        throw new Error(
+          `Collision de noms : « ${declaration} » est déclaré dans ${vus.get(declaration)} `
+          + `et ${nom}. `
+          + 'Renommer l\'un des deux, sinon le fichier unique ne se chargera pas.',
+        );
+      }
+      vus.set(declaration, nom);
     }
-    vus.set(declaration, nom);
+    morceaux.push(`/* ===== ${nom} ===== */\n${source.trim()}`);
   }
-  morceaux.push(`/* ===== ${nom} ===== */\n${source.trim()}`);
+  return `(function () {\n'use strict';\n\n${morceaux.join('\n\n')}\n${fin}\n}());`;
 }
 
-const paquet = `(function () {\n'use strict';\n\n${morceaux.join('\n\n')}\n\n}());`;
+const paquet = paqueter(MODULES);
 
 const base64 = (...p) => readFileSync(join(ici, ...p)).toString('base64');
 
@@ -179,9 +196,7 @@ const MODULES_CLIENT = ['dom.js', 'format.js', 'menu.js', 'optique.js', 'photo.j
   'ensemble-vue.js', 'offre.js', 'devis-client.js'];
 verifierListe(MODULES_CLIENT);
 
-const paquetClient = `(function () {\n'use strict';\n\n`
-  + `${MODULES_CLIENT.map((nom) => `/* ===== ${nom} ===== */\n`
-    + deModuliser(lire('js', nom)).trim()).join('\n\n')}\n\n}());`;
+const paquetClient = paqueter(MODULES_CLIENT);
 
 let client = marque(lire('devis-client.html'));
 client = injecter(client, '<link rel="stylesheet" href="devis-client.css">',
@@ -209,9 +224,7 @@ const MODULES_PRESENTATION = ['dom.js', 'format.js', 'menu.js', 'optique.js', 'p
   'boutique.js', 'presentation.js'];
 verifierListe(MODULES_PRESENTATION);
 
-const paquetPresentation = `(function () {\n'use strict';\n\n`
-  + `${MODULES_PRESENTATION.map((nom) => `/* ===== ${nom} ===== */\n`
-    + deModuliser(lire('js', nom)).trim()).join('\n\n')}\n\n}());`;
+const paquetPresentation = paqueter(MODULES_PRESENTATION);
 
 let presentation = marque(lire('presentation.html'));
 presentation = injecter(presentation, '<link rel="stylesheet" href="presentation.css">',
@@ -239,9 +252,7 @@ const MODULES_ALARME = ['dom.js', 'format.js', 'menu.js', 'prix.js', 'pays.js',
   'ensemble.js', 'ensemble-vue.js', 'alarme.js', 'alarme-client.js'];
 verifierListe(MODULES_ALARME);
 
-const paquetAlarme = `(function () {\n'use strict';\n\n`
-  + `${MODULES_ALARME.map((nom) => `/* ===== ${nom} ===== */\n`
-    + deModuliser(lire('js', nom)).trim()).join('\n\n')}\n\n}());`;
+const paquetAlarme = paqueter(MODULES_ALARME);
 
 let alarme = marque(lire('alarme-client.html'));
 alarme = injecter(alarme, '<link rel="stylesheet" href="devis-client.css">',
@@ -351,9 +362,7 @@ verifierListe(MODULES_EDITEUR);
 const etudeJson = readFileSync(
   join(ici, '..', '..', 'etudes', '2026-09-22-site-industriel', 'etude.json'), 'utf8',
 );
-const paquetEditeur = `(function () {\n'use strict';\n\n`
-  + `${MODULES_EDITEUR.map((nom) => `/* ===== ${nom} ===== */\n`
-    + deModuliser(lire('js', nom)).trim()).join('\n\n')}\n\ndemarrer();\n}());`;
+const paquetEditeur = paqueter(MODULES_EDITEUR, '\ndemarrer();');
 
 let editeur = marque(lire('editeur.html'));
 editeur = injecter(editeur, '<link rel="stylesheet" href="editeur.css">',

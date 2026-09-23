@@ -48,6 +48,27 @@ test('le raccourci $$ survit à la concaténation', () => {
   }
 });
 
+test('aucune page ne déclare deux fois le même nom', () => {
+  /*
+   * La concaténation passe sans broncher sur deux `function portees` — la
+   * seconde écrase simplement la première, et la page tourne des mois en
+   * exécutant autre chose que ce que le module dit. Sur deux `const`, elle
+   * meurt au chargement. Longtemps seule la première page était vérifiée à
+   * la fabrication : l'éditeur, lui, embarquait les deux cas.
+   */
+  const motif = /^(?:const|let|var|class|function|async function)\s+([A-Za-z_$][\w$]*)/gm;
+  for (const page of PAGES) {
+    const script = lire(page).match(/\(function \(\) \{\n'use strict';[\s\S]*?\n\}\(\)\);/);
+    assert.ok(script, `${page} : paquet introuvable`);
+    const vus = new Map();
+    for (const m of script[0].matchAll(motif)) {
+      assert.ok(!vus.has(m[1]),
+        `${page} : « ${m[1]} » est déclaré deux fois dans le même paquet`);
+      vus.set(m[1], true);
+    }
+  }
+});
+
 test('aucun import ni export ne subsiste dans un fichier unique', () => {
   for (const p of PAGES) {
     const t = lire(p);

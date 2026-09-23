@@ -33,3 +33,15 @@ export const frGroupe = (v, n = 0) => fr(v, n).replace(
 export const elider = (mot) => (
   /^[aeiouyàâäéèêëîïôöùûü]/i.test(mot) ? `d'${mot}` : `de ${mot}`
 );
+
+/**
+ * Rend un texte inoffensif avant de le coller dans du HTML.
+ *
+ * L'agence tape des intitulés et des paragraphes entiers ; une apostrophe
+ * droite ou un chevron suffit à casser la page où on les recolle. La règle
+ * vaut pour l'éditeur comme pour le dossier qu'il produit — d'où sa place
+ * ici, dans le module que les deux partagent déjà.
+ */
+export const echapper = (t) => String(t ?? '').replace(/[&<>"']/g, (c) => ({
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+}[c]));

@@ -148,9 +148,29 @@
         c'est ce que la caméra cadrera.</p>
     </div>
 
+    <div class="bloc">
+      <div class="entete-bloc">
+        <h2>Le dossier client</h2>
+        <button type="button" id="b-texte" class="btn btn-petit">Ajouter un texte</button>
+      </div>
+      <p class="det">L'ordre des chapitres, leur intitulé, ceux que vous
+        écartez. Décochez pour retirer un chapitre du dossier sans rien
+        perdre de l'étude ; « Ajouter un texte » intercale vos propres
+        paragraphes — une précision, une réserve, une remise de prestation.</p>
+      <ol id="chapitres" class="chapitres"></ol>
+      <label class="case"><input type="checkbox" id="f-saut">
+        Un chapitre par page
+        <small>Chaque titre repart en haut d'une page à l'impression. Un
+          dossier plus aéré, un peu plus long.</small></label>
+    </div>
+
     <p class="note"><b>Produire le dossier client</b> écrit un fichier HTML
       autonome — plan, photos, tableaux, réserves. Il s'ouvre dans n'importe
-      quel navigateur, s'imprime en PDF (Ctrl+P) et s'envoie tel quel.
+      quel navigateur et porte en bas à droite un bouton
+      <b>Enregistrer en PDF</b> : la fenêtre d'impression s'ouvre, vous
+      choisissez « Enregistrer au format PDF » comme imprimante, et le PDF
+      part par courriel. Le format est déjà réglé en A4, sans qu'un titre se
+      détache de son tableau ni qu'une photo se coupe en deux.
       <br><br><b>Enregistrer etude.json</b> garde votre travail : c'est ce
       fichier qu'on rouvre ici, et celui qui regénère le dossier complet et la
       présentation.</p>

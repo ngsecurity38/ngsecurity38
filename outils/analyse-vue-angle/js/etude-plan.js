@@ -15,6 +15,7 @@
 
 import { cheminement, verdictEthernet, bobines, RESERVE_BOUT } from './cable.js';
 import { debitEstime, capaciteNecessaire, disquesPourBaies } from './stockage.js';
+import { distanceDori, SEUILS_DORI } from './optique.js';
 
 /**
  * La géométrie du terrain, en mètres, origine en haut à gauche.
@@ -68,6 +69,26 @@ export const optiqueUtile = (m, tele = false) => (
  * @param {number} bande position visée dans l'image, de 0 (gauche) à 1
  * @returns {{gauche:number, largeur:number, deborde:boolean, part:number}}
  */
+/**
+ * Les portées DORI d'un modèle, et le champ qu'il couvre.
+ *
+ * Le dossier et l'éditeur affichaient chacun leur version de ce calcul. Deux
+ * copies d'une même règle finissent toujours par diverger : celle-ci est la
+ * seule.
+ *
+ * `angle` est le champ réellement couvert : un panoramique multi-capteurs
+ * calcule ses distances sur un seul capteur, mais en balaie quatre.
+ */
+export function porteesDori(modele, tele = false) {
+  const o = optiqueUtile(modele, tele);
+  const d = {};
+  for (const cle of Object.keys(SEUILS_DORI)) {
+    d[cle] = distanceDori(o.resH, o.angleH, SEUILS_DORI[cle].ppm);
+  }
+  d.angle = modele.capteurUnique ? 180 : o.angleH;
+  return d;
+}
+
 export function bandePhoto(champPhoto, champCamera, bande = 0.5) {
   const t = (a) => Math.tan((a * Math.PI) / 360);
   if (!(champPhoto > 0) || !(champCamera > 0)) {

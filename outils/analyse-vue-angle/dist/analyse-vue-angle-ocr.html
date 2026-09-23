@@ -1361,6 +1361,18 @@ const elider = (mot) => (
   /^[aeiouyàâäéèêëîïôöùûü]/i.test(mot) ? `d'${mot}` : `de ${mot}`
 );
 
+/**
+ * Rend un texte inoffensif avant de le coller dans du HTML.
+ *
+ * L'agence tape des intitulés et des paragraphes entiers ; une apostrophe
+ * droite ou un chevron suffit à casser la page où on les recolle. La règle
+ * vaut pour l'éditeur comme pour le dossier qu'il produit — d'où sa place
+ * ici, dans le module que les deux partagent déjà.
+ */
+const echapper = (t) => String(t ?? '').replace(/[&<>"']/g, (c) => ({
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+}[c]));
+
 /* ===== optique.js ===== */
 /**
  * Calculs optiques pour l'analyse de vue d'angle.
@@ -4263,6 +4275,7 @@ function arrondi(m) {
 
 
 
+
 /**
  * La géométrie du terrain, en mètres, origine en haut à gauche.
  *
@@ -4315,6 +4328,26 @@ const optiqueUtile = (m, tele = false) => (
  * @param {number} bande position visée dans l'image, de 0 (gauche) à 1
  * @returns {{gauche:number, largeur:number, deborde:boolean, part:number}}
  */
+/**
+ * Les portées DORI d'un modèle, et le champ qu'il couvre.
+ *
+ * Le dossier et l'éditeur affichaient chacun leur version de ce calcul. Deux
+ * copies d'une même règle finissent toujours par diverger : celle-ci est la
+ * seule.
+ *
+ * `angle` est le champ réellement couvert : un panoramique multi-capteurs
+ * calcule ses distances sur un seul capteur, mais en balaie quatre.
+ */
+function porteesDori(modele, tele = false) {
+  const o = optiqueUtile(modele, tele);
+  const d = {};
+  for (const cle of Object.keys(SEUILS_DORI)) {
+    d[cle] = distanceDori(o.resH, o.angleH, SEUILS_DORI[cle].ppm);
+  }
+  d.angle = modele.capteurUnique ? 180 : o.angleH;
+  return d;
+}
+
 function bandePhoto(champPhoto, champCamera, bande = 0.5) {
   const t = (a) => Math.tan((a * Math.PI) / 360);
   if (!(champPhoto > 0) || !(champCamera > 0)) {

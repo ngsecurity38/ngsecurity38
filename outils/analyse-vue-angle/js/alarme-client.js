@@ -16,7 +16,7 @@
  */
 
 import { $, $$ } from './dom.js';
-import { fr, frGroupe } from './format.js';
+import { fr, frGroupe, echapper } from './format.js';
 import { chargerMenu, poserMenu } from './menu.js';
 import { texteEnsemble } from './ensemble.js';
 import { afficherEnsemble } from './ensemble-vue.js';
@@ -36,10 +36,6 @@ const TARIF_ALARME_EMBARQUE = globalThis.__tarifAlarme || null;
 const CLE_ALARME = 'ngsecurity-etude-alarme';
 
 const etatAlarme = { tarif: null };
-
-const echapper = (t) => String(t ?? '').replace(/[&<>"']/g, (c) => ({
-  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
-}[c]));
 
 /** Charge le tarif : celui posé à côté de la page, sinon celui embarqué. */
 async function chargerTarifAlarme() {
