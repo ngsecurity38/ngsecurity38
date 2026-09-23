@@ -83,18 +83,23 @@ test('le presse-étoupe ne se compte que sur les caméras exposées', () => {
   assert.equal(trouver(bordereau(REELLE, DEVIS), 'presseEtoupe').quantite, dehors);
 });
 
-test('une ventouse double pour une porte à deux vantaux', () => {
-  const r = bordereau(REELLE, DEVIS);
-  assert.equal(trouver(r, 'ventouseDouble').quantite, 1);
-  assert.equal(trouver(r, 'ventouseSimple').quantite, 1);
-  assert.equal(trouver(r, 'lecteur').quantite, REELLE.acces.length);
+test('le kit nomme les accès qu\'il dessert, et la ventouse de chacun', () => {
+  const k = trouver(bordereau(REELLE, DEVIS), 'kitAcces');
+  for (const a of REELLE.acces) {
+    assert.ok(k.note.includes(a.cle), `${a.cle} doit être nommé`);
+  }
+  const texte = k.contenu.join(' ');
+  assert.ok(/double/i.test(texte), 'la porte à deux vantaux demande une ventouse double');
+  assert.ok(/A1/.test(texte) && /A2/.test(texte), 'chaque accès est situé');
 });
 
-test('une alimentation par coffret qui porte un verrouillage', () => {
-  const r = bordereau(REELLE, DEVIS);
-  const points = new Set(REELLE.acces.map((a) => a.coffret || 'local'));
-  assert.equal(trouver(r, 'alimSecourue').quantite, points.size);
-  assert.equal(points.size, 2, 'R2 et R3 : deux bouts de site, deux alimentations');
+test('sans kit défini, le contrôle d\'accès ne s\'invente pas', () => {
+  const d = copie(DEVIS);
+  delete d.kitAcces;
+  const r = bordereau(REELLE, d);
+  assert.equal(trouver(r, 'kitAcces'), undefined);
+  assert.ok(!r.lots.some((l) => l.cle === 'controle'),
+    'un lot vide ne s\'imprime pas');
 });
 
 test('la nacelle se déduit de la hauteur de pose, pas d\'une saisie', () => {
@@ -242,23 +247,45 @@ test('NI le prix marché NI la remise ne sortent du document', () => {
   assert.ok(html.includes('239,40 €'));
 });
 
-test('l\'interphonie et le contrôle d\'accès sortent en option', () => {
+test('le contrôle d\'accès et le visiophone sortent en UN SEUL bloc', () => {
   const r = bordereau(REELLE, DEVIS);
-  const opt = (cle) => trouver(r, cle).option;
-  assert.equal(opt('interphonie'), true);
-  assert.equal(opt('ventouseSimple'), true);
-  assert.equal(opt('ventouseDouble'), true);
-  assert.equal(opt('lecteur'), true);
+  const k = trouver(r, 'kitAcces');
+  assert.ok(k, 'le kit est au bordereau');
+  assert.equal(k.option, true);
+  assert.equal(k.quantite, 1);
+  assert.equal(k.unite, 'ensemble');
+  assert.ok(k.contenu.length >= 6, 'le client lit ce qu\'il contient');
+  assert.ok(/reconnaissance faciale/i.test(k.contenu.join(' ')));
+  assert.ok(/ventouse/i.test(k.contenu.join(' ')));
+  assert.ok(/bouton de sortie/i.test(k.contenu.join(' ')));
+  assert.ok(/lecteur de badge/i.test(k.contenu.join(' ')));
+  // Plus aucune ligne détaillée : on ne peut pas retirer le bouton de sortie
+  // d'un kit de verrouillage.
+  for (const cle of ['ventouseSimple', 'ventouseDouble', 'lecteur', 'boutonSortie',
+    'alimSecourue', 'badge', 'faciale', 'interphonie']) {
+    assert.equal(trouver(r, cle), undefined, `${cle} ne doit plus être une ligne`);
+  }
   // Les sirènes, elles, font partie du système vidéo.
-  assert.equal(opt('sireneInterieure'), false);
-  assert.equal(opt('flash'), false);
+  assert.equal(trouver(r, 'sireneInterieure').option, false);
+  assert.equal(trouver(r, 'flash').option, false);
 });
 
-test('une option ne gonfle pas le total de la vidéosurveillance', () => {
-  const d = copie(DEVIS);
-  d.marche.interphonie = 500;
-  const avec = bordereau(REELLE, d).totaux.ht;
-  d.marche.interphonie = null;
-  assert.equal(avec, bordereau(REELLE, d).totaux.ht,
-    'chiffrer une option ne doit rien changer au total');
+test('la pose et le câble de l\'option ne pèsent pas sur la base', () => {
+  const r = bordereau(REELLE, DEVIS);
+  assert.equal(trouver(r, 'cableCommande').option, true,
+    'le câble de commande ne sert qu\'au verrouillage et à la platine');
+  assert.equal(trouver(r, 'acces'), undefined, 'la pose du contrôle d\'accès est dans le kit');
+  assert.equal(trouver(r, 'interphonie'), undefined, 'celle de la platine aussi');
 });
+
+test('chiffrer le kit ne change pas le total de la vidéosurveillance', () => {
+  const d = copie(DEVIS);
+  const sans = bordereau(REELLE, d).totaux.ht;
+  d.kitAcces.marche = 2400;
+  const r = bordereau(REELLE, d);
+  assert.equal(r.totaux.ht, sans);
+  assert.equal(trouver(r, 'kitAcces').prix, prixFacture(2400, d.remise),
+    'le kit suit la même remise que le reste');
+});
+
+

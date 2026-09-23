@@ -212,5 +212,29 @@
   "L'interphonie et le contrôle d'accès sont proposés EN OPTION : ils ne",
   "comptent pas dans le total de la vidéosurveillance. Passez à false pour",
   "les faire entrer dans la prestation de base."
- ]
+ ],
+ "_kitAcces": [
+  "Le contrôle d'accès et le visiophone se vendent EN UN SEUL BLOC, en",
+  "option : le client prend le tout ou rien. Les lignes détaillées ne sont",
+  "plus imprimées — elles restent dans `articles` pour le chiffrage interne.",
+  "",
+  "contenu[] est ce que le client lit sous la ligne. Le prix, lui, est celui",
+  "du kit entier : marche x (1 - remise), comme partout ailleurs."
+ ],
+ "kitAcces": {
+  "designation": "Kit complet contrôle d'accès et visiophone",
+  "reference": null,
+  "marche": null,
+  "contenu": [
+   "Platine de rue visiophone Hikvision, avec reconnaissance faciale",
+   "Moniteur intérieur tactile, ouverture à distance et application sur téléphone",
+   "Lecteur de badge extérieur IP65 sur chaque accès, et badges de proximité",
+   "Ventouse électromagnétique 300 kg au portail piéton (A1)",
+   "Ventouse double 2 x 300 kg sur la porte principale à deux vantaux (A2)",
+   "Bouton de sortie et déclencheur manuel d'urgence sur chaque accès",
+   "Alimentation 12 V secourue par coffret, batterie comprise",
+   "Câblage, pose, raccordement et paramétrage"
+  ],
+  "aConfirmer": "Référence de la platine à reconnaissance faciale à arrêter avec vous. Un dispositif biométrique relève du RGPD : analyse d'impact et information des personnes avant la pose, pas après."
+ }
 }

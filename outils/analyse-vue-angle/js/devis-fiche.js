@@ -53,6 +53,10 @@ tr.option td { color:var(--doux); }
 .marque-option { font-size:10.5px; text-transform:uppercase; letter-spacing:.05em;
   color:var(--rouge); font-weight:700; }
 .det { display:block; font-size:11.5px; color:var(--doux); margin-top:2px; }
+/* Ce que contient un ensemble vendu d'un bloc : le client doit pouvoir le
+   lire sans que chaque élément devienne une ligne qu'il pourrait retirer. */
+ul.contenu { margin:6px 0 2px; padding-left:18px; font-size:12px; color:var(--encre); }
+ul.contenu li { margin-bottom:3px; }
 .sous-total td { border-top:2px solid var(--encre); border-bottom:0; font-weight:700;
   font-size:14px; }
 .total { margin:22px 0 0; border:1px solid var(--bord); border-radius:8px;
@@ -140,6 +144,8 @@ function lignesHtml(lot) {
       ${l.reference && l.reference !== l.designation
     ? `<span class="det">Réf. ${echapper(l.reference)}</span>` : ''}
       ${l.note ? `<span class="det">${echapper(l.note)}</span>` : ''}
+      ${l.contenu ? `<ul class="contenu">${l.contenu
+    .map((x) => `<li>${echapper(x)}</li>`).join('')}</ul>` : ''}
       ${l.aConfirmer ? `<span class="det"><b>À arrêter :</b> ${echapper(l.aConfirmer)}</span>` : ''}</td>
     <td class="n">${echapper(fr(l.quantite, 2))}</td>
     <td class="n">${echapper(l.unite)}</td>

@@ -48,6 +48,7 @@ function ligne(cle, designation, quantite, unite, extra = {}) {
     prix,
     total: prix === null ? null : prix * quantite,
     note: extra.note || null,
+    contenu: extra.contenu || null,
     aConfirmer: extra.aConfirmer || null,
     option: !!extra.option,
   };
@@ -142,6 +143,10 @@ export function bordereau(etude, devis) {
     }),
     ligne('cableCommande', cableCom.designation || 'Câble de commande', couronnes, 'couronne', {
       ...cableCom,
+      prix: prixDe(cableCom),
+      // Ce câble ne dessert que le verrouillage, la platine et le moniteur :
+      // il n'existe que si l'option est prise, et suit donc son sort.
+      option: !!devis.kitAcces,
       note: `${Math.round(b.commande)} m relevés : alimentation du verrouillage, interphonie, moniteur.`,
     }),
     ligne('connecteur', a('connecteur').designation || 'Connecteur RJ45',
@@ -177,57 +182,30 @@ export function bordereau(etude, devis) {
   }
 
   /* ------------------------------------------------- 4. le contrôle d'accès */
+  /*
+   * L'agence le vend d'un bloc : une ligne, un prix, à prendre ou à laisser.
+   * Détailler sept lignes en option invite le client à en retirer une — et
+   * une ventouse sans bouton de sortie n'est pas une installation, c'est un
+   * piège.
+   */
+  const kit = devis.kitAcces;
   const controle = [];
-  const simples = acces.filter((x) => /double/i.test(x.verrouillage || '') === false).length;
-  const doubles = acces.filter((x) => /double/i.test(x.verrouillage || '')).length;
-  if (simples) {
-    controle.push(ligne('ventouseSimple', a('ventouseSimple').designation || 'Ventouse simple',
-      simples, 'u', { ...a('ventouseSimple'), prix: prixDe(a('ventouseSimple')) }));
-  }
-  if (doubles) {
-    controle.push(ligne('ventouseDouble', a('ventouseDouble').designation || 'Ventouse double',
-      doubles, 'u', { ...a('ventouseDouble'), prix: prixDe(a('ventouseDouble')),
-        note: acces.filter((x) => /double/i.test(x.verrouillage || ''))
-          .map((x) => `${x.cle} — ${x.nom}`).join(', '),
-      }));
-  }
-  // Une alimentation par coffret qui porte un verrouillage : la chute de
-  // tension en 12 V continu interdit de tout tirer depuis un seul point.
-  const pointsAlim = new Set(acces.map((x) => x.coffret || 'local'));
-  const alimentations = pointsAlim.size;
-  if (acces.length) {
-    controle.push(
-      ligne('lecteur', a('lecteur').designation || 'Lecteur', acces.length, 'u', { ...a('lecteur'), prix: prixDe(a('lecteur')) }),
-      ligne('boutonSortie', a('boutonSortie').designation || 'Bouton de sortie',
-        acces.length, 'u', { ...a('boutonSortie'), prix: prixDe(a('boutonSortie')) }),
-      ligne('alimSecourue', a('alimSecourue').designation || 'Alimentation secourue',
-        alimentations, 'u', { ...a('alimSecourue'), prix: prixDe(a('alimSecourue')),
-          note: alimentations > 1
-            ? `Une par point d'alimentation : ${[...pointsAlim].join(', ')}. Une ventouse ne se tire pas d'un bout à l'autre du site sans perdre sa tension.`
-            : null,
-        }),
-    );
-    if (a('badge').designation) {
-      controle.push(ligne('badge', a('badge').designation, 10, 'u', {
-        ...a('badge'), note: 'Quantité à arrêter : un badge par personne autorisée.',
-      }));
-    }
-    if (a('faciale').designation) {
-      controle.push(ligne('faciale', a('faciale').designation, 1, 'u',
-        { ...a('faciale'), option: true }));
-    }
+  if (acces.length && kit) {
+    controle.push(ligne('kitAcces', kit.designation || 'Contrôle d\'accès', 1, 'ensemble', {
+      reference: kit.reference,
+      prix: prixFacture(kit.marche, remise),
+      contenu: kit.contenu || null,
+      aConfirmer: kit.aConfirmer || null,
+      note: `Pour ${acces.length} accès : ${acces.map((x) => `${x.cle} — ${x.nom}`).join(', ')}.`,
+      option: true,
+    }));
   }
 
   /* ------------------------------------------------------ 5. l'interphonie */
-  const interphonie = [];
-  const kit = etude.equipements.interphonie;
-  if (kit) {
-    interphonie.push(ligne('interphonie', kit.type, 1, 'u', {
-      reference: kit.reference,
-      prix: prix.interphonie,
-      option: devis.optionInterphonie !== false,
-    }));
-  }
+  /*
+   * La platine et le moniteur sont DANS le kit ci-dessus. Le lot n'existe
+   * plus : deux lignes pour un même équipement, et il se facture deux fois.
+   */
 
   /* --------------------------------------------------- 6. la signalisation */
   const sig = devis.signalisation || {};
@@ -272,13 +250,11 @@ export function bordereau(etude, devis) {
   }
   oeuvre.push(poste('enregistreur', 'Pose de l\'enregistreur, disques et paramétrage',
     heures.enregistreur || 0));
-  if (acces.length) {
-    oeuvre.push(poste('acces', 'Pose du contrôle d\'accès et du verrouillage',
-      acces.length * (heures.parAcces || 0), {
-        note: acces.map((x) => `${x.cle} — ${x.nom}`).join(', '),
-      }));
-  }
-  if (kit) oeuvre.push(poste('interphonie', 'Pose de l\'interphonie vidéo', heures.interphonie || 0));
+  /*
+   * Ni la pose du contrôle d'accès ni celle de l'interphonie ne figurent
+   * ici : le kit les porte, et les compter deux fois ferait payer au client
+   * une pose qu'il n'a peut-être pas commandée.
+   */
   const nbSig = (sig.sirenesInterieures || 0) + (sig.flashs || 0);
   if (nbSig) {
     oeuvre.push(poste('signalisation', 'Pose des sirènes et du flash',
@@ -296,8 +272,7 @@ export function bordereau(etude, devis) {
     { cle: 'materiel', titre: 'Vidéosurveillance — matériel', lignes: materiel },
     { cle: 'cablage', titre: 'Câblage', lignes: cablage },
     { cle: 'supports', titre: 'Supports, coffrets et accessoires', lignes: supports },
-    { cle: 'controle', titre: 'Contrôle d\'accès et verrouillage', lignes: controle },
-    { cle: 'interphonie', titre: 'Interphonie et visiophone', lignes: interphonie },
+    { cle: 'controle', titre: 'Contrôle d\'accès et visiophone — en option', lignes: controle },
     { cle: 'signalisation', titre: 'Signalisation et dissuasion', lignes: signalisation },
     { cle: 'oeuvre', titre: 'Main d\'œuvre', lignes: oeuvre },
   ].filter((l) => l.lignes.length);

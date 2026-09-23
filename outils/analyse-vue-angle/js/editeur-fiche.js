@@ -121,6 +121,8 @@ figcaption { font-size:13px; color:var(--doux); margin-top:6px; }
   background:var(--rouge); color:#fff; padding:1px 6px; border-radius:3px;
   line-height:1.4; white-space:nowrap; }
 ul.liste li { margin-bottom:7px; }
+ul.contenu { margin:6px 0 2px; padding-left:18px; font-size:12px; }
+ul.contenu li { margin-bottom:3px; }
 .libre p { margin:10px 0; }
 .modele { display:flex; gap:18px; align-items:flex-start; border:1px solid var(--bord);
   border-radius:10px; padding:14px 16px; margin:14px 0; }
