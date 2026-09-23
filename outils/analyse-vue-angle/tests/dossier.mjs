@@ -393,3 +393,18 @@ test('une caméra au champ étroit garde son aplat', () => {
   assert.ok(/class="champ"/.test(html));
   assert.ok(!/class="champ large"/.test(html));
 });
+
+test('le serveur d\'enregistrement porte le nom que l\'agence emploie', () => {
+  /*
+   * L'agence dit « serveur d'enregistrement », pas « enregistreur », et le
+   * dossier est signé par elle. Et la machine n'est pas un « 16 voies
+   * AcuSense » : elle enregistre seize voies, la détection ne couvre pas les
+   * seize.
+   */
+  const html = fiche(copie(), AGENCE, PLAN, DEVIS).replace(/data:[^"]+/g, '');
+  // Les désignations passent par l'échappement : l'apostrophe y est &#39;.
+  assert.ok(html.includes('Serveur d&#39;enregistrement réseau 16 voies'));
+  assert.ok(!/16 voies AcuSense/.test(html), 'la mention fausse a disparu');
+  assert.ok(!/Pose de l&#39;enregistreur/.test(html));
+  assert.ok(html.includes('Pose du serveur d&#39;enregistrement'));
+});

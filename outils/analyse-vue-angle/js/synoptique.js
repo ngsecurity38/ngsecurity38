@@ -175,7 +175,7 @@ export function synoptique(etude) {
     <text x="${X_LOCAL + 12}" y="${yLocal + 38}" class="t-det">${ech(
   etude.local && etude.local.etage ? 'à l\'étage' : 'rez-de-chaussée')}</text>
     ${boite(X_LOCAL + 12, milieuLocal - 42, L_LOCAL - 24, 46, 'fill="#1a1d23"')}
-    <text x="${X_LOCAL + 22}" y="${milieuLocal - 24}" class="t-blanc">Enregistreur ${nvr.canaux} voies</text>
+    <text x="${X_LOCAL + 22}" y="${milieuLocal - 24}" class="t-blanc">Serveur ${nvr.canaux} voies</text>
     <text x="${X_LOCAL + 22}" y="${milieuLocal - 10}" class="t-blanc-det">${ech(
   (nvr.reference || '').replace('Hikvision ', ''))}</text>
     ${boite(X_LOCAL + 12, milieuLocal + 8, L_LOCAL - 24, 34, 'fill="#f6f7f9" stroke="#dde1e7"')}

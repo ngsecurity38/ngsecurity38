@@ -274,7 +274,7 @@ export function bordereau(etude, devis) {
     oeuvre.push(poste('coffrets', 'Pose et raccordement des coffrets déportés',
       coffrets.length * (heures.parCoffret || 0)));
   }
-  oeuvre.push(poste('enregistreur', 'Pose de l\'enregistreur, disques et paramétrage',
+  oeuvre.push(poste('enregistreur', 'Pose du serveur d\'enregistrement, disques et paramétrage',
     heures.enregistreur || 0));
   /*
    * Ni la pose du contrôle d'accès ni celle de l'interphonie ne figurent

@@ -43,8 +43,8 @@
    "designation": "Commutateur 8 ports PoE+ administrable, boîtier coffret",
    "reference": null,
    "note": "Un par coffret déporté. PoE+ (802.3at, 30 W par port) et non PoE : les caméras varifocales à chauffage dépassent les 15,4 W du PoE simple.",
-   "marche": 120.0,
-   "source": "Prix public HT constaté chez un revendeur français, relevé le 23/09/2026 (camera-videosurveillance.fr), switch 8 ports PoE+, 250 m."
+   "marche": 165.0,
+   "source": "Prix donné par l'agence, 24/09/2026 : 165 € hors taxes l'unité, pour un modèle administrable."
   },
   "coffret": {
    "designation": "Coffret technique IP55 avec platine, serrure et parafoudre",
@@ -207,7 +207,7 @@
   "turret": 181.11,
   "varifocal": 266.0,
   "panoramique": 184.06,
-  "enregistreur": 515.0,
+  "enregistreur": 715.0,
   "disque": 465.42,
   "interphonie": null
  },
@@ -215,7 +215,7 @@
   "turret": "Prix public HT constaté chez un revendeur français, relevé le 23/09/2026 (getic.fr), DS-2CD2346G2H-IU.",
   "varifocal": "Prix public HT constaté chez un revendeur français, relevé le 23/09/2026 (w3cam.fr, 319,20 € TTC), DS-2CD2683G2-IZS.",
   "panoramique": "Prix public HT constaté chez un revendeur français, relevé le 23/09/2026 (idealo.fr), DS-2CD2346G2P-ISU/SL.",
-  "enregistreur": "Prix public HT constaté chez un revendeur français, relevé le 23/09/2026 (camera-videosurveillance.fr, 618,00 € TTC), DS-7616NXI-K2/16P.",
+  "enregistreur": "Prix donné par l'agence, 24/09/2026 : 715 € hors taxes pour le DS-7616NXI-K2/16P.",
   "disque": "Prix relevé par l'agence sur Internet chez des professionnels, 24/09/2026 : 1 117 € TTC pour deux disques.",
   "interphonie": "NON RELEVÉ. Kit DS-KIS902-S : aucun revendeur français ne publie son prix."
  },

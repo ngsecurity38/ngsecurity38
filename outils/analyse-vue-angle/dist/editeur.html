@@ -835,7 +835,7 @@ main { display:flex; gap:16px; padding:16px; align-items:flex-start; }
  "equipements": {
   "enregistreur": {
    "reference": "Hikvision DS-7616NXI-K2/16P",
-   "type": "Enregistreur réseau 16 voies AcuSense, 2 baies SATA, 16 ports PoE intégrés",
+   "type": "Serveur d'enregistrement réseau 16 voies, 2 baies SATA, 16 ports PoE intégrés",
    "canaux": 16,
    "baies": 2,
    "portsPoe": 16,
@@ -849,7 +849,8 @@ main { display:flex; gap:16px; padding:16px; align-items:flex-start; }
    "aVerifier": [
     "Les trois chiffres relevés par recherche, à confirmer sur la fiche : budget PoE total de 200 W, 10 To par baie, absence de RAID. Les serveurs de fiches sont bloqués depuis l'atelier et aucun n'a pu être ouvert à la source.",
     "Le plafond par baie selon la RÉVISION livrée. Les éditions courantes annoncent 10 To, la révision (D) 16 To. Le dossier retient 10 : se tromper vers le bas fait acheter un disque de trop, vers le haut un disque inutilisable.",
-    "Comment les coffrets déportés s'y raccordent. Un commutateur placé derrière un port PoE d'enregistreur Hikvision fonctionne, mais sort de la reconnaissance automatique : les caméras qui sont derrière s'ajoutent alors à la main, par leur adresse. Le raccordement par le port réseau est plus sain. À arrêter à la mise en service, pas sur le chantier."
+    "Comment les coffrets déportés s'y raccordent. Un commutateur placé derrière un port PoE d'enregistreur Hikvision fonctionne, mais sort de la reconnaissance automatique : les caméras qui sont derrière s'ajoutent alors à la main, par leur adresse. Le raccordement par le port réseau est plus sain. À arrêter à la mise en service, pas sur le chantier.",
+    "Le nombre de voies couvertes par AcuSense. La machine enregistre 16 voies, mais la détection de personne et de véhicule ne s'applique pas aux seize : les revendeurs annoncent quatre voies natives. Le dossier ne l'écrit plus comme un « 16 voies AcuSense », ce qui était faux. À confirmer sur la fiche avant de le promettre au client."
    ]
   },
   "interphonie": {
@@ -1126,8 +1127,8 @@ main { display:flex; gap:16px; padding:16px; align-items:flex-start; }
    "designation": "Commutateur 8 ports PoE+ administrable, boîtier coffret",
    "reference": null,
    "note": "Un par coffret déporté. PoE+ (802.3at, 30 W par port) et non PoE : les caméras varifocales à chauffage dépassent les 15,4 W du PoE simple.",
-   "marche": 120.0,
-   "source": "Prix public HT constaté chez un revendeur français, relevé le 23/09/2026 (camera-videosurveillance.fr), switch 8 ports PoE+, 250 m."
+   "marche": 165.0,
+   "source": "Prix donné par l'agence, 24/09/2026 : 165 € hors taxes l'unité, pour un modèle administrable."
   },
   "coffret": {
    "designation": "Coffret technique IP55 avec platine, serrure et parafoudre",
@@ -1290,7 +1291,7 @@ main { display:flex; gap:16px; padding:16px; align-items:flex-start; }
   "turret": 181.11,
   "varifocal": 266.0,
   "panoramique": 184.06,
-  "enregistreur": 515.0,
+  "enregistreur": 715.0,
   "disque": 465.42,
   "interphonie": null
  },
@@ -1298,7 +1299,7 @@ main { display:flex; gap:16px; padding:16px; align-items:flex-start; }
   "turret": "Prix public HT constaté chez un revendeur français, relevé le 23/09/2026 (getic.fr), DS-2CD2346G2H-IU.",
   "varifocal": "Prix public HT constaté chez un revendeur français, relevé le 23/09/2026 (w3cam.fr, 319,20 € TTC), DS-2CD2683G2-IZS.",
   "panoramique": "Prix public HT constaté chez un revendeur français, relevé le 23/09/2026 (idealo.fr), DS-2CD2346G2P-ISU/SL.",
-  "enregistreur": "Prix public HT constaté chez un revendeur français, relevé le 23/09/2026 (camera-videosurveillance.fr, 618,00 € TTC), DS-7616NXI-K2/16P.",
+  "enregistreur": "Prix donné par l'agence, 24/09/2026 : 715 € hors taxes pour le DS-7616NXI-K2/16P.",
   "disque": "Prix relevé par l'agence sur Internet chez des professionnels, 24/09/2026 : 1 117 € TTC pour deux disques.",
   "interphonie": "NON RELEVÉ. Kit DS-KIS902-S : aucun revendeur français ne publie son prix."
  },
@@ -2654,7 +2655,7 @@ function synoptique(etude) {
     <text x="${X_LOCAL + 12}" y="${yLocal + 38}" class="t-det">${ech(
   etude.local && etude.local.etage ? 'à l\'étage' : 'rez-de-chaussée')}</text>
     ${boite(X_LOCAL + 12, milieuLocal - 42, L_LOCAL - 24, 46, 'fill="#1a1d23"')}
-    <text x="${X_LOCAL + 22}" y="${milieuLocal - 24}" class="t-blanc">Enregistreur ${nvr.canaux} voies</text>
+    <text x="${X_LOCAL + 22}" y="${milieuLocal - 24}" class="t-blanc">Serveur ${nvr.canaux} voies</text>
     <text x="${X_LOCAL + 22}" y="${milieuLocal - 10}" class="t-blanc-det">${ech(
   (nvr.reference || '').replace('Hikvision ', ''))}</text>
     ${boite(X_LOCAL + 12, milieuLocal + 8, L_LOCAL - 24, 34, 'fill="#f6f7f9" stroke="#dde1e7"')}
@@ -3040,7 +3041,7 @@ function bordereau(etude, devis) {
     oeuvre.push(poste('coffrets', 'Pose et raccordement des coffrets déportés',
       coffrets.length * (heures.parCoffret || 0)));
   }
-  oeuvre.push(poste('enregistreur', 'Pose de l\'enregistreur, disques et paramétrage',
+  oeuvre.push(poste('enregistreur', 'Pose du serveur d\'enregistrement, disques et paramétrage',
     heures.enregistreur || 0));
   /*
    * Ni la pose du contrôle d'accès ni celle de l'interphonie ne figurent
@@ -3650,7 +3651,7 @@ function archive(etude, b) {
       <p><b>${echapper(fr(bil.capaciteGo / 1000))} To</b> d'images à conserver.
         ${d ? `${d.nombre} disque${d.nombre > 1 ? 's' : ''} de ${d.unitaire} To
 soit ${d.total} To installés sur les ${bil.disques.baies} baies
-          de l'enregistreur.` : 'Aucune configuration de disque ne couvre ce besoin.'}</p>
+          du serveur.` : 'Aucune configuration de disque ne couvre ce besoin.'}</p>
     </div>`;
   };
   return `<div class="archives">
@@ -3858,7 +3859,7 @@ ${hors}`,
 </div>
 <ul class="liste">
   <li><b>Garantie du matériel trois ans</b> à compter de la mise en service :
-    caméras, enregistreur, disques, commutateurs et coffrets. Un appareil
+    caméras, serveur d'enregistrement, disques, commutateurs et coffrets. Un appareil
     défaillant est remplacé, pose comprise.</li>
   <li><b>Maintenance gratuite la première année.</b> Une visite annuelle :
     nettoyage des optiques, vérification des fixations et de l'étanchéité,

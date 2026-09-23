@@ -398,7 +398,7 @@
  "equipements": {
   "enregistreur": {
    "reference": "Hikvision DS-7616NXI-K2/16P",
-   "type": "Enregistreur réseau 16 voies AcuSense, 2 baies SATA, 16 ports PoE intégrés",
+   "type": "Serveur d'enregistrement réseau 16 voies, 2 baies SATA, 16 ports PoE intégrés",
    "canaux": 16,
    "baies": 2,
    "portsPoe": 16,
@@ -412,7 +412,8 @@
    "aVerifier": [
     "Les trois chiffres relevés par recherche, à confirmer sur la fiche : budget PoE total de 200 W, 10 To par baie, absence de RAID. Les serveurs de fiches sont bloqués depuis l'atelier et aucun n'a pu être ouvert à la source.",
     "Le plafond par baie selon la RÉVISION livrée. Les éditions courantes annoncent 10 To, la révision (D) 16 To. Le dossier retient 10 : se tromper vers le bas fait acheter un disque de trop, vers le haut un disque inutilisable.",
-    "Comment les coffrets déportés s'y raccordent. Un commutateur placé derrière un port PoE d'enregistreur Hikvision fonctionne, mais sort de la reconnaissance automatique : les caméras qui sont derrière s'ajoutent alors à la main, par leur adresse. Le raccordement par le port réseau est plus sain. À arrêter à la mise en service, pas sur le chantier."
+    "Comment les coffrets déportés s'y raccordent. Un commutateur placé derrière un port PoE d'enregistreur Hikvision fonctionne, mais sort de la reconnaissance automatique : les caméras qui sont derrière s'ajoutent alors à la main, par leur adresse. Le raccordement par le port réseau est plus sain. À arrêter à la mise en service, pas sur le chantier.",
+    "Le nombre de voies couvertes par AcuSense. La machine enregistre 16 voies, mais la détection de personne et de véhicule ne s'applique pas aux seize : les revendeurs annoncent quatre voies natives. Le dossier ne l'écrit plus comme un « 16 voies AcuSense », ce qui était faux. À confirmer sur la fiche avant de le promettre au client."
    ]
   },
   "interphonie": {

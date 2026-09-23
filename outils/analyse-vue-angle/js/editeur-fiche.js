@@ -224,7 +224,7 @@ function archive(etude, b) {
       <p><b>${echapper(fr(bil.capaciteGo / 1000))} To</b> d'images à conserver.
         ${d ? `${d.nombre} disque${d.nombre > 1 ? 's' : ''} de ${d.unitaire} To
 soit ${d.total} To installés sur les ${bil.disques.baies} baies
-          de l'enregistreur.` : 'Aucune configuration de disque ne couvre ce besoin.'}</p>
+          du serveur.` : 'Aucune configuration de disque ne couvre ce besoin.'}</p>
     </div>`;
   };
   return `<div class="archives">
@@ -432,7 +432,7 @@ ${hors}`,
 </div>
 <ul class="liste">
   <li><b>Garantie du matériel trois ans</b> à compter de la mise en service :
-    caméras, enregistreur, disques, commutateurs et coffrets. Un appareil
+    caméras, serveur d'enregistrement, disques, commutateurs et coffrets. Un appareil
     défaillant est remplacé, pose comprise.</li>
   <li><b>Maintenance gratuite la première année.</b> Une visite annuelle :
     nettoyage des optiques, vérification des fixations et de l'étanchéité,
