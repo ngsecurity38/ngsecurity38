@@ -327,3 +327,25 @@ test('tout article qui porte un prix marché se retrouve chiffré', () => {
     assert.equal(l.prix, attendu, `${l.cle} ne prend pas son prix marché`);
   }
 });
+
+test('le forfait de pose des caméras tombe sur le chiffre de l\'agence', () => {
+  // Quatre jours, 2 480 € TTC : c'est ce que l'agence facture pour poser les
+  // dix caméras. Le taux horaire en est déduit, les heures s'y calent, et le
+  // produit des deux doit retomber exactement dessus.
+  const r = bordereau(REELLE, DEVIS);
+  const pose = ['poseCamera', 'poseCameraNacelle']
+    .map((c) => trouver(r, c))
+    .reduce((s, l) => s + l.total, 0);
+  const ttc = pose * (1 + DEVIS.tva);
+  assert.ok(Math.abs(ttc - 2480) < 0.1, `${ttc.toFixed(2)} € TTC au lieu de 2 480`);
+  assert.equal(trouver(r, 'poseCamera').quantite + trouver(r, 'poseCameraNacelle').quantite,
+    28, 'quatre jours de sept heures');
+});
+
+test('la remise ne mord pas sur la main d\'œuvre', () => {
+  const r = bordereau(REELLE, DEVIS);
+  for (const l of r.lots.find((x) => x.cle === 'oeuvre').lignes) {
+    assert.equal(l.prix, DEVIS.tauxHoraire,
+      'on ne se place pas sous le marché sur son propre temps');
+  }
+});

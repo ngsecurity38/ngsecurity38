@@ -23,7 +23,7 @@
  "reference": "DEV-2026-09-22",
  "maj": "23/09/2026",
  "validite": 30,
- "tauxHoraire": null,
+ "tauxHoraire": 73.81,
  "tva": 0.2,
  "_materiel": [
   "Le matériel que l'étude nomme déjà (caméras, enregistreur, interphonie)",
@@ -175,16 +175,15 @@
   "flashs": 1
  },
  "_mainOeuvre": [
-  "VOS TEMPS, pas les miens. Ceux-ci sont des ordres de grandeur posés",
-  "pour que le bordereau ait une forme : relisez-les ligne à ligne avant",
-  "d'envoyer quoi que ce soit. En heures.",
+  "Les temps de pose des caméras sont ceux de l'agence : quatre jours pour",
+  "les dix, soit 12 h à l'échelle et 16 h en hauteur.",
   "",
-  "parCamera couvre la pose, le support, le raccordement et le réglage du",
-  "champ — pas le tirage du câble, qui est compté au mètre."
+  "Les autres postes restent des ordres de grandeur, à relire avant envoi.",
+  "En heures."
  ],
  "mainOeuvre": {
-  "parCamera": 1.5,
-  "parCameraNacelle": 2.5,
+  "parCamera": 2,
+  "parCameraNacelle": 4,
   "tirageAuCentMetres": 2,
   "parCoffret": 2,
   "enregistreur": 3,
@@ -247,5 +246,12 @@
   ],
   "aConfirmer": "Référence de la platine à reconnaissance faciale à arrêter avec vous. Un dispositif biométrique relève du RGPD : analyse d'impact et information des personnes avant la pose, pas après.",
   "source": "Prix relevé par l'agence sur Internet chez des professionnels, 24/09/2026 : 1 378 € TTC pour l'ensemble."
- }
+ },
+ "_tauxHoraire": [
+  "Déduit du forfait donné par l'agence : 4 jours pour poser les dix",
+  "caméras, 2480 € TTC, soit 28 heures de 7 h.",
+  "",
+  "La remise de 10 % ne s'applique PAS à la main d'œuvre : on ne se place",
+  "pas sous le marché sur son propre temps."
+ ]
 }
