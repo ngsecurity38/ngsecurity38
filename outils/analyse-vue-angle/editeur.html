@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Éditeur d'étude — NG Security 38</title>
+<meta name="description" content="Déplacer les caméras d'une étude, changer leur modèle et leur orientation, et voir le métré, les portées et le budget se recalculer à l'instant.">
+<meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="editeur.css">
+</head>
+<body>
+
+<header class="barre">
+  <div class="marque">
+    <img src="img/logo.png" width="352" height="300" alt="NG Security 38">
+    <div>
+      <b>Éditeur d'étude</b>
+      <small>Les chiffres viennent du même calcul que le dossier</small>
+    </div>
+  </div>
+  <div class="actions">
+    <button type="button" id="b-importer" class="btn">Ouvrir une étude…</button>
+    <input type="file" id="fichier" accept=".json,application/json" hidden>
+    <button type="button" id="b-defaire" class="btn">Défaire</button>
+    <button type="button" id="b-exporter" class="btn btn-plein">Enregistrer etude.json</button>
+  </div>
+</header>
+
+<section class="chiffres">
+  <div><span>Caméras</span><b id="f-cameras">—</b></div>
+  <div><span>Débit</span><b id="f-debit">—</b></div>
+  <div><span>Stockage 30 j</span><b id="f-stock">—</b></div>
+  <div><span>PoE demandé</span><b id="f-poe">—</b></div>
+  <div><span>Câble réseau</span><b id="f-reseau">—</b></div>
+  <div><span>Boîtes de 305 m</span><b id="f-boites">—</b></div>
+  <div><span>Hors norme</span><b id="f-hors">—</b></div>
+</section>
+
+<p class="alertes" id="alertes" hidden></p>
+
+<main>
+  <div class="plan">
+    <svg id="plan" xmlns="http://www.w3.org/2000/svg"></svg>
+    <p class="aide">Glissez une caméra pour la déplacer. Sélectionnez-la, puis
+      tirez la poignée rouge pour l'orienter. Les flèches du clavier la
+      déplacent d'un demi-mètre, cinq mètres avec Maj. Ctrl+Z défait.</p>
+  </div>
+
+  <aside class="cote">
+    <div class="bloc">
+      <div class="entete-bloc">
+        <h2>Les caméras</h2>
+        <button type="button" id="b-ajouter" class="btn btn-petit">Ajouter</button>
+      </div>
+      <ul id="liste" class="liste"></ul>
+    </div>
+
+    <p class="aucune" id="aucune">Choisissez une caméra sur le plan ou dans la
+      liste pour la modifier.</p>
+
+    <div class="bloc" id="panneau" hidden>
+      <div class="entete-bloc">
+        <h2>Caméra <span id="p-cle" class="puce"></span></h2>
+        <button type="button" id="b-supprimer" class="btn btn-petit btn-retrait">Retirer</button>
+      </div>
+
+      <label>Rôle
+        <input type="text" id="p-role" maxlength="80">
+      </label>
+
+      <label>Modèle
+        <select id="p-modele"></select>
+      </label>
+
+      <label class="case">
+        <input type="checkbox" id="p-tele"> Réglée au téléobjectif
+        <small>Resserre le champ et multiplie la distance d'identification.
+          Sans effet sur une optique fixe.</small>
+      </label>
+
+      <div class="paire">
+        <label>Hauteur de pose (m)
+          <input type="number" id="p-hauteur" min="1" max="15" step="0.1">
+        </label>
+        <label>Orientation
+          <input type="range" id="p-azimut" min="0" max="359" step="1">
+          <small id="p-azimut-txt">—</small>
+        </label>
+      </div>
+
+      <div class="paire">
+        <label>X (m)<input type="number" id="p-x" step="0.5"></label>
+        <label>Y (m)<input type="number" id="p-y" step="0.5"></label>
+      </div>
+
+      <label>Raccordée à
+        <select id="p-coffret"></select>
+        <small>Un coffret proche raccourcit la liaison — et c'est parfois la
+          seule façon de rester sous les 90 mètres.</small>
+      </label>
+
+      <div class="portees" id="p-portees"></div>
+      <p class="cable" id="p-cable"></p>
+    </div>
+
+    <p class="note">Ce que vous enregistrez ici regénère le dossier et la
+      présentation&nbsp;: <code>node etudes/&hellip;/etude.mjs</code>, puis
+      <code>pdf.mjs</code> et <code>deck/presentation.mjs</code>.</p>
+  </aside>
+</main>
+
+<script type="module">
+import { demarrer } from './js/editeur.js';
+demarrer();
+</script>
+</body>
+</html>

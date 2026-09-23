@@ -56,6 +56,7 @@
    "profondeur": 62
   },
   "marge": 12,
+  "longueurMesuree": true,
   "estime": false
  },
  "cameras": [

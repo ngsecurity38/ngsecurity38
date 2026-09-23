@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <!-- Devis client — NG Security 38.
-     Fichier unique produit par build.mjs le 2026-09-22.
+     Fichier unique produit par build.mjs le 2026-09-23.
      Pour changer les prix : éditer tarif.json, à côté de la page. -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -1819,23 +1819,38 @@ function disqueRecommande(go) {
  * savoir si ce jour-là on avait besoin des images. La fonction rend les deux
  * hypothèses chiffrées plutôt que d'en imposer une.
  *
+ * Deux garde-fous, et ils viennent de la machine, pas de l'arithmétique :
+ *
+ * - `capaciteMax` est ce qu'une baie accepte. Proposer un disque plus gros
+ *   revient à proposer un disque qui ne sera pas reconnu, et cela ne se
+ *   découvre qu'une fois acheté ;
+ * - `raid` dit si l'enregistreur sait faire un miroir. Beaucoup de
+ *   deux-baies ne le savent pas : ils écrivent sur les deux disques à la
+ *   suite, sans redondance. Annoncer un miroir sur une machine qui n'en
+ *   fait pas, c'est vendre une sécurité qui n'existe pas.
+ *
  * @param {number} go capacité nécessaire, en gigaoctets
  * @param {number} [baies=2] nombre d'emplacements de disque
+ * @param {object} [machine] {capaciteMax, raid} — contraintes de l'appareil
  * @returns {{baies:number, pool:object|null, miroir:object|null}|null}
  */
-function disquesPourBaies(go, baies = 2) {
+function disquesPourBaies(go, baies = 2, machine = {}) {
   if (!(go > 0) || !(baies >= 1)) return null;
+  const { capaciteMax = Infinity, raid = true } = machine;
   const to = go / 1000;
+  const disponibles = DISQUES.filter((d) => d <= capaciteMax);
   const choisir = (besoinParDisque, nombre) => {
-    const unitaire = DISQUES.find((d) => d >= besoinParDisque);
+    const unitaire = disponibles.find((d) => d >= besoinParDisque);
     if (!unitaire) return null;
     return { unitaire, nombre, total: unitaire * nombre };
   };
   return {
     baies,
+    capaciteMax: Number.isFinite(capaciteMax) ? capaciteMax : null,
+    raid,
     pool: choisir(to / baies, baies),
-    // Le miroir n'a de sens qu'à baies paires : chaque disque en double un autre.
-    miroir: baies % 2 === 0 ? choisir(to / (baies / 2), baies) : null,
+    // Le miroir n'a de sens qu'à baies paires, et que si la machine le fait.
+    miroir: raid && baies % 2 === 0 ? choisir(to / (baies / 2), baies) : null,
   };
 }
 

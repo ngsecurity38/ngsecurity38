@@ -1,0 +1,2196 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Éditeur d'étude — NG Security 38</title>
+<meta name="description" content="Déplacer les caméras d'une étude, changer leur modèle et leur orientation, et voir le métré, les portées et le budget se recalculer à l'instant.">
+<meta name="robots" content="noindex, nofollow">
+<style>/*
+ * L'éditeur reprend la palette du dossier — même rouge, même encre, mêmes
+ * gris. L'agence passe du document à l'outil sans changer de maison.
+ */
+:root {
+  --rouge:#c8102e; --encre:#1a1d23; --doux:#5b6472;
+  --bord:#dde1e7; --fond:#f6f7f9; --alerte:#8a5a00;
+}
+* { box-sizing:border-box; }
+body {
+  margin:0; background:var(--fond); color:var(--encre);
+  font:15px/1.5 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.barre {
+  display:flex; align-items:center; justify-content:space-between; gap:16px;
+  padding:10px 18px; background:#fff; border-bottom:2px solid var(--rouge);
+  position:sticky; top:0; z-index:10;
+}
+.marque { display:flex; align-items:center; gap:12px; }
+.marque img { width:44px; height:auto; }
+.marque b { display:block; font-size:16px; }
+.marque small { color:var(--doux); font-size:12.5px; }
+.actions { display:flex; gap:8px; flex-wrap:wrap; }
+
+.btn {
+  font:inherit; font-size:14px; padding:8px 14px; border-radius:7px;
+  border:1px solid var(--bord); background:#fff; color:var(--encre); cursor:pointer;
+}
+.btn:hover { border-color:var(--doux); }
+.btn-plein { background:var(--rouge); border-color:var(--rouge); color:#fff; font-weight:600; }
+.btn-plein:hover { background:#a80d26; }
+.btn-petit { padding:5px 10px; font-size:13px; }
+.btn-retrait { color:var(--rouge); }
+
+.chiffres {
+  display:grid; grid-template-columns:repeat(auto-fit, minmax(128px, 1fr));
+  gap:1px; background:var(--bord); border-bottom:1px solid var(--bord);
+}
+.chiffres div { background:#fff; padding:9px 14px; }
+.chiffres span { display:block; font-size:11.5px; color:var(--doux); }
+.chiffres b { font-size:19px; }
+.chiffres b.mauvais { color:var(--rouge); }
+
+.alertes {
+  margin:0; padding:11px 18px; background:#fff4f5;
+  border-bottom:1px solid #f0c8ce; font-size:14px; color:#7a0a1c;
+}
+.alertes code { background:#fff; padding:1px 4px; border-radius:3px; }
+
+main { display:flex; gap:16px; padding:16px; align-items:flex-start; }
+.plan { flex:1 1 auto; min-width:0; }
+.plan svg {
+  width:100%; height:auto; background:#fff;
+  border:1px solid var(--bord); border-radius:10px;
+}
+.plan .aide { font-size:13px; color:var(--doux); margin:10px 2px 0; }
+
+.cote { flex:0 0 352px; display:flex; flex-direction:column; gap:14px; }
+.bloc { background:#fff; border:1px solid var(--bord); border-radius:10px; padding:14px 16px; }
+.entete-bloc { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.entete-bloc h2 { font-size:15px; margin:0 0 2px; }
+
+.liste { list-style:none; margin:10px 0 0; padding:0; max-height:236px; overflow:auto; }
+.liste li {
+  display:grid; grid-template-columns:auto 1fr; gap:3px 9px; align-items:center;
+  padding:7px 8px; border-radius:7px; cursor:pointer;
+}
+.liste li:hover { background:var(--fond); }
+.liste li.active { background:#fdeef0; }
+.liste .puce {
+  grid-row:span 2; width:28px; height:28px; border-radius:50%;
+  background:var(--encre); color:#fff; font-size:11px; font-weight:700;
+  display:flex; align-items:center; justify-content:center;
+}
+.liste li.active .puce { background:var(--rouge); }
+.liste .nom { font-weight:600; font-size:13.5px; }
+.liste .det { font-size:12px; color:var(--doux); }
+
+.aucune { margin:0; padding:14px 16px; font-size:13.5px; color:var(--doux);
+  background:#fff; border:1px dashed var(--bord); border-radius:10px; }
+
+#panneau label { display:block; margin-top:12px; font-size:13px; font-weight:600; }
+#panneau label.case { font-weight:400; display:flex; gap:8px; flex-wrap:wrap; align-items:flex-start; }
+#panneau label.case small { flex-basis:100%; }
+#panneau input[type=text], #panneau input[type=number], #panneau select {
+  width:100%; font:inherit; font-size:14px; font-weight:400; margin-top:4px;
+  padding:7px 9px; border:1px solid var(--bord); border-radius:7px; background:#fff;
+}
+#panneau input[type=range] { width:100%; margin-top:6px; }
+#panneau small { display:block; font-weight:400; font-size:11.5px; color:var(--doux); margin-top:3px; }
+.paire { display:flex; gap:10px; }
+.paire label { flex:1; }
+
+.portees { display:flex; gap:8px; margin-top:14px; }
+.portees div {
+  flex:1; background:var(--fond); border-radius:7px; padding:7px 9px; text-align:center;
+}
+.portees span { display:block; font-size:11px; color:var(--doux); }
+.portees b { font-size:15px; }
+.cable { font-size:13px; color:var(--doux); margin:12px 0 0; }
+.cable .alerte { color:var(--rouge); font-weight:600; }
+
+.note { font-size:12.5px; color:var(--doux); margin:0; padding:0 2px; }
+.note code { background:#fff; border:1px solid var(--bord); border-radius:4px; padding:1px 5px; }
+
+.puce { display:inline-flex; align-items:center; justify-content:center;
+  min-width:26px; height:22px; padding:0 7px; border-radius:11px;
+  background:var(--rouge); color:#fff; font-size:12px; font-weight:700; }
+
+@media (max-width: 1080px) {
+  main { flex-direction:column; }
+  .cote { flex:1 1 auto; width:100%; }
+}
+</style>
+</head>
+<body>
+
+<header class="barre">
+  <div class="marque">
+    <img src="data:image/png;base64,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" width="352" height="300" alt="NG Security 38">
+    <div>
+      <b>Éditeur d'étude</b>
+      <small>Les chiffres viennent du même calcul que le dossier</small>
+    </div>
+  </div>
+  <div class="actions">
+    <button type="button" id="b-importer" class="btn">Ouvrir une étude…</button>
+    <input type="file" id="fichier" accept=".json,application/json" hidden>
+    <button type="button" id="b-defaire" class="btn">Défaire</button>
+    <button type="button" id="b-exporter" class="btn btn-plein">Enregistrer etude.json</button>
+  </div>
+</header>
+
+<section class="chiffres">
+  <div><span>Caméras</span><b id="f-cameras">—</b></div>
+  <div><span>Débit</span><b id="f-debit">—</b></div>
+  <div><span>Stockage 30 j</span><b id="f-stock">—</b></div>
+  <div><span>PoE demandé</span><b id="f-poe">—</b></div>
+  <div><span>Câble réseau</span><b id="f-reseau">—</b></div>
+  <div><span>Boîtes de 305 m</span><b id="f-boites">—</b></div>
+  <div><span>Hors norme</span><b id="f-hors">—</b></div>
+</section>
+
+<p class="alertes" id="alertes" hidden></p>
+
+<main>
+  <div class="plan">
+    <svg id="plan" xmlns="http://www.w3.org/2000/svg"></svg>
+    <p class="aide">Glissez une caméra pour la déplacer. Sélectionnez-la, puis
+      tirez la poignée rouge pour l'orienter. Les flèches du clavier la
+      déplacent d'un demi-mètre, cinq mètres avec Maj. Ctrl+Z défait.</p>
+  </div>
+
+  <aside class="cote">
+    <div class="bloc">
+      <div class="entete-bloc">
+        <h2>Les caméras</h2>
+        <button type="button" id="b-ajouter" class="btn btn-petit">Ajouter</button>
+      </div>
+      <ul id="liste" class="liste"></ul>
+    </div>
+
+    <p class="aucune" id="aucune">Choisissez une caméra sur le plan ou dans la
+      liste pour la modifier.</p>
+
+    <div class="bloc" id="panneau" hidden>
+      <div class="entete-bloc">
+        <h2>Caméra <span id="p-cle" class="puce"></span></h2>
+        <button type="button" id="b-supprimer" class="btn btn-petit btn-retrait">Retirer</button>
+      </div>
+
+      <label>Rôle
+        <input type="text" id="p-role" maxlength="80">
+      </label>
+
+      <label>Modèle
+        <select id="p-modele"></select>
+      </label>
+
+      <label class="case">
+        <input type="checkbox" id="p-tele"> Réglée au téléobjectif
+        <small>Resserre le champ et multiplie la distance d'identification.
+          Sans effet sur une optique fixe.</small>
+      </label>
+
+      <div class="paire">
+        <label>Hauteur de pose (m)
+          <input type="number" id="p-hauteur" min="1" max="15" step="0.1">
+        </label>
+        <label>Orientation
+          <input type="range" id="p-azimut" min="0" max="359" step="1">
+          <small id="p-azimut-txt">—</small>
+        </label>
+      </div>
+
+      <div class="paire">
+        <label>X (m)<input type="number" id="p-x" step="0.5"></label>
+        <label>Y (m)<input type="number" id="p-y" step="0.5"></label>
+      </div>
+
+      <label>Raccordée à
+        <select id="p-coffret"></select>
+        <small>Un coffret proche raccourcit la liaison — et c'est parfois la
+          seule façon de rester sous les 90 mètres.</small>
+      </label>
+
+      <div class="portees" id="p-portees"></div>
+      <p class="cable" id="p-cable"></p>
+    </div>
+
+    <p class="note">Ce que vous enregistrez ici regénère le dossier et la
+      présentation&nbsp;: <code>node etudes/&hellip;/etude.mjs</code>, puis
+      <code>pdf.mjs</code> et <code>deck/presentation.mjs</code>.</p>
+  </aside>
+</main>
+
+<script>window.__etude={
+ "_lisez_moi": [
+  "Les données modifiables de l’étude. Le générateur du dossier les lit ici,",
+  "et l’éditeur (outils/analyse-vue-angle/editeur.html) les écrit.",
+  "",
+  "Les positions sont en MÈTRES, origine en haut à gauche du terrain.",
+  "L’azimut est en degrés : 0 vers le haut du plan, sens horaire."
+ ],
+ "reference": "ETU-2026-09-22",
+ "titre": "Vidéosurveillance d’un site industriel",
+ "site": {
+  "longueurBatiment": 100,
+  "profondeurBatiment": 22,
+  "annexe": {
+   "longueur": 18,
+   "profondeur": 10
+  },
+  "cour": {
+   "profondeur": 62
+  },
+  "marge": 12,
+  "longueurMesuree": true
+ },
+ "local": {
+  "x": 105,
+  "y": 16,
+  "etage": true,
+  "hauteurChemin": 6.5
+ },
+ "cameras": [
+  {
+   "cle": "C1",
+   "vue": "entree",
+   "modele": "varifocal",
+   "tele": true,
+   "hauteur": 4,
+   "role": "Identification à l'entrée",
+   "pose": "Angle du bâtiment, à 4 m environ, orientée vers le portail",
+   "attendu": "Plaque d'immatriculation et conducteur. C'est la seule caméra du parc capable d'identifier au-delà de cinq mètres : elle doit être réglée au téléobjectif et tenue sur cet axe.",
+   "bande": 0.5,
+   "x": 20.8,
+   "y": 68,
+   "azimut": 180,
+   "aerien": {
+    "x": 0.3,
+    "y": 0.88,
+    "azimut": 200
+   },
+   "coffret": "R3"
+  },
+  {
+   "cle": "C2",
+   "vue": "entree",
+   "modele": "turret",
+   "tele": false,
+   "hauteur": 3,
+   "role": "Contexte de l'entrée",
+   "pose": "Même support, à 3 m, champ large",
+   "attendu": "Le contexte : qui accompagne le véhicule, dans quel sens, à quelle heure. Elle ne remplace pas C1 — au-delà de 4,5 m elle ne permet plus d'identifier qui que ce soit.",
+   "bande": 0.5,
+   "x": 28.8,
+   "y": 68,
+   "azimut": 180,
+   "aerien": {
+    "x": 0.362,
+    "y": 0.88,
+    "azimut": 190
+   },
+   "coffret": "R3"
+  },
+  {
+   "cle": "C3",
+   "vue": "cour",
+   "modele": "varifocal",
+   "tele": false,
+   "hauteur": 4.5,
+   "role": "Surveillance générale de la cour",
+   "pose": "En façade, 4 à 5 m, champ large",
+   "attendu": "La présence et le trajet. Réglée au grand-angle elle couvre largement mais ne reconnaît personne au-delà d'une douzaine de mètres.",
+   "bande": 0.5,
+   "x": 36,
+   "y": 35.5,
+   "azimut": 168,
+   "aerien": {
+    "x": 0.245,
+    "y": 0.575,
+    "azimut": 160
+   },
+   "coffret": "R2"
+  },
+  {
+   "cle": "C4",
+   "vue": "cour",
+   "modele": "panoramique",
+   "tele": false,
+   "hauteur": 3.5,
+   "role": "Limite arrière et dissuasion",
+   "pose": "Sur mât ou angle de bâtiment, 3,5 m, face au bois",
+   "attendu": "Couvrir d'un seul appareil l'angle mort du fond, et dissuader : stroboscope et message sonore se déclenchent sur détection humaine. Caméra de contexte — elle n'identifie pas au-delà de trois mètres.",
+   "bande": 0.5,
+   "x": 133,
+   "y": 65,
+   "azimut": 250,
+   "aerien": {
+    "x": 0.83,
+    "y": 0.8,
+    "azimut": 285
+   },
+   "coffret": "R1"
+  },
+  {
+   "cle": "C5",
+   "vue": "quai",
+   "modele": "varifocal",
+   "tele": true,
+   "hauteur": 4,
+   "role": "Abords du quai",
+   "pose": "En façade, 4 m, orientée vers la rampe",
+   "attendu": "Reconnaître les personnes qui approchent du quai et lire les plaques des véhicules à la rampe.",
+   "bande": 0.5,
+   "x": 88,
+   "y": 35.5,
+   "azimut": 196,
+   "aerien": {
+    "x": 0.655,
+    "y": 0.575,
+    "azimut": 200
+   },
+   "coffret": "R1"
+  },
+  {
+   "cle": "C6",
+   "vue": "quai",
+   "modele": "turret",
+   "tele": false,
+   "hauteur": 3,
+   "role": "Porte de quai",
+   "pose": "Au-dessus de la porte, 3 m, plongée sur le seuil",
+   "attendu": "Identifier au passage du seuil. Elle doit être À L'APLOMB de la porte : à quinze mètres elle ne ferait plus que de la détection.",
+   "bande": 0.5,
+   "x": 70,
+   "y": 35.5,
+   "azimut": 180,
+   "aerien": {
+    "x": 0.5,
+    "y": 0.58,
+    "azimut": 180
+   },
+   "coffret": "R1"
+  },
+  {
+   "cle": "C7",
+   "vue": "halle",
+   "modele": "turret",
+   "tele": false,
+   "hauteur": 4,
+   "role": "Volume de la halle",
+   "pose": "Sous charpente, 4 m, dans l'axe de l'allée",
+   "attendu": "Détecter une présence et suivre un déplacement dans le volume. Pas de lecture de visage à cette distance.",
+   "bande": 0.5,
+   "x": 15.5,
+   "y": 25.6,
+   "azimut": 90,
+   "aerien": {
+    "x": 0.16,
+    "y": 0.42,
+    "azimut": 95
+   },
+   "coffret": "R2"
+  },
+  {
+   "cle": "C8",
+   "vue": "rideau",
+   "modele": "turret",
+   "tele": false,
+   "hauteur": 3,
+   "role": "Rideau métallique",
+   "pose": "À l'aplomb du rideau, 3 m, vers l'intérieur",
+   "attendu": "Identifier au franchissement. Même règle que C6 : à l'aplomb, sinon elle perd tout intérêt.",
+   "bande": 0.5,
+   "x": 108.5,
+   "y": 25.6,
+   "azimut": 270,
+   "aerien": {
+    "x": 0.66,
+    "y": 0.505,
+    "azimut": 275
+   },
+   "coffret": "R1"
+  },
+  {
+   "cle": "C9",
+   "vue": "stock",
+   "modele": "turret",
+   "tele": false,
+   "hauteur": 3,
+   "role": "Angle de travail et stock",
+   "pose": "En angle des deux murs, 3 m, bissectrice — emplacement exact à confirmer",
+   "attendu": "Couvrir les deux directions d'un seul appareil et tenir le rayonnage à portée d'identification. Posée en angle à trois mètres, elle identifie jusqu'à quatre mètres et demi : le rayonnage doit se trouver dans cette distance, sinon elle ne fera que reconnaître.",
+   "bande": 0.5,
+   "x": 46,
+   "y": 14.5,
+   "azimut": 135,
+   "aerien": {
+    "x": 0.32,
+    "y": 0.285,
+    "azimut": 145
+   },
+   "coffret": "R2"
+  },
+  {
+   "cle": "C10",
+   "vue": "sas",
+   "modele": "turret",
+   "tele": false,
+   "hauteur": 2.8,
+   "role": "Sas et issue de secours",
+   "pose": "En plafond du sas, 2,8 m, dans l'axe du couloir",
+   "attendu": "Identifier au passage. Un couloir force le passage dans un goulot étroit et à courte distance : c'est la zone du site où le 2,8 mm est le plus à son aise. À poser portes ouvertes, pour qu'un battant ne la masque pas.",
+   "bande": 0.5,
+   "x": 100,
+   "y": 18.6,
+   "azimut": 170,
+   "aerien": {
+    "x": 0.8,
+    "y": 0.3,
+    "azimut": 205
+   },
+   "coffret": null
+  }
+ ],
+ "coffrets": [
+  {
+   "cle": "R1",
+   "nom": "Coffret de cour",
+   "contenu": "Commutateur PoE 8 ports",
+   "depuis": "local",
+   "hauteur": 3,
+   "x": 110,
+   "y": 34,
+   "raison": "La caméra du fond de cour est à cent soixante-sept mètres du local en cheminement direct. Posé à l'angle du bâtiment côté cour, le coffret la ramène à soixante-sept, et prend au passage les caméras de quai, le rideau et le sas."
+  },
+  {
+   "cle": "R2",
+   "nom": "Relais médian",
+   "contenu": "Commutateur PoE 8 ports",
+   "depuis": "local",
+   "hauteur": 3,
+   "x": 55,
+   "y": 20,
+   "raison": "Cent mètres de bâtiment ne se franchissent pas d'une seule liaison Ethernet, et le local est à une extrémité. Le relais coupe la distance en deux et dessert le milieu de la halle."
+  },
+  {
+   "cle": "R3",
+   "nom": "Coffret d'entrée",
+   "contenu": "Commutateur PoE 8 ports et alimentation 12 V du verrouillage",
+   "depuis": "R2",
+   "hauteur": 3,
+   "x": 15,
+   "y": 20,
+   "raison": "L'entrée et le portail sont à l'autre bout du site. Le coffret y porte les deux caméras d'entrée, la platine d'interphonie et l'alimentation du verrouillage — qui, tirée du local, perdrait une tension qu'aucune section raisonnable ne rattrape."
+  }
+ ],
+ "acces": [
+  {
+   "cle": "A1",
+   "nom": "Portail piéton",
+   "x": 13.3,
+   "y": 90,
+   "hauteur": 1.5,
+   "verrouillage": "ventouse simple",
+   "vantaux": 1,
+   "platine": true,
+   "hypothese": "La platine d'interphonie se pose au portail piéton, à hauteur de visage. C'est le seul endroit où une platine a un sens : un visiteur ne descend pas de voiture deux fois.",
+   "coffret": "R3"
+  },
+  {
+   "cle": "A2",
+   "nom": "Porte principale, façade sur cour",
+   "x": 42,
+   "y": 34,
+   "hauteur": 2.2,
+   "verrouillage": "double ventouse",
+   "vantaux": 2,
+   "platine": false,
+   "hypothese": "Porte à deux vantaux : une ventouse par vantail, sur la même alimentation. Le courant double, donc la chute de tension aussi — c'est la liaison la plus exposée du lot.",
+   "coffret": "R2"
+  }
+ ],
+ "enregistreur": "Hikvision DS-7616NXI-K2/16P",
+ "vues": [
+  {
+   "cle": "entree",
+   "titre": "Entrée du site — portail"
+  },
+  {
+   "cle": "cour",
+   "titre": "Cour de manœuvre"
+  },
+  {
+   "cle": "quai",
+   "titre": "Quai de chargement"
+  },
+  {
+   "cle": "halle",
+   "titre": "Halle — volume principal"
+  },
+  {
+   "cle": "stock",
+   "titre": "Halle — angle de travail et stock"
+  },
+  {
+   "cle": "rideau",
+   "titre": "Halle — rideau métallique et zone de stockage"
+  },
+  {
+   "cle": "sas",
+   "titre": "Sas isolé et issue de secours"
+  },
+  {
+   "cle": "chariots",
+   "titre": "Zone de manutention et parc de chariots"
+  },
+  {
+   "cle": "volumeArriere",
+   "titre": "Volume arrière et second rideau"
+  },
+  {
+   "cle": "porteVitree",
+   "titre": "Allée de racks et porte vitrée"
+  }
+ ],
+ "modeles": {
+  "turret": {
+   "cle": "turret",
+   "consoPoe": 9,
+   "classePoe": "PoE 802.3af",
+   "reference": "Hikvision DS-2CD2346G2H-IU (2,8 mm)",
+   "type": "Turret 4 MP AcuSense, micro intégré",
+   "vignette": "m-turret.jpg",
+   "resH": 2688,
+   "resV": 1520,
+   "angleH": 100.2,
+   "focale": 2.8,
+   "ir": 30,
+   "source": "Champ horizontal 100,2° et définition 2688 × 1520 relevés par recherche documentaire (fiche DS-2CD2346G2H-I(U), éd. 13/05/2024). Infrarouge 30 m annoncé par plusieurs revendeurs. À CONFIRMER sur la fiche."
+  },
+  "varifocal": {
+   "cle": "varifocal",
+   "consoPoe": 15,
+   "classePoe": "PoE+ 802.3at, classe 4",
+   "reference": "Hikvision DS-2CD2683G2-IZS (2,8–12 mm motorisé)",
+   "type": "Bullet 8 MP AcuSense, objectif motorisé",
+   "vignette": "m-varifocal.jpg",
+   "resH": 3840,
+   "resV": 2160,
+   "angleH": 108,
+   "angleHTele": 30,
+   "focaleMin": 2.8,
+   "focaleMax": 12,
+   "ir": null,
+   "source": "Champ horizontal 108° à 30° et définition 3840 × 2160 relevés par recherche documentaire (fiche DS-2CD2683G2-IZS V5.5.113). Portée infrarouge NON RELEVÉE. À CONFIRMER sur la fiche."
+  },
+  "panoramique": {
+   "cle": "panoramique",
+   "consoPoe": 12.5,
+   "classePoe": "PoE 802.3af, classe 3",
+   "reference": "Hikvision DS-2CD2346G2P-ISU/SL (2,8 mm)(C)",
+   "type": "Turret panoramique 4 MP, 180°, stroboscope et alarme sonore",
+   "vignette": "m-panoramique.jpg",
+   "resH": 3040,
+   "resV": 1368,
+   "angleH": 180,
+   "ir": 30,
+   "capteurUnique": {
+    "resH": 1520,
+    "angleH": 90
+   },
+   "noteCone": "Le schéma montre UN des deux objectifs, soit la moitié du champ. L'appareil en couvre le double, à la même densité de pixels : les portées ci-contre valent pour les 180°.",
+   "source": "Deux objectifs de 2,8 mm assemblés en 180°, définition 3040 × 1368, infrarouge 30 m : relevés par recherche documentaire (fiche DS-2CD2346G2P-ISU/SL, éd. 27/03/2024). À CONFIRMER sur la fiche."
+  }
+ },
+ "equipements": {
+  "enregistreur": {
+   "reference": "Hikvision DS-7616NXI-K2/16P",
+   "type": "Enregistreur réseau 16 voies AcuSense, 2 baies SATA, 16 ports PoE intégrés",
+   "canaux": 16,
+   "baies": 2,
+   "portsPoe": 16,
+   "budgetPoe": 200,
+   "capaciteMaxBaie": 10,
+   "raid": false,
+   "consoVide": 40,
+   "bandePassante": 160,
+   "resolutionMax": "12 MP",
+   "codec": "H.265+",
+   "aVerifier": [
+    "Les trois chiffres relevés par recherche, à confirmer sur la fiche : budget PoE total de 200 W, 10 To par baie, absence de RAID. Les serveurs de fiches sont bloqués depuis l'atelier et aucun n'a pu être ouvert à la source.",
+    "Le plafond par baie selon la RÉVISION livrée. Les éditions courantes annoncent 10 To, la révision (D) 16 To. Le dossier retient 10 : se tromper vers le bas fait acheter un disque de trop, vers le haut un disque inutilisable.",
+    "Comment les coffrets déportés s'y raccordent. Un commutateur placé derrière un port PoE d'enregistreur Hikvision fonctionne, mais sort de la reconnaissance automatique : les caméras qui sont derrière s'ajoutent alors à la main, par leur adresse. Le raccordement par le port réseau est plus sain. À arrêter à la mise en service, pas sur le chantier."
+   ]
+  },
+  "interphonie": {
+   "reference": "Hikvision DS-KIS902-S",
+   "type": "Kit d'interphonie vidéo IP",
+   "contenu": [
+    "Platine de rue, écran tactile 4,3\", double caméra 2 MP, IR 3 m, IP65/IK08",
+    "Moniteur intérieur tactile 7\", Wi-Fi 2,4 GHz",
+    "Commutateur PoE",
+    "Carte TF 32 Go"
+   ],
+   "identification": [
+    "visage",
+    "code PIN",
+    "badge 13,56 MHz",
+    "QR code"
+   ],
+   "alimentation": "PoE",
+   "aVerifier": [
+    "Le nombre de ports du commutateur fourni, et son budget PoE. Le kit alimente au moins la platine et le moniteur ; savoir s'il peut porter davantage évite d'en acheter un second.",
+    "Les contacts de commande disponibles sur la platine : nature (sec ou alimenté), nombre, pouvoir de coupure. C'est ce qui décide si la platine commande directement le verrouillage ou passe par un relais.",
+    "La compatibilité des badges déjà en service sur le site, le cas échéant. Le 13,56 MHz recouvre plusieurs protocoles qui ne se lisent pas entre eux."
+   ]
+  }
+ },
+ "autres": [
+  {
+   "cle": "M1",
+   "designation": "Moniteur intérieur d'interphonie — bureau",
+   "x": 111,
+   "y": 20,
+   "hauteur": 1.5,
+   "coffret": null,
+   "famille": "video"
+  }
+ ]
+}
+;</script>
+<script>(function () {
+'use strict';
+
+/* ===== dom.js ===== */
+/** Raccourcis de sélection, partagés par les modules d'interface. */
+
+/**
+ * Racine de recherche des éléments.
+ *
+ * `document` sur une page servie telle quelle. Collées dans un site existant
+ * — une page WordPress, par exemple — les pages vivent dans une racine
+ * d'ombre : le style du thème ne les atteint pas, et le leur ne déborde pas
+ * sur le site. Les sélecteurs doivent alors chercher là, et non dans le
+ * document entier où ils ne trouveraient rien.
+ *
+ * Le bloc collé pose `__ngsRacine` avant de charger le code ; d'où la lecture
+ * au chargement plutôt qu'un appel que l'ordre des modules rendrait fragile.
+ */
+let racine = globalThis.__ngsRacine || document;
+
+/** Change la racine — utile aux tests, et à qui monte la page à la main. */
+const dansRacine = (r) => { racine = r || document; };
+
+const $ = (sel) => racine.querySelector(sel);
+const $$ = (sel) => [...racine.querySelectorAll(sel)];
+
+/** Charge un script à la demande : les gros moteurs ne sont montés qu'au besoin. */
+function chargerScript(src) {
+  return new Promise((resoudre, rejeter) => {
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = resoudre;
+    s.onerror = () => rejeter(new Error(`Fichier introuvable : ${src}`));
+    document.head.append(s);
+  });
+}
+
+/* ===== format.js ===== */
+/** Mise en forme des nombres à la française, partagée par les modules. */
+
+const arrondir = (v, n = 1) => {
+  const f = 10 ** n;
+  return Math.round(v * f) / f;
+};
+
+/** « 6,4 » plutôt que « 6.4 » : ces valeurs sont lues sur le terrain. */
+const fr = (v, n = 1) => String(arrondir(v, n)).replace('.', ',');
+
+/** Idem, avec le signe explicite : un écart se lit « +2,4 » ou « −1,1 ». */
+const signe = (v, n = 1) => (v > 0 ? `+${fr(v, n)}` : fr(v, n));
+
+/**
+ * Grands nombres avec séparateur de milliers : « 15 552 » se lit d'un coup
+ * d'œil, « 15552 » se compte du doigt. L'espace est insécable, pour qu'un
+ * retour à la ligne ne coupe pas le nombre en deux.
+ */
+const frGroupe = (v, n = 0) => fr(v, n).replace(
+  /\d(?=(\d{3})+(,|$))/g, '$&\u202f',
+);
+
+/**
+ * Élide « de » devant une voyelle : « de reconnaître », mais « d'identifier ».
+ *
+ * Les textes de la page se composent à partir de listes de verbes, et l'un
+ * d'eux commence par une voyelle une fois sur deux. Écrire « de identifier »
+ * dans un document remis à un client se remarque immédiatement.
+ *
+ * Le h aspiré (« de hauteur » ne s'élide pas, « d'habitude » si) n'est pas
+ * traité : aucun mot de nos listes ne commence par un h.
+ */
+const elider = (mot) => (
+  /^[aeiouyàâäéèêëîïôöùûü]/i.test(mot) ? `d'${mot}` : `de ${mot}`
+);
+
+/* ===== optique.js ===== */
+/**
+ * Calculs optiques pour l'analyse de vue d'angle.
+ *
+ * Module pur (aucune dépendance au DOM) : utilisable dans le navigateur
+ * et dans les tests Node.
+ */
+
+/** Formats de capteurs courants en vidéosurveillance IP (zone utile 16/9, en mm). */
+const CAPTEURS = {
+  '1/4"': { largeur: 3.6, hauteur: 2.03 },
+  '1/3.6"': { largeur: 4.0, hauteur: 2.25 },
+  '1/3"': { largeur: 4.8, hauteur: 2.7 },
+  '1/2.9"': { largeur: 5.02, hauteur: 2.82 },
+  '1/2.8"': { largeur: 5.18, hauteur: 2.92 },
+  '1/2.7"': { largeur: 5.37, hauteur: 3.02 },
+  '1/2.5"': { largeur: 5.76, hauteur: 3.24 },
+  '1/2.3"': { largeur: 6.17, hauteur: 3.47 },
+  '1/2"': { largeur: 6.4, hauteur: 3.6 },
+  '1/1.8"': { largeur: 7.18, hauteur: 4.04 },
+  '1/1.7"': { largeur: 7.6, hauteur: 4.28 },
+  '1/1.2"': { largeur: 10.67, hauteur: 6.0 },
+  '2/3"': { largeur: 8.8, hauteur: 4.95 },
+  '1"': { largeur: 12.8, hauteur: 7.2 },
+
+  /*
+   * Capteurs thermiques. Un microbolomètre ne se désigne pas en pouces mais par
+   * sa matrice et son pas de pixel : 256 × 192 au pas de 12 µm mesure
+   * 3,07 × 2,30 mm. Choisir un format visible pour une caméra thermique
+   * fausserait complètement l'angle de champ, et donc toute la mesure d'écart.
+   */
+  'Thermique 256×192 — 12 µm': { largeur: 3.072, hauteur: 2.304 },
+  'Thermique 256×192 — 17 µm': { largeur: 4.352, hauteur: 3.264 },
+  'Thermique 384×288 — 12 µm': { largeur: 4.608, hauteur: 3.456 },
+  'Thermique 384×288 — 17 µm': { largeur: 6.528, hauteur: 4.896 },
+  'Thermique 640×512 — 12 µm': { largeur: 7.68, hauteur: 6.144 },
+  'Thermique 640×480 — 17 µm': { largeur: 10.88, hauteur: 8.16 },
+};
+
+/** Seuils DORI de la norme EN 62676-4, en pixels par mètre. */
+const SEUILS_DORI = {
+  detection: { label: 'Détection', ppm: 25 },
+  observation: { label: 'Observation', ppm: 62 },
+  reconnaissance: { label: 'Reconnaissance', ppm: 125 },
+  identification: { label: 'Identification', ppm: 250 },
+};
+
+const degres = (radians) => (radians * 180) / Math.PI;
+const radians = (degres_) => (degres_ * Math.PI) / 180;
+
+/**
+ * Angle de champ d'un objectif rectilinéaire.
+ * @param {number} dimensionCapteur dimension du capteur en mm (largeur ou hauteur)
+ * @param {number} focale focale en mm
+ * @returns {number} angle de champ en degrés
+ */
+function angleDeChamp(dimensionCapteur, focale) {
+  if (!(focale > 0) || !(dimensionCapteur > 0)) return 0;
+  return degres(2 * Math.atan(dimensionCapteur / (2 * focale)));
+}
+
+/**
+ * Angles de champ horizontal, vertical et diagonal.
+ * @param {{largeur:number, hauteur:number}} capteur dimensions en mm
+ * @param {number} focale en mm
+ */
+function anglesDeChamp(capteur, focale) {
+  const diagonale = Math.hypot(capteur.largeur, capteur.hauteur);
+  return {
+    horizontal: angleDeChamp(capteur.largeur, focale),
+    vertical: angleDeChamp(capteur.hauteur, focale),
+    diagonal: angleDeChamp(diagonale, focale),
+  };
+}
+
+/**
+ * Largeur (ou hauteur) de scène couverte à une distance donnée.
+ * @param {number} angleDeg angle de champ en degrés
+ * @param {number} distance en mètres
+ * @returns {number} largeur couverte en mètres
+ */
+function couverture(angleDeg, distance) {
+  if (!(distance > 0)) return 0;
+  return 2 * distance * Math.tan(radians(angleDeg) / 2);
+}
+
+/**
+ * Focale nécessaire pour couvrir une largeur donnée à une distance donnée.
+ * @param {number} largeurCapteur en mm
+ * @param {number} largeurCible en mètres
+ * @param {number} distance en mètres
+ * @returns {number} focale en mm
+ */
+function focaleRequise(largeurCapteur, largeurCible, distance) {
+  if (!(largeurCible > 0) || !(distance > 0)) return 0;
+  return (largeurCapteur * distance) / largeurCible;
+}
+
+/**
+ * Densité de pixels sur la scène, en pixels par mètre.
+ * @param {number} resolutionH résolution horizontale en pixels
+ * @param {number} angleHDeg angle de champ horizontal en degrés
+ * @param {number} distance en mètres
+ */
+function pixelsParMetre(resolutionH, angleHDeg, distance) {
+  const largeur = couverture(angleHDeg, distance);
+  if (!(largeur > 0)) return 0;
+  return resolutionH / largeur;
+}
+
+/**
+ * Distance maximale à laquelle un critère DORI est encore tenu.
+ * @param {number} resolutionH résolution horizontale en pixels
+ * @param {number} angleHDeg angle de champ horizontal en degrés
+ * @param {number} ppmRequis pixels par mètre exigés
+ * @returns {number} distance en mètres
+ */
+function distanceDori(resolutionH, angleHDeg, ppmRequis) {
+  if (!(ppmRequis > 0) || !(angleHDeg > 0)) return 0;
+  const largeurMax = resolutionH / ppmRequis;
+  return largeurMax / (2 * Math.tan(radians(angleHDeg) / 2));
+}
+
+/** Tableau complet des distances DORI pour une configuration donnée. */
+function tableauDori(resolutionH, angleHDeg) {
+  return Object.entries(SEUILS_DORI).map(([cle, { label, ppm }]) => ({
+    cle,
+    label,
+    ppm,
+    distance: distanceDori(resolutionH, angleHDeg, ppm),
+  }));
+}
+
+/** Niveau DORI atteint pour une densité de pixels donnée. */
+function niveauDori(ppm) {
+  if (ppm >= SEUILS_DORI.identification.ppm) return 'identification';
+  if (ppm >= SEUILS_DORI.reconnaissance.ppm) return 'reconnaissance';
+  if (ppm >= SEUILS_DORI.observation.ppm) return 'observation';
+  if (ppm >= SEUILS_DORI.detection.ppm) return 'detection';
+  return 'insuffisant';
+}
+
+/**
+ * Convertit un décalage exprimé en fraction de la largeur d'image
+ * en écart angulaire, en tenant compte de la projection rectilinéaire.
+ *
+ * Un décalage de 50 % de la largeur correspond exactement à un demi-angle
+ * de champ ; la relation n'est pas linéaire entre les deux.
+ *
+ * @param {number} fraction décalage / largeur d'image (0.1 = 10 % de l'image)
+ * @param {number} angleDeg angle de champ sur cet axe, en degrés
+ * @returns {number} écart angulaire en degrés
+ */
+function fractionVersAngle(fraction, angleDeg) {
+  if (!(angleDeg > 0)) return 0;
+  return degres(Math.atan(2 * fraction * Math.tan(radians(angleDeg) / 2)));
+}
+
+/**
+ * Hauteur de montage et angle de site (inclinaison) à partir de la
+ * distance au point visé.
+ * @param {number} hauteur hauteur de la caméra en mètres
+ * @param {number} distanceSol distance horizontale au point visé, en mètres
+ * @param {number} hauteurCible hauteur du point visé (0 = au sol)
+ * @returns {number} angle d'inclinaison sous l'horizontale, en degrés
+ */
+function angleInclinaison(hauteur, distanceSol, hauteurCible = 0) {
+  if (!(distanceSol > 0)) return 90;
+  return degres(Math.atan((hauteur - hauteurCible) / distanceSol));
+}
+
+/** Zone morte au pied du mât : distance à partir de laquelle le sol entre dans le champ. */
+function zoneMorte(hauteur, inclinaisonDeg, angleVDeg) {
+  const bordBas = inclinaisonDeg + angleVDeg / 2;
+  if (bordBas >= 90) return 0;
+  if (bordBas <= 0) return Infinity;
+  return hauteur / Math.tan(radians(bordBas));
+}
+
+/* ===== cable.js ===== */
+/**
+ * Métré des câbles : longueurs, limite Ethernet, section des alimentations.
+ *
+ * Trois questions se posent dès qu'on quitte le plan pour le chantier, et
+ * chacune a une réponse chiffrée, pas une réponse d'habitude :
+ *
+ * - « Combien de câble faut-il commander ? » → cheminement, puis bobines ;
+ * - « Cette caméra est-elle trop loin ? » → la limite des 90 mètres ;
+ * - « Du 6/10 suffit pour la ventouse ? » → la chute de tension tranche.
+ *
+ * La troisième est celle qui se paie. Une alimentation sous-dimensionnée ne
+ * tombe pas en panne à la mise en service : elle fonctionne au banc, puis
+ * lâche l'hiver quand la tension baisse et que le courant monte. On ne la
+ * rattrape qu'en retirant le câble.
+ *
+ * Module pur (aucune dépendance au DOM), testé sous Node.
+ */
+
+/* ------------------------------------------------------------ Ethernet */
+
+/**
+ * Le lien permanent : du panneau de brassage à la prise, 90 mètres.
+ *
+ * La norme (ISO/IEC 11801, TIA-568) compte 100 mètres pour le canal complet
+ * et réserve les dix derniers aux cordons de brassage des deux bouts. Poser
+ * 95 mètres de câble « puisque la limite est à 100 » revient à livrer une
+ * liaison qui n'a plus de marge, et qui tombera au premier cordon ajouté.
+ */
+const LIAISON_PERMANENTE = 90;
+
+/** Le canal complet, cordons compris. Au-delà, plus rien ne garantit rien. */
+const CANAL_COMPLET = 100;
+
+/**
+ * Ce que devient une liaison d'une longueur donnée.
+ *
+ * Trois verdicts, et un seul est confortable. Le niveau `limite` n'est pas un
+ * refus : c'est une liaison qui marchera et qu'on ne pourra plus rallonger,
+ * ce qui se dit avant la pose et non après.
+ *
+ * @param {number} metres longueur du câble posé, cordons non compris
+ * @returns {{niveau:'ok'|'limite'|'hors-norme', texte:string}}
+ */
+function verdictEthernet(metres) {
+  const l = Number(metres);
+  if (!(l > 0)) return { niveau: 'ok', texte: 'Longueur non renseignée.' };
+  if (l <= LIAISON_PERMANENTE) {
+    return { niveau: 'ok', texte: `${arrondi(l)} m — dans la limite des ${LIAISON_PERMANENTE} m.` };
+  }
+  if (l <= CANAL_COMPLET) {
+    return {
+      niveau: 'limite',
+      texte: `${arrondi(l)} m — au-delà du lien permanent de ${LIAISON_PERMANENTE} m. `
+        + 'La liaison fonctionnera sans marge : aucun cordon ne pourra être ajouté.',
+    };
+  }
+  return {
+    niveau: 'hors-norme',
+    texte: `${arrondi(l)} m — au-delà des ${CANAL_COMPLET} m du canal. `
+      + 'Un relais actif (commutateur déporté) ou une fibre est nécessaire.',
+  };
+}
+
+/* ---------------------------------------------------------- cheminement */
+
+/** Réserve laissée à chaque extrémité : dépose en baie, boucle au support. */
+const RESERVE_BOUT = 1;
+
+/** Détours non portés au plan : contournements, passages, remontées. */
+const MOU_DEFAUT = 0.1;
+
+/**
+ * Longueur d'un cheminement, en mètres.
+ *
+ * La distance à vol d'oiseau ne se pose pas : un câble suit les murs, les
+ * chemins de câbles et les angles. La somme des deux écarts du plan
+ * (|dx| + |dy|) en est l'approximation honnête — celle qui, si elle se
+ * trompe, se trompe du bon côté.
+ *
+ * @param {object} p
+ * @param {number} p.dx écart horizontal sur le plan, en mètres
+ * @param {number} p.dy écart vertical sur le plan, en mètres
+ * @param {number} [p.montee=0] hauteur de pose de l'appareil
+ * @param {number} [p.descente=0] descente du chemin de câbles vers la baie
+ * @param {number} [p.mou=MOU_DEFAUT] proportion de détours
+ * @param {number} [p.reserveBout=RESERVE_BOUT] réserve à chaque extrémité
+ * @returns {number} mètres
+ */
+function cheminement({
+  dx = 0, dy = 0, montee = 0, descente = 0,
+  mou = MOU_DEFAUT, reserveBout = RESERVE_BOUT,
+}) {
+  const parcouru = Math.abs(dx) + Math.abs(dy)
+    + Math.max(0, montee) + Math.max(0, descente);
+  if (!(parcouru > 0)) return 0;
+  return parcouru * (1 + Math.max(0, mou)) + 2 * Math.max(0, reserveBout);
+}
+
+/** Longueur standard d'une boîte de câble réseau, en mètres. */
+const BOBINE = 305;
+
+/**
+ * Nombre de boîtes à commander, et ce qui reste sur la dernière.
+ *
+ * Le reste n'est pas une curiosité : c'est ce dont on dispose le jour où une
+ * liaison se révèle plus longue qu'au plan, ce qui arrive à chaque chantier.
+ *
+ * @returns {{boites:number, total:number, reste:number}}
+ */
+function bobines(metres, parBoite = BOBINE) {
+  const l = Number(metres);
+  const b = Number(parBoite);
+  if (!(l > 0) || !(b > 0)) return { boites: 0, total: 0, reste: 0 };
+  const boites = Math.ceil(l / b);
+  return { boites, total: boites * b, reste: boites * b - l };
+}
+
+/* -------------------------------------------------- alimentations continues */
+
+/**
+ * Résistivité du cuivre, en ohm·mm²/m, à vingt degrés.
+ *
+ * Elle monte avec la température : environ +0,4 % par degré. Un câble en
+ * gaine, au soleil, ne travaille pas à vingt degrés — la marge prise sur la
+ * chute admissible n'est pas de la coquetterie.
+ */
+const RHO_CUIVRE = 0.0175;
+
+/** Sections courantes du commerce, en mm². */
+const SECTIONS = [0.22, 0.34, 0.5, 0.75, 1, 1.5, 2.5, 4, 6, 10];
+
+/** Chute de tension admissible par défaut : un dixième de la tension. */
+const CHUTE_MAX = 0.1;
+
+/**
+ * Chute de tension d'une alimentation continue, en volts.
+ *
+ * Le facteur deux n'est pas décoratif : le courant fait l'aller ET le retour.
+ * L'oublier divise la chute calculée par deux, et c'est l'erreur qui fait
+ * poser du 6/10 là où il faut du 15/10.
+ *
+ * @param {object} p
+ * @param {number} p.courant ampères
+ * @param {number} p.longueur mètres, aller simple
+ * @param {number} p.section mm²
+ * @returns {number} volts perdus dans le câble
+ */
+function chuteTension({ courant, longueur, section }) {
+  if (!(courant > 0) || !(longueur > 0) || !(section > 0)) return 0;
+  return (2 * RHO_CUIVRE * longueur * courant) / section;
+}
+
+/**
+ * Section minimale d'une alimentation continue.
+ *
+ * @param {object} p
+ * @param {number} p.courant ampères appelés par l'appareil
+ * @param {number} p.longueur mètres, aller simple
+ * @param {number} [p.tension=12] tension nominale
+ * @param {number} [p.chuteMax=CHUTE_MAX] part admissible de la tension
+ * @returns {{section:number, chute:number, part:number, horsCatalogue:boolean}|null}
+ */
+function sectionContinu({ courant, longueur, tension = 12, chuteMax = CHUTE_MAX }) {
+  if (!(courant > 0) || !(longueur > 0) || !(tension > 0)) return null;
+  const admissible = tension * chuteMax;
+  const theorique = (2 * RHO_CUIVRE * longueur * courant) / admissible;
+  const retenue = SECTIONS.find((s) => s >= theorique);
+  const section = retenue ?? SECTIONS[SECTIONS.length - 1];
+  const chute = chuteTension({ courant, longueur, section });
+  return {
+    section,
+    chute,
+    part: chute / tension,
+    // Aucune section du catalogue ne tient : il faut monter en tension
+    // (24 V au lieu de 12 V divise le courant par deux, donc la chute par
+    // quatre) ou rapprocher l'alimentation de l'appareil.
+    horsCatalogue: retenue === undefined,
+  };
+}
+
+/** Arrondi d'affichage : le mètre est la seule précision qu'un métré mérite. */
+function arrondi(m) {
+  return Math.round(m);
+}
+
+/* ===== stockage.js ===== */
+/**
+ * Enregistrement et alimentation : stockage, budget PoE, contrôles d'ensemble.
+ *
+ * Trois questions que le client pose toujours, et qui se chiffrent :
+ *
+ * - « Combien de jours je garde les images ? » → capacité de l'enregistreur ;
+ * - « Le switch suffit ? » → nombre de ports et budget PoE ;
+ * - « Tout est bien branché ? » → canaux, adresses, alimentations.
+ *
+ * Les valeurs de débit sont **les vôtres** : celles de la fiche technique ou de
+ * l'étude. L'estimation fournie ici n'est qu'un ordre de grandeur pour démarrer,
+ * et l'outil le dit — un débit supposé faux se paie en téraoctets.
+ *
+ * Module pur (aucune dépendance au DOM), testé sous Node.
+ */
+
+
+/**
+ * Un mégabit par seconde pendant vingt-quatre heures.
+ *
+ * 1 Mbit/s × 86 400 s = 86 400 Mbit = 10 800 Mo = 10,8 Go. Les gigaoctets sont
+ * décimaux (10⁹ octets), comme les étiquettes des disques : c'est la seule
+ * convention qui permette de comparer un besoin à une référence du commerce.
+ */
+const GO_PAR_MBPS_JOUR = 10.8;
+
+/** Marge appliquée par défaut à la capacité calculée. */
+const MARGE_DEFAUT = 0.2;
+
+/**
+ * Compression : bits par pixel et par image, par codec.
+ *
+ * Ordres de grandeur, pas des valeurs de fiche technique. Ils servent à
+ * proposer un débit quand on n'en a aucun, jamais à contredire celui que porte
+ * l'étude.
+ */
+const BITS_PAR_PIXEL = { h264: 0.07, h265: 0.035, 'h265+': 0.025 };
+
+/** Codecs proposés, du plus ancien au plus économe. */
+const CODECS = [
+  { cle: 'h264', label: 'H.264' },
+  { cle: 'h265', label: 'H.265' },
+  { cle: 'h265+', label: 'H.265+ / Smart codec' },
+];
+
+/** Capacités de disques de vidéosurveillance couramment disponibles, en To. */
+const DISQUES = [1, 2, 3, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24];
+
+/**
+ * Débit estimé d'une caméra, en Mbit/s.
+ *
+ * @param {object} camera résolution, images par seconde, codec
+ * @returns {number} estimation, 0 si les données manquent
+ */
+function debitEstime({ resH, resV, ips = 25, codec = 'h265' }) {
+  const pixels = (resH || 0) * (resV || 0);
+  const bpp = BITS_PAR_PIXEL[codec] ?? BITS_PAR_PIXEL.h265;
+  if (!(pixels > 0) || !(ips > 0)) return 0;
+  return (pixels * ips * bpp) / 1e6;
+}
+
+/**
+ * Capacité nécessaire, en gigaoctets.
+ *
+ * @param {object} p
+ * @param {number} p.debitTotal somme des débits, en Mbit/s
+ * @param {number} p.jours durée de conservation
+ * @param {number} [p.heuresParJour=24] enregistrement continu ou sur plage
+ * @param {number} [p.marge=MARGE_DEFAUT] réserve de sécurité
+ * @returns {number} gigaoctets décimaux
+ */
+function capaciteNecessaire({ debitTotal, jours, heuresParJour = 24, marge = MARGE_DEFAUT }) {
+  if (!(debitTotal > 0) || !(jours > 0) || !(heuresParJour > 0)) return 0;
+  const parJour = debitTotal * GO_PAR_MBPS_JOUR * (Math.min(heuresParJour, 24) / 24);
+  return parJour * jours * (1 + marge);
+}
+
+/**
+ * Durée de conservation qu'une capacité donnée permet réellement.
+ * L'installateur raisonne souvent dans l'autre sens : « j'ai un 8 To, ça tient
+ * combien de jours ? »
+ */
+function joursTenus({ debitTotal, capaciteGo, heuresParJour = 24, marge = MARGE_DEFAUT }) {
+  if (!(debitTotal > 0) || !(capaciteGo > 0)) return 0;
+  const parJour = debitTotal * GO_PAR_MBPS_JOUR * (Math.min(heuresParJour, 24) / 24) * (1 + marge);
+  return capaciteGo / parJour;
+}
+
+/**
+ * Disques du commerce couvrant un besoin.
+ *
+ * Rendu en téraoctets décimaux, comme les étiquettes des fabricants. Un disque
+ * annoncé 8 To offre bien 8 × 10¹² octets ; c'est l'affichage du système, en
+ * Tio, qui montrera 7,3 — la différence est d'unité, pas de capacité perdue.
+ *
+ * @returns {{unitaire:number, nombre:number, total:number}|null}
+ */
+function disqueRecommande(go) {
+  if (!(go > 0)) return null;
+  const to = go / 1000;
+  // Un seul disque quand une capacité courante suffit.
+  const unique = DISQUES.find((d) => d >= to);
+  if (unique) return { unitaire: unique, nombre: 1, total: unique };
+  // Sinon, plusieurs du plus gros format courant.
+  const plusGros = DISQUES[DISQUES.length - 1];
+  const nombre = Math.ceil(to / plusGros);
+  return { unitaire: plusGros, nombre, total: plusGros * nombre };
+}
+
+/**
+ * Comment remplir un enregistreur à N baies.
+ *
+ * Deux baies ne veulent pas dire deux fois la capacité : cela dépend de ce
+ * qu'on en fait, et le choix n'est pas technique mais commercial.
+ *
+ * - en **pool**, les disques s'additionnent. On a toute la capacité, et la
+ *   perte d'un disque emporte la part des images qu'il portait ;
+ * - en **miroir**, chaque disque porte la même chose. On a la moitié de la
+ *   capacité, et un disque peut mourir sans qu'une image manque.
+ *
+ * Un disque de vidéosurveillance écrit vingt-quatre heures sur vingt-quatre.
+ * Il ne meurt pas « peut-être » : il meurt, et la seule question est de
+ * savoir si ce jour-là on avait besoin des images. La fonction rend les deux
+ * hypothèses chiffrées plutôt que d'en imposer une.
+ *
+ * Deux garde-fous, et ils viennent de la machine, pas de l'arithmétique :
+ *
+ * - `capaciteMax` est ce qu'une baie accepte. Proposer un disque plus gros
+ *   revient à proposer un disque qui ne sera pas reconnu, et cela ne se
+ *   découvre qu'une fois acheté ;
+ * - `raid` dit si l'enregistreur sait faire un miroir. Beaucoup de
+ *   deux-baies ne le savent pas : ils écrivent sur les deux disques à la
+ *   suite, sans redondance. Annoncer un miroir sur une machine qui n'en
+ *   fait pas, c'est vendre une sécurité qui n'existe pas.
+ *
+ * @param {number} go capacité nécessaire, en gigaoctets
+ * @param {number} [baies=2] nombre d'emplacements de disque
+ * @param {object} [machine] {capaciteMax, raid} — contraintes de l'appareil
+ * @returns {{baies:number, pool:object|null, miroir:object|null}|null}
+ */
+function disquesPourBaies(go, baies = 2, machine = {}) {
+  if (!(go > 0) || !(baies >= 1)) return null;
+  const { capaciteMax = Infinity, raid = true } = machine;
+  const to = go / 1000;
+  const disponibles = DISQUES.filter((d) => d <= capaciteMax);
+  const choisir = (besoinParDisque, nombre) => {
+    const unitaire = disponibles.find((d) => d >= besoinParDisque);
+    if (!unitaire) return null;
+    return { unitaire, nombre, total: unitaire * nombre };
+  };
+  return {
+    baies,
+    capaciteMax: Number.isFinite(capaciteMax) ? capaciteMax : null,
+    raid,
+    pool: choisir(to / baies, baies),
+    // Le miroir n'a de sens qu'à baies paires, et que si la machine le fait.
+    miroir: raid && baies % 2 === 0 ? choisir(to / (baies / 2), baies) : null,
+  };
+}
+
+/* --------------------------------------------------------------- PoE */
+
+/**
+ * Classes d'alimentation par Ethernet.
+ *
+ * La puissance utile au bout du câble est inférieure à celle fournie par le
+ * port : la différence part en échauffement du câble. Dimensionner un switch
+ * sur la puissance des caméras sans cette perte, c'est le sous-dimensionner.
+ */
+const CLASSES_POE = [
+  { cle: 'af', label: 'PoE (802.3af)', port: 15.4, appareil: 12.95 },
+  { cle: 'at', label: 'PoE+ (802.3at)', port: 30, appareil: 25.5 },
+  { cle: 'bt3', label: 'PoE++ type 3 (802.3bt)', port: 60, appareil: 51 },
+  { cle: 'bt4', label: 'PoE++ type 4 (802.3bt)', port: 100, appareil: 71 },
+];
+
+/** Classe PoE minimale capable d'alimenter un appareil, ou null si hors norme. */
+function classePour(watts) {
+  if (!(watts > 0)) return CLASSES_POE[0];
+  return CLASSES_POE.find((c) => watts <= c.appareil) || null;
+}
+
+/* -------------------------------------------------- contrôles d'ensemble */
+
+/** Adresse IPv4 bien formée ? */
+function ipValide(ip) {
+  const t = String(ip || '').trim();
+  if (!t) return true; // une adresse non renseignée n'est pas une adresse fausse
+  const m = t.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  return !!m && m.slice(1).every((x) => Number(x) <= 255 && String(Number(x)) === x);
+}
+
+/**
+ * Contrôles automatiques du dossier.
+ *
+ * Chaque anomalie porte un `niveau` : `bloquant` empêche l'installation de
+ * fonctionner, `avertissement` la rend fragile ou hors règle. Un contrôle ne
+ * dit jamais « peut-être » : s'il manque une donnée pour trancher, il se tait
+ * plutôt que d'alarmer à tort.
+ *
+ * @param {object} synoptique matériel et liaisons, cf. js/reseau.js
+ * @param {object} reglages jours, heures, marge, capacité installée
+ * @returns {object[]} anomalies, les bloquantes en tête
+ */
+function controler(synoptique, reglages = {}) {
+  const noeuds = synoptique?.noeuds || [];
+  const liens = synoptique?.liens || [];
+  const anomalies = [];
+  const ajouter = (niveau, texte) => anomalies.push({ niveau, texte });
+
+  const nom = (n) => n.nom || n.type;
+  const cameras = noeuds.filter((n) => n.type === 'camera');
+  const switches = noeuds.filter((n) => n.type === 'switch');
+  const enregistreurs = noeuds.filter((n) => n.type === 'nvr');
+
+  // --- adresses en double, adresses mal formées
+  const parIp = new Map();
+  for (const n of noeuds) {
+    const ip = String(n.ip || '').trim();
+    if (!ip) continue;
+    if (!ipValide(ip)) ajouter('bloquant', `${nom(n)} : « ${ip} » n'est pas une adresse IPv4.`);
+    if (!parIp.has(ip)) parIp.set(ip, []);
+    parIp.get(ip).push(n);
+  }
+  for (const [ip, liste] of parIp) {
+    if (liste.length > 1) {
+      ajouter('bloquant', `Adresse ${ip} attribuée à ${liste.length} appareils : `
+        + `${liste.map(nom).join(', ')}.`);
+    }
+  }
+
+  // --- ports et budget PoE de chaque switch
+  for (const sw of switches) {
+    const relies = liens
+      .filter((l) => l.de === sw.id || l.vers === sw.id)
+      .map((l) => noeuds.find((n) => n.id === (l.de === sw.id ? l.vers : l.de)))
+      .filter(Boolean);
+    const alimentes = relies.filter((n) => n.type === 'camera');
+
+    if (sw.ports > 0 && relies.length > sw.ports) {
+      ajouter('bloquant', `${nom(sw)} : ${relies.length} appareils raccordés pour `
+        + `${sw.ports} ports.`);
+    }
+    if (sw.portsPoe >= 0 && sw.portsPoe < alimentes.length) {
+      ajouter('bloquant', `${nom(sw)} : ${alimentes.length} caméras à alimenter pour `
+        + `${sw.portsPoe} port${sw.portsPoe > 1 ? 's' : ''} PoE.`);
+    }
+    const conso = alimentes.reduce((s, n) => s + (n.conso > 0 ? n.conso : 0), 0);
+    if (sw.budgetPoe > 0 && conso > sw.budgetPoe) {
+      ajouter('bloquant', `${nom(sw)} : budget PoE dépassé — ${fr(conso, 1)} W demandés `
+        + `pour ${fr(sw.budgetPoe, 0)} W disponibles.`);
+    }
+    for (const c of alimentes) {
+      if (c.conso > 0 && !classePour(c.conso)) {
+        ajouter('avertissement', `${nom(c)} demande ${c.conso} W : au-delà du PoE++ type 4. `
+          + 'Alimentation séparée à prévoir.');
+      }
+    }
+  }
+
+  // --- caméra raccordée à un matériel qui n'alimente pas
+  for (const c of cameras) {
+    const voisins = liens
+      .filter((l) => l.de === c.id || l.vers === c.id)
+      .map((l) => noeuds.find((n) => n.id === (l.de === c.id ? l.vers : l.de)))
+      .filter(Boolean);
+    if (!voisins.length) continue;
+    const alimentee = voisins.some((v) => v.type === 'switch' && (v.portsPoe ?? 1) > 0);
+    if (!alimentee && c.conso > 0) {
+      ajouter('avertissement', `${nom(c)} n'est raccordée à aucun port PoE : `
+        + 'injecteur ou alimentation locale à prévoir.');
+    }
+  }
+
+  // --- canaux de l'enregistreur
+  for (const nvr of enregistreurs) {
+    if (!(nvr.canaux > 0)) continue;
+    if (cameras.length > nvr.canaux) {
+      ajouter('bloquant', `${nom(nvr)} : ${cameras.length} caméras pour ${nvr.canaux} canaux.`);
+    }
+  }
+
+  // --- capacité installée face à la conservation demandée
+  const debitTotal = cameras.reduce((s, c) => s + (c.debit > 0 ? c.debit : 0), 0);
+  const { jours, heuresParJour = 24, marge = MARGE_DEFAUT, capaciteInstallee = 0 } = reglages;
+  if (debitTotal > 0 && jours > 0 && capaciteInstallee > 0) {
+    const besoin = capaciteNecessaire({ debitTotal, jours, heuresParJour, marge });
+    if (capaciteInstallee < besoin) {
+      const tenus = joursTenus({ debitTotal, capaciteGo: capaciteInstallee, heuresParJour, marge });
+      ajouter('bloquant', `Capacité installée insuffisante : ${frGroupe(capaciteInstallee)} Go `
+        + `pour ${frGroupe(besoin)} Go nécessaires — ${fr(tenus, 1)} jours tenus `
+        + `au lieu de ${jours}.`);
+    }
+  }
+  if (cameras.length && cameras.some((c) => !(c.debit > 0))) {
+    const sans = cameras.filter((c) => !(c.debit > 0)).length;
+    ajouter('avertissement', `${sans} caméra${sans > 1 ? 's' : ''} sans débit renseigné : `
+      + 'le stockage calculé est incomplet.');
+  }
+
+  const rang = { bloquant: 0, avertissement: 1 };
+  return anomalies.sort((a, b) => rang[a.niveau] - rang[b.niveau]);
+}
+
+/**
+ * Bilan d'enregistrement et d'alimentation, prêt à afficher.
+ */
+function bilan(synoptique, reglages = {}) {
+  const noeuds = synoptique?.noeuds || [];
+  const liens = synoptique?.liens || [];
+  const cameras = noeuds.filter((n) => n.type === 'camera');
+  const debitTotal = cameras.reduce((s, c) => s + (c.debit > 0 ? c.debit : 0), 0);
+
+  const { jours = 30, heuresParJour = 24, marge = MARGE_DEFAUT } = reglages;
+  const go = capaciteNecessaire({ debitTotal, jours, heuresParJour, marge });
+
+  const poe = noeuds.filter((n) => n.type === 'switch').map((sw) => {
+    const alimentes = liens
+      .filter((l) => l.de === sw.id || l.vers === sw.id)
+      .map((l) => noeuds.find((n) => n.id === (l.de === sw.id ? l.vers : l.de)))
+      .filter((n) => n && n.type === 'camera');
+    return {
+      noeud: sw,
+      alimentes: alimentes.length,
+      conso: alimentes.reduce((s, n) => s + (n.conso > 0 ? n.conso : 0), 0),
+      budget: sw.budgetPoe > 0 ? sw.budgetPoe : 0,
+    };
+  });
+
+  return {
+    cameras: cameras.length,
+    debitTotal,
+    jours,
+    heuresParJour,
+    marge,
+    capaciteGo: go,
+    disque: disqueRecommande(go),
+    poe,
+    anomalies: controler(synoptique, reglages),
+  };
+}
+
+/* ===== etude-plan.js ===== */
+/**
+ * Le plan d'une étude, et ce qui s'en déduit.
+ *
+ * Un même calcul sert à deux choses qui ne doivent jamais diverger : le
+ * dossier remis au client, et l'éditeur où l'agence déplace ses caméras.
+ * Si l'éditeur annonçait sept cent quarante mètres de câble là où le
+ * dossier en compte huit cents, aucun des deux ne vaudrait plus rien.
+ *
+ * Le module ne connaît ni fichier ni écran. Il prend une étude — un objet
+ * décrivant un site, des caméras, des coffrets, des accès — et rend la
+ * géométrie du plan puis le métré qui va avec.
+ *
+ * Module pur (aucune dépendance au DOM), testé sous Node.
+ */
+
+
+
+/**
+ * La géométrie du terrain, en mètres, origine en haut à gauche.
+ *
+ * Tout est proportionnel à la longueur du bâtiment, sauf ce que le relevé
+ * fixe. C'est la seule façon d'avoir un plan qui se recale d'un chiffre le
+ * jour où une cote réelle arrive.
+ */
+function geometrie(site) {
+  const b = site.longueurBatiment;
+  const p = site.profondeurBatiment;
+  const m = site.marge;
+  const bat = { x: m, y: m, l: b, p };
+  const annexe = {
+    x: bat.x + bat.l, y: bat.y, l: site.annexe.longueur, p: site.annexe.profondeur,
+  };
+  const cour = {
+    x: 0, y: bat.y + bat.p, l: bat.l + annexe.l + m * 2, p: site.cour.profondeur,
+  };
+  return {
+    bat,
+    annexe,
+    cour,
+    quai: { x: bat.x + bat.l * 0.3, y: bat.y + bat.p, l: bat.l * 0.65, p: 3.5 },
+    portail: { x: m * 0.4, y: cour.y + cour.p - 6, l: 7 },
+    largeur: cour.l,
+    hauteur: cour.y + cour.p + 4,
+  };
+}
+
+/** L'optique qui compte : un capteur unique pour un panoramique multi-objectifs. */
+const optiqueUtile = (m, tele = false) => (
+  m.capteurUnique
+    ? m.capteurUnique
+    : { resH: m.resH, angleH: tele && m.angleHTele ? m.angleHTele : m.angleH }
+);
+
+/**
+ * Le métré, liaison par liaison.
+ *
+ * Chaque longueur passe par `cheminement` : somme des écarts du plan — un
+ * câble suit les murs et non la diagonale — plus la hauteur de pose, plus
+ * la descente vers le local ou le coffret, plus les détours et les
+ * réserves. Aucune n'est écrite à la main.
+ *
+ * @param {object} etude  site, local, cameras, coffrets, acces, modeles
+ * @returns {object[]} liaisons, coffrets en tête
+ */
+function metre(etude) {
+  const { local } = etude;
+  const coffrets = Object.fromEntries((etude.coffrets || []).map((r) => [r.cle, r]));
+  const liaisons = [];
+
+  const depuis = (origine, x, y, montee) => cheminement({
+    dx: x - origine.x,
+    dy: y - origine.y,
+    montee,
+    descente: origine.hauteurChemin ?? origine.hauteur ?? 0,
+    reserveBout: RESERVE_BOUT,
+  });
+  const origineDe = (cle) => (cle && coffrets[cle] ? coffrets[cle] : local);
+
+  const ajouter = (l) => {
+    liaisons.push({ ...l, verdict: l.famille === 'video' ? verdictEthernet(l.longueur) : null });
+  };
+
+  // Les montantes d'abord : elles portent tout le reste.
+  for (const r of etude.coffrets || []) {
+    const amont = r.depuis === 'local' ? local : coffrets[r.depuis];
+    ajouter({
+      repere: r.cle,
+      designation: `${r.nom} — liaison montante`,
+      cable: 'Cat 6 U/UTP',
+      longueur: amont ? depuis(amont, r.x, r.y, r.hauteur) : 0,
+      vers: r.depuis,
+      famille: 'video',
+      montante: true,
+    });
+  }
+
+  for (const c of etude.cameras || []) {
+    const o = origineDe(c.coffret);
+    ajouter({
+      repere: c.cle,
+      designation: c.role,
+      cable: 'Cat 6 U/UTP',
+      longueur: depuis(o, c.x, c.y, c.hauteur),
+      direct: c.coffret ? depuis(local, c.x, c.y, c.hauteur) : null,
+      vers: c.coffret || 'local',
+      famille: 'video',
+    });
+  }
+
+  for (const a of etude.acces || []) {
+    const o = origineDe(a.coffret);
+    const l = depuis(o, a.x, a.y, a.hauteur);
+    const direct = a.coffret ? depuis(local, a.x, a.y, a.hauteur) : null;
+    if (a.platine) {
+      ajouter({
+        repere: `${a.cle}·P`,
+        designation: `Platine d'interphonie — ${a.nom}`,
+        cable: 'Cat 6 U/UTP',
+        longueur: l,
+        direct,
+        vers: a.coffret || 'local',
+        famille: 'video',
+      });
+    }
+    for (const [suffixe, quoi, cable, famille] of [
+      ['V', 'Alimentation du verrouillage', '2 conducteurs', 'alimentation'],
+      ['L', 'Lecteur d\'accès', '6 conducteurs blindés ou 2 paires', 'commande'],
+      ['B', 'Bouton de sortie et déverrouillage d\'urgence', '2 × 2 conducteurs', 'commande'],
+      ['C', 'Contact de position de porte', '2 conducteurs', 'commande'],
+    ]) {
+      ajouter({
+        repere: `${a.cle}·${suffixe}`,
+        designation: `${quoi} — ${a.nom}`,
+        cable,
+        longueur: l,
+        direct,
+        vers: a.coffret || 'local',
+        famille,
+        acces: a,
+      });
+    }
+  }
+
+  /*
+   * Le reste : moniteur d'interphonie, borne, tout appareil réseau qui
+   * n'est ni caméra ni contrôle d'accès. Il compte dans le métré comme le
+   * reste — un câble oublié se retrouve sur la facture.
+   */
+  for (const o of etude.autres || []) {
+    const org = origineDe(o.coffret);
+    ajouter({
+      repere: o.cle,
+      designation: o.designation,
+      cable: o.cable || 'Cat 6 U/UTP',
+      longueur: depuis(org, o.x, o.y, o.hauteur),
+      vers: o.coffret || 'local',
+      famille: o.famille || 'video',
+    });
+  }
+
+  return liaisons;
+}
+
+/**
+ * Le bilan complet : ce que l'éditeur affiche et ce que le dossier imprime.
+ *
+ * @param {object} etude
+ * @param {object} [options] jours de conservation, heures par jour
+ */
+function bilanEtude(etude, { jours = 30, heuresParJour = 24 } = {}) {
+  const modeles = etude.modeles || {};
+  const cameras = etude.cameras || [];
+  const nvr = (etude.equipements && etude.equipements.enregistreur) || {};
+
+  const debitTotal = cameras.reduce((t, c) => {
+    const m = modeles[c.modele];
+    return t + (m ? debitEstime({ resH: m.resH, resV: m.resV, codec: 'h265' }) : 0);
+  }, 0);
+  const capaciteGo = capaciteNecessaire({ debitTotal, jours, heuresParJour });
+
+  const liaisons = metre(etude);
+  const somme = (f) => liaisons.filter(f).reduce((t, l) => t + l.longueur, 0);
+  const reseau = somme((l) => l.famille === 'video');
+  const commande = somme((l) => l.famille !== 'video');
+
+  const consoPoe = cameras.reduce((t, c) => t + ((modeles[c.modele] || {}).consoPoe || 0), 0);
+  const directes = cameras.filter((c) => !c.coffret);
+  const auLocal = (etude.coffrets || []).filter((r) => r.depuis === 'local');
+
+  return {
+    cameras: cameras.length,
+    debitTotal,
+    capaciteGo,
+    disques: disquesPourBaies(capaciteGo, nvr.baies || 2, {
+      capaciteMax: nvr.capaciteMaxBaie,
+      raid: !!nvr.raid,
+    }),
+    consoPoe,
+    // Un coffret en cascade n'occupe pas de port : c'est son parent qui en
+    // occupe un. Compter les coffrets ferait croire la machine chargée.
+    ports: directes.length + auLocal.length,
+    liaisons,
+    reseau,
+    commande,
+    boites: bobines(reseau),
+    horsNorme: liaisons.filter((l) => l.verdict && l.verdict.niveau !== 'ok'),
+    voiesLibres: (nvr.canaux || 0) - cameras.length,
+    bandeSaturee: nvr.bandePassante ? debitTotal > nvr.bandePassante : false,
+  };
+}
+
+/* ===== editeur.js ===== */
+/**
+ * L'éditeur d'étude : le plan à l'écran, les caméras à la souris.
+ *
+ * Ce que l'agence fait ici, elle n'a plus à le demander : déplacer une
+ * caméra, changer son modèle, la rattacher à un autre coffret, en ajouter
+ * une, en retirer une. Tout se recalcule à l'instant — le métré, les
+ * portées, le budget PoE, le stockage — et le fichier exporté regénère le
+ * dossier et la présentation sans qu'une ligne soit ressaisie.
+ *
+ * Les calculs ne sont pas refaits ici : ils viennent de `etude-plan.js`,
+ * le même module que le générateur du dossier. Un éditeur qui annoncerait
+ * d'autres longueurs que l'étude qu'il modifie ne servirait qu'à se
+ * tromper plus vite.
+ */
+
+
+
+
+
+
+const SVG = 'http://www.w3.org/2000/svg';
+const el = (nom, attrs = {}) => {
+  const n = document.createElementNS(SVG, nom);
+  for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, String(v));
+  return n;
+};
+
+/* --------------------------------------------------------------- l'état */
+
+const etat = {
+  etude: null,
+  selection: null,
+  echelle: 1,          // pixels par mètre
+  histoire: [],        // pour défaire
+  modifie: false,
+};
+
+/** Garde une copie avant chaque changement : défaire est un droit. */
+function memoriser() {
+  etat.histoire.push(JSON.stringify(etat.etude));
+  if (etat.histoire.length > 60) etat.histoire.shift();
+  etat.modifie = true;
+}
+
+function defaire() {
+  const avant = etat.histoire.pop();
+  if (!avant) return;
+  etat.etude = JSON.parse(avant);
+  if (!etat.etude.cameras.some((c) => c.cle === etat.selection)) etat.selection = null;
+  tout();
+}
+
+/* --------------------------------------------------------------- le plan */
+
+const COULEUR = {
+  identification: '#c8102e',
+  reconnaissance: '#d4657a',
+  observation: '#b6bcc6',
+};
+
+/** Les trois portées d'une caméra, dans l'ordre où on les empile. */
+function portees(modele, tele) {
+  const o = optiqueUtile(modele, tele);
+  const out = {};
+  for (const cle of ['observation', 'reconnaissance', 'identification']) {
+    out[cle] = distanceDori(o.resH, o.angleH, SEUILS_DORI[cle].ppm);
+  }
+  // Le panoramique couvre le double de ce que dit son capteur unique.
+  out.angle = modele.capteurUnique ? 180 : o.angleH;
+  return out;
+}
+
+/** Un secteur, en coordonnées du plan. */
+function secteur(cx, cy, rayon, azimut, angle, E) {
+  const r = rayon * E;
+  const a0 = ((azimut - angle / 2) * Math.PI) / 180;
+  const a1 = ((azimut + angle / 2) * Math.PI) / 180;
+  const p = (a) => [cx * E + r * Math.sin(a), cy * E - r * Math.cos(a)];
+  const [x0, y0] = p(a0);
+  const [x1, y1] = p(a1);
+  const grand = angle > 180 ? 1 : 0;
+  return `M ${(cx * E).toFixed(1)} ${(cy * E).toFixed(1)} L ${x0.toFixed(1)} ${y0.toFixed(1)} `
+    + `A ${r.toFixed(1)} ${r.toFixed(1)} 0 ${grand} 1 ${x1.toFixed(1)} ${y1.toFixed(1)} Z`;
+}
+
+function dessinerPlan() {
+  const svg = $('#plan');
+  const e = etat.etude;
+  const g = geometrie(e.site);
+  const cadre = svg.parentElement.getBoundingClientRect();
+  const E = Math.max(2, Math.min((cadre.width - 24) / g.largeur, (cadre.height - 24) / g.hauteur));
+  etat.echelle = E;
+  svg.setAttribute('viewBox', `0 0 ${g.largeur * E} ${g.hauteur * E}`);
+  svg.setAttribute('width', g.largeur * E);
+  svg.setAttribute('height', g.hauteur * E);
+  svg.replaceChildren();
+
+  const rect = (r, fill, stroke) => el('rect', {
+    x: r.x * E, y: r.y * E, width: r.l * E, height: r.p * E,
+    fill, stroke: stroke || 'none', 'stroke-width': 1.5,
+  });
+  svg.append(rect(g.cour, '#eef0f3'));
+  svg.append(rect(g.bat, '#dfe3e9', '#6e7682'));
+  svg.append(rect(g.annexe, '#e7eaf0', '#9aa2ae'));
+  const q = el('rect', {
+    x: g.quai.x * E, y: g.quai.y * E, width: g.quai.l * E, height: g.quai.p * E,
+    fill: 'none', stroke: '#9aa2ae', 'stroke-width': 1, 'stroke-dasharray': '4 3',
+  });
+  svg.append(q);
+  svg.append(el('line', {
+    x1: g.portail.x * E, y1: g.portail.y * E,
+    x2: (g.portail.x + g.portail.l) * E, y2: g.portail.y * E,
+    stroke: '#1a1d23', 'stroke-width': 5,
+  }));
+
+  const etiquette = (x, y, texte, taille = 11, couleur = '#8a9099') => {
+    const t = el('text', { x: x * E, y: y * E, 'font-size': taille, fill: couleur });
+    t.textContent = texte;
+    return t;
+  };
+  svg.append(etiquette(g.bat.x + 1.5, g.bat.y + 4, `BÂTIMENT — ${fr(e.site.longueurBatiment, 0)} m`));
+  svg.append(etiquette(1.5, g.cour.y + 5, 'COUR'));
+  svg.append(etiquette(g.portail.x, g.portail.y + 4, 'PORTAIL', 11, '#1a1d23'));
+
+  // Les champs, du plus large au plus serré : l'identification par-dessus.
+  for (const c of e.cameras) {
+    const m = e.modeles[c.modele];
+    if (!m) continue;
+    const p = portees(m, c.tele);
+    const vif = !etat.selection || etat.selection === c.cle;
+    for (const cle of ['observation', 'reconnaissance', 'identification']) {
+      svg.append(el('path', {
+        d: secteur(c.x, c.y, p[cle], c.azimut, p.angle, E),
+        fill: COULEUR[cle],
+        opacity: vif ? (cle === 'identification' ? 0.55 : 0.25) : 0.08,
+      }));
+    }
+  }
+
+  // Le local, les coffrets, les accès : des repères, pas des caméras.
+  const carre = (x, y, texte, couleur) => {
+    const grp = el('g', {});
+    grp.append(el('rect', {
+      x: x * E - 9, y: y * E - 9, width: 18, height: 18, rx: 3,
+      fill: couleur, stroke: '#fff', 'stroke-width': 1.5,
+    }));
+    const t = el('text', {
+      x: x * E, y: y * E + 4, 'font-size': 9.5, 'font-weight': 700,
+      fill: '#fff', 'text-anchor': 'middle',
+    });
+    t.textContent = texte;
+    grp.append(t);
+    return grp;
+  };
+  svg.append(carre(e.local.x, e.local.y, 'NVR', '#1a1d23'));
+  for (const r of e.coffrets) svg.append(carre(r.x, r.y, r.cle, '#5b6472'));
+  for (const a of e.acces) svg.append(carre(a.x, a.y, a.cle, '#8a5a00'));
+
+  // Les caméras, saisissables.
+  for (const c of e.cameras) {
+    const grp = el('g', { class: 'pion', 'data-cle': c.cle, style: 'cursor:grab' });
+    const choisie = etat.selection === c.cle;
+    if (choisie) {
+      grp.append(el('circle', {
+        cx: c.x * E, cy: c.y * E, r: 17, fill: 'none',
+        stroke: '#c8102e', 'stroke-width': 2, 'stroke-dasharray': '3 3',
+      }));
+      // La poignée d'orientation : on la tire, la caméra tourne.
+      const a = (c.azimut * Math.PI) / 180;
+      const hx = c.x * E + Math.sin(a) * 42;
+      const hy = c.y * E - Math.cos(a) * 42;
+      grp.append(el('line', {
+        x1: c.x * E, y1: c.y * E, x2: hx, y2: hy, stroke: '#c8102e', 'stroke-width': 1.5,
+      }));
+      const h = el('circle', {
+        cx: hx, cy: hy, r: 7, fill: '#fff', stroke: '#c8102e', 'stroke-width': 2,
+        class: 'poignee', style: 'cursor:crosshair',
+      });
+      grp.append(h);
+    }
+    grp.append(el('circle', {
+      cx: c.x * E, cy: c.y * E, r: 11,
+      fill: choisie ? '#c8102e' : '#1a1d23', stroke: '#fff', 'stroke-width': 2,
+    }));
+    const t = el('text', {
+      x: c.x * E, y: c.y * E + 4, 'font-size': 9.5, 'font-weight': 700,
+      fill: '#fff', 'text-anchor': 'middle', style: 'pointer-events:none',
+    });
+    t.textContent = c.cle;
+    grp.append(t);
+    svg.append(grp);
+  }
+
+  // L'échelle, pour que l'œil garde la mesure.
+  const barre = 20;
+  const y = g.hauteur - 3;
+  svg.append(el('line', {
+    x1: (g.largeur - barre - 4) * E, y1: y * E, x2: (g.largeur - 4) * E, y2: y * E,
+    stroke: '#1a1d23', 'stroke-width': 2,
+  }));
+  svg.append(etiquette(g.largeur - barre - 4, y - 1, `${barre} m`, 11, '#1a1d23'));
+}
+
+/* ------------------------------------------------------ saisie à la souris */
+
+function metresDepuisEvenement(ev) {
+  const svg = $('#plan');
+  const r = svg.getBoundingClientRect();
+  return {
+    x: (ev.clientX - r.left) / etat.echelle,
+    y: (ev.clientY - r.top) / etat.echelle,
+  };
+}
+
+const arrondiDemi = (v) => Math.round(v * 2) / 2;
+
+function brancherSouris() {
+  const svg = $('#plan');
+  let saisie = null;
+
+  svg.addEventListener('pointerdown', (ev) => {
+    const poignee = ev.target.closest('.poignee');
+    const pion = ev.target.closest('.pion');
+    if (!pion && !poignee) { etat.selection = null; tout(); return; }
+    const cle = (pion || poignee.parentElement).dataset.cle;
+    etat.selection = cle;
+    saisie = { cle, mode: poignee ? 'angle' : 'position' };
+    memoriser();
+    svg.setPointerCapture(ev.pointerId);
+    tout();
+  });
+
+  svg.addEventListener('pointermove', (ev) => {
+    if (!saisie) return;
+    const c = etat.etude.cameras.find((x) => x.cle === saisie.cle);
+    if (!c) return;
+    const p = metresDepuisEvenement(ev);
+    if (saisie.mode === 'position') {
+      c.x = arrondiDemi(p.x);
+      c.y = arrondiDemi(p.y);
+    } else {
+      const a = Math.atan2(p.x - c.x, -(p.y - c.y));
+      c.azimut = (Math.round((a * 180) / Math.PI) + 360) % 360;
+    }
+    dessinerPlan();
+    chiffres();
+    remplirPanneau();
+  });
+
+  const fin = () => { saisie = null; };
+  svg.addEventListener('pointerup', fin);
+  svg.addEventListener('pointercancel', fin);
+}
+
+/* ------------------------------------------------------------ le panneau */
+
+function remplirPanneau() {
+  const p = $('#panneau');
+  const c = etat.etude.cameras.find((x) => x.cle === etat.selection);
+  $('#aucune').hidden = !!c;
+  p.hidden = !c;
+  if (!c) return;
+  const m = etat.etude.modeles[c.modele];
+  const po = portees(m, c.tele);
+
+  $('#p-cle').textContent = c.cle;
+  $('#p-role').value = c.role || '';
+  $('#p-modele').value = c.modele;
+  $('#p-tele').checked = !!c.tele;
+  $('#p-tele').disabled = !m.angleHTele;
+  $('#p-hauteur').value = c.hauteur;
+  $('#p-azimut').value = c.azimut;
+  $('#p-azimut-txt').textContent = `${c.azimut}°`;
+  $('#p-x').value = c.x;
+  $('#p-y').value = c.y;
+  $('#p-coffret').value = c.coffret || '';
+
+  $('#p-portees').innerHTML = ['identification', 'reconnaissance', 'observation']
+    .map((k) => `<div><span>${k === 'identification' ? 'Identifie' : k === 'reconnaissance' ? 'Reconnaît' : 'Observe'}</span>
+      <b>${fr(po[k])} m</b></div>`).join('');
+
+  const liaison = etat.bilan.liaisons.find((l) => l.repere === c.cle);
+  const hors = liaison && liaison.verdict && liaison.verdict.niveau !== 'ok';
+  $('#p-cable').innerHTML = liaison
+    ? `<b>${fr(liaison.longueur, 0)} m</b> de câble depuis
+       ${liaison.vers === 'local' ? 'le local' : liaison.vers}
+       ${hors ? `<span class="alerte">— hors norme, la limite est à ${LIAISON_PERMANENTE} m</span>` : ''}`
+    : '';
+}
+
+/* ------------------------------------------------------------- les chiffres */
+
+function chiffres() {
+  const b = bilanEtude(etat.etude);
+  etat.bilan = b;
+  const nvr = etat.etude.equipements.enregistreur;
+  const mettre = (sel, valeur, alerte = false) => {
+    const n = $(sel);
+    n.textContent = valeur;
+    n.classList.toggle('mauvais', alerte);
+  };
+  mettre('#f-cameras', `${b.cameras} / ${nvr.canaux}`, b.voiesLibres < 0);
+  mettre('#f-debit', `${fr(b.debitTotal)} Mbit/s`, b.bandeSaturee);
+  mettre('#f-stock', `${fr(b.capaciteGo / 1000)} To`,
+    !!(b.disques && !b.disques.pool));
+  mettre('#f-poe', `${fr(b.consoPoe)} W`, b.consoPoe > (nvr.budgetPoe || Infinity));
+  mettre('#f-reseau', `${frGroupe(Math.round(b.reseau))} m`);
+  mettre('#f-boites', `${b.boites.boites}`);
+  mettre('#f-hors', b.horsNorme.length ? `${b.horsNorme.length}` : '0',
+    b.horsNorme.length > 0);
+
+  $('#alertes').innerHTML = b.horsNorme.length
+    ? `<b>${b.horsNorme.length} liaison(s) hors norme :</b> ${b.horsNorme
+      .map((l) => `${l.repere} (${fr(l.longueur, 0)} m)`).join(', ')}.
+       Au-delà de ${LIAISON_PERMANENTE} m de câble posé, la liaison n'est plus garantie :
+       rapprocher la caméra, ou la rattacher à un coffret.`
+    : '';
+  $('#alertes').hidden = !b.horsNorme.length;
+}
+
+/* ----------------------------------------------------------- la liste */
+
+function listeCameras() {
+  $('#liste').innerHTML = etat.etude.cameras.map((c) => {
+    const m = etat.etude.modeles[c.modele];
+    const po = portees(m, c.tele);
+    return `<li data-cle="${c.cle}" class="${etat.selection === c.cle ? 'active' : ''}">
+      <span class="puce">${c.cle}</span>
+      <span class="nom">${c.role || '—'}</span>
+      <span class="det">${m.reference.replace('Hikvision ', '').replace(/ \(.*/, '')}${
+  c.tele ? ' · télé' : ''} — identifie à ${fr(po.identification)} m</span>
+    </li>`;
+  }).join('');
+  $$('#liste li').forEach((n) => n.addEventListener('click', () => {
+    etat.selection = n.dataset.cle;
+    tout();
+  }));
+}
+
+function tout() {
+  chiffres();
+  dessinerPlan();
+  listeCameras();
+  remplirPanneau();
+}
+
+/* ------------------------------------------------------------- commandes */
+
+function prochaineCle() {
+  const nums = etat.etude.cameras
+    .map((c) => Number(String(c.cle).replace(/\D/g, '')))
+    .filter((n) => Number.isFinite(n));
+  return `C${Math.max(0, ...nums) + 1}`;
+}
+
+function ajouter() {
+  memoriser();
+  const g = geometrie(etat.etude.site);
+  const c = {
+    cle: prochaineCle(),
+    vue: null,
+    modele: Object.keys(etat.etude.modeles)[0],
+    tele: false,
+    hauteur: 3,
+    role: 'Nouvelle caméra',
+    pose: 'À préciser au relevé',
+    bande: 0.5,
+    x: Math.round(g.bat.x + g.bat.l / 2),
+    y: Math.round(g.cour.y + 8),
+    azimut: 180,
+    aerien: null,
+    coffret: null,
+  };
+  etat.etude.cameras.push(c);
+  etat.selection = c.cle;
+  tout();
+}
+
+function supprimer() {
+  if (!etat.selection) return;
+  memoriser();
+  etat.etude.cameras = etat.etude.cameras.filter((c) => c.cle !== etat.selection);
+  etat.selection = null;
+  tout();
+}
+
+function exporter() {
+  const texte = `${JSON.stringify(etat.etude, null, 1)}\n`;
+  const lien = document.createElement('a');
+  lien.href = URL.createObjectURL(new Blob([texte], { type: 'application/json' }));
+  lien.download = 'etude.json';
+  lien.click();
+  URL.revokeObjectURL(lien.href);
+  etat.modifie = false;
+}
+
+async function importer(fichier) {
+  const texte = await fichier.text();
+  const lu = JSON.parse(texte);
+  if (!lu.cameras || !lu.site || !lu.modeles) {
+    throw new Error('Ce fichier n\'est pas une étude : il lui manque le site, '
+      + 'les caméras ou les modèles.');
+  }
+  memoriser();
+  etat.etude = lu;
+  etat.selection = null;
+  tout();
+}
+
+/* --------------------------------------------------------------- montage */
+
+function monter(etude) {
+  etat.etude = JSON.parse(JSON.stringify(etude));
+
+  $('#p-modele').innerHTML = Object.entries(etat.etude.modeles)
+    .map(([cle, m]) => `<option value="${cle}">${m.reference.replace('Hikvision ', '')}</option>`)
+    .join('');
+  $('#p-coffret').innerHTML = '<option value="">Directement au local</option>'
+    + etat.etude.coffrets.map((r) => `<option value="${r.cle}">${r.cle} — ${r.nom}</option>`).join('');
+
+  const change = (sel, applique) => $(sel).addEventListener('change', () => {
+    const c = etat.etude.cameras.find((x) => x.cle === etat.selection);
+    if (!c) return;
+    memoriser();
+    applique(c, $(sel));
+    tout();
+  });
+  change('#p-role', (c, n) => { c.role = n.value; });
+  change('#p-modele', (c, n) => {
+    c.modele = n.value;
+    if (!etat.etude.modeles[c.modele].angleHTele) c.tele = false;
+  });
+  change('#p-tele', (c, n) => { c.tele = n.checked; });
+  change('#p-hauteur', (c, n) => { c.hauteur = Number(n.value); });
+  change('#p-x', (c, n) => { c.x = Number(n.value); });
+  change('#p-y', (c, n) => { c.y = Number(n.value); });
+  change('#p-coffret', (c, n) => { c.coffret = n.value || null; });
+
+  // Le curseur d'orientation réagit en continu : on voit le champ tourner.
+  $('#p-azimut').addEventListener('input', () => {
+    const c = etat.etude.cameras.find((x) => x.cle === etat.selection);
+    if (!c) return;
+    c.azimut = Number($('#p-azimut').value);
+    $('#p-azimut-txt').textContent = `${c.azimut}°`;
+    dessinerPlan();
+    chiffres();
+  });
+  $('#p-azimut').addEventListener('change', () => { etat.modifie = true; });
+
+  $('#b-ajouter').addEventListener('click', ajouter);
+  $('#b-supprimer').addEventListener('click', supprimer);
+  $('#b-defaire').addEventListener('click', defaire);
+  $('#b-exporter').addEventListener('click', exporter);
+  $('#b-importer').addEventListener('click', () => $('#fichier').click());
+  $('#fichier').addEventListener('change', async (ev) => {
+    const f = ev.target.files[0];
+    if (!f) return;
+    try {
+      await importer(f);
+    } catch (err) {
+      $('#alertes').hidden = false;
+      $('#alertes').innerHTML = `<b>Fichier refusé.</b> ${err.message}`;
+    }
+    ev.target.value = '';
+  });
+
+  document.addEventListener('keydown', (ev) => {
+    if (ev.target.matches('input, select, textarea')) return;
+    const c = etat.etude.cameras.find((x) => x.cle === etat.selection);
+    if ((ev.key === 'z' || ev.key === 'Z') && (ev.ctrlKey || ev.metaKey)) {
+      ev.preventDefault(); defaire(); return;
+    }
+    if (!c) return;
+    const pas = ev.shiftKey ? 5 : 0.5;
+    const fleches = { ArrowLeft: [-pas, 0], ArrowRight: [pas, 0], ArrowUp: [0, -pas], ArrowDown: [0, pas] };
+    if (fleches[ev.key]) {
+      ev.preventDefault();
+      memoriser();
+      c.x += fleches[ev.key][0];
+      c.y += fleches[ev.key][1];
+      tout();
+    } else if (ev.key === 'Delete' || ev.key === 'Backspace') {
+      ev.preventDefault(); supprimer();
+    }
+  });
+
+  window.addEventListener('resize', dessinerPlan);
+  window.addEventListener('beforeunload', (ev) => {
+    if (!etat.modifie) return;
+    ev.preventDefault();
+    ev.returnValue = '';
+  });
+
+  brancherSouris();
+  tout();
+}
+
+/**
+ * Démarrage, quelle que soit la façon dont la page est servie.
+ *
+ * En fichier unique, l'étude est embarquée à la fabrication et posée sur
+ * `__etude` : la page s'ouvre d'un double-clic depuis une clé, sans
+ * serveur. Servie en dossier, elle va chercher `etude.json` à côté d'elle,
+ * ce qui permet de garder les données à jour sans refaire la page.
+ */
+async function demarrer() {
+  if (globalThis.__etude) { monter(globalThis.__etude); return; }
+  try {
+    const reponse = await fetch('etude.json');
+    if (!reponse.ok) throw new Error(String(reponse.status));
+    monter(await reponse.json());
+  } catch (err) {
+    /*
+     * Monter D'ABORD, avertir ensuite : le premier rendu réécrit la zone
+     * d'alertes, et un message posé avant lui disparaissait sans trace.
+     * Les commandes, elles, doivent rester vivantes — c'est par elles qu'on
+     * ouvrira un fichier.
+     */
+    monter({
+      site: { longueurBatiment: 60, profondeurBatiment: 20, marge: 10,
+        annexe: { longueur: 0, profondeur: 0 }, cour: { profondeur: 40 } },
+      local: { x: 30, y: 14, hauteurChemin: 3 },
+      modeles: {},
+      equipements: { enregistreur: {} },
+      cameras: [], coffrets: [], acces: [],
+    });
+    const avis = $('#alertes');
+    avis.hidden = false;
+    avis.innerHTML = '<b>Aucune étude chargée.</b> Le fichier '
+      + '<code>etude.json</code> est introuvable à côté de cette page. '
+      + 'Ouvrez-en un avec « Ouvrir une étude… ».';
+  }
+}
+
+demarrer();
+}());</script>
+</body>
+</html>

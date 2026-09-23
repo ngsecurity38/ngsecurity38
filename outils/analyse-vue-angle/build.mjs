@@ -20,7 +20,7 @@ const lire = (...p) => readFileSync(join(ici, ...p), 'utf8');
 /** Modules de l'application, dans l'ordre des dépendances. */
 const MODULES = [
   'dom.js', 'format.js', 'optique.js', 'alignement.js',
-  'diagnostic.js', 'lecture-etude.js', 'plan.js', 'photo.js', 'catalogue.js', 'reseau.js', 'stockage.js', 'cable.js', 'murs.js', 'prix.js',
+  'diagnostic.js', 'lecture-etude.js', 'plan.js', 'photo.js', 'catalogue.js', 'reseau.js', 'stockage.js', 'cable.js', 'etude-plan.js', 'murs.js', 'prix.js',
   'fiche.js', 'ocr.js', 'etude-pdf.js', 'app.js',
 ];
 
@@ -331,6 +331,54 @@ const aDeposer = (nom, page, donnees, fichierDonnees) => {
 aDeposer('devis', client, lire('tarif.json'), 'tarif.json');
 aDeposer('etude', presentation, lire('catalogue.json'), 'catalogue.json');
 aDeposer('alarme', alarme, lire('tarif-alarme.json'), 'tarif-alarme.json');
+
+/*
+ * L'éditeur d'étude.
+ *
+ * Ce n'est pas un outil de visiteur : c'est l'atelier de l'agence, d'où
+ * l'on déplace les caméras d'un dossier et d'où sort le fichier qui le
+ * regénère. Il n'est donc PAS lié depuis l'accueil public et porte
+ * `noindex` : le publier à côté des estimateurs ferait croire à un
+ * visiteur qu'il peut refaire l'étude lui-même.
+ *
+ * Deux formes, parce que les deux servent : un fichier unique qui s'ouvre
+ * d'un double-clic depuis une clé, l'étude embarquée dedans ; et un dossier
+ * où l'étude reste à côté, pour la tenir à jour sans refaire la page.
+ */
+const MODULES_EDITEUR = ['dom.js', 'format.js', 'optique.js', 'cable.js',
+  'stockage.js', 'etude-plan.js', 'editeur.js'];
+verifierListe(MODULES_EDITEUR);
+
+const etudeJson = readFileSync(
+  join(ici, '..', '..', 'etudes', '2026-09-22-site-industriel', 'etude.json'), 'utf8',
+);
+const paquetEditeur = `(function () {\n'use strict';\n\n`
+  + `${MODULES_EDITEUR.map((nom) => `/* ===== ${nom} ===== */\n`
+    + deModuliser(lire('js', nom)).trim()).join('\n\n')}\n\ndemarrer();\n}());`;
+
+let editeur = marque(lire('editeur.html'));
+editeur = injecter(editeur, '<link rel="stylesheet" href="editeur.css">',
+  `<style>${inerte(lire('editeur.css'))}</style>`);
+/*
+ * Le remplacement passe par une FONCTION, jamais par une chaîne.
+ *
+ * Dans une chaîne de remplacement, « $$ » veut dire « un dollar » : le
+ * paquet, qui contient `const $$ = …`, en ressortait avec `const $ = …`
+ * deux fois, et la page mourait sur « $ has already been declared ». Une
+ * fonction rend le texte tel quel.
+ */
+editeur = editeur.replace(
+  /<script type="module">[\s\S]*?<\/script>/,
+  () => `<script>window.__etude=${inerte(etudeJson)};</script>\n`
+    + `<script>${inerte(paquetEditeur)}</script>`,
+);
+ecrire('editeur.html', editeur);
+
+const dossierEditeur = join(ici, 'dist', 'site', 'editeur');
+mkdirSync(dossierEditeur, { recursive: true });
+writeFileSync(join(dossierEditeur, 'index.html'), editeur);
+writeFileSync(join(dossierEditeur, 'etude.json'), etudeJson);
+console.log(`${dossierEditeur} — atelier de l'agence, à ne pas lier publiquement`);
 
 /*
  * Le menu, un cran au-dessus des deux dossiers.

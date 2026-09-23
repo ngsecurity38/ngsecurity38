@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <!-- Analyse de vue d'angle — NG Security 38.
-     Fichier unique produit par build.mjs le 2026-09-22.
+     Fichier unique produit par build.mjs le 2026-09-23.
      Ne pas modifier ici : éditer les sources puis relancer « npm run build ». -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -3837,23 +3837,38 @@ function disqueRecommande(go) {
  * savoir si ce jour-là on avait besoin des images. La fonction rend les deux
  * hypothèses chiffrées plutôt que d'en imposer une.
  *
+ * Deux garde-fous, et ils viennent de la machine, pas de l'arithmétique :
+ *
+ * - `capaciteMax` est ce qu'une baie accepte. Proposer un disque plus gros
+ *   revient à proposer un disque qui ne sera pas reconnu, et cela ne se
+ *   découvre qu'une fois acheté ;
+ * - `raid` dit si l'enregistreur sait faire un miroir. Beaucoup de
+ *   deux-baies ne le savent pas : ils écrivent sur les deux disques à la
+ *   suite, sans redondance. Annoncer un miroir sur une machine qui n'en
+ *   fait pas, c'est vendre une sécurité qui n'existe pas.
+ *
  * @param {number} go capacité nécessaire, en gigaoctets
  * @param {number} [baies=2] nombre d'emplacements de disque
+ * @param {object} [machine] {capaciteMax, raid} — contraintes de l'appareil
  * @returns {{baies:number, pool:object|null, miroir:object|null}|null}
  */
-function disquesPourBaies(go, baies = 2) {
+function disquesPourBaies(go, baies = 2, machine = {}) {
   if (!(go > 0) || !(baies >= 1)) return null;
+  const { capaciteMax = Infinity, raid = true } = machine;
   const to = go / 1000;
+  const disponibles = DISQUES.filter((d) => d <= capaciteMax);
   const choisir = (besoinParDisque, nombre) => {
-    const unitaire = DISQUES.find((d) => d >= besoinParDisque);
+    const unitaire = disponibles.find((d) => d >= besoinParDisque);
     if (!unitaire) return null;
     return { unitaire, nombre, total: unitaire * nombre };
   };
   return {
     baies,
+    capaciteMax: Number.isFinite(capaciteMax) ? capaciteMax : null,
+    raid,
     pool: choisir(to / baies, baies),
-    // Le miroir n'a de sens qu'à baies paires : chaque disque en double un autre.
-    miroir: baies % 2 === 0 ? choisir(to / (baies / 2), baies) : null,
+    // Le miroir n'a de sens qu'à baies paires, et que si la machine le fait.
+    miroir: raid && baies % 2 === 0 ? choisir(to / (baies / 2), baies) : null,
   };
 }
 
@@ -4223,6 +4238,218 @@ function sectionContinu({ courant, longueur, tension = 12, chuteMax = CHUTE_MAX 
 /** Arrondi d'affichage : le mètre est la seule précision qu'un métré mérite. */
 function arrondi(m) {
   return Math.round(m);
+}
+
+/* ===== etude-plan.js ===== */
+/**
+ * Le plan d'une étude, et ce qui s'en déduit.
+ *
+ * Un même calcul sert à deux choses qui ne doivent jamais diverger : le
+ * dossier remis au client, et l'éditeur où l'agence déplace ses caméras.
+ * Si l'éditeur annonçait sept cent quarante mètres de câble là où le
+ * dossier en compte huit cents, aucun des deux ne vaudrait plus rien.
+ *
+ * Le module ne connaît ni fichier ni écran. Il prend une étude — un objet
+ * décrivant un site, des caméras, des coffrets, des accès — et rend la
+ * géométrie du plan puis le métré qui va avec.
+ *
+ * Module pur (aucune dépendance au DOM), testé sous Node.
+ */
+
+
+
+/**
+ * La géométrie du terrain, en mètres, origine en haut à gauche.
+ *
+ * Tout est proportionnel à la longueur du bâtiment, sauf ce que le relevé
+ * fixe. C'est la seule façon d'avoir un plan qui se recale d'un chiffre le
+ * jour où une cote réelle arrive.
+ */
+function geometrie(site) {
+  const b = site.longueurBatiment;
+  const p = site.profondeurBatiment;
+  const m = site.marge;
+  const bat = { x: m, y: m, l: b, p };
+  const annexe = {
+    x: bat.x + bat.l, y: bat.y, l: site.annexe.longueur, p: site.annexe.profondeur,
+  };
+  const cour = {
+    x: 0, y: bat.y + bat.p, l: bat.l + annexe.l + m * 2, p: site.cour.profondeur,
+  };
+  return {
+    bat,
+    annexe,
+    cour,
+    quai: { x: bat.x + bat.l * 0.3, y: bat.y + bat.p, l: bat.l * 0.65, p: 3.5 },
+    portail: { x: m * 0.4, y: cour.y + cour.p - 6, l: 7 },
+    largeur: cour.l,
+    hauteur: cour.y + cour.p + 4,
+  };
+}
+
+/** L'optique qui compte : un capteur unique pour un panoramique multi-objectifs. */
+const optiqueUtile = (m, tele = false) => (
+  m.capteurUnique
+    ? m.capteurUnique
+    : { resH: m.resH, angleH: tele && m.angleHTele ? m.angleHTele : m.angleH }
+);
+
+/**
+ * Le métré, liaison par liaison.
+ *
+ * Chaque longueur passe par `cheminement` : somme des écarts du plan — un
+ * câble suit les murs et non la diagonale — plus la hauteur de pose, plus
+ * la descente vers le local ou le coffret, plus les détours et les
+ * réserves. Aucune n'est écrite à la main.
+ *
+ * @param {object} etude  site, local, cameras, coffrets, acces, modeles
+ * @returns {object[]} liaisons, coffrets en tête
+ */
+function metre(etude) {
+  const { local } = etude;
+  const coffrets = Object.fromEntries((etude.coffrets || []).map((r) => [r.cle, r]));
+  const liaisons = [];
+
+  const depuis = (origine, x, y, montee) => cheminement({
+    dx: x - origine.x,
+    dy: y - origine.y,
+    montee,
+    descente: origine.hauteurChemin ?? origine.hauteur ?? 0,
+    reserveBout: RESERVE_BOUT,
+  });
+  const origineDe = (cle) => (cle && coffrets[cle] ? coffrets[cle] : local);
+
+  const ajouter = (l) => {
+    liaisons.push({ ...l, verdict: l.famille === 'video' ? verdictEthernet(l.longueur) : null });
+  };
+
+  // Les montantes d'abord : elles portent tout le reste.
+  for (const r of etude.coffrets || []) {
+    const amont = r.depuis === 'local' ? local : coffrets[r.depuis];
+    ajouter({
+      repere: r.cle,
+      designation: `${r.nom} — liaison montante`,
+      cable: 'Cat 6 U/UTP',
+      longueur: amont ? depuis(amont, r.x, r.y, r.hauteur) : 0,
+      vers: r.depuis,
+      famille: 'video',
+      montante: true,
+    });
+  }
+
+  for (const c of etude.cameras || []) {
+    const o = origineDe(c.coffret);
+    ajouter({
+      repere: c.cle,
+      designation: c.role,
+      cable: 'Cat 6 U/UTP',
+      longueur: depuis(o, c.x, c.y, c.hauteur),
+      direct: c.coffret ? depuis(local, c.x, c.y, c.hauteur) : null,
+      vers: c.coffret || 'local',
+      famille: 'video',
+    });
+  }
+
+  for (const a of etude.acces || []) {
+    const o = origineDe(a.coffret);
+    const l = depuis(o, a.x, a.y, a.hauteur);
+    const direct = a.coffret ? depuis(local, a.x, a.y, a.hauteur) : null;
+    if (a.platine) {
+      ajouter({
+        repere: `${a.cle}·P`,
+        designation: `Platine d'interphonie — ${a.nom}`,
+        cable: 'Cat 6 U/UTP',
+        longueur: l,
+        direct,
+        vers: a.coffret || 'local',
+        famille: 'video',
+      });
+    }
+    for (const [suffixe, quoi, cable, famille] of [
+      ['V', 'Alimentation du verrouillage', '2 conducteurs', 'alimentation'],
+      ['L', 'Lecteur d\'accès', '6 conducteurs blindés ou 2 paires', 'commande'],
+      ['B', 'Bouton de sortie et déverrouillage d\'urgence', '2 × 2 conducteurs', 'commande'],
+      ['C', 'Contact de position de porte', '2 conducteurs', 'commande'],
+    ]) {
+      ajouter({
+        repere: `${a.cle}·${suffixe}`,
+        designation: `${quoi} — ${a.nom}`,
+        cable,
+        longueur: l,
+        direct,
+        vers: a.coffret || 'local',
+        famille,
+        acces: a,
+      });
+    }
+  }
+
+  /*
+   * Le reste : moniteur d'interphonie, borne, tout appareil réseau qui
+   * n'est ni caméra ni contrôle d'accès. Il compte dans le métré comme le
+   * reste — un câble oublié se retrouve sur la facture.
+   */
+  for (const o of etude.autres || []) {
+    const org = origineDe(o.coffret);
+    ajouter({
+      repere: o.cle,
+      designation: o.designation,
+      cable: o.cable || 'Cat 6 U/UTP',
+      longueur: depuis(org, o.x, o.y, o.hauteur),
+      vers: o.coffret || 'local',
+      famille: o.famille || 'video',
+    });
+  }
+
+  return liaisons;
+}
+
+/**
+ * Le bilan complet : ce que l'éditeur affiche et ce que le dossier imprime.
+ *
+ * @param {object} etude
+ * @param {object} [options] jours de conservation, heures par jour
+ */
+function bilanEtude(etude, { jours = 30, heuresParJour = 24 } = {}) {
+  const modeles = etude.modeles || {};
+  const cameras = etude.cameras || [];
+  const nvr = (etude.equipements && etude.equipements.enregistreur) || {};
+
+  const debitTotal = cameras.reduce((t, c) => {
+    const m = modeles[c.modele];
+    return t + (m ? debitEstime({ resH: m.resH, resV: m.resV, codec: 'h265' }) : 0);
+  }, 0);
+  const capaciteGo = capaciteNecessaire({ debitTotal, jours, heuresParJour });
+
+  const liaisons = metre(etude);
+  const somme = (f) => liaisons.filter(f).reduce((t, l) => t + l.longueur, 0);
+  const reseau = somme((l) => l.famille === 'video');
+  const commande = somme((l) => l.famille !== 'video');
+
+  const consoPoe = cameras.reduce((t, c) => t + ((modeles[c.modele] || {}).consoPoe || 0), 0);
+  const directes = cameras.filter((c) => !c.coffret);
+  const auLocal = (etude.coffrets || []).filter((r) => r.depuis === 'local');
+
+  return {
+    cameras: cameras.length,
+    debitTotal,
+    capaciteGo,
+    disques: disquesPourBaies(capaciteGo, nvr.baies || 2, {
+      capaciteMax: nvr.capaciteMaxBaie,
+      raid: !!nvr.raid,
+    }),
+    consoPoe,
+    // Un coffret en cascade n'occupe pas de port : c'est son parent qui en
+    // occupe un. Compter les coffrets ferait croire la machine chargée.
+    ports: directes.length + auLocal.length,
+    liaisons,
+    reseau,
+    commande,
+    boites: bobines(reseau),
+    horsNorme: liaisons.filter((l) => l.verdict && l.verdict.niveau !== 'ok'),
+    voiesLibres: (nvr.canaux || 0) - cameras.length,
+    bandeSaturee: nvr.bandePassante ? debitTotal > nvr.bandePassante : false,
+  };
 }
 
 /* ===== murs.js ===== */

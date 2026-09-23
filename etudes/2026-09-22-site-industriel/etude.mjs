@@ -58,6 +58,17 @@ const image = (chemin, type = 'jpeg') => `data:image/${type};base64,`
  */
 const AGENCE = JSON.parse(readFileSync(join(ici, '..', '..', 'agence.json'), 'utf8'));
 
+/**
+ * Les données modifiables de l'étude : le site, les caméras, les coffrets,
+ * les points d'accès.
+ *
+ * Elles ne sont plus dans ce fichier. L'éditeur les écrit, le générateur
+ * les lit, et personne n'a besoin d'ouvrir du code pour déplacer une
+ * caméra. C'est la même règle que pour l'identité de l'agence : une seule
+ * source, et un document qui ne peut pas en diverger.
+ */
+const ETUDE = JSON.parse(readFileSync(join(ici, 'etude.json'), 'utf8'));
+
 /* ------------------------------------------------------------- le parc */
 
 /**
@@ -68,67 +79,9 @@ const AGENCE = JSON.parse(readFileSync(join(ici, '..', '..', 'agence.json'), 'ut
  * hébergent — et le document le porte écrit. Ces valeurs sont à confirmer
  * avant remise au client.
  */
-const MODELES = {
-  turret: {
-    cle: 'turret',
-    consoPoe: 9,
-    classePoe: 'PoE 802.3af',
-    reference: 'Hikvision DS-2CD2346G2H-IU (2,8 mm)',
-    type: 'Turret 4 MP AcuSense, micro intégré',
-    vignette: 'm-turret.jpg',
-    resH: 2688,
-    resV: 1520,
-    angleH: 100.2,
-    focale: 2.8,
-    ir: 30,
-    source: 'Champ horizontal 100,2° et définition 2688 × 1520 relevés par recherche '
-      + 'documentaire (fiche DS-2CD2346G2H-I(U), éd. 13/05/2024). Infrarouge 30 m '
-      + 'annoncé par plusieurs revendeurs. À CONFIRMER sur la fiche.',
-  },
-  varifocal: {
-    cle: 'varifocal',
-    consoPoe: 15,
-    classePoe: 'PoE+ 802.3at, classe 4',
-    reference: 'Hikvision DS-2CD2683G2-IZS (2,8–12 mm motorisé)',
-    type: 'Bullet 8 MP AcuSense, objectif motorisé',
-    vignette: 'm-varifocal.jpg',
-    resH: 3840,
-    resV: 2160,
-    angleH: 108,
-    angleHTele: 30,
-    focaleMin: 2.8,
-    focaleMax: 12,
-    ir: null,
-    source: 'Champ horizontal 108° à 30° et définition 3840 × 2160 relevés par '
-      + 'recherche documentaire (fiche DS-2CD2683G2-IZS V5.5.113). Portée '
-      + 'infrarouge NON RELEVÉE. À CONFIRMER sur la fiche.',
-  },
-  panoramique: {
-    cle: 'panoramique',
-    consoPoe: 12.5,
-    classePoe: 'PoE 802.3af, classe 3',
-    reference: 'Hikvision DS-2CD2346G2P-ISU/SL (2,8 mm)(C)',
-    type: 'Turret panoramique 4 MP, 180°, stroboscope et alarme sonore',
-    vignette: 'm-panoramique.jpg',
-    resH: 3040,
-    resV: 1368,
-    angleH: 180,
-    ir: 30,
-    /*
-     * Deux capteurs de 1520 px côte à côte, chacun couvrant la moitié du champ.
-     * C'est ainsi qu'il faut la calculer : appliquer 3040 px à 180° d'un seul
-     * tenant n'a pas de sens — une optique rectiligne de 180° n'existe pas, et
-     * la formule y divise par l'infini.
-     */
-    capteurUnique: { resH: 1520, angleH: 90 },
-    noteCone: 'Le schéma montre UN des deux objectifs, soit la moitié du champ. '
-      + 'L\'appareil en couvre le double, à la même densité de pixels : les '
-      + 'portées ci-contre valent pour les 180°.',
-    source: 'Deux objectifs de 2,8 mm assemblés en 180°, définition 3040 × 1368, '
-      + 'infrarouge 30 m : relevés par recherche documentaire (fiche '
-      + 'DS-2CD2346G2P-ISU/SL, éd. 27/03/2024). À CONFIRMER sur la fiche.',
-  },
-};
+const MODELES = Object.fromEntries(
+  Object.entries(ETUDE.modeles).map(([cle, m]) => [cle, { ...m }]),
+);
 
 /**
  * Les vues qui se trouvent dehors.
@@ -148,79 +101,7 @@ const MODELES = {
  * y bloque les serveurs qui les hébergent — et chaque point à vérifier est
  * porté dans `aVerifier` plutôt que tranché ici.
  */
-const EQUIPEMENTS = {
-  enregistreur: {
-    reference: 'Hikvision DS-7616NXI-K2/16P',
-    type: 'Enregistreur réseau 16 voies AcuSense, 2 baies SATA, 16 ports PoE intégrés',
-    canaux: 16,
-    baies: 2,
-    // Confirmé par l'agence : c'est bien la variante /16P, celle qui porte
-    // ses seize ports PoE. Le commutateur séparé sort donc du projet.
-    portsPoe: 16,
-    /*
-     * Relevés par recherche documentaire — les serveurs de fiches sont
-     * bloqués depuis l'atelier. Deux d'entre eux changent le dossier :
-     * sans RAID, le miroir annoncé précédemment n'existe pas sur cette
-     * machine ; et une baie plafonnée à 10 To interdit les disques de
-     * 18 To qui avaient été proposés.
-     *
-     * Le plafond diffère selon la révision — 10 To sur les éditions
-     * courantes, 16 To annoncés sur la révision (D). La valeur retenue est
-     * la basse : se tromper vers le bas fait acheter un disque de trop,
-     * se tromper vers le haut fait acheter un disque inutilisable.
-     */
-    budgetPoe: 200,
-    capaciteMaxBaie: 10,
-    raid: false,
-    consoVide: 40,
-    // Mbit/s, entrée comme sortie. C'est le chiffre qui plafonne le parc
-    // bien avant le nombre de voies : seize caméras 12 MP dépasseraient
-    // cette bande passante longtemps avant d'avoir épuisé les canaux.
-    bandePassante: 160,
-    resolutionMax: '12 MP',
-    codec: 'H.265+',
-    aVerifier: [
-      'Les trois chiffres relevés par recherche, à confirmer sur la fiche : '
-        + 'budget PoE total de 200 W, 10 To par baie, absence de RAID. Les '
-        + 'serveurs de fiches sont bloqués depuis l\'atelier et aucun n\'a pu '
-        + 'être ouvert à la source.',
-      'Le plafond par baie selon la RÉVISION livrée. Les éditions courantes '
-        + 'annoncent 10 To, la révision (D) 16 To. Le dossier retient 10 : se '
-        + 'tromper vers le bas fait acheter un disque de trop, vers le haut '
-        + 'un disque inutilisable.',
-      'Comment les coffrets déportés s\'y raccordent. Un commutateur placé '
-        + 'derrière un port PoE d\'enregistreur Hikvision fonctionne, mais '
-        + 'sort de la reconnaissance automatique : les caméras qui sont '
-        + 'derrière s\'ajoutent alors à la main, par leur adresse. Le '
-        + 'raccordement par le port réseau est plus sain. À arrêter à la '
-        + 'mise en service, pas sur le chantier.',
-
-    ],
-  },
-  interphonie: {
-    reference: 'Hikvision DS-KIS902-S',
-    type: 'Kit d\'interphonie vidéo IP',
-    contenu: [
-      'Platine de rue, écran tactile 4,3", double caméra 2 MP, IR 3 m, IP65/IK08',
-      'Moniteur intérieur tactile 7", Wi-Fi 2,4 GHz',
-      'Commutateur PoE',
-      'Carte TF 32 Go',
-    ],
-    identification: ['visage', 'code PIN', 'badge 13,56 MHz', 'QR code'],
-    alimentation: 'PoE',
-    aVerifier: [
-      'Le nombre de ports du commutateur fourni, et son budget PoE. Le kit '
-        + 'alimente au moins la platine et le moniteur ; savoir s\'il peut '
-        + 'porter davantage évite d\'en acheter un second.',
-      'Les contacts de commande disponibles sur la platine : nature (sec ou '
-        + 'alimenté), nombre, pouvoir de coupure. C\'est ce qui décide si la '
-        + 'platine commande directement le verrouillage ou passe par un relais.',
-      'La compatibilité des badges déjà en service sur le site, le cas '
-        + 'échéant. Le 13,56 MHz recouvre plusieurs protocoles qui ne se '
-        + 'lisent pas entre eux.',
-    ],
-  },
-};
+const EQUIPEMENTS = ETUDE.equipements;
 
 /**
  * Le local technique, et les points d'accès.
@@ -242,36 +123,9 @@ const EQUIPEMENTS = {
  * le cheminement horizontal jusqu'à la gaine. Sur quatorze liaisons, le
  * supplément se compte en dizaines de mètres.
  */
-const HAUTEUR_ETAGE = 3.5;
+const LOCAL = { ...ETUDE.local };
 
-const LOCAL = { x: null, y: null, hauteurChemin: 3 + HAUTEUR_ETAGE, etage: true };
-
-const ACCES = [
-  {
-    cle: 'A1',
-    nom: 'Portail piéton',
-    x: null, y: null,
-    hauteur: 1.5,
-    verrouillage: 'ventouse simple',
-    vantaux: 1,
-    platine: true,
-    hypothese: 'La platine d\'interphonie se pose au portail piéton, à hauteur '
-      + 'de visage. C\'est le seul endroit où une platine a un sens : un '
-      + 'visiteur ne descend pas de voiture deux fois.',
-  },
-  {
-    cle: 'A2',
-    nom: 'Porte principale, façade sur cour',
-    x: null, y: null,
-    hauteur: 2.2,
-    verrouillage: 'double ventouse',
-    vantaux: 2,
-    platine: false,
-    hypothese: 'Porte à deux vantaux : une ventouse par vantail, sur la même '
-      + 'alimentation. Le courant double, donc la chute de tension aussi — '
-      + 'c\'est la liaison la plus exposée du lot.',
-  },
-];
+const ACCES = ETUDE.acces.map((a) => ({ ...a }));
 
 /**
  * Courant appelé par le verrouillage, en ampères sous douze volts.
@@ -599,129 +453,7 @@ const VUES = [
  * `bande` est la position, en fraction de la largeur de la photo, du centre
  * du champ proposé. 0,5 = dans l'axe de la prise de vue.
  */
-const CAMERAS = [
-  {
-    cle: 'C1', hauteur: 4,
-    vue: 'entree',
-    modele: 'varifocal',
-    tele: true,
-    role: 'Identification à l\'entrée',
-    pose: 'Angle du bâtiment, à 4 m environ, orientée vers le portail',
-    bande: 0.5,
-    attendu: 'Plaque d\'immatriculation et conducteur. C\'est la seule caméra du '
-      + 'parc capable d\'identifier au-delà de cinq mètres : elle doit être '
-      + 'réglée au téléobjectif et tenue sur cet axe.',
-  },
-  {
-    cle: 'C2', hauteur: 3,
-    vue: 'entree',
-    modele: 'turret',
-    role: 'Contexte de l\'entrée',
-    pose: 'Même support, à 3 m, champ large',
-    bande: 0.5,
-    attendu: 'Le contexte : qui accompagne le véhicule, dans quel sens, à quelle '
-      + 'heure. Elle ne remplace pas C1 — au-delà de 4,5 m elle ne permet plus '
-      + 'd\'identifier qui que ce soit.',
-  },
-  {
-    cle: 'C3', hauteur: 4.5,
-    vue: 'cour',
-    modele: 'varifocal',
-    tele: false,
-    role: 'Surveillance générale de la cour',
-    pose: 'En façade, 4 à 5 m, champ large',
-    bande: 0.5,
-    attendu: 'La présence et le trajet. Réglée au grand-angle elle couvre '
-      + 'largement mais ne reconnaît personne au-delà d\'une douzaine de mètres.',
-  },
-  {
-    cle: 'C4', hauteur: 3.5,
-    vue: 'cour',
-    modele: 'panoramique',
-    role: 'Limite arrière et dissuasion',
-    pose: 'Sur mât ou angle de bâtiment, 3,5 m, face au bois',
-    bande: 0.5,
-    attendu: 'Couvrir d\'un seul appareil l\'angle mort du fond, et dissuader : '
-      + 'stroboscope et message sonore se déclenchent sur détection humaine. '
-      + 'Caméra de contexte — elle n\'identifie pas au-delà de trois mètres.',
-  },
-  {
-    cle: 'C5', hauteur: 4,
-    vue: 'quai',
-    modele: 'varifocal',
-    tele: true,
-    role: 'Abords du quai',
-    pose: 'En façade, 4 m, orientée vers la rampe',
-    bande: 0.5,
-    attendu: 'Reconnaître les personnes qui approchent du quai et lire les '
-      + 'plaques des véhicules à la rampe.',
-  },
-  {
-    cle: 'C6', hauteur: 3,
-    vue: 'quai',
-    modele: 'turret',
-    role: 'Porte de quai',
-    pose: 'Au-dessus de la porte, 3 m, plongée sur le seuil',
-    bande: 0.5,
-    attendu: 'Identifier au passage du seuil. Elle doit être À L\'APLOMB de la '
-      + 'porte : à quinze mètres elle ne ferait plus que de la détection.',
-  },
-  {
-    cle: 'C7', hauteur: 4,
-    vue: 'halle',
-    modele: 'turret',
-    role: 'Volume de la halle',
-    pose: 'Sous charpente, 4 m, dans l\'axe de l\'allée',
-    bande: 0.5,
-    attendu: 'Détecter une présence et suivre un déplacement dans le volume. '
-      + 'Pas de lecture de visage à cette distance.',
-  },
-  {
-    cle: 'C8', hauteur: 3,
-    vue: 'rideau',
-    modele: 'turret',
-    role: 'Rideau métallique',
-    pose: 'À l\'aplomb du rideau, 3 m, vers l\'intérieur',
-    bande: 0.5,
-    attendu: 'Identifier au franchissement. Même règle que C6 : à l\'aplomb, '
-      + 'sinon elle perd tout intérêt.',
-  },
-  {
-    cle: 'C9', hauteur: 3,
-    vue: 'stock',
-    modele: 'turret',
-    role: 'Angle de travail et stock',
-    pose: 'En angle des deux murs, 3 m, bissectrice — emplacement exact à confirmer',
-    bande: 0.5,
-    attendu: 'Couvrir les deux directions d\'un seul appareil et tenir le rayonnage '
-      + 'à portée d\'identification. Posée en angle à trois mètres, elle identifie '
-      + 'jusqu\'à quatre mètres et demi : le rayonnage doit se trouver dans cette '
-      + 'distance, sinon elle ne fera que reconnaître.',
-  },
-
-  /*
-   * EXTENSION PROPOSÉE — elle ne fait pas partie du parc déclaré.
-   *
-   * Cinq caméras pour les quatre zones relevées sans couverture. Elles
-   * reprennent les mêmes références que le parc initial : une ligne de plus
-   * au bon de commande, pas un second matériel à apprendre et à maintenir.
-   *
-   * Leurs emplacements disent LA ZONE, pas le point de fixation : aucun relevé
-   * intérieur n'a été fait, et la position exacte dépend des racks, des
-   * portes ouvertes et des alimentations disponibles.
-   */
-  {
-    cle: 'C10', hauteur: 2.8,
-    vue: 'sas',
-    modele: 'turret',
-    role: 'Sas et issue de secours',
-    pose: 'En plafond du sas, 2,8 m, dans l\'axe du couloir',
-    bande: 0.5,
-    attendu: 'Identifier au passage. Un couloir force le passage dans un goulot '
-      + 'étroit et à courte distance : c\'est la zone du site où le 2,8 mm est le '
-      + 'plus à son aise. À poser portes ouvertes, pour qu\'un battant ne la masque pas.',
-  },
-];
+const CAMERAS = ETUDE.cameras.map((c) => ({ ...c }));
 
 /* ----------------------------------------------------------- les dessins */
 
@@ -837,20 +569,9 @@ function bandeSurPhoto(vue, cam) {
  * en découle : les proportions, elles, viennent bien de la vue aérienne.
  */
 const SITE = {
-  /*
-   * Communiquée par l'agence le 22/09/2026. Elle remplace les 75 m supposés
-   * sur lesquels tout le plan reposait jusque-là : l'échelle, les longueurs
-   * de câble, les distances de pose et le rapport entre ce que couvrent les
-   * caméras et l'étendue du site. Le plan cesse d'être un schéma de
-   * principe sur sa dimension la plus structurante.
-   */
-  longueurBatiment: 100,
-  profondeurBatiment: 22,
-  annexe: { longueur: 18, profondeur: 10 },
-  cour: { profondeur: 62 },
-  marge: 12,
-  // Longueur communiquée par l'agence ; la profondeur reste supposée.
-  estime: false,
+  ...ETUDE.site,
+  // La longueur est mesurée ; la profondeur reste relevée sur vue aérienne.
+  estime: !ETUDE.site.longueurMesuree,
 };
 
 /** Repère du plan : mètres, origine en haut à gauche du terrain. */
@@ -888,20 +609,9 @@ const PLAN = (() => {
  * le champ de face, et le téléobjectif l'identifie à vingt-huit mètres. Une
  * caméra posée sur le portail même ne verrait que des toits de voiture.
  */
-const IMPLANTATION = {
-  C1: { x: PLAN.portail.x + 16, y: PLAN.portail.y - 22, azimut: 180 },
-  C2: { x: PLAN.portail.x + 24, y: PLAN.portail.y - 22, azimut: 180 },
-  C3: { x: PLAN.bat.x + PLAN.bat.l * 0.24, y: PLAN.cour.y + 1.5, azimut: 168 },
-  C4: { x: PLAN.cour.x + PLAN.cour.l - 9, y: PLAN.cour.y + PLAN.cour.p * 0.5, azimut: 250 },
-  C5: { x: PLAN.bat.x + PLAN.bat.l * 0.76, y: PLAN.cour.y + 1.5, azimut: 196 },
-  C6: { x: PLAN.bat.x + PLAN.bat.l * 0.58, y: PLAN.cour.y + 1.5, azimut: 180 },
-  C7: { x: PLAN.bat.x + 3.5, y: PLAN.bat.y + PLAN.bat.p * 0.62, azimut: 90 },
-  C8: { x: PLAN.bat.x + PLAN.bat.l - 3.5, y: PLAN.bat.y + PLAN.bat.p * 0.62, azimut: 270 },
-  // En angle : la bissectrice des deux murs, soit 135° dans ce coin du plan.
-  C9: { x: PLAN.bat.x + PLAN.bat.l * 0.34, y: PLAN.bat.y + 2.5, azimut: 135 },
-  // Le sas : plafond du couloir, dans son axe.
-  C10: { x: PLAN.bat.x + PLAN.bat.l * 0.88, y: PLAN.bat.y + PLAN.bat.p * 0.3, azimut: 170 },
-};
+const IMPLANTATION = Object.fromEntries(
+  ETUDE.cameras.map((c) => [c.cle, { x: c.x, y: c.y, azimut: c.azimut }]),
+);
 
 /**
  * Hauteurs de pose, en mètres, telles qu'elles figurent au descriptif de
@@ -914,13 +624,9 @@ const HAUTEURS = Object.fromEntries(CAMERAS.map((c) => [c.cle, c.hauteur]));
  * Les emplacements qui manquaient au moment de déclarer LOCAL et ACCES :
  * ils s'expriment dans le repère du plan, qui n'existe qu'ici.
  */
-LOCAL.x = PLAN.bat.x + PLAN.bat.l * 0.93;
-LOCAL.y = PLAN.bat.y + 4;
+/* Le local aussi. */
 
-ACCES[0].x = PLAN.portail.x + PLAN.portail.l + 1.5;
-ACCES[0].y = PLAN.portail.y;
-ACCES[1].x = PLAN.bat.x + PLAN.bat.l * 0.30;
-ACCES[1].y = PLAN.cour.y;
+/* Les emplacements d'accès viennent d'etude.json. */
 
 /**
  * Les coffrets déportés.
@@ -935,39 +641,7 @@ ACCES[1].y = PLAN.cour.y;
  * est une arrivée 230 V à l'endroit du coffret — point décisif du relevé,
  * porté aux réserves.
  */
-const RELAIS = {
-  R1: {
-    nom: 'Coffret de cour',
-    x: null, y: null, hauteur: 3, depuis: 'local',
-    contenu: 'Commutateur PoE 8 ports',
-    raison: 'La caméra du fond de cour est à cent soixante-sept mètres du '
-      + 'local en cheminement direct. Posé à l\'angle du bâtiment côté cour, '
-      + 'le coffret la ramène à soixante-sept, et prend au passage les '
-      + 'caméras de quai, le rideau et le sas.',
-  },
-  R2: {
-    nom: 'Relais médian',
-    x: null, y: null, hauteur: 3, depuis: 'local',
-    contenu: 'Commutateur PoE 8 ports',
-    raison: 'Cent mètres de bâtiment ne se franchissent pas d\'une seule '
-      + 'liaison Ethernet, et le local est à une extrémité. Le relais coupe '
-      + 'la distance en deux et dessert le milieu de la halle.',
-  },
-  R3: {
-    nom: 'Coffret d\'entrée',
-    x: null, y: null, hauteur: 3,
-    // En CASCADE derrière R2 : depuis le local, l'extrémité gauche est à
-    // plus de cent mètres. Un commutateur en relaie un autre, et chaque
-    // saut reste dans la norme. C'est la seule façon de tenir la longueur
-    // sans passer à la fibre.
-    depuis: 'R2',
-    contenu: 'Commutateur PoE 8 ports et alimentation 12 V du verrouillage',
-    raison: 'L\'entrée et le portail sont à l\'autre bout du site. Le coffret '
-      + 'y porte les deux caméras d\'entrée, la platine d\'interphonie et '
-      + 'l\'alimentation du verrouillage — qui, tirée du local, perdrait une '
-      + 'tension qu\'aucune section raisonnable ne rattrape.',
-  },
-};
+const RELAIS = Object.fromEntries(ETUDE.coffrets.map((r) => [r.cle, { ...r }]));
 
 /**
  * Ce que chaque coffret dessert. Le reste part directement au local.
@@ -976,11 +650,11 @@ const RELAIS = {
  * la longueur du bâtiment : cent mètres ne se franchissent pas en Ethernet,
  * et le local est à l'étage, ce qui ajoute encore.
  */
-const RATTACHEMENT = {
-  C1: 'R3', C2: 'R3', A1: 'R3',
-  C3: 'R2', C7: 'R2', C9: 'R2', A2: 'R2',
-  C4: 'R1', C5: 'R1', C6: 'R1', C8: 'R1',
-};
+const RATTACHEMENT = Object.fromEntries(
+  [...ETUDE.cameras, ...ETUDE.acces]
+    .filter((x) => x.coffret)
+    .map((x) => [x.cle, x.coffret]),
+);
 
 /** Ce que chaque coffret dessert. Le reste part directement au local. */
 
@@ -1002,14 +676,7 @@ const RATTACHEMENT = {
 const METRE = (() => {
   const liaisons = [];
 
-  // Les coffrets se posent DANS le bâtiment : c'est là qu'une arrivée 230 V
-  // est plausible et qu'un coffret reste accessible et hors d'atteinte.
-  RELAIS.R1.x = PLAN.bat.x + PLAN.bat.l - 2;
-  RELAIS.R1.y = PLAN.bat.y + PLAN.bat.p;
-  RELAIS.R2.x = PLAN.bat.x + PLAN.bat.l * 0.43;
-  RELAIS.R2.y = PLAN.bat.y + 8;
-  RELAIS.R3.x = PLAN.bat.x + 3;
-  RELAIS.R3.y = PLAN.bat.y + 8;
+  // Les coffrets portent leurs coordonnées : rien à calculer ici.
 
   const depuis = (origine, x, y, montee) => cheminement({
     dx: x - origine.x,
@@ -1285,18 +952,9 @@ function planMasse(options = {}) {
  * reporter une portée à l'échelle — seulement une DIRECTION. Les distances,
  * elles, sont au plan masse.
  */
-const REPERAGE = {
-  C1: { x: 0.300, y: 0.880, azimut: 200 },
-  C2: { x: 0.362, y: 0.880, azimut: 190 },
-  C3: { x: 0.245, y: 0.575, azimut: 160 },
-  C4: { x: 0.830, y: 0.800, azimut: 285 },
-  C5: { x: 0.655, y: 0.575, azimut: 200 },
-  C6: { x: 0.500, y: 0.580, azimut: 180 },
-  C7: { x: 0.160, y: 0.420, azimut: 95 },
-  C8: { x: 0.660, y: 0.505, azimut: 275 },
-  C9: { x: 0.320, y: 0.285, azimut: 145 },
-  C10: { x: 0.800, y: 0.300, azimut: 205 },
-};
+const REPERAGE = Object.fromEntries(
+  ETUDE.cameras.filter((c) => c.aerien).map((c) => [c.cle, { ...c.aerien }]),
+);
 
 /** Noir dehors, bleu dedans — c'est la clé de lecture de l'image. */
 const COULEUR_DEHORS = '#111418';
@@ -1473,12 +1131,14 @@ for (const v of VUES) {
 }
 const logo = image(join(racineOutil, 'img', 'logo.png'), 'png');
 
-const parc = [
-  ['turret', 6], ['varifocal', 3], ['panoramique', 1],
-];
-const debitTotal = parc.reduce((s, [cle, n]) => {
-  const m = MODELES[cle];
-  return s + n * debitEstime({ resH: m.resH, resV: m.resV, codec: 'h265' });
+/*
+ * Le débit se compte SUR LES CAMÉRAS, pas sur une liste de quantités tenue
+ * à côté. Cette liste a existé, et elle a divergé : elle annonçait deux
+ * panoramiques quand le parc n'en portait plus qu'une.
+ */
+const debitTotal = CAMERAS.reduce((s, c) => {
+  const m = MODELES[c.modele];
+  return s + debitEstime({ resH: m.resH, resV: m.resV, codec: 'h265' });
 }, 0);
 const stockage = (j) => capaciteNecessaire({ debitTotal, jours: j, heuresParJour: 24 });
 
@@ -1488,11 +1148,7 @@ const stockage = (j) => capaciteNecessaire({ debitTotal, jours: j, heuresParJour
  * Il se compare à la bande passante de l'enregistreur, pas à son nombre de
  * voies : c'est elle qui plafonne, et elle plafonne plus tôt.
  */
-const parcEtendu = parc;
-const debitExtension = parcEtendu.reduce((sm, [cle, n]) => {
-  const m = MODELES[cle];
-  return sm + n * debitEstime({ resH: m.resH, resV: m.resV, codec: 'h265' });
-}, 0);
+const debitExtension = debitTotal;
 
 /** Les deux façons de remplir les deux baies, pour trente jours. */
 const disques30 = disquesPourBaies(stockage(30), EQUIPEMENTS.enregistreur.baies, {

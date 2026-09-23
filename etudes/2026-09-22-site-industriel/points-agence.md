@@ -1,6 +1,6 @@
 # Points à traiter avant remise — ETU-2026-09-22
 
-Établi le 22 septembre 2026, avec le document. Ce fichier ne part PAS au
+Établi le 23 septembre 2026, avec le document. Ce fichier ne part PAS au
 client : il ne contient que ce que l'agence doit lever de son côté.
 
 ## Identité de l'agence
