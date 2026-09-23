@@ -134,7 +134,9 @@ function dessinerPlan() {
     t.textContent = texte;
     return t;
   };
-  svg.append(etiquette(g.bat.x + 1.5, g.bat.y + 4, `BÂTIMENT — ${fr(e.site.longueurBatiment, 0)} m`));
+  // Les étiquettes du plan partent telles quelles dans le dossier remis au
+  // client : elles suivent sa typographie, sans tiret cadratin.
+  svg.append(etiquette(g.bat.x + 1.5, g.bat.y + 4, `BÂTIMENT · ${fr(e.site.longueurBatiment, 0)} m`));
   svg.append(etiquette(1.5, g.cour.y + 5, 'COUR'));
   svg.append(etiquette(g.portail.x, g.portail.y + 4, 'PORTAIL', 11, '#1a1d23'));
 
@@ -364,12 +366,14 @@ function dessinerPhoto(photo) {
     const angle = m.capteurUnique ? 180 : o.angleH;
     const b = bandePhoto(photo.champ, angle, r.bande);
     const band = document.createElement('div');
-    band.className = 'champ';
+    // Au-delà de neuf dixièmes du cadre, l'aplat recouvrirait la photo :
+    // on ne garde que le trait, comme le fera le dossier.
+    band.className = b.largeur >= 0.9 ? 'champ large' : 'champ';
     band.dataset.camera = c.cle;
     band.style.left = `${(b.gauche * 100).toFixed(1)}%`;
     band.style.width = `${(b.largeur * 100).toFixed(1)}%`;
     const t = document.createElement('span');
-    t.textContent = `${c.cle} — ${Math.round(angle)}°${b.deborde ? ' (déborde)' : ''}`;
+    t.textContent = `${c.cle} · ${Math.round(angle)}°${b.deborde ? ' · toute la vue' : ''}`;
     band.append(t);
     cadre.append(band);
   }

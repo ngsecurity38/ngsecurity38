@@ -168,6 +168,7 @@ main { display:flex; gap:16px; padding:16px; align-items:flex-start; }
   background:rgba(200,16,46,.26); border-left:2px solid var(--rouge);
   border-right:2px solid var(--rouge);
 }
+.photo-zone .champ.large { background:none; }
 .photo-zone .champ span {
   position:absolute; top:4px; left:4px; font-size:10.5px; line-height:1.3;
   background:var(--rouge); color:#fff; padding:1px 5px; border-radius:3px;

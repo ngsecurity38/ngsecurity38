@@ -14,6 +14,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { bordereau, parcParModele, prixFacture } from '../js/devis-etude.js';
+import { enEuros } from '../js/format.js';
 import { ficheDevis } from '../js/devis-fiche.js';
 import { bilanEtude } from '../js/etude-plan.js';
 
@@ -170,7 +171,10 @@ test('le devis non chiffré le dit, et ne montre aucun montant inventé', () => 
   const html = ficheDevis(REELLE, tarifNu(), AGENCE);
   assert.ok(html.includes('Devis non contractuel'));
   assert.ok(!/\d+,\d\d €/.test(html), 'aucun montant ne doit apparaître');
-  assert.ok(html.includes('—'));
+  // Une case sans prix reste vide : un tiret long est la signature d'un
+  // document écrit à la machine, et ce devis part sous la signature de
+  // l'agence.
+  assert.ok(!html.includes('—'), 'aucun tiret long dans le document remis');
 });
 
 test('le devis chiffré perd le bandeau et porte les montants', () => {
@@ -348,4 +352,65 @@ test('la remise ne mord pas sur la main d\'œuvre', () => {
     assert.equal(l.prix, DEVIS.tauxHoraire,
       'on ne se place pas sous le marché sur son propre temps');
   }
+});
+
+/* ------------------------------------------------- les options, en bas */
+
+test('toutes les options descendent dans un seul lot, à la fin', () => {
+  const r = bordereau(REELLE, DEVIS);
+  const dernier = r.lots[r.lots.length - 1];
+  assert.equal(dernier.cle, 'options');
+  // Plus une seule option ailleurs : éparpillées, elles coupent la lecture
+  // du prix et le client additionne ce qu'il n'a pas commandé.
+  for (const lot of r.lots.slice(0, -1)) {
+    assert.ok(lot.lignes.every((l) => !l.option),
+      `${lot.titre} porte encore une option`);
+  }
+  assert.ok(dernier.lignes.every((l) => l.option));
+  assert.ok(dernier.lignes.every((l) => l.venantDe),
+    'chaque option garde le lot d\'où elle vient');
+});
+
+test('un lot vidé de ses options ne s\'imprime plus', () => {
+  const r = bordereau(REELLE, DEVIS);
+  assert.ok(!r.lots.some((l) => l.cle === 'controle'),
+    'le contrôle d\'accès n\'était que son kit : le lot disparaît');
+  assert.ok(r.lots.find((l) => l.cle === 'options').lignes
+    .some((l) => l.cle === 'kitAcces'));
+});
+
+test('le total des options se compte à part, et ne touche pas au prix', () => {
+  const r = bordereau(REELLE, DEVIS);
+  const somme = r.lots.find((l) => l.cle === 'options').lignes
+    .reduce((s, l) => s + (l.total || 0), 0);
+  assert.equal(r.totaux.totalOptions, somme);
+  assert.ok(somme > 0);
+  // Le total hors taxes ne les compte pas.
+  const base = r.lots.filter((l) => l.cle !== 'options')
+    .reduce((s, l) => s + (l.total || 0), 0);
+  assert.ok(Math.abs(r.totaux.ht - base) < 0.01);
+});
+
+test('le devis ne finit plus sur une note de comptable', () => {
+  const html = ficheDevis(REELLE, DEVIS, AGENCE);
+  assert.ok(!/ligne\(s\) en option, non comptées/.test(html));
+  assert.ok(!/heures de main d'œuvre au total/.test(html));
+  // À la place, ce que le client achète.
+  assert.ok(/Ce prix comprend la fourniture/.test(html));
+  assert.ok(/garanti <b>trois ans<\/b>/.test(html));
+  assert.ok(/n'est pas compris dans le prix ci-dessus/.test(html));
+});
+
+test('une option affiche son total : elle est chiffrée, pas cachée', () => {
+  const html = ficheDevis(REELLE, DEVIS, AGENCE);
+  // Le kit vaut 1 033,50 € : ce montant doit se lire dans la colonne total,
+  // et le total des options le reprendre. C'est le lot qui dit qu'il n'est
+  // pas compris dans le prix, pas un tiret dans la case.
+  const kit = bordereau(REELLE, DEVIS).lots.find((l) => l.cle === 'options')
+    .lignes.find((l) => l.cle === 'kitAcces');
+  // enEuros pose une espace fine insécable dans les milliers : on compare
+  // avec le formateur, pas avec une espace ordinaire.
+  const montant = enEuros(kit.total);
+  assert.ok(html.split(montant).length - 1 >= 2,
+    `${montant} doit apparaître en prix unitaire ET en total`);
 });

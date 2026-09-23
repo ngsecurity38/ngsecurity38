@@ -135,7 +135,7 @@ export function bordereau(etude, devis) {
       const dl = bl.disques && bl.disques.pool;
       if (dl && dl.nombre > d.nombre && dl.unitaire === d.unitaire) {
         materiel.push(ligne('disqueOption',
-          `Disque supplémentaire ${dl.unitaire} To — archive portée à ${longue} jours`,
+          `Disque supplémentaire ${dl.unitaire} To, archive portée à ${longue} jours`,
           dl.nombre - d.nombre, 'u', {
             prix: prix.disque,
             option: true,
@@ -185,7 +185,7 @@ export function bordereau(etude, devis) {
   if (apparent > 0) {
     cablage.push(ligne('goulotte', a('goulotte').designation || 'Goulotte et fixation',
       apparent, 'm', { ...a('goulotte'), prix: prixDe(a('goulotte')),
-        note: `Part apparente estimée à ${Math.round((ratios.partCheminementApparent || 0) * 100)} % du cheminement — à trancher au relevé.`,
+        note: `Part apparente estimée à ${Math.round((ratios.partCheminementApparent || 0) * 100)} % du cheminement, à trancher au relevé.`,
       }));
   }
 
@@ -203,7 +203,7 @@ export function bordereau(etude, devis) {
   if (coffrets.length) {
     supports.push(ligne('coffret', a('coffret').designation || 'Coffret technique',
       coffrets.length, 'u', { ...a('coffret'), prix: prixDe(a('coffret')),
-        note: coffrets.map((c) => `${c.cle} — ${c.nom}`).join(', '),
+        note: coffrets.map((c) => `${c.cle} ${c.nom.toLowerCase()}`).join(', '),
       }));
   }
 
@@ -222,7 +222,7 @@ export function bordereau(etude, devis) {
       prix: prixFacture(kit.marche, remise),
       contenu: kit.contenu || null,
       aConfirmer: kit.aConfirmer || null,
-      note: `Pour ${acces.length} accès : ${acces.map((x) => `${x.cle} — ${x.nom}`).join(', ')}.`,
+      note: `Pour ${acces.length} accès : ${acces.map((x) => `${x.cle} ${x.nom.toLowerCase()}`).join(', ')}.`,
       option: true,
     }));
   }
@@ -263,7 +263,7 @@ export function bordereau(etude, devis) {
   if (nacelle) {
     oeuvre.push(poste('poseCameraNacelle', 'Pose et réglage des caméras en hauteur',
       nacelle * (heures.parCameraNacelle || 0), {
-        note: `${nacelle} caméras à 4 m ou plus — nacelle ou échafaudage à prévoir, non chiffré ici.`,
+        note: `${nacelle} caméras à 4 m ou plus. Nacelle ou échafaudage à prévoir, non chiffré ici.`,
       }));
   }
   oeuvre.push(poste('tirage', 'Tirage et cheminement des câbles',
@@ -295,21 +295,44 @@ export function bordereau(etude, devis) {
   );
 
   const lots = [
-    { cle: 'materiel', titre: 'Vidéosurveillance — matériel', lignes: materiel },
+    { cle: 'materiel', titre: 'Vidéosurveillance, matériel', lignes: materiel },
     { cle: 'cablage', titre: 'Câblage', lignes: cablage },
     { cle: 'supports', titre: 'Supports, coffrets et accessoires', lignes: supports },
-    { cle: 'controle', titre: 'Contrôle d\'accès et visiophone — en option', lignes: controle },
+    { cle: 'controle', titre: 'Contrôle d\'accès et visiophone', lignes: controle },
     { cle: 'signalisation', titre: 'Signalisation et dissuasion', lignes: signalisation },
     { cle: 'oeuvre', titre: 'Main d\'œuvre', lignes: oeuvre },
   ].filter((l) => l.lignes.length);
 
+  /*
+   * Les options descendent toutes en bas, en un seul lot.
+   *
+   * Éparpillées, elles coupent la lecture du prix : le client additionne de
+   * tête des lignes qu'il n'a pas commandées. Regroupées à la fin, sous le
+   * total, elles se lisent pour ce qu'elles sont — ce qu'il peut ajouter.
+   * Chacune garde le nom du lot d'où elle vient, sans quoi « disque
+   * supplémentaire » ne veut plus rien dire.
+   */
+  const options = [];
   for (const lot of lots) {
-    const chiffrees = lot.lignes.filter((l) => !l.option && l.total !== null);
-    lot.total = chiffrees.length ? chiffrees.reduce((s, l) => s + l.total, 0) : null;
-    lot.sansPrix = lot.lignes.filter((l) => !l.option && l.total === null).length;
+    for (const l of lot.lignes.filter((x) => x.option)) {
+      options.push({ ...l, venantDe: lot.titre });
+    }
+    lot.lignes = lot.lignes.filter((l) => !l.option);
+  }
+  const retenus = lots.filter((l) => l.lignes.length);
+  if (options.length) {
+    retenus.push({ cle: 'options', titre: 'Les options', lignes: options });
   }
 
-  return { lots, totaux: totaux(lots, devis) };
+  for (const lot of retenus) {
+    const compte = lot.cle === 'options'
+      ? lot.lignes.filter((l) => l.total !== null)
+      : lot.lignes.filter((l) => !l.option && l.total !== null);
+    lot.total = compte.length ? compte.reduce((s, l) => s + l.total, 0) : null;
+    lot.sansPrix = lot.lignes.filter((l) => l.total === null).length;
+  }
+
+  return { lots: retenus, totaux: totaux(retenus, devis) };
 }
 
 /**
@@ -336,6 +359,8 @@ export function totaux(lots, devis) {
       ? lots.find((l) => l.cle === 'oeuvre').lignes.reduce((s, l) => s + l.quantite, 0)
       : 0,
     options: options.length,
+    totalOptions: options.reduce((s, l) => s + (l.total || 0), 0),
+    optionsSansPrix: options.filter((l) => l.total === null).length,
     aConfirmer: toutes.concat(options).filter((l) => l.aConfirmer).length,
   };
 }

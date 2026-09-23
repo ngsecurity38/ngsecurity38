@@ -5,7 +5,7 @@
   "",
   "Les positions sont en MÈTRES, origine en haut à gauche du terrain.",
   "L’azimut est en degrés : 0 vers le haut du plan, sens horaire.",
-  "exterieur : la caméra est-elle exposée aux intempéries. Lu dans sa pose — façade, angle, mât, au-dessus d'une porte : dehors ; sous charpente, à l'aplomb d'un rideau, en plafond de sas : dedans. Sert au devis, qui compte un presse-étoupe et une étanchéité par caméra extérieure."
+  "exterieur : la caméra est-elle exposée aux intempéries. Lu dans sa pose, façade, angle, mât, au-dessus d'une porte : dehors ; sous charpente, à l'aplomb d'un rideau, en plafond de sas : dedans. Sert au devis, qui compte un presse-étoupe et une étanchéité par caméra extérieure."
  ],
  "reference": "ETU-2026-09-22",
  "titre": "Vidéosurveillance d’un site GO FORMATION",
@@ -59,7 +59,7 @@
    "exterieur": true,
    "role": "Contexte de l'entrée",
    "pose": "Même support, à 3 m, champ large",
-   "attendu": "Le contexte : qui accompagne le véhicule, dans quel sens, à quelle heure. Elle ne remplace pas C1 — au-delà de 4,5 m elle ne permet plus d'identifier qui que ce soit.",
+   "attendu": "Le contexte : qui accompagne le véhicule, dans quel sens, à quelle heure. Elle ne remplace pas C1, au-delà de 4,5 m elle ne permet plus d'identifier qui que ce soit.",
    "bande": 0.5,
    "x": 114,
    "y": 35,
@@ -101,7 +101,7 @@
    "exterieur": true,
    "role": "Limite arrière et dissuasion",
    "pose": "Sur mât ou angle de bâtiment, 3,5 m, face au bois",
-   "attendu": "Couvrir d'un seul appareil l'angle mort du fond, et dissuader : stroboscope et message sonore se déclenchent sur détection humaine. Caméra de contexte — elle n'identifie pas au-delà de trois mètres.",
+   "attendu": "Couvrir d'un seul appareil l'angle mort du fond, et dissuader : stroboscope et message sonore se déclenchent sur détection humaine. Caméra de contexte, elle n'identifie pas au-delà de trois mètres.",
    "bande": 0.5,
    "x": 110.5,
    "y": 14.5,
@@ -205,7 +205,7 @@
    "hauteur": 3,
    "exterieur": false,
    "role": "Angle de travail et stock",
-   "pose": "En angle des deux murs, 3 m, bissectrice — emplacement exact à confirmer",
+   "pose": "En angle des deux murs, 3 m, bissectrice, emplacement exact à confirmer",
    "attendu": "Couvrir les deux directions d'un seul appareil et tenir le rayonnage à portée d'identification. Posée en angle à trois mètres, elle identifie jusqu'à quatre mètres et demi : le rayonnage doit se trouver dans cette distance, sinon elle ne fera que reconnaître.",
    "bande": 0.5,
    "x": 52,
@@ -269,7 +269,7 @@
    "hauteur": 3,
    "x": 15,
    "y": 20,
-   "raison": "L'entrée et le portail sont à l'autre bout du site. Le coffret y porte les deux caméras d'entrée, la platine d'interphonie et l'alimentation du verrouillage — qui, tirée du local, perdrait une tension qu'aucune section raisonnable ne rattrape."
+   "raison": "L'entrée et le portail sont à l'autre bout du site. Le coffret y porte les deux caméras d'entrée, la platine d'interphonie et l'alimentation du verrouillage, qui, tirée du local, perdrait une tension qu'aucune section raisonnable ne rattrape."
   }
  ],
  "acces": [
@@ -294,7 +294,7 @@
    "verrouillage": "double ventouse",
    "vantaux": 2,
    "platine": false,
-   "hypothese": "Porte à deux vantaux : une ventouse par vantail, sur la même alimentation. Le courant double, donc la chute de tension aussi — c'est la liaison la plus exposée du lot.",
+   "hypothese": "Porte à deux vantaux : une ventouse par vantail, sur la même alimentation. Le courant double, donc la chute de tension aussi, c'est la liaison la plus exposée du lot.",
    "coffret": "R2"
   }
  ],
@@ -302,7 +302,7 @@
  "vues": [
   {
    "cle": "entree",
-   "titre": "Entrée du site — portail"
+   "titre": "Entrée du site : portail"
   },
   {
    "cle": "cour",
@@ -314,15 +314,15 @@
   },
   {
    "cle": "halle",
-   "titre": "Halle — volume principal"
+   "titre": "Halle : volume principal"
   },
   {
    "cle": "stock",
-   "titre": "Halle — angle de travail et stock"
+   "titre": "Halle : angle de travail et stock"
   },
   {
    "cle": "rideau",
-   "titre": "Halle — rideau métallique et zone de stockage"
+   "titre": "Halle : rideau métallique et zone de stockage"
   },
   {
    "cle": "sas",
@@ -441,7 +441,7 @@
  "autres": [
   {
    "cle": "M1",
-   "designation": "Moniteur intérieur d'interphonie — bureau",
+   "designation": "Moniteur intérieur d'interphonie, bureau",
    "x": 111,
    "y": 20,
    "hauteur": 1.5,

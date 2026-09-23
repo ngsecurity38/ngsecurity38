@@ -3,16 +3,16 @@
   "Ce que le devis ajoute à l'étude.",
   "",
   "L'étude sait déjà compter : dix caméras, trois coffrets, les mètres de",
-  "câble, les disques. Ces quantités-là ne sont PAS ici — elles se déduisent",
+  "câble, les disques. Ces quantités-là ne sont PAS ici, elles se déduisent",
   "de etude.json, et les recopier serait signer deux chiffres qui",
   "divergeront un jour.",
   "",
   "PRIX. Chaque article porte `marche` : le prix public hors taxes constaté",
   "chez un revendeur français, avec sa source et sa date dans `source`. Le",
   "prix facturé se calcule tout seul : marche x (1 - remise). La remise ne",
-  "s'imprime nulle part — le client lit un prix, pas un rabais.",
+  "s'imprime nulle part, le client lit un prix, pas un rabais.",
   "",
-  "Un article sans `marche` s'imprime « — » et ne compte pas dans le total.",
+  "Un article sans `marche` s'imprime «, » et ne compte pas dans le total.",
   "Ceux-là attendent VOS prix d'achat : je ne les invente pas.",
   "",
   "TANT QUE exemple VAUT true, le devis produit porte un bandeau disant",
@@ -44,7 +44,7 @@
    "reference": null,
    "note": "Un par coffret déporté. PoE+ (802.3at, 30 W par port) et non PoE : les caméras varifocales à chauffage dépassent les 15,4 W du PoE simple.",
    "marche": 120.0,
-   "source": "Prix public HT constaté chez un revendeur français, relevé le 23/09/2026 (camera-videosurveillance.fr) — switch 8 ports PoE+, 250 m."
+   "source": "Prix public HT constaté chez un revendeur français, relevé le 23/09/2026 (camera-videosurveillance.fr), switch 8 ports PoE+, 250 m."
   },
   "coffret": {
    "designation": "Coffret technique IP55 avec platine, serrure et parafoudre",
@@ -132,7 +132,7 @@
    "designation": "Terminal de reconnaissance faciale en remplacement du lecteur de badge",
    "reference": null,
    "option": true,
-   "aConfirmer": "Référence à arrêter avec vous. Le kit DS-KIS902-S retenu dans l'étude filme et ouvre, il ne reconnaît pas de visage : la reconnaissance faciale demande un terminal séparé. Et elle relève du traitement de données biométriques — analyse d'impact et information des personnes avant la pose, pas après.",
+   "aConfirmer": "Référence à arrêter avec vous. Le kit DS-KIS902-S retenu dans l'étude filme et ouvre, il ne reconnaît pas de visage : la reconnaissance faciale demande un terminal séparé. Et elle relève du traitement de données biométriques, analyse d'impact et information des personnes avant la pose, pas après.",
    "marche": null
   },
   "sireneInterieure": {
@@ -141,7 +141,7 @@
    "marche": null,
    "famille": "video",
    "source": "Référence relevée le 24/09/2026 (cfpsecurite.com). Prix NON PUBLIÉ chez les revendeurs français.",
-   "note": "Sirène et flash dans le même appareil. Elle appartient à la gamme d'alarme AX PRO : sans fil, sur pile, elle se déclenche depuis une centrale d'alarme — pas depuis l'enregistreur vidéo."
+   "note": "Sirène et flash dans le même appareil. Elle appartient à la gamme d'alarme AX PRO : sans fil, sur pile, elle se déclenche depuis une centrale d'alarme, pas depuis l'enregistreur vidéo."
   },
   "flash": {
    "designation": "Sirène extérieure à flash Hikvision AX PRO, 110 dB, autoprotégée",
@@ -165,7 +165,7 @@
   "",
   "ATTENTION : les deux sont de la gamme AX PRO, sans fil, sur pile. Elles",
   "se déclenchent depuis une CENTRALE D'ALARME, pas depuis l'enregistreur",
-  "vidéo — Hikvision ne fait pas de sirène alimentée en PoE qui se branche",
+  "vidéo, Hikvision ne fait pas de sirène alimentée en PoE qui se branche",
   "sur le réseau des caméras. La dissuasion en PoE, sur ce site, vient des",
   "six caméras panoramiques : stroboscope et message sonore intégrés,",
   "déclenchés par la détection humaine AcuSense."
@@ -209,10 +209,10 @@
   "interphonie": null
  },
  "sources": {
-  "turret": "Prix public HT constaté chez un revendeur français, relevé le 23/09/2026 (getic.fr) — DS-2CD2346G2H-IU.",
-  "varifocal": "Prix public HT constaté chez un revendeur français, relevé le 23/09/2026 (w3cam.fr, 319,20 € TTC) — DS-2CD2683G2-IZS.",
-  "panoramique": "Prix public HT constaté chez un revendeur français, relevé le 23/09/2026 (idealo.fr) — DS-2CD2346G2P-ISU/SL.",
-  "enregistreur": "Prix public HT constaté chez un revendeur français, relevé le 23/09/2026 (camera-videosurveillance.fr, 618,00 € TTC) — DS-7616NXI-K2/16P.",
+  "turret": "Prix public HT constaté chez un revendeur français, relevé le 23/09/2026 (getic.fr), DS-2CD2346G2H-IU.",
+  "varifocal": "Prix public HT constaté chez un revendeur français, relevé le 23/09/2026 (w3cam.fr, 319,20 € TTC), DS-2CD2683G2-IZS.",
+  "panoramique": "Prix public HT constaté chez un revendeur français, relevé le 23/09/2026 (idealo.fr), DS-2CD2346G2P-ISU/SL.",
+  "enregistreur": "Prix public HT constaté chez un revendeur français, relevé le 23/09/2026 (camera-videosurveillance.fr, 618,00 € TTC), DS-7616NXI-K2/16P.",
   "disque": "Prix relevé par l'agence sur Internet chez des professionnels, 24/09/2026 : 1 117 € TTC pour deux disques.",
   "interphonie": "NON RELEVÉ. Kit DS-KIS902-S : aucun revendeur français ne publie son prix."
  },
@@ -225,7 +225,7 @@
  "_kitAcces": [
   "Le contrôle d'accès et le visiophone se vendent EN UN SEUL BLOC, en",
   "option : le client prend le tout ou rien. Les lignes détaillées ne sont",
-  "plus imprimées — elles restent dans `articles` pour le chiffrage interne.",
+  "plus imprimées, elles restent dans `articles` pour le chiffrage interne.",
   "",
   "contenu[] est ce que le client lit sous la ligne. Le prix, lui, est celui",
   "du kit entier : marche x (1 - remise), comme partout ailleurs."

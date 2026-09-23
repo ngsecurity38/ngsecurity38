@@ -15,7 +15,7 @@ import { fr, echapper, enEuros } from './format.js';
 import { bordereau } from './devis-etude.js';
 import { reglagesPdf, MARGES } from './papier.js';
 
-const euros = (v) => (Number.isFinite(v) ? `${enEuros(v)} €` : '—');
+const euros = (v) => (Number.isFinite(v) ? `${enEuros(v)} €` : '');
 
 const STYLE_DEVIS = (papier) => `
 :root { --rouge:#c8102e; --encre:#1a1d23; --doux:#5b6472; --bord:#dde1e7; --fond:#f6f7f9; }
@@ -65,6 +65,8 @@ ul.contenu li { margin-bottom:3px; }
   border-bottom:1px solid var(--bord); font-size:14px; }
 .total div:last-child { border-bottom:0; background:var(--encre); color:#fff;
   font-size:17px; font-weight:800; }
+.apres-total { margin:14px 0 0; font-size:13.5px; }
+.titre-options { margin-top:26px; }
 .mentions { font-size:12.5px; color:var(--doux); }
 .mentions li { margin-bottom:6px; }
 .signature { display:flex; gap:24px; margin-top:26px; }
@@ -98,16 +100,24 @@ ul.contenu li { margin-bottom:3px; }
  * mises en page du même tableau finiraient par ne plus dire la même chose.
  */
 export function tablesDevis(lots) {
-  return lots.map((lot) => `<h3>${echapper(lot.titre)}</h3>
+  return lots.map((lot) => {
+    const opt = lot.cle === 'options';
+    return `<h3${opt ? ' class="titre-options"' : ''}>${echapper(lot.titre)}</h3>
+${opt ? `<p class="det">Ce qui suit n'est pas compris dans le prix ci-dessus.
+  Chaque option s'ajoute à la commande, ou plus tard, sans reprendre
+  l'installation.</p>` : ''}
 <table>
   <thead><tr><th>Désignation</th><th class="n">Qté</th><th class="n">Un.</th>
     <th class="n">P.U. HT</th><th class="n">Total HT</th></tr></thead>
   <tbody>${lignesHtml(lot)}
-    <tr class="sous-total"><td colspan="4">Sous-total ${echapper(lot.titre.toLowerCase())}</td>
+    <tr class="sous-total"><td colspan="4">${opt
+  ? 'Total des options, à ajouter au prix ci-dessus'
+  : `Sous-total ${echapper(lot.titre.toLowerCase())}`}</td>
       <td class="n">${euros(lot.total)}</td></tr>
   </tbody>
 </table>
-${lot.sansPrix ? `<p class="det">${lot.sansPrix} ligne(s) de ce lot ne sont pas encore chiffrées.</p>` : ''}`).join('\n');
+${lot.sansPrix ? `<p class="det">${lot.sansPrix} ligne(s) de ce lot ne sont pas encore chiffrées.</p>` : ''}`;
+  }).join('\n');
 }
 
 /** Le bandeau qui dit ce que le chiffrage vaut — ou ne vaut pas encore. */
@@ -133,14 +143,17 @@ export function totauxHtml(t) {
   <div><span>TVA ${echapper(fr(t.tauxTva * 100, 1))} %</span><b>${m(t.montantTva)}</b></div>
   <div><span>Total TTC</span><b>${m(t.ttc)}</b></div>
 </div>
-<p class="det">${echapper(fr(t.heures, 2))} heures de main d'œuvre au total.
-  ${t.options ? `${t.options} ligne(s) en option, non comptées dans le total.` : ''}
-  ${t.aConfirmer ? `${t.aConfirmer} ligne(s) restent à arrêter avec vous.` : ''}</p>`;
+<p class="apres-total">Ce prix comprend la fourniture du matériel, sa pose, son
+  raccordement, la mise en service, le réglage de chaque caméra sur son champ,
+  la formation de vos équipes et le dossier de fin d'installation. Le matériel
+  est garanti <b>trois ans</b> et la maintenance vous est offerte la
+  <b>première année</b>.</p>`;
 }
 
 function lignesHtml(lot) {
   return lot.lignes.map((l) => `<tr class="${l.option ? 'option' : ''}">
-    <td>${echapper(l.designation)}${l.option ? ' <span class="marque-option">option</span>' : ''}
+    <td>${echapper(l.designation)}${l.option && !l.venantDe ? ' <span class="marque-option">option</span>' : ''}
+      ${l.venantDe ? `<span class="det">${echapper(l.venantDe)}</span>` : ''}
       ${l.reference && l.reference !== l.designation
     ? `<span class="det">Réf. ${echapper(l.reference)}</span>` : ''}
       ${l.note ? `<span class="det">${echapper(l.note)}</span>` : ''}
@@ -150,7 +163,7 @@ function lignesHtml(lot) {
     <td class="n">${echapper(fr(l.quantite, 2))}</td>
     <td class="n">${echapper(l.unite)}</td>
     <td class="n">${euros(l.prix)}</td>
-    <td class="n">${l.option ? '—' : euros(l.total)}</td>
+    <td class="n">${euros(l.total)}</td>
   </tr>`).join('');
 }
 
@@ -175,7 +188,7 @@ export function ficheDevis(etude, devis, agence) {
   return `<!doctype html>
 <html lang="fr"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Devis — ${echapper(agence.nomCommercial || '')}</title>
+<title>Devis · ${echapper(agence.nomCommercial || '')}</title>
 <style>${STYLE_DEVIS(papier)}</style></head>
 <body><div class="feuille">
 
@@ -247,7 +260,7 @@ ${totauxHtml(t)}
 <div class="signature">
   <div><b>L'entreprise</b><br>${echapper(agence.nomCommercial || '')}<br>
     ${echapper(agence.dirigeant || '')}</div>
-  <div><b>Le client</b> — date, signature et mention « bon pour accord »</div>
+  <div><b>Le client</b><br>Date, signature et mention « bon pour accord »</div>
 </div>
 
 <p class="pied">${echapper(agence.nomCommercial || '')} ·

@@ -77,7 +77,7 @@ function etiquette(etude, cle) {
   if (c) {
     const m = etude.modeles[c.modele];
     return {
-      titre: `${c.cle} — ${c.role || 'caméra'}`,
+      titre: `${c.cle} · ${c.role || 'caméra'}`,
       // Le synoptique nomme le modèle, pas son optique : les millimètres et
       // les suffixes de révision sont dans le tableau des caméras, et ici
       // ils passeraient par-dessus le rôle qu'ils sont censés préciser.
@@ -86,10 +86,10 @@ function etiquette(etude, cle) {
   }
   const a = (etude.acces || []).find((x) => x.cle === cle);
   if (a) {
-    return { titre: `${a.cle} — ${a.nom}`, detail: a.verrouillage || 'contrôle d\'accès' };
+    return { titre: `${a.cle} · ${a.nom}`, detail: a.verrouillage || 'contrôle d\'accès' };
   }
   const o = (etude.autres || []).find((x) => x.cle === cle);
-  if (o) return { titre: `${o.cle} — ${o.designation}`, detail: '' };
+  if (o) return { titre: `${o.cle} · ${o.designation}`, detail: '' };
   return { titre: cle, detail: '' };
 }
 
@@ -212,7 +212,7 @@ export function synoptique(etude) {
       const yBoite = r.milieu - hBoite / 2;
       blocs.push(`<g>
         ${boite(X_COFFRET, yBoite, L_COFFRET, hBoite, `fill="#fff" stroke="${COULEUR_LIEN[v]}" stroke-width="2"`)}
-        <text x="${X_COFFRET + 11}" y="${yBoite + 19}" class="t-titre">${ech(g.cle)} — ${ech(couper(g.nom, 19))}</text>
+        <text x="${X_COFFRET + 11}" y="${yBoite + 19}" class="t-titre">${ech(g.cle)} · ${ech(couper(g.nom, 19))}</text>
         ${contenu.map((t, n) => `<text x="${X_COFFRET + 11}" y="${yBoite + 37 + n * 15}" class="t-det">${ech(t)}</text>`).join('')}
         <text x="${X_COFFRET + 11}" y="${yBoite + hBoite - 9}" class="t-mini">${poe} équipements · depuis ${ech(g.depuis === 'local' ? 'le local' : g.depuis)}</text>
       </g>`);

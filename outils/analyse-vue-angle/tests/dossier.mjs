@@ -342,3 +342,50 @@ test('sans variante déclarée, le chapitre ne montre qu\'une carte', () => {
   assert.ok(!html.includes('EN OPTION'));
   assert.ok(html.includes('RETENU'));
 });
+
+test('aucun tiret long dans le dossier remis au client', () => {
+  /*
+   * L'agence signe ce dossier. Le tiret cadratin est la ponctuation que
+   * personne ne tape au clavier : il trahit un texte composé à la machine.
+   * On le traque dans le texte, pas dans les images embarquées.
+   */
+  const e = copie();
+  const html = fiche(e, AGENCE, PLAN, DEVIS)
+    .replace(/data:[^"]+/g, '')
+    .replace(/<style>[\s\S]*?<\/style>/g, '');
+  const i = html.indexOf('—');
+  assert.equal(i, -1, i < 0 ? '' : `tiret long : « ${html.slice(i - 70, i + 70)} »`);
+});
+
+test('une caméra qui couvre toute la vue ne noie pas la photo', () => {
+  /*
+   * Une panoramique de 180° reportée sur une photo de 53° déborde largement.
+   * Son aplat rouge recouvrait l'image entière, et deux caméras sur la même
+   * vue la rendaient illisible.
+   */
+  const e = copie();
+  const pano = e.cameras.find((c) => e.modeles[c.modele].capteurUnique);
+  assert.ok(pano, 'l\'étude porte bien une panoramique');
+  e.photos = [{
+    cle: 'V1', titre: 'Essai', champ: 52.8,
+    src: 'data:image/gif;base64,R0lGODlhAQABAAAAACw=',
+    reperes: [{ camera: pano.cle, bande: 0.5 }],
+  }];
+  const html = fiche(e, AGENCE, PLAN);
+  assert.ok(/class="champ large"/.test(html), 'la bande large perd son fond');
+  assert.ok(html.includes('.report .champ.large { background:none; }'));
+  assert.ok(html.includes('toute la vue'));
+});
+
+test('une caméra au champ étroit garde son aplat', () => {
+  const e = copie();
+  const etroite = e.cameras.find((c) => c.tele);
+  e.photos = [{
+    cle: 'V1', titre: 'Essai', champ: 52.8,
+    src: 'data:image/gif;base64,R0lGODlhAQABAAAAACw=',
+    reperes: [{ camera: etroite.cle, bande: 0.5 }],
+  }];
+  const html = fiche(e, AGENCE, PLAN);
+  assert.ok(/class="champ"/.test(html));
+  assert.ok(!/class="champ large"/.test(html));
+});

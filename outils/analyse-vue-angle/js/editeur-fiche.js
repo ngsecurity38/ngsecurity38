@@ -118,6 +118,7 @@ figcaption { font-size:13px; color:var(--doux); margin-top:6px; }
 .report img { width:100%; display:block; }
 .report .champ { position:absolute; top:0; bottom:0; background:rgba(200,16,46,.24);
   border-left:2px solid var(--rouge); border-right:2px solid var(--rouge); }
+.report .champ.large { background:none; }
 .report .champ span { position:absolute; top:5px; left:5px; font-size:11px;
   background:var(--rouge); color:#fff; padding:1px 6px; border-radius:3px;
   line-height:1.4; white-space:nowrap; }
@@ -222,8 +223,8 @@ function archive(etude, b) {
       <h3>${jours} jours d'enregistrement continu</h3>
       <p><b>${echapper(fr(bil.capaciteGo / 1000))} To</b> d'images à conserver.
         ${d ? `${d.nombre} disque${d.nombre > 1 ? 's' : ''} de ${d.unitaire} To
-          — ${d.total} To installés sur les ${bil.disques.baies} baies de
-          l'enregistreur.` : 'Aucune configuration de disque ne couvre ce besoin.'}</p>
+soit ${d.total} To installés sur les ${bil.disques.baies} baies
+          de l'enregistreur.` : 'Aucune configuration de disque ne couvre ce besoin.'}</p>
     </div>`;
   };
   return `<div class="archives">
@@ -259,7 +260,7 @@ function fiches(etude) {
       ${m.src ? `<img src="${m.src}" alt="${echapper(m.reference)}">` : ''}
       <div class="modele-txt">
         <h3>${echapper(m.reference)}</h3>
-        <p class="det">${echapper(m.type || '')} — ${sur.length} exemplaire(s) au plan :
+        <p class="det">${echapper(m.type || '')}. ${sur.length} exemplaire(s) au plan :
           ${echapper(sur.map((c) => c.cle).join(', '))}.</p>
         <table class="specs">
           ${ligne('Définition', `${m.resH} × ${m.resV} px`)}
@@ -271,7 +272,7 @@ function fiches(etude) {
     : (m.focale ? `${echapper(fr(m.focale))} mm fixe${
   m.capteurUnique ? ' × 2 objectifs' : ''}` : null))}
           ${ligne('Infrarouge', m.ir ? `${m.ir} m` : null)}
-          ${ligne('Alimentation', `${echapper(m.classePoe || 'PoE')} — ${echapper(fr(m.consoPoe))} W`)}
+          ${ligne('Alimentation', `${echapper(m.classePoe || 'PoE')}, ${echapper(fr(m.consoPoe))} W`)}
           ${ligne('Reconnaît jusqu\'à', `${echapper(fr(p.reconnaissance))} m${
   pt && tele ? ` · ${echapper(fr(pt.reconnaissance))} m au téléobjectif` : ''}`)}
           ${ligne('Identifie jusqu\'à', `<b class="fort">${echapper(fr(p.identification))} m</b>${
@@ -307,7 +308,7 @@ export function fiche(etude, agence, planSvg, devis = null) {
     const fort = p.identification > 5;
     return `<tr>
       <td><b>${echapper(c.cle)}</b></td>
-      <td>${echapper(c.role || '—')}</td>
+      <td>${echapper(c.role || '')}</td>
       <td>${echapper(m.reference.replace('Hikvision ', ''))}${c.tele ? ' · télé' : ''}</td>
       <td class="n">${echapper(fr(p.reconnaissance))} m</td>
       <td class="n${fort ? ' fort' : ''}">${echapper(fr(p.identification))} m</td>
@@ -322,16 +323,24 @@ export function fiche(etude, agence, planSvg, devis = null) {
       const o = optiqueUtile(m, c.tele);
       const angle = m.capteurUnique ? 180 : o.angleH;
       const bd = bandePhoto(ph.champ, angle, r.bande);
-      return `<div class="champ" style="left:${(bd.gauche * 100).toFixed(1)}%;
-        width:${(bd.largeur * 100).toFixed(1)}%"><span>${echapper(c.cle)} — ${
-  echapper(fr(angle))}°${bd.deborde ? ' · déborde du cadre' : ''}</span></div>`;
+      /*
+       * Une panoramique de 180° couvre plus que la photo : son aplat rouge
+       * la recouvrirait en entier, et deux caméras sur la même vue la
+       * rendraient illisible. Au-delà de neuf dixièmes du cadre, on ne
+       * garde que le trait et l'étiquette.
+       */
+      const noie = bd.largeur >= 0.9;
+      return `<div class="champ${noie ? ' large' : ''}"
+        style="left:${(bd.gauche * 100).toFixed(1)}%;
+        width:${(bd.largeur * 100).toFixed(1)}%"><span>${echapper(c.cle)} · ${
+  echapper(fr(angle))}°${bd.deborde ? ' · toute la vue' : ''}</span></div>`;
     }).join('');
     const cams = (ph.reperes || []).map((r) => r.camera);
     const detail = cams.map((cle) => {
       const c = etude.cameras.find((x) => x.cle === cle);
       if (!c) return '';
       const p = porteesDori(etude.modeles[c.modele], c.tele);
-      return `<li><b>${echapper(c.cle)} — ${echapper(c.role || '')}.</b>
+      return `<li><b>${echapper(c.cle)} : ${echapper(c.role || '')}.</b>
         ${c.attendu ? `${echapper(c.attendu)} ` : ''}
         Identifie jusqu'à <b>${echapper(fr(p.identification))} m</b>,
         reconnaît jusqu'à ${echapper(fr(p.reconnaissance))} m.
@@ -340,7 +349,7 @@ export function fiche(etude, agence, planSvg, devis = null) {
     return `<h3>${echapper(ph.titre || ph.cle)}</h3>
       <div class="report">${`<img src="${ph.src}" alt="${echapper(ph.titre || '')}">`}${bandes}</div>
       <figcaption>La bande rouge est le champ réel de la caméra, reporté à
-        l'échelle de la prise de vue — champ de la photo estimé à
+        l'échelle de la prise de vue. Le champ de la photo est estimé à
         ${echapper(fr(ph.champ))}°.</figcaption>
       ${detail ? `<ul class="liste">${detail}</ul>` : ''}`;
   }).join('');
@@ -382,9 +391,9 @@ export function fiche(etude, agence, planSvg, devis = null) {
   <tbody>${lignes}</tbody>
 </table>
 <p class="point"><b>Identifier n'est pas voir.</b> La dernière colonne est la
-  distance à laquelle un inconnu devient nommable — 250 pixels par mètre selon
-  la norme EN 62676-4. En deçà, la caméra montre une silhouette ; elle ne
-  prouve rien.</p>`,
+  distance à laquelle un inconnu devient nommable, soit 250 pixels par mètre
+  selon la norme EN 62676-4. En deçà, la caméra montre une silhouette ; elle
+  ne prouve rien.</p>`,
 
     fiches: fiches(etude),
 
@@ -425,10 +434,11 @@ ${hors}`,
   <li><b>Garantie du matériel trois ans</b> à compter de la mise en service :
     caméras, enregistreur, disques, commutateurs et coffrets. Un appareil
     défaillant est remplacé, pose comprise.</li>
-  <li><b>Maintenance gratuite la première année.</b> Une visite annuelle —
+  <li><b>Maintenance gratuite la première année.</b> Une visite annuelle :
     nettoyage des optiques, vérification des fixations et de l'étanchéité,
     contrôle de l'enregistrement et de la profondeur d'archive, mise à jour
-    des microprogrammes — et l'assistance à distance en cas de panne.</li>
+    des microprogrammes. L'assistance à distance en cas de panne est
+    comprise.</li>
   <li><b>Remise du dossier de fin d'installation :</b> plans de récolement,
     adresses réseau, identifiants, notices et procès-verbal de réception.</li>
   <li><b>Formation à l'exploitation</b> du système sur site, et connexion de
@@ -482,7 +492,7 @@ ${hors}`,
   return `<!doctype html>
 <html lang="fr"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Étude technique — ${echapper(agence.nomCommercial || '')}</title>
+<title>Étude technique · ${echapper(agence.nomCommercial || '')}</title>
 <style>${STYLE(papier)}</style></head>
 <body><div class="feuille">
 
@@ -512,8 +522,8 @@ ${hors}`,
 ${chapitres}
 
 <p class="pied">${echapper(agence.nomCommercial || '')} ·
-  ${echapper(agence.telephone || '')} · ${echapper(agence.courriel || '')} —
-  étude établie le ${echapper(date)} — document de travail, à confirmer par un
+  ${echapper(agence.telephone || '')} · ${echapper(agence.courriel || '')}<br>
+  Étude établie le ${echapper(date)}. Document de travail, à confirmer par un
   relevé sur place.</p>
 
 </div>
