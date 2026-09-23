@@ -424,19 +424,22 @@ test('le total des options dit qu\'il ne compte que ce qui est chiffré', () => 
    * « le total des options » ferait croire à un surcoût deux fois moindre
    * que le vrai : c'est l'erreur que le lot doit rendre impossible.
    */
-  const r = bordereau(REELLE, DEVIS);
-  const lot = r.lots.find((l) => l.cle === 'options');
-  assert.ok(lot.sansPrix > 0, 'le cas se présente bien');
-  const html = ficheDevis(REELLE, DEVIS, AGENCE);
+  // On écarte volontairement le prix d'une option : le cas doit être tenu
+  // par le code, pas par l'état du tarif du jour.
+  const d = copie(DEVIS);
+  d.articles.ecran.marche = null;
+  const lot = bordereau(REELLE, d).lots.find((l) => l.cle === 'options');
+  assert.equal(lot.sansPrix, 1);
+  const html = ficheDevis(REELLE, d, AGENCE);
   assert.ok(html.includes('Total des options chiffrées'),
     'le mot « chiffrées » manque à l\'intitulé du total');
-  assert.ok(/(Une option reste|options restent) à chiffrer/.test(html));
+  assert.ok(/Une option reste à chiffrer/.test(html));
 });
 
 test('une fois tout chiffré, le lot des options ne réserve plus rien', () => {
-  const d = copie(DEVIS);
-  for (const a of Object.values(d.articles)) if (!a.marche) a.marche = 100;
-  const lot = bordereau(REELLE, d).lots.find((l) => l.cle === 'options');
-  assert.equal(lot.sansPrix, 0);
-  assert.ok(!/(Une option reste|options restent) à chiffrer/.test(ficheDevis(REELLE, d, AGENCE)));
+  const lot = bordereau(REELLE, DEVIS).lots.find((l) => l.cle === 'options');
+  assert.equal(lot.sansPrix, 0, 'le tarif du jour chiffre toutes les options');
+  const html = ficheDevis(REELLE, DEVIS, AGENCE);
+  assert.ok(!/(Une option reste|options restent) à chiffrer/.test(html));
+  assert.ok(html.includes('Total des options chiffrées'));
 });
