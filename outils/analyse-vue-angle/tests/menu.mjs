@@ -33,9 +33,10 @@ test('une seule entrée est marquée, et elle correspond à la page ouverte', ()
     '/outils/devis/');
 });
 
-test('ailleurs : la page d\'outil garde une porte vers l\'autre domaine', () => {
+test('ailleurs : la page d\'outil garde une porte vers la boutique', () => {
+  // L'agence garde le .fr : c'est là que la boutique vit.
   const a = lienAilleurs(MENU_DEFAUT);
-  assert.match(a.href, /^https:\/\/ngsecurity38\.com\//);
+  assert.match(a.href, /^https:\/\/ngsecurity38\.fr\//);
   assert.ok(a.texte.length > 0);
   assert.equal(lienAilleurs({ liens: [], ailleurs: null }), null, 'et il se retire');
 });

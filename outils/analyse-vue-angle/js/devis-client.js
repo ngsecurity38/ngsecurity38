@@ -200,7 +200,7 @@ function dessinerSchema(offre, r) {
     { id: 'cam', t: `${offre.cameras} caméra${offre.cameras > 1 ? 's' : ''}`,
       c: '#c8102e', role: 'Caméras', niveau: 0 },
     { id: 'sw', t: 'Switch PoE', c: '#2eae6a', role: 'Switch PoE', niveau: 1, parent: 'cam' },
-    { id: 'nvr', t: 'Enregistreur', c: '#c05cc0', role: 'Enregistreur', niveau: 2, parent: 'sw' },
+    { id: 'nvr', t: 'Serveur d\'enregistrement', c: '#c05cc0', role: 'Enregistreur', niveau: 2, parent: 'sw' },
     r.routeur
       ? { id: 'box', t: 'Routeur', c: '#3d8bfd', role: 'Routeur', niveau: 2, parent: 'sw' }
       : null,
@@ -251,7 +251,7 @@ function dessinerSchema(offre, r) {
   const absents = noeuds.filter((n) => n.role && !presents.has(n.role));
   const note = absents.length
     ? `<figcaption class="note-schema">En gris : `
-      + `${absents.map((n) => n.t.toLowerCase()).join(', ')} — `
+      + `${absents.map((n) => n.t.toLowerCase()).join(', ')}, `
       + `nécessaire${absents.length > 1 ? 's' : ''} à l'installation, `
       + `chiffré${absents.length > 1 ? 's' : ''} lors de l'étude.</figcaption>`
     : '';

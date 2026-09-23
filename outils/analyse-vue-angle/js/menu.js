@@ -31,7 +31,7 @@ export const MENU_DEFAUT = {
     { texte: 'Estimer mes caméras', href: '/outils/devis/' },
     { texte: 'Alarme anti-intrusion', href: '/outils/alarme/' },
   ],
-  ailleurs: { texte: 'La boutique .com', href: 'https://ngsecurity38.com/' },
+  ailleurs: { texte: 'La boutique', href: 'https://ngsecurity38.fr/' },
 };
 
 /**

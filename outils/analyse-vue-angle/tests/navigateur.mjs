@@ -1824,7 +1824,7 @@ console.log('\nDevis client');
     });
     // Le tarif livré n'a ni enregistreur ni routeur : ils doivent quand même
     // figurer, en gris, sinon les caméras sembleraient reliées à rien.
-    affirmer(schema.textes.some((t) => /Enregistreur/.test(t)), JSON.stringify(schema.textes));
+    affirmer(schema.textes.some((t) => /enregistrement/i.test(t)), JSON.stringify(schema.textes));
     affirmer(schema.textes.some((t) => /Switch PoE/.test(t)), JSON.stringify(schema.textes));
     affirmer(schema.gris >= 2, `les maillons hors tarif sont grisés : ${schema.gris}`);
     affirmer(/En gris/.test(schema.note), `et expliqués : ${schema.note}`);
@@ -2123,7 +2123,7 @@ console.log('\nDevis client');
     const vers = Object.fromEntries(liens.map(([t, h]) => [h, t]));
     affirmer(vers['/'], 'le site');
     affirmer(vers['/outils/etude/'], 'l\'autre outil');
-    affirmer(vers['https://ngsecurity38.com/'], `la boutique : ${JSON.stringify(liens)}`);
+    affirmer(vers['https://ngsecurity38.fr/'], `la boutique : ${JSON.stringify(liens)}`);
   });
 
   await cas('la page porte le menu du site, la sienne signalée sans être cliquable', async () => {
@@ -2183,8 +2183,8 @@ console.log('\nDevis client');
     affirmer(r.entrees.every((e) => !e.courant || e.href === null),
       'la rubrique de la page ouverte ne se relie pas à elle-même');
 
-    affirmer(r.ailleurs && /^https:\/\/ngsecurity38\.com\//.test(r.ailleurs.href),
-      `le départ vers l'autre domaine : ${JSON.stringify(r.ailleurs)}`);
+    affirmer(r.ailleurs && /^https:\/\/ngsecurity38\.fr\//.test(r.ailleurs.href),
+      `le départ vers la boutique : ${JSON.stringify(r.ailleurs)}`);
   });
 
   await cas('le menu reste lisible : texte clair sur bandeau sombre', async () => {
@@ -2316,8 +2316,8 @@ console.log('\nPage de présentation (boutique)');
     affirmer(r.haut < r.hautMarque, 'il ouvre la page');
     affirmer(r.href.includes('/outils/etude/') && r.href.includes('/outils/devis/'),
       `les deux outils au menu : ${JSON.stringify(r.href)}`);
-    affirmer(/^https:\/\/ngsecurity38\.com\//.test(r.ailleurs),
-      `le départ vers l'autre domaine : ${r.ailleurs}`);
+    affirmer(/^https:\/\/ngsecurity38\.fr\//.test(r.ailleurs),
+      `le départ vers la boutique : ${r.ailleurs}`);
   });
 
   await cas('l\'échelle des paliers est dessinée, et dit sur quoi elle porte', async () => {
@@ -2369,12 +2369,12 @@ console.log('\nPage de présentation (boutique)');
     /*
      * L'étude doit rester RELATIVE : les deux pages se trouvent ainsi qu'elles
      * soient à la racine d'un domaine, sous un sous-dossier ou dans un cadre.
-     * La boutique, elle, est sur un autre domaine — son adresse est donc
+     * La boutique est une autre page du site : son adresse est donc
      * complète, et c'est voulu.
      */
     affirmer(liens.outil === '../devis/', `étude : ${liens.outil}`);
     affirmer(liens.bas === liens.outil, 'les deux boutons mènent au même endroit');
-    affirmer(/^https:\/\/ngsecurity38\.com\//.test(liens.boutique),
+    affirmer(/^https:\/\/ngsecurity38\.fr\//.test(liens.boutique),
       `boutique : ${liens.boutique}`);
     affirmer(liens.pied.length === 2, `deux liens au pied : ${JSON.stringify(liens.pied)}`);
     affirmer(liens.pied.some(([, h]) => h === liens.outil),
@@ -2817,7 +2817,7 @@ console.log('\nPage d\'étude alarme');
     }));
     affirmer(r.menu.includes('/outils/etude/') && r.menu.includes('/outils/devis/'),
       `les deux autres outils : ${JSON.stringify(r.menu)}`);
-    affirmer(/^https:\/\/ngsecurity38\.com\//.test(r.ailleurs), `la boutique : ${r.ailleurs}`);
+    affirmer(/^https:\/\/ngsecurity38\.fr\//.test(r.ailleurs), `la boutique : ${r.ailleurs}`);
     affirmer(r.pied.length === 3, `trois liens au pied : ${JSON.stringify(r.pied)}`);
   });
 
