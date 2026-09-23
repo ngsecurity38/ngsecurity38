@@ -80,16 +80,21 @@ main { display:flex; gap:16px; padding:16px; align-items:flex-start; }
 .aucune { margin:0; padding:14px 16px; font-size:13.5px; color:var(--doux);
   background:#fff; border:1px dashed var(--bord); border-radius:10px; }
 
-#panneau label, #photo-panneau label { display:block; margin-top:12px; font-size:13px; font-weight:600; }
-#panneau label.case, #photo-panneau label.case { font-weight:400; display:flex; gap:8px; flex-wrap:wrap; align-items:flex-start; }
-#panneau label.case small, #photo-panneau label.case small { flex-basis:100%; }
-#panneau input[type=text], #panneau input[type=number], #panneau select,
-#photo-panneau input[type=text] {
+/*
+ * Les formulaires sont stylés par bloc, pas par identifiant. Deux fois déjà
+ * un panneau neuf est sorti nu — les champs collés au bord, l'aide en ligne
+ * au lieu d'être dessous — parce que la règle ne nommait que les panneaux
+ * existants. Tout ce qui est dans un `.bloc` est servi.
+ */
+.bloc label { display:block; margin-top:12px; font-size:13px; font-weight:600; }
+.bloc label.case { font-weight:400; display:flex; gap:8px; flex-wrap:wrap; align-items:flex-start; }
+.bloc label.case small { flex-basis:100%; }
+.bloc input[type=text], .bloc input[type=number], .bloc select {
   width:100%; font:inherit; font-size:14px; font-weight:400; margin-top:4px;
   padding:7px 9px; border:1px solid var(--bord); border-radius:7px; background:#fff;
 }
-#panneau input[type=range], #photo-panneau input[type=range] { width:100%; margin-top:6px; }
-#panneau small, #photo-panneau small { display:block; font-weight:400; font-size:11.5px; color:var(--doux); margin-top:3px; }
+.bloc input[type=range] { width:100%; margin-top:6px; }
+.bloc small { display:block; font-weight:400; font-size:11.5px; color:var(--doux); margin-top:3px; }
 .paire { display:flex; gap:10px; }
 .paire label { flex:1; }
 
@@ -116,6 +121,12 @@ main { display:flex; gap:16px; padding:16px; align-items:flex-start; }
 
 /* ------------------------------------------------ photos et fond de plan */
 
+/*
+ * `display:flex` sur une classe l'emporte sur l'attribut `hidden` du
+ * navigateur : le bandeau de calage restait affiché, avec sa largeur vide et
+ * son bouton « Retirer », alors qu'aucune vue aérienne n'était chargée.
+ */
+.fond-reglages[hidden] { display:none; }
 .fond-reglages {
   display:flex; align-items:flex-end; gap:14px; flex-wrap:wrap;
   background:#fff; border:1px solid var(--bord); border-radius:10px;
@@ -178,9 +189,9 @@ main { display:flex; gap:16px; padding:16px; align-items:flex-start; }
 .chapitres li.ecarte { background:var(--fond); opacity:.62; }
 .chapitres .rang { display:flex; align-items:center; gap:6px; }
 .chapitres .rang input[type="text"] {
-  flex:1 1 auto; min-width:0; font:inherit; font-size:13.5px;
-  padding:5px 8px; border:1px solid var(--bord); border-radius:6px;
-  background:#fff; color:var(--encre);
+  flex:1 1 auto; width:auto; min-width:0; margin-top:0; font:inherit;
+  font-size:13.5px; padding:5px 8px; border:1px solid var(--bord);
+  border-radius:6px; background:#fff; color:var(--encre);
 }
 .chapitres li.ecarte .rang input[type="text"] { text-decoration:line-through; }
 .chapitres .det { display:block; margin:5px 2px 0; font-size:12px; color:var(--doux); }

@@ -16,6 +16,7 @@ import { fileURLToPath } from 'node:url';
 
 import {
   fiche, sectionsDuDossier, dossierParDefaut, SECTIONS_STANDARD,
+  reglagesPdf, pdfParDefaut, MARGES,
 } from '../js/editeur-fiche.js';
 
 const ici = dirname(fileURLToPath(import.meta.url));
@@ -131,6 +132,47 @@ test('sans photo, le chapitre des vues ne s\'imprime pas', () => {
   const e = copie();
   delete e.photos;
   assert.ok(!titres(fiche(e, AGENCE, PLAN)).includes('Le site, vue par vue'));
+});
+
+/* ------------------------------------------------------------ le papier */
+
+test('sans réglage, le papier est A4 portrait à marges normales', () => {
+  assert.deepEqual(reglagesPdf(copie()), pdfParDefaut());
+  assert.ok(fiche(copie(), AGENCE, PLAN).includes('@page { size:A4 portrait;'));
+});
+
+test('le format, le sens et les marges choisis passent dans la feuille', () => {
+  const e = copie();
+  e.dossier = { pdf: { format: 'A3', orientation: 'landscape', marges: 'larges' } };
+  const page = fiche(e, AGENCE, PLAN).match(/@page \{[^}]*\}/)[0];
+  assert.ok(page.includes('size:A3 landscape'));
+  assert.ok(page.includes(MARGES.larges.css));
+});
+
+test('un réglage inventé retombe sur le papier par défaut', () => {
+  const e = copie();
+  e.dossier = { pdf: { format: 'papyrus', orientation: 'de travers', marges: 'aucune' } };
+  assert.deepEqual(reglagesPdf(e), pdfParDefaut());
+  assert.ok(fiche(e, AGENCE, PLAN).includes('@page { size:A4 portrait;'));
+});
+
+/* --------------------------------------------------------- la couverture */
+
+test('le titre, la référence et le destinataire sont ceux de l\'étude', () => {
+  const e = copie();
+  e.titre = 'Vidéosurveillance du dépôt';
+  e.reference = 'ETU-2026-10-04';
+  e.client = 'SCI des Drillons & fils';
+  const html = fiche(e, AGENCE, PLAN);
+  assert.ok(html.includes('<h1>Vidéosurveillance du dépôt</h1>'));
+  assert.ok(html.includes('ETU-2026-10-04'));
+  assert.ok(html.includes('<b>Pour :</b> SCI des Drillons &amp; fils'));
+});
+
+test('sans destinataire, pas de ligne vide sur la couverture', () => {
+  const e = copie();
+  delete e.client;
+  assert.ok(!fiche(e, AGENCE, PLAN).includes('Pour :'));
 });
 
 /* ----------------------------------------------------------------- PDF */

@@ -88,16 +88,21 @@ main { display:flex; gap:16px; padding:16px; align-items:flex-start; }
 .aucune { margin:0; padding:14px 16px; font-size:13.5px; color:var(--doux);
   background:#fff; border:1px dashed var(--bord); border-radius:10px; }
 
-#panneau label, #photo-panneau label { display:block; margin-top:12px; font-size:13px; font-weight:600; }
-#panneau label.case, #photo-panneau label.case { font-weight:400; display:flex; gap:8px; flex-wrap:wrap; align-items:flex-start; }
-#panneau label.case small, #photo-panneau label.case small { flex-basis:100%; }
-#panneau input[type=text], #panneau input[type=number], #panneau select,
-#photo-panneau input[type=text] {
+/*
+ * Les formulaires sont stylés par bloc, pas par identifiant. Deux fois déjà
+ * un panneau neuf est sorti nu — les champs collés au bord, l'aide en ligne
+ * au lieu d'être dessous — parce que la règle ne nommait que les panneaux
+ * existants. Tout ce qui est dans un `.bloc` est servi.
+ */
+.bloc label { display:block; margin-top:12px; font-size:13px; font-weight:600; }
+.bloc label.case { font-weight:400; display:flex; gap:8px; flex-wrap:wrap; align-items:flex-start; }
+.bloc label.case small { flex-basis:100%; }
+.bloc input[type=text], .bloc input[type=number], .bloc select {
   width:100%; font:inherit; font-size:14px; font-weight:400; margin-top:4px;
   padding:7px 9px; border:1px solid var(--bord); border-radius:7px; background:#fff;
 }
-#panneau input[type=range], #photo-panneau input[type=range] { width:100%; margin-top:6px; }
-#panneau small, #photo-panneau small { display:block; font-weight:400; font-size:11.5px; color:var(--doux); margin-top:3px; }
+.bloc input[type=range] { width:100%; margin-top:6px; }
+.bloc small { display:block; font-weight:400; font-size:11.5px; color:var(--doux); margin-top:3px; }
 .paire { display:flex; gap:10px; }
 .paire label { flex:1; }
 
@@ -124,6 +129,12 @@ main { display:flex; gap:16px; padding:16px; align-items:flex-start; }
 
 /* ------------------------------------------------ photos et fond de plan */
 
+/*
+ * `display:flex` sur une classe l'emporte sur l'attribut `hidden` du
+ * navigateur : le bandeau de calage restait affiché, avec sa largeur vide et
+ * son bouton « Retirer », alors qu'aucune vue aérienne n'était chargée.
+ */
+.fond-reglages[hidden] { display:none; }
 .fond-reglages {
   display:flex; align-items:flex-end; gap:14px; flex-wrap:wrap;
   background:#fff; border:1px solid var(--bord); border-radius:10px;
@@ -186,9 +197,9 @@ main { display:flex; gap:16px; padding:16px; align-items:flex-start; }
 .chapitres li.ecarte { background:var(--fond); opacity:.62; }
 .chapitres .rang { display:flex; align-items:center; gap:6px; }
 .chapitres .rang input[type="text"] {
-  flex:1 1 auto; min-width:0; font:inherit; font-size:13.5px;
-  padding:5px 8px; border:1px solid var(--bord); border-radius:6px;
-  background:#fff; color:var(--encre);
+  flex:1 1 auto; width:auto; min-width:0; margin-top:0; font:inherit;
+  font-size:13.5px; padding:5px 8px; border:1px solid var(--bord);
+  border-radius:6px; background:#fff; color:var(--encre);
 }
 .chapitres li.ecarte .rang input[type="text"] { text-decoration:line-through; }
 .chapitres .det { display:block; margin:5px 2px 0; font-size:12px; color:var(--doux); }
@@ -226,7 +237,8 @@ main { display:flex; gap:16px; padding:16px; align-items:flex-start; }
     <input type="file" id="fichier-fond" accept="image/*" hidden>
     <button type="button" id="b-defaire" class="btn">Défaire</button>
     <button type="button" id="b-exporter" class="btn">Enregistrer etude.json</button>
-    <button type="button" id="b-fiche" class="btn btn-plein">Produire le dossier client</button>
+    <button type="button" id="b-fiche" class="btn">Produire le dossier client</button>
+    <button type="button" id="b-pdf" class="btn btn-plein">Produire le PDF</button>
   </div>
 </header>
 
@@ -356,20 +368,59 @@ main { display:flex; gap:16px; padding:16px; align-items:flex-start; }
         écartez. Décochez pour retirer un chapitre du dossier sans rien
         perdre de l'étude ; « Ajouter un texte » intercale vos propres
         paragraphes — une précision, une réserve, une remise de prestation.</p>
+
+      <label>Titre du dossier
+        <input type="text" id="d-titre" maxlength="90">
+      </label>
+      <div class="paire">
+        <label>Référence
+          <input type="text" id="d-reference" maxlength="40">
+        </label>
+        <label>Destinataire
+          <input type="text" id="d-client" maxlength="80" placeholder="Nom du client">
+        </label>
+      </div>
+
       <ol id="chapitres" class="chapitres"></ol>
       <label class="case"><input type="checkbox" id="f-saut">
         Un chapitre par page
-        <small>Chaque titre repart en haut d'une page à l'impression. Un
-          dossier plus aéré, un peu plus long.</small></label>
+        <small>Chaque titre repart en haut d'une page. Un dossier plus aéré,
+          un peu plus long.</small></label>
     </div>
 
-    <p class="note"><b>Produire le dossier client</b> écrit un fichier HTML
-      autonome — plan, photos, tableaux, réserves. Il s'ouvre dans n'importe
-      quel navigateur et porte en bas à droite un bouton
-      <b>Enregistrer en PDF</b> : la fenêtre d'impression s'ouvre, vous
-      choisissez « Enregistrer au format PDF » comme imprimante, et le PDF
-      part par courriel. Le format est déjà réglé en A4, sans qu'un titre se
-      détache de son tableau ni qu'une photo se coupe en deux.
+    <div class="bloc">
+      <div class="entete-bloc">
+        <h2>Le papier</h2>
+      </div>
+      <div class="paire">
+        <label>Format
+          <select id="d-format"></select>
+        </label>
+        <label>Sens
+          <select id="d-orientation"></select>
+        </label>
+      </div>
+      <label>Marges
+        <select id="d-marges"></select>
+        <small>Étroites pour tenir en moins de pages, larges si le dossier
+          part à la reliure.</small>
+      </label>
+      <p class="det">Ces réglages sont écrits dans le dossier lui-même :
+        la fenêtre d'impression s'ouvre déjà au bon format, sans que vous
+        ayez à y toucher. Pensez à décocher « En-têtes et pieds de page »
+        dans cette fenêtre si vous ne voulez pas l'adresse du fichier en
+        haut de chaque page — ou à la laisser cochée pour avoir les numéros
+        de page.</p>
+    </div>
+
+    <p class="note"><b>Produire le PDF</b> ouvre le dossier et, dans la
+      foulée, la fenêtre d'impression : choisissez
+      <b>« Enregistrer au format PDF »</b> comme imprimante, et le fichier
+      est à vous. C'est le navigateur qui écrit le PDF — aucune page ne peut
+      le faire seule, et c'est tant mieux : rien ne sort de votre ordinateur.
+      <br><br><b>Produire le dossier client</b> enregistre la même chose en
+      un fichier HTML autonome, à garder ou à envoyer tel quel. Il porte le
+      même bouton d'impression en bas à droite.
       <br><br><b>Enregistrer etude.json</b> garde votre travail : c'est ce
       fichier qu'on rouvre ici, et celui qui regénère le dossier complet et la
       présentation.</p>
@@ -1916,8 +1967,39 @@ const SECTIONS_STANDARD = [
   { cle: 'reserves', titre: 'Réserves' },
 ];
 
+/**
+ * Le papier.
+ *
+ * C'est la seule chose qu'un dossier ne peut pas deviner : une étude de dix
+ * caméras tient en A4 portrait, un plan de site large se lit en paysage, et
+ * un dossier qui part à la reliure demande une marge de gauche plus grande.
+ */
+const FORMATS = { A4: 'A4', A3: 'A3', Letter: 'Lettre US' };
+const ORIENTATIONS = { portrait: 'Portrait', landscape: 'Paysage' };
+const MARGES = {
+  etroites: { label: 'Étroites', css: '8mm 8mm 10mm' },
+  normales: { label: 'Normales', css: '14mm 12mm 15mm' },
+  larges: { label: 'Larges', css: '22mm 20mm 24mm' },
+};
+
+const pdfParDefaut = () => ({
+  format: 'A4', orientation: 'portrait', marges: 'normales',
+});
+
+/** Les réglages retenus, quoi qu'il y ait dans le fichier. */
+function reglagesPdf(etude) {
+  const lu = (etude.dossier && etude.dossier.pdf) || {};
+  const d = pdfParDefaut();
+  return {
+    format: FORMATS[lu.format] ? lu.format : d.format,
+    orientation: ORIENTATIONS[lu.orientation] ? lu.orientation : d.orientation,
+    marges: MARGES[lu.marges] ? lu.marges : d.marges,
+  };
+}
+
 const dossierParDefaut = () => ({
   sautDePage: false,
+  pdf: pdfParDefaut(),
   sections: SECTIONS_STANDARD.map((s) => ({ ...s, visible: true })),
 });
 
@@ -1941,7 +2023,7 @@ function sectionsDuDossier(etude) {
   return [...gardees, ...manquantes];
 }
 
-const STYLE = `
+const STYLE = (papier) => `
 :root { --rouge:#c8102e; --encre:#1a1d23; --doux:#5b6472; --bord:#dde1e7; --fond:#f6f7f9; }
 * { box-sizing:border-box; }
 body { margin:0; background:var(--fond); color:var(--encre);
@@ -2003,7 +2085,7 @@ ul.liste li { margin-bottom:7px; }
    ne demande ni logiciel ni connexion. Reste à ce que les pages tombent
    juste — un titre ne se sépare pas de son tableau, une photo ne se coupe
    pas en deux. */
-@page { size:A4 portrait; margin:14mm 12mm 15mm; }
+@page { size:${papier.taille}; margin:${papier.marge}; }
 @media print {
   body { background:#fff; font-size:11.5pt; }
   .feuille { border:0; max-width:none; padding:0; }
@@ -2029,6 +2111,11 @@ ul.liste li { margin-bottom:7px; }
  */
 function fiche(etude, agence, planSvg) {
   const b = bilanEtude(etude);
+  const r = reglagesPdf(etude);
+  const papier = {
+    taille: `${r.format} ${r.orientation}`,
+    marge: MARGES[r.marges].css,
+  };
   const date = new Date().toLocaleDateString('fr-FR', {
     day: '2-digit', month: 'long', year: 'numeric',
   });
@@ -2161,7 +2248,7 @@ ${hors}`,
 <html lang="fr"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Étude technique — ${echapper(agence.nomCommercial || '')}</title>
-<style>${STYLE}<\/style></head>
+<style>${STYLE(papier)}<\/style></head>
 <body><div class="feuille">
 
 <header class="garde">
@@ -2180,6 +2267,7 @@ ${hors}`,
   <p class="surtitre">ÉTUDE TECHNIQUE</p>
   <h1>${echapper(etude.titre || 'Vidéosurveillance')}</h1>
   <div class="meta">
+    ${etude.client ? `<p><b>Pour :</b> ${echapper(etude.client)}</p>` : ''}
     <p><b>Établie le :</b> ${echapper(date)}</p>
     <p><b>Référence :</b> ${echapper(etude.reference || '')}</p>
     <p><b>Parc :</b> ${b.cameras} caméras</p>
@@ -2661,6 +2749,7 @@ async function ajouterPhotos(fichiers) {
   panneauPhoto();
   majFond();
   listeChapitres();
+  champsDocument();
 }
 
 /* ------------------------------------------------------------- les chiffres */
@@ -2746,8 +2835,20 @@ function assurerDossier() {
   const sections = sectionsDuDossier(etat.etude);
   etat.etude.dossier = {
     sautDePage: !!d.sautDePage,
+    pdf: { ...pdfParDefaut(), ...reglagesPdf(etat.etude) },
     sections: sections.length ? sections : dossierParDefaut().sections,
   };
+}
+
+/** Le bandeau du document : ce qui s'imprime sur la couverture. */
+function champsDocument() {
+  $('#d-titre').value = etat.etude.titre || '';
+  $('#d-reference').value = etat.etude.reference || '';
+  $('#d-client').value = etat.etude.client || '';
+  const r = etat.etude.dossier.pdf;
+  $('#d-format').value = r.format;
+  $('#d-orientation').value = r.orientation;
+  $('#d-marges').value = r.marges;
 }
 
 function deplacerChapitre(i, vers) {
@@ -2838,6 +2939,7 @@ function tout() {
   panneauPhoto();
   majFond();
   listeChapitres();
+  champsDocument();
 }
 
 /* ------------------------------------------------------------- commandes */
@@ -2896,18 +2998,49 @@ function telecharger(nom, texte, type) {
  * quoi le cercle de sélection et la poignée d'orientation se retrouveraient
  * imprimés chez le client.
  */
-function produireFiche() {
+function dossierHtml() {
   const garde = etat.selection;
   etat.selection = null;
   dessinerPlan();
   const svg = new XMLSerializer().serializeToString($('#plan'));
   etat.selection = garde;
   dessinerPlan();
+  return fiche(etat.etude, globalThis.__agence || {}, svg);
+}
 
-  const agence = globalThis.__agence || {};
+function produireFiche() {
   const nom = `etude-${(etat.etude.reference || 'sans-reference')
     .toLowerCase().replace(/[^a-z0-9-]+/g, '-')}.html`;
-  telecharger(nom, fiche(etat.etude, agence, svg), 'text/html;charset=utf-8');
+  telecharger(nom, dossierHtml(), 'text/html;charset=utf-8');
+}
+
+/**
+ * Le PDF.
+ *
+ * Une page ouverte depuis un disque ne peut pas écrire un fichier PDF
+ * elle-même : seul le navigateur sait le faire, par sa fenêtre
+ * d'impression. On lui épargne donc les étapes — le dossier s'ouvre et la
+ * fenêtre s'ouvre avec lui, au format déjà réglé. Il ne reste qu'à choisir
+ * « Enregistrer au format PDF » comme imprimante.
+ *
+ * On attend le chargement des images : imprimer un dossier dont les photos
+ * ne sont pas encore décodées rendrait des cadres vides.
+ */
+function produirePdf() {
+  const html = dossierHtml();
+  const f = window.open('', '_blank');
+  if (!f) {
+    $('#alertes').hidden = false;
+    $('#alertes').innerHTML = '<b>Fenêtre bloquée.</b> Votre navigateur a '
+      + 'refusé d\'ouvrir le dossier. Autorisez les fenêtres pour cette page, '
+      + 'ou passez par « Produire le dossier client » puis Ctrl+P.';
+    return;
+  }
+  f.document.write(html);
+  f.document.close();
+  const imprimer = () => { f.focus(); f.print(); };
+  if (f.document.readyState === 'complete') setTimeout(imprimer, 250);
+  else f.addEventListener('load', () => setTimeout(imprimer, 250));
 }
 
 function exporter() {
@@ -3044,6 +3177,36 @@ function monter(etude) {
     tout();
   });
 
+  // Le papier : trois listes, remplies depuis le module qui les connaît.
+  const options = (sel, table) => {
+    $(sel).innerHTML = Object.entries(table)
+      .map(([cle, v]) => `<option value="${cle}">${echapper(v.label || v)}</option>`)
+      .join('');
+  };
+  options('#d-format', FORMATS);
+  options('#d-orientation', ORIENTATIONS);
+  options('#d-marges', MARGES);
+
+  const papier = (sel, cle) => $(sel).addEventListener('change', () => {
+    memoriser();
+    etat.etude.dossier.pdf[cle] = $(sel).value;
+  });
+  papier('#d-format', 'format');
+  papier('#d-orientation', 'orientation');
+  papier('#d-marges', 'marges');
+
+  const entete = (sel, cle) => {
+    $(sel).addEventListener('focus', memoriser);
+    $(sel).addEventListener('input', () => {
+      etat.etude[cle] = $(sel).value;
+      etat.modifie = true;
+    });
+  };
+  entete('#d-titre', 'titre');
+  entete('#d-reference', 'reference');
+  entete('#d-client', 'client');
+
+  $('#b-pdf').addEventListener('click', produirePdf);
   $('#b-texte').addEventListener('click', ajouterTexte);
   $('#f-saut').addEventListener('change', () => {
     memoriser();

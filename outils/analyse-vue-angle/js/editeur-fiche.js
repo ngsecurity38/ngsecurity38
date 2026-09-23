@@ -40,8 +40,39 @@ export const SECTIONS_STANDARD = [
   { cle: 'reserves', titre: 'Réserves' },
 ];
 
+/**
+ * Le papier.
+ *
+ * C'est la seule chose qu'un dossier ne peut pas deviner : une étude de dix
+ * caméras tient en A4 portrait, un plan de site large se lit en paysage, et
+ * un dossier qui part à la reliure demande une marge de gauche plus grande.
+ */
+export const FORMATS = { A4: 'A4', A3: 'A3', Letter: 'Lettre US' };
+export const ORIENTATIONS = { portrait: 'Portrait', landscape: 'Paysage' };
+export const MARGES = {
+  etroites: { label: 'Étroites', css: '8mm 8mm 10mm' },
+  normales: { label: 'Normales', css: '14mm 12mm 15mm' },
+  larges: { label: 'Larges', css: '22mm 20mm 24mm' },
+};
+
+export const pdfParDefaut = () => ({
+  format: 'A4', orientation: 'portrait', marges: 'normales',
+});
+
+/** Les réglages retenus, quoi qu'il y ait dans le fichier. */
+export function reglagesPdf(etude) {
+  const lu = (etude.dossier && etude.dossier.pdf) || {};
+  const d = pdfParDefaut();
+  return {
+    format: FORMATS[lu.format] ? lu.format : d.format,
+    orientation: ORIENTATIONS[lu.orientation] ? lu.orientation : d.orientation,
+    marges: MARGES[lu.marges] ? lu.marges : d.marges,
+  };
+}
+
 export const dossierParDefaut = () => ({
   sautDePage: false,
+  pdf: pdfParDefaut(),
   sections: SECTIONS_STANDARD.map((s) => ({ ...s, visible: true })),
 });
 
@@ -65,7 +96,7 @@ export function sectionsDuDossier(etude) {
   return [...gardees, ...manquantes];
 }
 
-const STYLE = `
+const STYLE = (papier) => `
 :root { --rouge:#c8102e; --encre:#1a1d23; --doux:#5b6472; --bord:#dde1e7; --fond:#f6f7f9; }
 * { box-sizing:border-box; }
 body { margin:0; background:var(--fond); color:var(--encre);
@@ -127,7 +158,7 @@ ul.liste li { margin-bottom:7px; }
    ne demande ni logiciel ni connexion. Reste à ce que les pages tombent
    juste — un titre ne se sépare pas de son tableau, une photo ne se coupe
    pas en deux. */
-@page { size:A4 portrait; margin:14mm 12mm 15mm; }
+@page { size:${papier.taille}; margin:${papier.marge}; }
 @media print {
   body { background:#fff; font-size:11.5pt; }
   .feuille { border:0; max-width:none; padding:0; }
@@ -153,6 +184,11 @@ ul.liste li { margin-bottom:7px; }
  */
 export function fiche(etude, agence, planSvg) {
   const b = bilanEtude(etude);
+  const r = reglagesPdf(etude);
+  const papier = {
+    taille: `${r.format} ${r.orientation}`,
+    marge: MARGES[r.marges].css,
+  };
   const date = new Date().toLocaleDateString('fr-FR', {
     day: '2-digit', month: 'long', year: 'numeric',
   });
@@ -285,7 +321,7 @@ ${hors}`,
 <html lang="fr"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Étude technique — ${echapper(agence.nomCommercial || '')}</title>
-<style>${STYLE}</style></head>
+<style>${STYLE(papier)}</style></head>
 <body><div class="feuille">
 
 <header class="garde">
@@ -304,6 +340,7 @@ ${hors}`,
   <p class="surtitre">ÉTUDE TECHNIQUE</p>
   <h1>${echapper(etude.titre || 'Vidéosurveillance')}</h1>
   <div class="meta">
+    ${etude.client ? `<p><b>Pour :</b> ${echapper(etude.client)}</p>` : ''}
     <p><b>Établie le :</b> ${echapper(date)}</p>
     <p><b>Référence :</b> ${echapper(etude.reference || '')}</p>
     <p><b>Parc :</b> ${b.cameras} caméras</p>

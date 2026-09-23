@@ -19,7 +19,10 @@ import {
   geometrie, optiqueUtile, bilanEtude, bandePhoto, porteesDori,
 } from './etude-plan.js';
 import { LIAISON_PERMANENTE } from './cable.js';
-import { fiche, dossierParDefaut, sectionsDuDossier } from './editeur-fiche.js';
+import {
+  fiche, dossierParDefaut, sectionsDuDossier, pdfParDefaut, reglagesPdf,
+  FORMATS, ORIENTATIONS, MARGES,
+} from './editeur-fiche.js';
 
 const SVG = 'http://www.w3.org/2000/svg';
 
@@ -461,6 +464,7 @@ async function ajouterPhotos(fichiers) {
   panneauPhoto();
   majFond();
   listeChapitres();
+  champsDocument();
 }
 
 /* ------------------------------------------------------------- les chiffres */
@@ -546,8 +550,20 @@ function assurerDossier() {
   const sections = sectionsDuDossier(etat.etude);
   etat.etude.dossier = {
     sautDePage: !!d.sautDePage,
+    pdf: { ...pdfParDefaut(), ...reglagesPdf(etat.etude) },
     sections: sections.length ? sections : dossierParDefaut().sections,
   };
+}
+
+/** Le bandeau du document : ce qui s'imprime sur la couverture. */
+function champsDocument() {
+  $('#d-titre').value = etat.etude.titre || '';
+  $('#d-reference').value = etat.etude.reference || '';
+  $('#d-client').value = etat.etude.client || '';
+  const r = etat.etude.dossier.pdf;
+  $('#d-format').value = r.format;
+  $('#d-orientation').value = r.orientation;
+  $('#d-marges').value = r.marges;
 }
 
 function deplacerChapitre(i, vers) {
@@ -638,6 +654,7 @@ function tout() {
   panneauPhoto();
   majFond();
   listeChapitres();
+  champsDocument();
 }
 
 /* ------------------------------------------------------------- commandes */
@@ -696,18 +713,49 @@ function telecharger(nom, texte, type) {
  * quoi le cercle de sélection et la poignée d'orientation se retrouveraient
  * imprimés chez le client.
  */
-function produireFiche() {
+function dossierHtml() {
   const garde = etat.selection;
   etat.selection = null;
   dessinerPlan();
   const svg = new XMLSerializer().serializeToString($('#plan'));
   etat.selection = garde;
   dessinerPlan();
+  return fiche(etat.etude, globalThis.__agence || {}, svg);
+}
 
-  const agence = globalThis.__agence || {};
+function produireFiche() {
   const nom = `etude-${(etat.etude.reference || 'sans-reference')
     .toLowerCase().replace(/[^a-z0-9-]+/g, '-')}.html`;
-  telecharger(nom, fiche(etat.etude, agence, svg), 'text/html;charset=utf-8');
+  telecharger(nom, dossierHtml(), 'text/html;charset=utf-8');
+}
+
+/**
+ * Le PDF.
+ *
+ * Une page ouverte depuis un disque ne peut pas écrire un fichier PDF
+ * elle-même : seul le navigateur sait le faire, par sa fenêtre
+ * d'impression. On lui épargne donc les étapes — le dossier s'ouvre et la
+ * fenêtre s'ouvre avec lui, au format déjà réglé. Il ne reste qu'à choisir
+ * « Enregistrer au format PDF » comme imprimante.
+ *
+ * On attend le chargement des images : imprimer un dossier dont les photos
+ * ne sont pas encore décodées rendrait des cadres vides.
+ */
+function produirePdf() {
+  const html = dossierHtml();
+  const f = window.open('', '_blank');
+  if (!f) {
+    $('#alertes').hidden = false;
+    $('#alertes').innerHTML = '<b>Fenêtre bloquée.</b> Votre navigateur a '
+      + 'refusé d\'ouvrir le dossier. Autorisez les fenêtres pour cette page, '
+      + 'ou passez par « Produire le dossier client » puis Ctrl+P.';
+    return;
+  }
+  f.document.write(html);
+  f.document.close();
+  const imprimer = () => { f.focus(); f.print(); };
+  if (f.document.readyState === 'complete') setTimeout(imprimer, 250);
+  else f.addEventListener('load', () => setTimeout(imprimer, 250));
 }
 
 function exporter() {
@@ -844,6 +892,36 @@ export function monter(etude) {
     tout();
   });
 
+  // Le papier : trois listes, remplies depuis le module qui les connaît.
+  const options = (sel, table) => {
+    $(sel).innerHTML = Object.entries(table)
+      .map(([cle, v]) => `<option value="${cle}">${echapper(v.label || v)}</option>`)
+      .join('');
+  };
+  options('#d-format', FORMATS);
+  options('#d-orientation', ORIENTATIONS);
+  options('#d-marges', MARGES);
+
+  const papier = (sel, cle) => $(sel).addEventListener('change', () => {
+    memoriser();
+    etat.etude.dossier.pdf[cle] = $(sel).value;
+  });
+  papier('#d-format', 'format');
+  papier('#d-orientation', 'orientation');
+  papier('#d-marges', 'marges');
+
+  const entete = (sel, cle) => {
+    $(sel).addEventListener('focus', memoriser);
+    $(sel).addEventListener('input', () => {
+      etat.etude[cle] = $(sel).value;
+      etat.modifie = true;
+    });
+  };
+  entete('#d-titre', 'titre');
+  entete('#d-reference', 'reference');
+  entete('#d-client', 'client');
+
+  $('#b-pdf').addEventListener('click', produirePdf);
   $('#b-texte').addEventListener('click', ajouterTexte);
   $('#f-saut').addEventListener('change', () => {
     memoriser();
