@@ -18,6 +18,7 @@ import {
   fiche, sectionsDuDossier, dossierParDefaut, SECTIONS_STANDARD,
 } from '../js/editeur-fiche.js';
 import { reglagesPdf, pdfParDefaut, MARGES } from '../js/papier.js';
+import { bilanEtude } from '../js/etude-plan.js';
 
 const ici = dirname(fileURLToPath(import.meta.url));
 const REELLE = JSON.parse(readFileSync(
@@ -310,4 +311,34 @@ test('la fiche technique ne parle que des modèles posés', () => {
   const html = fiche(e, AGENCE, PLAN);
   assert.ok(!html.includes('Modèle jamais posé'));
   assert.ok(html.includes(e.modeles.turret.reference));
+});
+
+/* ------------------------------------------------ la profondeur d'archive */
+
+test('le dossier propose les deux profondeurs, et dit celle qui est retenue', () => {
+  const html = fiche(copie(), AGENCE, PLAN);
+  assert.ok(titres(html).includes('La profondeur d&#39;archive'));
+  assert.ok(/15 jours d'enregistrement continu/.test(html));
+  assert.ok(/30 jours d'enregistrement continu/.test(html));
+  assert.ok(html.includes('1 disque de 10 To'));
+  assert.ok(html.includes('2 disques de 10 To'));
+  assert.ok(html.includes('RETENU'));
+  assert.ok(html.includes('EN OPTION'));
+});
+
+test('quinze jours tiennent sur un disque, trente en demandent deux', () => {
+  const e = copie();
+  const court = bilanEtude(e, { jours: 15 }).disques.pool;
+  const long = bilanEtude(e, { jours: 30 }).disques.pool;
+  assert.equal(court.nombre, 1, 'une baie suffit à quinze jours');
+  assert.equal(long.nombre, 2);
+  assert.equal(court.unitaire, long.unitaire, 'le même disque, en double');
+});
+
+test('sans variante déclarée, le chapitre ne montre qu\'une carte', () => {
+  const e = copie();
+  delete e.stockage.variante;
+  const html = fiche(e, AGENCE, PLAN);
+  assert.ok(!html.includes('EN OPTION'));
+  assert.ok(html.includes('RETENU'));
 });

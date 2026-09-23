@@ -54,6 +54,10 @@ function ligne(cle, designation, quantite, unite, extra = {}) {
   };
 }
 
+/** Une capacité en Go, dite en To dès qu'elle en vaut la peine. */
+const echapperTo = (go) => (go >= 1000
+  ? `${Math.round(go / 100) / 10} To` : `${Math.round(go)} Go`);
+
 /** Arrondit au conditionnement supérieur : on n'achète pas un demi-touret. */
 const parConditionnement = (metres, pas) => Math.ceil(metres / pas);
 
@@ -117,8 +121,29 @@ export function bordereau(etude, devis) {
     materiel.push(ligne('disque', `Disque dur vidéosurveillance ${d.unitaire} To`,
       d.nombre, 'u', {
         prix: prix.disque,
-        note: `${b.capaciteGo >= 1000 ? `${Math.round(b.capaciteGo / 100) / 10} To` : `${Math.round(b.capaciteGo)} Go`} nécessaires pour 30 jours d'enregistrement continu.`,
+        note: `${echapperTo(b.capaciteGo)} nécessaires pour ${b.jours} jours `
+          + 'd\'enregistrement continu.',
       }));
+    /*
+     * La profondeur longue en option : le surcoût est le nombre de disques
+     * en plus, rien d'autre. Un second disque ne demande ni pose ni câble —
+     * c'est l'option la plus simple qu'on puisse vendre.
+     */
+    const longue = etude.stockage && etude.stockage.variante;
+    if (longue && longue !== b.jours) {
+      const bl = bilanEtude(etude, { jours: longue });
+      const dl = bl.disques && bl.disques.pool;
+      if (dl && dl.nombre > d.nombre && dl.unitaire === d.unitaire) {
+        materiel.push(ligne('disqueOption',
+          `Disque supplémentaire ${dl.unitaire} To — archive portée à ${longue} jours`,
+          dl.nombre - d.nombre, 'u', {
+            prix: prix.disque,
+            option: true,
+            note: `${echapperTo(bl.capaciteGo)} nécessaires pour ${longue} jours. `
+              + 'Se pose dans la seconde baie, sans autre modification.',
+          }));
+      }
+    }
   }
 
   if (coffrets.length) {

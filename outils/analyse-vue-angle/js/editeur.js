@@ -539,6 +539,7 @@ const DESCRIPTION = {
   cablage: 'Le métré, les boîtes à commander, les liaisons hors norme.',
   fiches: 'Une fiche par modèle posé : optique, portées, alimentation.',
   garantie: 'Garantie trois ans, maintenance un an, formation et dossier.',
+  archive: 'Quinze jours retenus, trente en option : un disque de plus.',
   devis: 'Le bordereau chiffré, lots et sous-totaux, depuis devis.json.',
   reserves: 'Ce que l\'étude ne promet pas. À garder.',
 };

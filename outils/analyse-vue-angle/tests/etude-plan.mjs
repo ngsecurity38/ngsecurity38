@@ -165,8 +165,12 @@ test('l\'étude réelle : les totaux que le dossier imprime', () => {
   // Deux ports seulement : R3 cascade derrière R2, et plus aucune caméra
   // n'est branchée en direct sur l'enregistreur.
   assert.equal(b.ports, 2);
-  proche(b.consoPoe, 111.5, 0.01);
-  proche(b.capaciteGo / 1000, 18.2, 0.1, 'stockage 30 jours');
+  // Parc arrêté par l'agence : 2 varifocales, 2 tourelles, 6 panoramiques.
+  proche(b.consoPoe, 123, 0.01);
+  // L'étude retient quinze jours d'archive ; trente se prend en option.
+  assert.equal(b.jours, 15);
+  proche(b.capaciteGo / 1000, 8.5, 0.1, 'stockage 15 jours');
+  proche(bilanEtude(REELLE, { jours: 30 }).capaciteGo / 1000, 16.9, 0.1, 'stockage 30 jours');
 });
 
 test('l\'étude réelle : déplacer une caméra change le métré', () => {

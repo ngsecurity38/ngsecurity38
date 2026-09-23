@@ -289,3 +289,22 @@ test('chiffrer le kit ne change pas le total de la vidéosurveillance', () => {
 });
 
 
+
+test('le second disque est une option, chiffrée au même prix', () => {
+  const d = copie(DEVIS);
+  d.marche.disque = 300;
+  const r = bordereau(REELLE, d);
+  const base = trouver(r, 'disque');
+  const opt = trouver(r, 'disqueOption');
+  assert.equal(base.quantite, 1, 'quinze jours : un disque');
+  assert.equal(base.option, false);
+  assert.equal(opt.quantite, 1, 'trente jours : un de plus');
+  assert.equal(opt.option, true);
+  assert.equal(opt.prix, base.prix, 'le même disque, le même prix');
+  assert.ok(/30 jours/.test(opt.designation));
+  // Et l'option ne gonfle pas le total.
+  const sansOption = r.lots.find((l) => l.cle === 'materiel').total;
+  assert.equal(sansOption, r.lots.find((l) => l.cle === 'materiel').lignes
+    .filter((l) => !l.option && l.total !== null)
+    .reduce((s, l) => s + l.total, 0));
+});

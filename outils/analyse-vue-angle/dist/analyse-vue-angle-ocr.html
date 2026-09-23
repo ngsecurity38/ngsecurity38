@@ -3893,11 +3893,26 @@ function disquesPourBaies(go, baies = 2, machine = {}) {
     if (!unitaire) return null;
     return { unitaire, nombre, total: unitaire * nombre };
   };
+  /*
+   * On n'occupe que les baies nécessaires.
+   *
+   * Remplir les deux baies d'une machine qui en a deux fait acheter un
+   * disque dont personne n'a besoin — et interdit d'allonger l'archive plus
+   * tard sans tout remplacer. Un disque libre est une option de vente.
+   */
+  const minimal = () => {
+    for (let n = 1; n <= baies; n += 1) {
+      const c = choisir(to / n, n);
+      if (c && c.total >= to) return c;
+    }
+    return choisir(to / baies, baies);
+  };
+
   return {
     baies,
     capaciteMax: Number.isFinite(capaciteMax) ? capaciteMax : null,
     raid,
-    pool: choisir(to / baies, baies),
+    pool: minimal(),
     // Le miroir n'a de sens qu'à baies paires, et que si la machine le fait.
     miroir: raid && baies % 2 === 0 ? choisir(to / (baies / 2), baies) : null,
   };
@@ -4496,7 +4511,9 @@ function metre(etude) {
  * @param {object} etude
  * @param {object} [options] jours de conservation, heures par jour
  */
-function bilanEtude(etude, { jours = 30, heuresParJour = 24 } = {}) {
+function bilanEtude(etude, { jours, heuresParJour = 24 } = {}) {
+  // L'étude décide de sa profondeur d'archive ; 30 jours si elle se tait.
+  const conservation = jours || (etude.stockage && etude.stockage.jours) || 30;
   const modeles = etude.modeles || {};
   const cameras = etude.cameras || [];
   const nvr = (etude.equipements && etude.equipements.enregistreur) || {};
@@ -4505,7 +4522,7 @@ function bilanEtude(etude, { jours = 30, heuresParJour = 24 } = {}) {
     const m = modeles[c.modele];
     return t + (m ? debitEstime({ resH: m.resH, resV: m.resV, codec: 'h265' }) : 0);
   }, 0);
-  const capaciteGo = capaciteNecessaire({ debitTotal, jours, heuresParJour });
+  const capaciteGo = capaciteNecessaire({ debitTotal, jours: conservation, heuresParJour });
 
   const liaisons = metre(etude);
   const somme = (f) => liaisons.filter(f).reduce((t, l) => t + l.longueur, 0);
@@ -4519,6 +4536,7 @@ function bilanEtude(etude, { jours = 30, heuresParJour = 24 } = {}) {
   return {
     cameras: cameras.length,
     debitTotal,
+    jours: conservation,
     capaciteGo,
     disques: disquesPourBaies(capaciteGo, nvr.baies || 2, {
       capaciteMax: nvr.capaciteMaxBaie,

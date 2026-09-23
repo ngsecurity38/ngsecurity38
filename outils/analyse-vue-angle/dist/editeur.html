@@ -489,7 +489,7 @@ main { display:flex; gap:16px; padding:16px; align-items:flex-start; }
   {
    "cle": "C2",
    "vue": "entree",
-   "modele": "turret",
+   "modele": "panoramique",
    "tele": false,
    "hauteur": 3,
    "exterieur": true,
@@ -510,7 +510,7 @@ main { display:flex; gap:16px; padding:16px; align-items:flex-start; }
   {
    "cle": "C3",
    "vue": "cour",
-   "modele": "varifocal",
+   "modele": "panoramique",
    "tele": false,
    "hauteur": 4.5,
    "exterieur": true,
@@ -594,7 +594,7 @@ main { display:flex; gap:16px; padding:16px; align-items:flex-start; }
   {
    "cle": "C7",
    "vue": "halle",
-   "modele": "turret",
+   "modele": "panoramique",
    "tele": false,
    "hauteur": 4,
    "exterieur": false,
@@ -615,7 +615,7 @@ main { display:flex; gap:16px; padding:16px; align-items:flex-start; }
   {
    "cle": "C8",
    "vue": "rideau",
-   "modele": "turret",
+   "modele": "panoramique",
    "tele": false,
    "hauteur": 3,
    "exterieur": false,
@@ -636,7 +636,7 @@ main { display:flex; gap:16px; padding:16px; align-items:flex-start; }
   {
    "cle": "C9",
    "vue": "stock",
-   "modele": "turret",
+   "modele": "panoramique",
    "tele": false,
    "hauteur": 3,
    "exterieur": false,
@@ -929,6 +929,11 @@ main { display:flex; gap:16px; padding:16px; align-items:flex-start; }
     "visible": true
    },
    {
+    "cle": "archive",
+    "titre": "La profondeur d'archive",
+    "visible": true
+   },
+   {
     "cle": "devis",
     "titre": "Le chiffrage",
     "visible": true
@@ -1067,7 +1072,12 @@ main { display:flex; gap:16px; padding:16px; align-items:flex-start; }
   "hauteur": 79.52520623281393,
   "opacite": 0.55
  },
- "client": "GO FORMATION"
+ "client": "GO FORMATION",
+ "stockage": {
+  "jours": 15,
+  "variante": 30,
+  "raison": "Quinze jours d'archive couvrent le délai courant d'un dépôt de plainte et d'une réquisition. Trente jours est le plafond que la loi autorise sans justification particulière : il se prend en option, par un second disque, sans rien changer d'autre à l'installation."
+ }
 }
 ;</script>
 <script>window.__devis={
@@ -1928,11 +1938,26 @@ function disquesPourBaies(go, baies = 2, machine = {}) {
     if (!unitaire) return null;
     return { unitaire, nombre, total: unitaire * nombre };
   };
+  /*
+   * On n'occupe que les baies nécessaires.
+   *
+   * Remplir les deux baies d'une machine qui en a deux fait acheter un
+   * disque dont personne n'a besoin — et interdit d'allonger l'archive plus
+   * tard sans tout remplacer. Un disque libre est une option de vente.
+   */
+  const minimal = () => {
+    for (let n = 1; n <= baies; n += 1) {
+      const c = choisir(to / n, n);
+      if (c && c.total >= to) return c;
+    }
+    return choisir(to / baies, baies);
+  };
+
   return {
     baies,
     capaciteMax: Number.isFinite(capaciteMax) ? capaciteMax : null,
     raid,
-    pool: choisir(to / baies, baies),
+    pool: minimal(),
     // Le miroir n'a de sens qu'à baies paires, et que si la machine le fait.
     miroir: raid && baies % 2 === 0 ? choisir(to / (baies / 2), baies) : null,
   };
@@ -2345,7 +2370,9 @@ function metre(etude) {
  * @param {object} etude
  * @param {object} [options] jours de conservation, heures par jour
  */
-function bilanEtude(etude, { jours = 30, heuresParJour = 24 } = {}) {
+function bilanEtude(etude, { jours, heuresParJour = 24 } = {}) {
+  // L'étude décide de sa profondeur d'archive ; 30 jours si elle se tait.
+  const conservation = jours || (etude.stockage && etude.stockage.jours) || 30;
   const modeles = etude.modeles || {};
   const cameras = etude.cameras || [];
   const nvr = (etude.equipements && etude.equipements.enregistreur) || {};
@@ -2354,7 +2381,7 @@ function bilanEtude(etude, { jours = 30, heuresParJour = 24 } = {}) {
     const m = modeles[c.modele];
     return t + (m ? debitEstime({ resH: m.resH, resV: m.resV, codec: 'h265' }) : 0);
   }, 0);
-  const capaciteGo = capaciteNecessaire({ debitTotal, jours, heuresParJour });
+  const capaciteGo = capaciteNecessaire({ debitTotal, jours: conservation, heuresParJour });
 
   const liaisons = metre(etude);
   const somme = (f) => liaisons.filter(f).reduce((t, l) => t + l.longueur, 0);
@@ -2368,6 +2395,7 @@ function bilanEtude(etude, { jours = 30, heuresParJour = 24 } = {}) {
   return {
     cameras: cameras.length,
     debitTotal,
+    jours: conservation,
     capaciteGo,
     disques: disquesPourBaies(capaciteGo, nvr.baies || 2, {
       capaciteMax: nvr.capaciteMaxBaie,
@@ -2771,6 +2799,10 @@ function ligne(cle, designation, quantite, unite, extra = {}) {
   };
 }
 
+/** Une capacité en Go, dite en To dès qu'elle en vaut la peine. */
+const echapperTo = (go) => (go >= 1000
+  ? `${Math.round(go / 100) / 10} To` : `${Math.round(go)} Go`);
+
 /** Arrondit au conditionnement supérieur : on n'achète pas un demi-touret. */
 const parConditionnement = (metres, pas) => Math.ceil(metres / pas);
 
@@ -2834,8 +2866,29 @@ function bordereau(etude, devis) {
     materiel.push(ligne('disque', `Disque dur vidéosurveillance ${d.unitaire} To`,
       d.nombre, 'u', {
         prix: prix.disque,
-        note: `${b.capaciteGo >= 1000 ? `${Math.round(b.capaciteGo / 100) / 10} To` : `${Math.round(b.capaciteGo)} Go`} nécessaires pour 30 jours d'enregistrement continu.`,
+        note: `${echapperTo(b.capaciteGo)} nécessaires pour ${b.jours} jours `
+          + 'd\'enregistrement continu.',
       }));
+    /*
+     * La profondeur longue en option : le surcoût est le nombre de disques
+     * en plus, rien d'autre. Un second disque ne demande ni pose ni câble —
+     * c'est l'option la plus simple qu'on puisse vendre.
+     */
+    const longue = etude.stockage && etude.stockage.variante;
+    if (longue && longue !== b.jours) {
+      const bl = bilanEtude(etude, { jours: longue });
+      const dl = bl.disques && bl.disques.pool;
+      if (dl && dl.nombre > d.nombre && dl.unitaire === d.unitaire) {
+        materiel.push(ligne('disqueOption',
+          `Disque supplémentaire ${dl.unitaire} To — archive portée à ${longue} jours`,
+          dl.nombre - d.nombre, 'u', {
+            prix: prix.disque,
+            option: true,
+            note: `${echapperTo(bl.capaciteGo)} nécessaires pour ${longue} jours. `
+              + 'Se pose dans la seconde baie, sans autre modification.',
+          }));
+      }
+    }
   }
 
   if (coffrets.length) {
@@ -3339,6 +3392,7 @@ const SECTIONS_STANDARD = [
   { cle: 'synoptique', titre: 'Le synoptique de raccordement' },
   { cle: 'vues', titre: 'Le site, vue par vue' },
   { cle: 'cablage', titre: 'Câblage' },
+  { cle: 'archive', titre: 'La profondeur d\'archive' },
   { cle: 'devis', titre: 'Le chiffrage' },
   { cle: 'garantie', titre: 'Garantie, maintenance et suivi' },
   { cle: 'reserves', titre: 'Réserves' },
@@ -3420,6 +3474,13 @@ ul.liste li { margin-bottom:7px; }
 ul.contenu { margin:6px 0 2px; padding-left:18px; font-size:12px; }
 ul.contenu li { margin-bottom:3px; }
 .libre p { margin:10px 0; }
+.archives { display:flex; gap:14px; flex-wrap:wrap; margin:12px 0; }
+.archive { flex:1 1 240px; border:1px solid var(--bord); border-radius:10px;
+  padding:12px 16px; }
+.archive.retenu { border-color:var(--rouge); border-width:2px; }
+.archive .surtitre { margin:0 0 4px; font-size:11px; }
+.archive h3 { margin:0 0 6px; font-size:16px; }
+.archive p { margin:0; font-size:13.5px; }
 .modele { display:flex; gap:18px; align-items:flex-start; border:1px solid var(--bord);
   border-radius:10px; padding:14px 16px; margin:14px 0; }
 .modele img { flex:0 0 168px; width:168px; height:auto; border-radius:8px;
@@ -3473,7 +3534,7 @@ tr.option td { color:var(--doux); }
   h1 { font-size:22pt; }
   h2 { font-size:14pt; margin-top:20px; break-after:avoid; page-break-after:avoid; }
   h3 { break-after:avoid; page-break-after:avoid; }
-  .modele { break-inside:avoid; page-break-inside:avoid; }
+  .modele, .archive { break-inside:avoid; page-break-inside:avoid; }
   figure, .report, .chiffres, .point, table, li, tr, .libre p {
     break-inside:avoid; page-break-inside:avoid; }
   /* Sauf les tableaux du chiffrage : sept lots insécables laissaient une
@@ -3490,6 +3551,40 @@ tr.option td { color:var(--doux); }
   .pied { position:relative; margin-top:16px; padding-top:12px;
     break-before:avoid; page-break-before:avoid; }
 }`;
+
+/**
+ * Les deux profondeurs d'archive proposées.
+ *
+ * Quinze jours couvrent le délai courant entre un fait et sa réquisition.
+ * Trente est le plafond que la loi autorise sans justification. La machine
+ * a deux baies : la première suffit à quinze jours, la seconde se pose plus
+ * tard sans rien changer d'autre. C'est une option, pas un chantier.
+ */
+function archive(etude, b) {
+  const st = etude.stockage || {};
+  const longue = st.variante && st.variante !== b.jours ? st.variante : null;
+  const bl = longue ? bilanEtude(etude, { jours: longue }) : null;
+  const carte = (jours, bil, retenu) => {
+    const d = bil.disques && bil.disques.pool;
+    return `<div class="archive ${retenu ? 'retenu' : ''}">
+      <p class="surtitre">${retenu ? 'RETENU' : 'EN OPTION'}</p>
+      <h3>${jours} jours d'enregistrement continu</h3>
+      <p><b>${echapper(fr(bil.capaciteGo / 1000))} To</b> d'images à conserver.
+        ${d ? `${d.nombre} disque${d.nombre > 1 ? 's' : ''} de ${d.unitaire} To
+          — ${d.total} To installés sur les ${bil.disques.baies} baies de
+          l'enregistreur.` : 'Aucune configuration de disque ne couvre ce besoin.'}</p>
+    </div>`;
+  };
+  return `<div class="archives">
+    ${carte(b.jours, b, true)}
+    ${bl ? carte(longue, bl, false) : ''}
+  </div>
+  ${st.raison ? `<p class="point">${echapper(st.raison)}</p>` : ''}
+  <p class="det">Les deux chiffres valent pour ${b.cameras} caméras
+    enregistrant en continu, 24 heures sur 24, à ${echapper(fr(b.debitTotal))} Mbit/s
+    cumulés. L'enregistrement sur détection, que ces caméras savent faire,
+    allonge l'archive dans les mêmes disques.</p>`;
+}
 
 /**
  * La fiche technique des modèles posés.
@@ -3625,7 +3720,7 @@ function fiche(etude, agence, planSvg, devis = null) {
     chiffres: `<div class="chiffres">
   <div><span>Caméras</span><b>${b.cameras}</b></div>
   <div><span>Débit estimé</span><b>${echapper(fr(b.debitTotal))} Mbit/s</b></div>
-  <div><span>Stockage 30 jours</span><b>${echapper(fr(b.capaciteGo / 1000))} To</b></div>
+  <div><span>Archive ${b.jours} jours</span><b>${echapper(fr(b.capaciteGo / 1000))} To</b></div>
   <div><span>PoE demandé</span><b>${echapper(fr(b.consoPoe))} W</b></div>
   <div><span>Câble réseau</span><b>${echapper(frGroupe(Math.round(b.reseau)))} m</b></div>
 </div>`,
@@ -3659,6 +3754,8 @@ function fiche(etude, agence, planSvg, devis = null) {
 </figure>`,
 
     devis: chiffrage,
+
+    archive: archive(etude, b),
 
     cablage: `<div class="chiffres">
   <div><span>Câble réseau</span><b>${echapper(frGroupe(Math.round(b.reseau)))} m</b></div>
@@ -4312,6 +4409,7 @@ const DESCRIPTION = {
   cablage: 'Le métré, les boîtes à commander, les liaisons hors norme.',
   fiches: 'Une fiche par modèle posé : optique, portées, alimentation.',
   garantie: 'Garantie trois ans, maintenance un an, formation et dossier.',
+  archive: 'Quinze jours retenus, trente en option : un disque de plus.',
   devis: 'Le bordereau chiffré, lots et sous-totaux, depuis devis.json.',
   reserves: 'Ce que l\'étude ne promet pas. À garder.',
 };

@@ -53,7 +53,7 @@
   {
    "cle": "C2",
    "vue": "entree",
-   "modele": "turret",
+   "modele": "panoramique",
    "tele": false,
    "hauteur": 3,
    "exterieur": true,
@@ -74,7 +74,7 @@
   {
    "cle": "C3",
    "vue": "cour",
-   "modele": "varifocal",
+   "modele": "panoramique",
    "tele": false,
    "hauteur": 4.5,
    "exterieur": true,
@@ -158,7 +158,7 @@
   {
    "cle": "C7",
    "vue": "halle",
-   "modele": "turret",
+   "modele": "panoramique",
    "tele": false,
    "hauteur": 4,
    "exterieur": false,
@@ -179,7 +179,7 @@
   {
    "cle": "C8",
    "vue": "rideau",
-   "modele": "turret",
+   "modele": "panoramique",
    "tele": false,
    "hauteur": 3,
    "exterieur": false,
@@ -200,7 +200,7 @@
   {
    "cle": "C9",
    "vue": "stock",
-   "modele": "turret",
+   "modele": "panoramique",
    "tele": false,
    "hauteur": 3,
    "exterieur": false,
@@ -493,6 +493,11 @@
     "visible": true
    },
    {
+    "cle": "archive",
+    "titre": "La profondeur d'archive",
+    "visible": true
+   },
+   {
     "cle": "devis",
     "titre": "Le chiffrage",
     "visible": true
@@ -631,5 +636,10 @@
   "hauteur": 79.52520623281393,
   "opacite": 0.55
  },
- "client": "GO FORMATION"
+ "client": "GO FORMATION",
+ "stockage": {
+  "jours": 15,
+  "variante": 30,
+  "raison": "Quinze jours d'archive couvrent le délai courant d'un dépôt de plainte et d'une réquisition. Trente jours est le plafond que la loi autorise sans justification particulière : il se prend en option, par un second disque, sans rien changer d'autre à l'installation."
+ }
 }

@@ -272,15 +272,25 @@ test('les nombres des messages sont écrits à la française', () => {
 
 /* --------------------------------------------------- disques et baies */
 
-test('deux baies : le pool additionne, le miroir double', () => {
-  // 12 To de besoin : deux disques de 6 To en pool, deux de 12 en miroir.
+test('le pool n\'occupe que les baies nécessaires', () => {
+  // 12 To de besoin sur deux baies : UN disque de 12 To suffit. Remplir les
+  // deux ferait acheter un disque inutile, et fermerait la seule façon
+  // d'allonger l'archive plus tard sans tout remplacer.
   const d = disquesPourBaies(12000, 2);
   assert.equal(d.baies, 2);
-  assert.equal(d.pool.unitaire, 6);
-  assert.equal(d.pool.nombre, 2);
+  assert.equal(d.pool.nombre, 1);
+  assert.equal(d.pool.unitaire, 12);
   assert.equal(d.pool.total, 12);
+  // Le miroir, lui, suppose bien deux disques.
   assert.equal(d.miroir.unitaire, 12);
   assert.equal(d.miroir.nombre, 2);
+});
+
+test('le pool prend une deuxième baie quand un disque n\'y suffit plus', () => {
+  // 17 To avec un plafond de 10 To par baie : aucun disque seul ne tient.
+  const d = disquesPourBaies(17000, 2, { capaciteMax: 10 });
+  assert.equal(d.pool.nombre, 2);
+  assert.equal(d.pool.unitaire, 10);
 });
 
 test('deux baies : le pool tient toujours le besoin', () => {
@@ -344,9 +354,9 @@ test('baies : un besoin qui dépasse ce que les baies peuvent porter → null', 
   assert.equal(d.pool, null);
 });
 
-test('baies : sans contrainte déclarée, le comportement d\'avant est gardé', () => {
+test('baies : sans contrainte déclarée, aucun plafond n\'est inventé', () => {
   const d = disquesPourBaies(12000, 2);
-  assert.equal(d.pool.unitaire, 6);
+  assert.equal(d.pool.unitaire, 12);
   assert.equal(d.miroir.unitaire, 12);
   assert.equal(d.capaciteMax, null);
 });

@@ -223,7 +223,9 @@ export function metre(etude) {
  * @param {object} etude
  * @param {object} [options] jours de conservation, heures par jour
  */
-export function bilanEtude(etude, { jours = 30, heuresParJour = 24 } = {}) {
+export function bilanEtude(etude, { jours, heuresParJour = 24 } = {}) {
+  // L'étude décide de sa profondeur d'archive ; 30 jours si elle se tait.
+  const conservation = jours || (etude.stockage && etude.stockage.jours) || 30;
   const modeles = etude.modeles || {};
   const cameras = etude.cameras || [];
   const nvr = (etude.equipements && etude.equipements.enregistreur) || {};
@@ -232,7 +234,7 @@ export function bilanEtude(etude, { jours = 30, heuresParJour = 24 } = {}) {
     const m = modeles[c.modele];
     return t + (m ? debitEstime({ resH: m.resH, resV: m.resV, codec: 'h265' }) : 0);
   }, 0);
-  const capaciteGo = capaciteNecessaire({ debitTotal, jours, heuresParJour });
+  const capaciteGo = capaciteNecessaire({ debitTotal, jours: conservation, heuresParJour });
 
   const liaisons = metre(etude);
   const somme = (f) => liaisons.filter(f).reduce((t, l) => t + l.longueur, 0);
@@ -246,6 +248,7 @@ export function bilanEtude(etude, { jours = 30, heuresParJour = 24 } = {}) {
   return {
     cameras: cameras.length,
     debitTotal,
+    jours: conservation,
     capaciteGo,
     disques: disquesPourBaies(capaciteGo, nvr.baies || 2, {
       capaciteMax: nvr.capaciteMaxBaie,

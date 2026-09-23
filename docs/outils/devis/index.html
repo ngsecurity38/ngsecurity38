@@ -1870,11 +1870,26 @@ function disquesPourBaies(go, baies = 2, machine = {}) {
     if (!unitaire) return null;
     return { unitaire, nombre, total: unitaire * nombre };
   };
+  /*
+   * On n'occupe que les baies nécessaires.
+   *
+   * Remplir les deux baies d'une machine qui en a deux fait acheter un
+   * disque dont personne n'a besoin — et interdit d'allonger l'archive plus
+   * tard sans tout remplacer. Un disque libre est une option de vente.
+   */
+  const minimal = () => {
+    for (let n = 1; n <= baies; n += 1) {
+      const c = choisir(to / n, n);
+      if (c && c.total >= to) return c;
+    }
+    return choisir(to / baies, baies);
+  };
+
   return {
     baies,
     capaciteMax: Number.isFinite(capaciteMax) ? capaciteMax : null,
     raid,
-    pool: choisir(to / baies, baies),
+    pool: minimal(),
     // Le miroir n'a de sens qu'à baies paires, et que si la machine le fait.
     miroir: raid && baies % 2 === 0 ? choisir(to / (baies / 2), baies) : null,
   };

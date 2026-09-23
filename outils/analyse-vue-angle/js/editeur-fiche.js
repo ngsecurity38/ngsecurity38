@@ -43,6 +43,7 @@ export const SECTIONS_STANDARD = [
   { cle: 'synoptique', titre: 'Le synoptique de raccordement' },
   { cle: 'vues', titre: 'Le site, vue par vue' },
   { cle: 'cablage', titre: 'Câblage' },
+  { cle: 'archive', titre: 'La profondeur d\'archive' },
   { cle: 'devis', titre: 'Le chiffrage' },
   { cle: 'garantie', titre: 'Garantie, maintenance et suivi' },
   { cle: 'reserves', titre: 'Réserves' },
@@ -124,6 +125,13 @@ ul.liste li { margin-bottom:7px; }
 ul.contenu { margin:6px 0 2px; padding-left:18px; font-size:12px; }
 ul.contenu li { margin-bottom:3px; }
 .libre p { margin:10px 0; }
+.archives { display:flex; gap:14px; flex-wrap:wrap; margin:12px 0; }
+.archive { flex:1 1 240px; border:1px solid var(--bord); border-radius:10px;
+  padding:12px 16px; }
+.archive.retenu { border-color:var(--rouge); border-width:2px; }
+.archive .surtitre { margin:0 0 4px; font-size:11px; }
+.archive h3 { margin:0 0 6px; font-size:16px; }
+.archive p { margin:0; font-size:13.5px; }
 .modele { display:flex; gap:18px; align-items:flex-start; border:1px solid var(--bord);
   border-radius:10px; padding:14px 16px; margin:14px 0; }
 .modele img { flex:0 0 168px; width:168px; height:auto; border-radius:8px;
@@ -177,7 +185,7 @@ tr.option td { color:var(--doux); }
   h1 { font-size:22pt; }
   h2 { font-size:14pt; margin-top:20px; break-after:avoid; page-break-after:avoid; }
   h3 { break-after:avoid; page-break-after:avoid; }
-  .modele { break-inside:avoid; page-break-inside:avoid; }
+  .modele, .archive { break-inside:avoid; page-break-inside:avoid; }
   figure, .report, .chiffres, .point, table, li, tr, .libre p {
     break-inside:avoid; page-break-inside:avoid; }
   /* Sauf les tableaux du chiffrage : sept lots insécables laissaient une
@@ -194,6 +202,40 @@ tr.option td { color:var(--doux); }
   .pied { position:relative; margin-top:16px; padding-top:12px;
     break-before:avoid; page-break-before:avoid; }
 }`;
+
+/**
+ * Les deux profondeurs d'archive proposées.
+ *
+ * Quinze jours couvrent le délai courant entre un fait et sa réquisition.
+ * Trente est le plafond que la loi autorise sans justification. La machine
+ * a deux baies : la première suffit à quinze jours, la seconde se pose plus
+ * tard sans rien changer d'autre. C'est une option, pas un chantier.
+ */
+function archive(etude, b) {
+  const st = etude.stockage || {};
+  const longue = st.variante && st.variante !== b.jours ? st.variante : null;
+  const bl = longue ? bilanEtude(etude, { jours: longue }) : null;
+  const carte = (jours, bil, retenu) => {
+    const d = bil.disques && bil.disques.pool;
+    return `<div class="archive ${retenu ? 'retenu' : ''}">
+      <p class="surtitre">${retenu ? 'RETENU' : 'EN OPTION'}</p>
+      <h3>${jours} jours d'enregistrement continu</h3>
+      <p><b>${echapper(fr(bil.capaciteGo / 1000))} To</b> d'images à conserver.
+        ${d ? `${d.nombre} disque${d.nombre > 1 ? 's' : ''} de ${d.unitaire} To
+          — ${d.total} To installés sur les ${bil.disques.baies} baies de
+          l'enregistreur.` : 'Aucune configuration de disque ne couvre ce besoin.'}</p>
+    </div>`;
+  };
+  return `<div class="archives">
+    ${carte(b.jours, b, true)}
+    ${bl ? carte(longue, bl, false) : ''}
+  </div>
+  ${st.raison ? `<p class="point">${echapper(st.raison)}</p>` : ''}
+  <p class="det">Les deux chiffres valent pour ${b.cameras} caméras
+    enregistrant en continu, 24 heures sur 24, à ${echapper(fr(b.debitTotal))} Mbit/s
+    cumulés. L'enregistrement sur détection, que ces caméras savent faire,
+    allonge l'archive dans les mêmes disques.</p>`;
+}
 
 /**
  * La fiche technique des modèles posés.
@@ -329,7 +371,7 @@ export function fiche(etude, agence, planSvg, devis = null) {
     chiffres: `<div class="chiffres">
   <div><span>Caméras</span><b>${b.cameras}</b></div>
   <div><span>Débit estimé</span><b>${echapper(fr(b.debitTotal))} Mbit/s</b></div>
-  <div><span>Stockage 30 jours</span><b>${echapper(fr(b.capaciteGo / 1000))} To</b></div>
+  <div><span>Archive ${b.jours} jours</span><b>${echapper(fr(b.capaciteGo / 1000))} To</b></div>
   <div><span>PoE demandé</span><b>${echapper(fr(b.consoPoe))} W</b></div>
   <div><span>Câble réseau</span><b>${echapper(frGroupe(Math.round(b.reseau)))} m</b></div>
 </div>`,
@@ -363,6 +405,8 @@ export function fiche(etude, agence, planSvg, devis = null) {
 </figure>`,
 
     devis: chiffrage,
+
+    archive: archive(etude, b),
 
     cablage: `<div class="chiffres">
   <div><span>Câble réseau</span><b>${echapper(frGroupe(Math.round(b.reseau)))} m</b></div>
