@@ -3455,11 +3455,13 @@ console.log('\nFacturier');
     affirmer(await page.getAttribute('#apercu', 'hidden') !== null, 'l\'aperçu doit se fermer');
   });
 
-  await cas('l\'agence est seule avertie de ce qui lui manque', async () => {
+  await cas('aucun rappel de mentions légales nulle part', async () => {
     /*
-     * Une facture partie chez un client portait en tête « Mentions légales
-     * incomplètes ». Le client n'y pouvait rien, et y lisait qu'on lui
-     * envoyait un papier irrégulier. L'avertissement est pour l'agence.
+     * Ce rappel a figuré en tête du document remis au client, où il lui
+     * annonçait que la facture reçue n'était pas en règle. Déplacé sur
+     * l'écran de l'agence, il y revenait à chaque ouverture sans rien
+     * apprendre de nouveau. L'agence l'a fait retirer : ni sur le papier,
+     * ni sur l'écran.
      */
     await page.evaluate(() => {
       window.__agence.aCompleter = { capitalSocial: null, rcsGreffe: null, assuranceRcPro: null };
@@ -3468,15 +3470,15 @@ console.log('\nFacturier');
     await page.waitForSelector('#apercu:not([hidden])');
     await page.waitForTimeout(300);
     const cadre = page.frames().find((f) => f !== page.mainFrame());
-    const document_ = serre(await cadre.textContent('body'));
-    const barre = serre(await page.textContent('#apercu-aide'));
+    const doc = serre(await cadre.textContent('body'));
+    const barre = serre(await page.textContent('.apercu-aide'));
     await page.click('#b-fermer');
+    const ecran = serre(await page.textContent('#alertes'));
 
-    affirmer(!/incomplètes|Ilmanquelecapitalsocial/.test(document_),
-      'rien de tout cela ne doit figurer sur le papier du client');
-    affirmer(/Visibleparvousseul/.test(barre),
-      `l'agence, elle, doit être prévenue : ${barre.slice(0, 90)}`);
-    affirmer(/capitalsocial/.test(barre), `et savoir quoi : ${barre.slice(0, 120)}`);
+    const motif = /Mentionslégales|incomplètes|capitalsocial|greffeduRCS|Visibleparvousseul/;
+    affirmer(!motif.test(doc), 'rien sur le papier du client');
+    affirmer(!motif.test(barre), `rien dans la barre de l'aperçu : ${barre.slice(0, 80)}`);
+    affirmer(!motif.test(ecran), `rien sur l'écran : ${ecran.slice(0, 80)}`);
 
     await page.evaluate(() => {
       window.__agence.aCompleter = {

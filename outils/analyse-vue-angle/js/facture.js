@@ -314,9 +314,14 @@ export function coordonneesBancaires(agence, facture = {}) {
  * Ce qu'il manque à l'identité de l'agence pour qu'une facture soit en règle.
  *
  * Une facture de SAS qui ne porte ni capital social ni RCS est irrégulière.
- * L'outil ne peut pas les deviner : il les réclame, et le dit sur la facture
- * tant qu'ils manquent. Mieux vaut un défaut visible qu'une facture émise
- * pendant deux ans avec un manque que personne n'a vu.
+ *
+ * PLUS RIEN NE L'AFFICHE, et c'est une décision de l'agence. Le rappel a
+ * figuré sur le document du client — une faute : il y lisait que la facture
+ * reçue n'était pas en règle — puis sur l'écran, où il revenait à chaque
+ * ouverture sans rien apprendre de nouveau. La fonction reste parce que la
+ * règle, elle, ne change pas : le jour où ces mentions sont renseignées dans
+ * la fiche de l'agence, elles se posent seules en tête de facture, et le
+ * jour où l'agence veut retrouver le rappel, il est ici.
  */
 export function mentionsManquantes(agence) {
   const a = agence || {};

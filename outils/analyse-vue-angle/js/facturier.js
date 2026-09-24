@@ -17,7 +17,7 @@ import { fr, echapper } from './format.js';
 import { euros } from './prix.js';
 import {
   ETATS, PERIODES, prochainNumero, totauxFacture, echeance, retard,
-  echeancesContrat, aFacturer, journal, mentionsManquantes, coordonneesBancaires,
+  echeancesContrat, aFacturer, journal, coordonneesBancaires,
 } from './facture.js';
 import { ficheFacture } from './facture-fiche.js';
 import {
@@ -85,13 +85,8 @@ function chiffres() {
   mettre('#c-emises', String(j.emises));
 
   const agence = globalThis.__agence || {};
-  const manque = mentionsManquantes(agence);
   const avis = $('#alertes');
   const mots = [];
-  if (manque.length) {
-    mots.push(`<b>Mentions légales incomplètes :</b> il manque ${
-      echapper(manque.join(', '))}. Toute facture produite le signalera.`);
-  }
   // Une facture qui annonce un virement sans dire où virer n'est pas payable.
   if (!coordonneesBancaires(agence).iban) {
     mots.push('<b>Aucun IBAN :</b> les factures annoncent un virement sans '
@@ -520,21 +515,6 @@ async function produireFacture() {
     nom: `${(f.numero || 'facture').toLowerCase()}.html`,
   };
   $('#apercu-titre').textContent = `${f.type === 'avoir' ? 'Avoir' : 'Facture'} ${f.numero}`;
-
-  /*
-   * Le rappel des mentions manquantes est ici, dans la barre — et nulle part
-   * sur le document. Il a figuré un temps sur la facture elle-même : le
-   * client recevait donc un papier lui annonçant qu'il n'était pas en règle.
-   * C'est à l'agence que l'avertissement sert, pas à lui.
-   */
-  const manque = mentionsManquantes(globalThis.__agence || {});
-  const aide = $('#apercu-aide');
-  aide.classList.toggle('mauvais', manque.length > 0);
-  aide.innerHTML = manque.length
-    ? `<b>Visible par vous seul :</b> ce document part sans ${echapper(manque.join(', '))}. `
-      + 'Dans la fenêtre d\'impression, choisissez « Enregistrer au format PDF ».'
-    : 'Dans la fenêtre d\'impression, choisissez '
-      + '<b>« Enregistrer au format PDF »</b> comme imprimante.';
 
   $('#apercu').hidden = false;
   await poser($('#apercu-page'), etat.document.html);
