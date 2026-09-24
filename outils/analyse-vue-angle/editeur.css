@@ -209,3 +209,7 @@ main { display:flex; gap:16px; padding:16px; align-items:flex-start; }
 }
 .btn-puce[disabled] { opacity:.32; cursor:default; }
 .btn-puce[disabled]:hover { border-color:var(--bord); }
+
+/* L'état de la garde tient sur une ligne : replié, il pousse les commandes. */
+.marque small { white-space:nowrap; }
+.marque small.mauvais { color:var(--rouge); }

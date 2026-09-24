@@ -391,7 +391,8 @@ aDeposer('alarme', alarme, lire('tarif-alarme.json'), 'tarif-alarme.json');
  */
 const MODULES_EDITEUR = ['dom.js', 'format.js', 'optique.js', 'cable.js',
   'stockage.js', 'etude-plan.js', 'papier.js', 'synoptique.js',
-  'devis-etude.js', 'devis-fiche.js', 'editeur-fiche.js', 'editeur.js'];
+  'devis-etude.js', 'devis-fiche.js', 'editeur-fiche.js', 'impression.js',
+  'coffre.js', 'editeur.js'];
 verifierListe(MODULES_EDITEUR);
 
 const dossierEtude = join(ici, '..', '..', 'etudes', '2026-09-22-site-industriel');
@@ -430,7 +431,7 @@ ecrire('editeur.html', editeur);
  * fichier unique, ouvert d'un double-clic, sans serveur ni réseau.
  */
 const MODULES_FACTURIER = ['dom.js', 'format.js', 'prix.js', 'papier.js',
-  'facture.js', 'facture-fiche.js', 'catalogue-vente.js', 'facturier.js'];
+  'facture.js', 'facture-fiche.js', 'catalogue-vente.js', 'impression.js', 'facturier.js'];
 verifierListe(MODULES_FACTURIER);
 
 const paquetFacturier = paqueter(MODULES_FACTURIER, '\ndemarrer();');

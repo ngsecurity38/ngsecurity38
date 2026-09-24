@@ -101,7 +101,7 @@
         <div class="totaux" id="p-totaux"></div>
 
         <div class="boutons">
-          <button type="button" id="b-imprimer" class="btn btn-plein">Produire la facture</button>
+          <button type="button" id="b-imprimer" class="btn btn-plein">Voir et enregistrer en PDF</button>
           <button type="button" id="b-avoir" class="btn">Établir un avoir</button>
         </div>
       </div>
@@ -162,6 +162,27 @@
       qui, depuis quand, et la TVA collectée du trimestre.</p>
   </section>
 </main>
+
+<!--
+  L'aperçu, et la sortie PDF.
+
+  Le document s'affiche dans un cadre de la page même : aucune fenêtre à
+  ouvrir, donc rien que le navigateur puisse bloquer. « Enregistrer en PDF »
+  ouvre sa fenêtre d'impression, où le PDF est l'une des imprimantes.
+-->
+<div class="apercu" id="apercu" hidden>
+  <div class="apercu-barre">
+    <b id="apercu-titre">Aperçu</b>
+    <p class="apercu-aide">Dans la fenêtre d'impression, choisissez
+      <b>« Enregistrer au format PDF »</b> comme imprimante.</p>
+    <div class="apercu-actions">
+      <button type="button" id="b-pdf" class="btn btn-plein">Enregistrer en PDF</button>
+      <button type="button" id="b-html" class="btn">Télécharger le fichier</button>
+      <button type="button" id="b-fermer" class="btn">Fermer</button>
+    </div>
+  </div>
+  <iframe id="apercu-page" title="Aperçu du document"></iframe>
+</div>
 
 <script type="module">
 import { demarrer } from './js/facturier.js';

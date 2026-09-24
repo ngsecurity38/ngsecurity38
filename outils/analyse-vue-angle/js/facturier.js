@@ -23,6 +23,7 @@ import { ficheFacture } from './facture-fiche.js';
 import {
   assainirCatalogue, chercher, ligneDepuisArticle, articlesSansPrix,
 } from './catalogue-vente.js';
+import { poser, imprimerCadre, telecharger } from './impression.js';
 
 /** Dans le facturier, une absence de montant se lit « — », pas « 0,00 € ». */
 const sommeOuTiret = (v) => (Number.isFinite(v) ? euros(v) : '—');
@@ -32,6 +33,7 @@ const CLE_LOCALE = 'ngs38-facturier';
 const etat = {
   livre: null,
   catalogue: null,
+  document: null,
   facture: null,
   contrat: null,
   vue: 'factures',
@@ -472,14 +474,6 @@ function vueJournal() {
 
 /* ------------------------------------------------------------- fichiers */
 
-function telecharger(nom, texte, type) {
-  const lien = document.createElement('a');
-  lien.href = URL.createObjectURL(new Blob([texte], { type }));
-  lien.download = nom;
-  lien.click();
-  URL.revokeObjectURL(lien.href);
-}
-
 /**
  * L'export comptable.
  *
@@ -510,17 +504,31 @@ function exportComptable() {
   telecharger(`comptabilite-${aujourdhui()}.csv`, csv, 'text/csv;charset=utf-8');
 }
 
-function produireFacture() {
+/**
+ * L'aperçu, puis le PDF.
+ *
+ * Le document s'affiche dans un cadre de la page même. Il passait par une
+ * fenêtre séparée, que les navigateurs bloquent volontiers et sans le dire :
+ * le bouton ne répondait pas, et l'outil passait pour cassé. Un cadre, lui,
+ * ne se bloque pas — et l'agence voit ce qu'elle envoie avant de l'envoyer.
+ */
+async function produireFacture() {
   const f = factureCourante();
   if (!f) return;
-  const html = ficheFacture(f, globalThis.__agence || {}, { aujourdhui: aujourdhui() });
-  const fen = window.open('', '_blank');
-  if (!fen) {
-    telecharger(`${(f.numero || 'facture').toLowerCase()}.html`, html, 'text/html;charset=utf-8');
-    return;
-  }
-  fen.document.write(html);
-  fen.document.close();
+  etat.document = {
+    html: ficheFacture(f, globalThis.__agence || {}, { aujourdhui: aujourdhui() }),
+    nom: `${(f.numero || 'facture').toLowerCase()}.html`,
+  };
+  $('#apercu-titre').textContent = `${f.type === 'avoir' ? 'Avoir' : 'Facture'} ${f.numero}`;
+  $('#apercu').hidden = false;
+  await poser($('#apercu-page'), etat.document.html);
+}
+
+/** Le PDF : la fenêtre d'impression du navigateur, sur le seul cadre. */
+function enregistrerPdf() {
+  if (imprimerCadre($('#apercu-page'))) return;
+  // L'impression refusée, le document doit quand même pouvoir sortir.
+  if (etat.document) telecharger(etat.document.nom, etat.document.html);
 }
 
 /* --------------------------------------------------------------- montage */
@@ -608,6 +616,14 @@ export function monter(livre, catalogue) {
   });
   $('#b-avoir').addEventListener('click', etablirAvoir);
   $('#b-imprimer').addEventListener('click', produireFacture);
+  $('#b-pdf').addEventListener('click', enregistrerPdf);
+  $('#b-html').addEventListener('click', () => {
+    if (etat.document) telecharger(etat.document.nom, etat.document.html);
+  });
+  $('#b-fermer').addEventListener('click', () => { $('#apercu').hidden = true; });
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape' && !$('#apercu').hidden) $('#apercu').hidden = true;
+  });
   $('#b-export').addEventListener('click', exportComptable);
   $('#f-impayees').addEventListener('change', () => {
     etat.impayees = $('#f-impayees').checked;

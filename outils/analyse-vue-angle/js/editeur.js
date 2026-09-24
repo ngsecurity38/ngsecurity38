@@ -24,6 +24,8 @@ import {
   pdfParDefaut, reglagesPdf, FORMATS, ORIENTATIONS, MARGES,
 } from './papier.js';
 import { ficheDevis } from './devis-fiche.js';
+import { imprimer, telecharger } from './impression.js';
+import { garder, reprendre, oublier, apaiser } from './coffre.js';
 
 const SVG = 'http://www.w3.org/2000/svg';
 
@@ -655,7 +657,38 @@ function listeChapitres() {
   });
 }
 
+/* ------------------------------------------------------ la garde en cours */
+
+const CLE_TRAVAIL = 'editeur-etude';
+
+/**
+ * Garder le travail en cours, sans qu'on le demande.
+ *
+ * L'éditeur ne gardait rien : tout vivait en mémoire jusqu'au clic sur
+ * « Enregistrer etude.json ». Un onglet fermé par mégarde, une mise à jour
+ * du navigateur, et une demi-journée de relevé partait — photos comprises,
+ * qu'il faut retourner prendre sur place.
+ *
+ * On écrit après chaque changement, une fois la main posée. Le fichier
+ * enregistré reste la seule copie qu'on emporte : ceci n'est qu'un filet.
+ */
+const garderTravail = apaiser(async () => {
+  if (!etat.etude) return;
+  const gardee = await garder(CLE_TRAVAIL, etat.etude);
+  const n = $('#garde');
+  if (!n) return;
+  const h = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  n.textContent = gardee ? `Travail gardé à ${h}`
+    : 'Navigateur sans stockage : enregistrez etude.json souvent';
+  n.title = gardee
+    ? 'Gardé sur cet ordinateur, dans ce navigateur. Le fichier etude.json '
+      + 'reste la seule copie que vous emportez.'
+    : 'Ce navigateur refuse de garder le travail en cours.';
+  n.classList.toggle('mauvais', !gardee);
+});
+
 function tout() {
+  garderTravail();
   chiffres();
   dessinerPlan();
   listeCameras();
@@ -707,15 +740,6 @@ function supprimer() {
   tout();
 }
 
-/** Enregistre un fichier sans passer par le moindre serveur. */
-function telecharger(nom, texte, type) {
-  const lien = document.createElement('a');
-  lien.href = URL.createObjectURL(new Blob([texte], { type }));
-  lien.download = nom;
-  lien.click();
-  URL.revokeObjectURL(lien.href);
-}
-
 /**
  * Le dossier client.
  *
@@ -744,28 +768,23 @@ function produireFiche() {
  *
  * Une page ouverte depuis un disque ne peut pas écrire un fichier PDF
  * elle-même : seul le navigateur sait le faire, par sa fenêtre
- * d'impression. On lui épargne donc les étapes — le dossier s'ouvre et la
- * fenêtre s'ouvre avec lui, au format déjà réglé. Il ne reste qu'à choisir
- * « Enregistrer au format PDF » comme imprimante.
+ * d'impression, où « Enregistrer au format PDF » figure parmi les
+ * imprimantes.
  *
- * On attend le chargement des images : imprimer un dossier dont les photos
- * ne sont pas encore décodées rendrait des cadres vides.
+ * Le dossier passait par une fenêtre séparée, que les navigateurs bloquent
+ * volontiers et sans le dire : le bouton ne répondait pas, et l'outil
+ * passait pour cassé. Il passe maintenant par un cadre de la page même, que
+ * rien ne bloque.
  */
-function produirePdf() {
-  const html = dossierHtml();
-  const f = window.open('', '_blank');
-  if (!f) {
-    $('#alertes').hidden = false;
-    $('#alertes').innerHTML = '<b>Fenêtre bloquée.</b> Votre navigateur a '
-      + 'refusé d\'ouvrir le dossier. Autorisez les fenêtres pour cette page, '
-      + 'ou passez par « Produire le dossier client » puis Ctrl+P.';
-    return;
-  }
-  f.document.write(html);
-  f.document.close();
-  const imprimer = () => { f.focus(); f.print(); };
-  if (f.document.readyState === 'complete') setTimeout(imprimer, 250);
-  else f.addEventListener('load', () => setTimeout(imprimer, 250));
+async function produirePdf() {
+  const parti = await imprimer(dossierHtml());
+  if (parti) return;
+  // L'impression refusée : le dossier doit quand même pouvoir sortir.
+  $('#alertes').hidden = false;
+  $('#alertes').innerHTML = '<b>Impression refusée par le navigateur.</b> '
+    + 'Le dossier est téléchargé à la place : ouvrez-le, puis Ctrl+P et '
+    + 'choisissez « Enregistrer au format PDF ».';
+  produireFiche();
 }
 
 /**
@@ -1025,6 +1044,30 @@ export function monter(etude) {
  * ce qui permet de garder les données à jour sans refaire la page.
  */
 export async function demarrer() {
+  /*
+   * Le travail gardé passe avant l'étude d'origine : c'est le dernier état
+   * connu de l'agence. On le dit, avec sa date, et on laisse repartir de
+   * zéro d'un bouton — une reprise silencieuse ferait croire à un outil qui
+   * n'a pas rechargé.
+   */
+  const garde = await reprendre(CLE_TRAVAIL);
+  if (garde && garde.valeur && garde.valeur.cameras) {
+    monter(garde.valeur);
+    const quand = new Date(garde.date);
+    const avis = $('#alertes');
+    avis.hidden = false;
+    avis.innerHTML = `<b>Travail repris.</b> Votre étude telle que vous l'avez `
+      + `laissée le ${quand.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })} `
+      + `à ${quand.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}. `
+      + '<button type="button" id="b-repartir" class="btn btn-petit">'
+      + 'Repartir de l\'étude d\'origine</button>';
+    $('#b-repartir').addEventListener('click', async () => {
+      await oublier(CLE_TRAVAIL);
+      window.location.reload();
+    });
+    return;
+  }
+
   if (globalThis.__etude) { monter(globalThis.__etude); return; }
   try {
     const reponse = await fetch('etude.json');

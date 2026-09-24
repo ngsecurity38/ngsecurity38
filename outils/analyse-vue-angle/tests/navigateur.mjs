@@ -3337,20 +3337,29 @@ console.log('\nFacturier');
       };
       window.__agence.banque = { iban: 'FR76 0000 0000 0000 0000 0000 000', bic: 'AAAAFRPP' };
     });
-    const [feuille] = await Promise.all([
-      contexte.waitForEvent('page'),
-      page.click('#b-imprimer'),
-    ]);
-    await feuille.waitForLoadState('domcontentloaded');
-    await feuille.setViewportSize({ width: 703, height: 1013 });
-    await feuille.emulateMedia({ media: 'print' });
-    const r = await feuille.evaluate(() => ({
+
+    await page.click('#b-imprimer');
+    await page.waitForSelector('#apercu:not([hidden])');
+    const cadre = page.frames().find((f) => f !== page.mainFrame());
+    affirmer(!!cadre, 'le document doit être dans un cadre de la page');
+    // Le cadre est ramené à la largeur du papier : le texte y revient à la ligne
+    // comme il le fera à l'impression.
+    await page.evaluate(() => {
+      const n = document.querySelector('#apercu-page');
+      n.style.flex = 'none';
+      n.style.width = '703px';
+      n.style.height = '1013px';
+    });
+    await page.emulateMedia({ media: 'print' });
+    await page.waitForTimeout(200);
+    const r = await cadre.evaluate(() => ({
       hauteur: Math.round(document.querySelector('.feuille').scrollHeight),
       iban: document.querySelector('.reglement').textContent.includes('IBAN'),
     }));
+    await page.emulateMedia({ media: null });
     affirmer(r.hauteur <= 1013, `la facture déborde de ${r.hauteur - 1013} px sur une 2e page`);
     affirmer(r.iban, 'un virement sans IBAN n\'est pas payable');
-    await feuille.close();
+    await page.click('#b-fermer');
   });
 
   await cas('une facture émise ne se modifie plus', async () => {
@@ -3396,6 +3405,48 @@ console.log('\nFacturier');
       `la paire se neutralise, le CA revient à ${avant} : ${apres}`);
   });
 
+  await cas('le PDF sort sans ouvrir de fenêtre', async () => {
+    /*
+     * Le document passait par une fenêtre séparée, que les navigateurs
+     * bloquent volontiers et sans le dire : le bouton ne répondait pas, et
+     * l'agence croyait l'outil cassé. Il passe par un cadre de la page.
+     */
+    let fenetres = 0;
+    const compter = () => { fenetres += 1; };
+    contexte.on('page', compter);
+    await page.click('#b-imprimer');
+    await page.waitForSelector('#apercu:not([hidden])');
+    await page.waitForTimeout(400);
+    contexte.off('page', compter);
+    affirmer(fenetres === 0, `aucune fenêtre ne doit s'ouvrir : ${fenetres}`);
+
+    const cadre = page.frames().find((f) => f !== page.mainFrame());
+    const texte = serre(await cadre.textContent('body'));
+
+    // Le bouton envoie bien à l'impression, sans que rien ne casse.
+    await cadre.evaluate(() => {
+      window.__imprime = 0;
+      window.print = () => { window.__imprime += 1; };
+    });
+    await page.click('#b-pdf');
+    await page.waitForTimeout(150);
+    const imprime = await cadre.evaluate(() => window.__imprime);
+
+    /*
+     * On referme AVANT d'affirmer : un aperçu laissé ouvert par un essai qui
+     * échoue couvre l'écran, et tous les essais suivants tombent avec lui —
+     * on cherche alors la panne à six endroits au lieu d'un.
+     */
+    await page.click('#b-fermer');
+
+    affirmer(texte.includes('GOFORMATION'), 'le client doit figurer sur le document');
+    // Le document courant est l'avoir : sa dernière ligne dit « montant de l'avoir ».
+    affirmer(/Netàpayer|Montantdel'avoir/.test(texte),
+      `le total doit y figurer : ${texte.slice(-120)}`);
+    affirmer(imprime === 1, 'la fenêtre d\'impression doit être demandée sur le cadre');
+    affirmer(await page.getAttribute('#apercu', 'hidden') !== null, 'l\'aperçu doit se fermer');
+  });
+
   await cas('l\'export comptable s\'ouvre en colonnes', async () => {
     const [fichier] = await Promise.all([
       page.waitForEvent('download'),
@@ -3418,6 +3469,83 @@ console.log('\nFacturier');
 
   await cas('aucune erreur de console', () => affirmer(!erreurs.length, erreurs.join(' | ')));
   await page.close();
+}
+
+/* ------------------------------------- 16. l'éditeur d'étude de l'agence */
+
+console.log('\nÉditeur d\'étude');
+{
+  // Un contexte neuf : la garde de l'éditeur vit dans le stockage du profil.
+  const propre = await navigateur.newContext({ viewport: { width: 1400, height: 950 } });
+  const page = await propre.newPage();
+  const erreurs = surveiller(page);
+  const ouvrir = async () => {
+    await page.goto(`${BASE}/dist/editeur.html`, { waitUntil: 'load' });
+    await page.waitForFunction(() => {
+      const n = document.querySelector('#f-cameras');
+      return n && n.textContent.trim() !== '—';
+    }, null, { timeout: 30000 });
+  };
+  await ouvrir();
+
+  await cas('le travail se garde tout seul', async () => {
+    /*
+     * L'éditeur ne gardait rien : tout vivait en mémoire jusqu'au clic sur
+     * « Enregistrer etude.json ». Un onglet fermé par mégarde, et une
+     * demi-journée de relevé partait — photos comprises, qu'il faut
+     * retourner prendre sur place.
+     */
+    await page.click('#liste li:first-child');
+    const avant = await page.textContent('#f-cameras');
+    await page.click('#b-supprimer');
+    await page.waitForFunction((a) => document.querySelector('#f-cameras').textContent !== a,
+      avant, { timeout: 5000 });
+    const apres = await page.textContent('#f-cameras');
+    affirmer(apres !== avant, `la suppression doit compter : ${avant} -> ${apres}`);
+
+    await page.waitForFunction(() => /gardé/i.test(document.querySelector('#garde').textContent),
+      null, { timeout: 8000 });
+
+    await ouvrir();
+    affirmer((await page.textContent('#f-cameras')) === apres,
+      `le travail doit revenir tel quel : ${await page.textContent('#f-cameras')} au lieu de ${apres}`);
+    const avis = serre(await page.textContent('#alertes'));
+    affirmer(/Travailrepris/.test(avis), `la reprise doit se dire : ${avis.slice(0, 80)}`);
+  });
+
+  await cas('on peut repartir de l\'étude d\'origine', async () => {
+    // Une reprise dont on ne peut pas sortir serait un piège.
+    const repris = await page.textContent('#f-cameras');
+    await page.click('#b-repartir');
+    await page.waitForFunction((r) => {
+      const n = document.querySelector('#f-cameras');
+      return n && n.textContent.trim() !== '—' && n.textContent !== r;
+    }, repris, { timeout: 20000 });
+    affirmer((await page.textContent('#f-cameras')) !== repris,
+      'l\'étude d\'origine doit revenir');
+  });
+
+  await cas('le PDF sort sans ouvrir de fenêtre', async () => {
+    let fenetres = 0;
+    const compter = () => { fenetres += 1; };
+    propre.on('page', compter);
+    await page.click('#b-pdf');
+    await page.waitForTimeout(3000);
+    propre.off('page', compter);
+    affirmer(fenetres === 0, `aucune fenêtre ne doit s'ouvrir : ${fenetres}`);
+
+    const cadre = page.frames().find((f) => f !== page.mainFrame());
+    affirmer(!!cadre, 'le dossier doit être dans un cadre de la page');
+    const texte = serre(await cadre.textContent('body'));
+    affirmer(texte.includes('NGSecurity38'), 'le dossier doit porter l\'agence');
+    affirmer(texte.length > 2000, `le dossier doit être entier : ${texte.length} caractères`);
+    affirmer(serre(await page.textContent('#alertes')) === '',
+      'aucune alerte ne doit apparaître : l\'impression est partie');
+  });
+
+  await cas('aucune erreur de console', () => affirmer(!erreurs.length, erreurs.join(' | ')));
+  await page.close();
+  await propre.close();
 }
 
 await navigateur.close();
