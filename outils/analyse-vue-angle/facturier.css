@@ -1,0 +1,143 @@
+/*
+ * Le facturier reprend la palette du dossier et de l'éditeur : même rouge,
+ * même encre, mêmes gris. L'agence passe d'un outil à l'autre sans changer
+ * de maison.
+ */
+:root {
+  --rouge:#c8102e; --encre:#1a1d23; --doux:#5b6472;
+  --bord:#dde1e7; --fond:#f6f7f9; --vert:#1f7a4d; --alerte:#8a5a00;
+}
+* { box-sizing:border-box; }
+body {
+  margin:0; background:var(--fond); color:var(--encre);
+  font:15px/1.5 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.barre {
+  display:flex; align-items:center; justify-content:space-between; gap:16px;
+  padding:10px 18px; background:#fff; border-bottom:2px solid var(--rouge);
+  position:sticky; top:0; z-index:10;
+}
+.marque { display:flex; align-items:center; gap:12px; }
+.marque img { width:44px; height:auto; }
+.marque b { display:block; font-size:16px; }
+.marque small { color:var(--doux); font-size:12.5px; }
+.actions { display:flex; gap:8px; flex-wrap:wrap; }
+
+.btn {
+  font:inherit; font-size:14px; padding:8px 14px; border-radius:7px;
+  border:1px solid var(--bord); background:#fff; color:var(--encre); cursor:pointer;
+}
+.btn:hover { border-color:var(--doux); }
+.btn[disabled] { opacity:.4; cursor:default; }
+.btn[disabled]:hover { border-color:var(--bord); }
+.btn-plein { background:var(--rouge); border-color:var(--rouge); color:#fff; font-weight:600; }
+.btn-plein:hover { background:#a80d26; }
+.btn-petit { padding:5px 10px; font-size:13px; }
+.btn-retrait { color:var(--rouge); }
+.btn-puce { padding:3px 8px; font-size:14px; line-height:1.3; flex:0 0 auto; }
+
+.chiffres {
+  display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));
+  gap:1px; background:var(--bord); border-bottom:1px solid var(--bord);
+}
+.chiffres div { background:#fff; padding:9px 14px; }
+.chiffres span { display:block; font-size:11.5px; color:var(--doux); }
+.chiffres b { font-size:19px; }
+.chiffres b.mauvais { color:var(--rouge); }
+
+.alertes {
+  margin:0; padding:11px 18px; background:#fff4f5;
+  border-bottom:1px solid #f0c8ce; font-size:14px; color:#7a0a1c;
+}
+
+.onglets { display:flex; gap:4px; padding:12px 18px 0; background:var(--fond); }
+.onglet {
+  font:inherit; font-size:14px; font-weight:600; padding:9px 18px; cursor:pointer;
+  border:1px solid var(--bord); border-bottom:0; background:#f0f2f5;
+  border-radius:9px 9px 0 0; color:var(--doux);
+}
+.onglet.actif { background:#fff; color:var(--encre); box-shadow:inset 0 3px 0 var(--rouge); }
+
+main { padding:0 18px 24px; }
+.vue { padding-top:0; }
+.colonnes { display:flex; gap:16px; align-items:flex-start; }
+.colonnes > .bloc { flex:1 1 0; min-width:0; }
+.bloc {
+  background:#fff; border:1px solid var(--bord); border-radius:0 10px 10px 10px;
+  padding:14px 16px; margin-bottom:16px;
+}
+.entete-bloc { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.entete-bloc h2 { font-size:15px; margin:0 0 2px; }
+.bloc h3 { font-size:13px; margin:18px 0 0; color:var(--doux);
+  text-transform:uppercase; letter-spacing:.04em; }
+
+.liste { list-style:none; margin:10px 0 0; padding:0; max-height:420px; overflow:auto; }
+.liste li {
+  display:grid; grid-template-columns:auto 1fr; gap:3px 9px; align-items:center;
+  padding:7px 8px; border-radius:7px; cursor:pointer;
+}
+.liste li:hover { background:var(--fond); }
+.liste li.active { background:#fdeef0; }
+.liste li.vide { display:block; cursor:default; color:var(--doux); font-size:13.5px; }
+.liste li.vide:hover { background:none; }
+.liste .nom { font-weight:600; font-size:13.5px; }
+.liste .det { font-size:12px; color:var(--doux); grid-column:2; }
+.puce {
+  grid-row:span 2; min-width:34px; height:28px; padding:0 7px; border-radius:14px;
+  background:var(--encre); color:#fff; font-size:11px; font-weight:700;
+  display:flex; align-items:center; justify-content:center;
+}
+.puce.brouillon { background:var(--doux); }
+.puce.emise { background:var(--alerte); }
+.puce.payee { background:var(--vert); }
+.puce.annulee { background:#9aa3ae; text-decoration:line-through; }
+.puce.mauvais { background:var(--rouge); }
+b.mauvais, .mauvais { color:var(--rouge); }
+
+.bloc label { display:block; margin-top:12px; font-size:13px; font-weight:600; }
+.bloc label.case { font-weight:400; display:flex; gap:8px; align-items:center; margin:0; }
+.bloc input[type=text], .bloc input[type=number], .bloc input[type=date], .bloc select {
+  width:100%; font:inherit; font-size:14px; font-weight:400; margin-top:4px;
+  padding:7px 9px; border:1px solid var(--bord); border-radius:7px; background:#fff;
+}
+.bloc small { display:block; font-weight:400; font-size:11.5px; color:var(--doux);
+  margin-top:3px; }
+.paire { display:flex; gap:10px; }
+.paire label { flex:1; }
+
+.lignes { list-style:none; margin:8px 0; padding:0; }
+.lignes li {
+  display:grid; gap:6px; margin-bottom:6px; align-items:center;
+  grid-template-columns:1.6fr 1.4fr 70px 96px 82px auto;
+}
+.lignes input, .lignes select { margin-top:0; }
+
+.totaux { margin-top:14px; border:1px solid var(--bord); border-radius:8px; overflow:hidden; }
+.totaux div { display:flex; justify-content:space-between; padding:7px 12px;
+  border-bottom:1px solid var(--bord); font-size:14px; }
+.totaux div:last-child { border-bottom:0; }
+.totaux .gros { background:var(--encre); color:#fff; font-size:16px; font-weight:800; }
+
+.boutons { display:flex; gap:8px; margin-top:14px; }
+
+.echeances { margin-top:12px; }
+.echeance {
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  border:1px solid var(--bord); border-radius:7px; padding:7px 10px; margin-bottom:6px;
+  font-size:13.5px;
+}
+
+table { border-collapse:collapse; width:100%; font-size:13.5px; margin-top:8px; }
+th, td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--bord); }
+th { font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--doux); }
+td.n, th.n { text-align:right; }
+
+.det { font-size:12px; color:var(--doux); }
+.note { font-size:12.5px; color:var(--doux); margin:0; padding:0 2px; }
+
+@media (max-width: 1080px) {
+  .colonnes { flex-direction:column; }
+  .colonnes > .bloc { width:100%; }
+  .lignes li { grid-template-columns:1fr 1fr; }
+}

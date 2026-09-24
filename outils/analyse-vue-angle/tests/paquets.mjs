@@ -18,8 +18,11 @@ const lire = (...p) => readFileSync(join(dist, ...p), 'utf8');
 
 const PAGES = [
   'analyse-vue-angle.html', 'devis-client.html', 'alarme-client.html',
-  'presentation.html', 'editeur.html',
+  'presentation.html', 'editeur.html', 'facturier.html',
 ];
+
+/* Les deux outils d'atelier : ils restent sur l'ordinateur de l'agence. */
+const ATELIER = ['editeur.html', 'facturier.html'];
 
 test('les pages sont bien produites', () => {
   for (const p of PAGES) {
@@ -101,13 +104,41 @@ test('l\'éditeur embarque son étude et son logo', () => {
   assert.match(t, /name="robots" content="noindex/);
 });
 
-test('l\'éditeur n\'est lié depuis aucune page publique', () => {
-  for (const p of PAGES.filter((x) => x !== 'editeur.html')) {
-    assert.ok(!lire(p).includes('editeur.html'),
-      `${p} renvoie vers l'éditeur : c'est l'atelier de l'agence, pas un outil de visiteur`);
+test('le facturier embarque l\'identité de l\'agence et son logo', () => {
+  const t = lire('facturier.html');
+  assert.match(t, /window\.__agence=\{/, 'l\'identité doit être embarquée');
+  assert.match(t, /src="data:image\/png;base64,/, 'le logo doit être embarqué');
+  assert.ok(t.includes('demarrer();'), 'le paquet doit s\'amorcer tout seul');
+  assert.match(t, /name="robots" content="noindex/);
+});
+
+test('ni l\'éditeur ni le facturier ne sont liés depuis une page publique', () => {
+  /*
+   * L'agence l'a demandé nettement : ces deux-là restent sur son ordinateur.
+   * L'un porte les photos et les points faibles d'un site client, l'autre sa
+   * comptabilité. Un lien depuis une page publique suffirait à les sortir.
+   */
+  for (const atelier of ATELIER) {
+    for (const p of PAGES.filter((x) => !ATELIER.includes(x))) {
+      assert.ok(!lire(p).includes(atelier),
+        `${p} renvoie vers ${atelier} : c'est l'atelier de l'agence, pas un outil de visiteur`);
+    }
   }
   const accueil = join(dist, 'site', 'devis', 'index.html');
   if (existsSync(accueil)) {
     assert.ok(!readFileSync(accueil, 'utf8').includes('/editeur'));
+    assert.ok(!readFileSync(accueil, 'utf8').includes('/facturier'));
   }
+});
+
+test('le facturier ne part pas sur le dossier servi', () => {
+  const servi = join(dist, 'site');
+  for (const nom of ['devis', 'etude', 'alarme']) {
+    const d = join(servi, nom, 'index.html');
+    if (!existsSync(d)) continue;
+    assert.ok(!readFileSync(d, 'utf8').includes('facturier'),
+      `${nom} : la comptabilité de l'agence n'a rien à faire sur un serveur`);
+  }
+  assert.ok(!existsSync(join(ici, '..', '..', '..', 'docs', 'outils', 'facturier')),
+    'le facturier ne doit pas être publié par GitHub Pages');
 });

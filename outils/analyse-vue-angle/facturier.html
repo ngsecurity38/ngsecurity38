@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Facturier — NG Security 38</title>
+<meta name="description" content="Factures, contrats de maintenance et suivi des encaissements, sur l'ordinateur de l'agence.">
+<meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="facturier.css">
+</head>
+<body>
+
+<header class="barre">
+  <div class="marque">
+    <img src="img/logo.png" width="352" height="300" alt="NG Security 38">
+    <div>
+      <b>Facturier</b>
+      <small>Factures, maintenance et encaissements</small>
+    </div>
+  </div>
+  <div class="actions">
+    <button type="button" id="b-ouvrir" class="btn">Ouvrir un livre…</button>
+    <input type="file" id="fichier" accept=".json,application/json" hidden>
+    <button type="button" id="b-enregistrer" class="btn">Enregistrer</button>
+    <button type="button" id="b-export" class="btn">Export comptable (CSV)</button>
+    <button type="button" id="b-facture" class="btn btn-plein">Nouvelle facture</button>
+  </div>
+</header>
+
+<section class="chiffres">
+  <div><span>Encaissé</span><b id="c-encaisse">—</b></div>
+  <div><span>En attente</span><b id="c-attendu">—</b></div>
+  <div><span>En retard</span><b id="c-retard">—</b></div>
+  <div><span>CA hors taxes</span><b id="c-ca">—</b></div>
+  <div><span>TVA collectée</span><b id="c-tva">—</b></div>
+  <div><span>Factures émises</span><b id="c-emises">—</b></div>
+</section>
+
+<p class="alertes" id="alertes" hidden></p>
+
+<nav class="onglets" id="onglets">
+  <button type="button" class="onglet actif" data-vue="factures">Factures</button>
+  <button type="button" class="onglet" data-vue="maintenance">Maintenance</button>
+  <button type="button" class="onglet" data-vue="journal">Journal</button>
+</nav>
+
+<main>
+  <!-- ------------------------------------------------------- factures -->
+  <section class="vue" id="vue-factures">
+    <div class="colonnes">
+      <div class="bloc">
+        <div class="entete-bloc">
+          <h2>Les factures</h2>
+          <label class="case"><input type="checkbox" id="f-impayees"> Impayées seulement</label>
+        </div>
+        <ul id="liste-factures" class="liste"></ul>
+      </div>
+
+      <div class="bloc" id="panneau-facture" hidden>
+        <div class="entete-bloc">
+          <h2>Facture <span id="p-numero" class="puce"></span></h2>
+          <button type="button" id="b-supprimer" class="btn btn-petit btn-retrait">Supprimer</button>
+        </div>
+
+        <label>État
+          <select id="p-etat"></select>
+          <small>Une facture émise ne se modifie plus : elle s'annule par un avoir.</small>
+        </label>
+
+        <div class="paire">
+          <label>Date d'émission<input type="date" id="p-date"></label>
+          <label>Délai de paiement (jours)<input type="number" id="p-delai" min="0" max="60" step="1"></label>
+        </div>
+
+        <label>Objet<input type="text" id="p-objet" maxlength="120"></label>
+        <label>Chantier<input type="text" id="p-chantier" maxlength="120"></label>
+
+        <h3>Le client</h3>
+        <label>Nom<input type="text" id="p-client-nom" maxlength="90"></label>
+        <label>Adresse<input type="text" id="p-client-adresse" maxlength="140"></label>
+        <div class="paire">
+          <label>SIRET<input type="text" id="p-client-siret" maxlength="20"></label>
+          <label>Acompte versé (€)<input type="number" id="p-acompte" min="0" step="0.01"></label>
+        </div>
+
+        <h3>Les lignes</h3>
+        <ol id="lignes" class="lignes"></ol>
+        <button type="button" id="b-ligne" class="btn btn-petit">Ajouter une ligne</button>
+
+        <div class="totaux" id="p-totaux"></div>
+
+        <div class="boutons">
+          <button type="button" id="b-imprimer" class="btn btn-plein">Produire la facture</button>
+          <button type="button" id="b-avoir" class="btn">Établir un avoir</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------------------------------------------------- maintenance -->
+  <section class="vue" id="vue-maintenance" hidden>
+    <div class="colonnes">
+      <div class="bloc">
+        <div class="entete-bloc">
+          <h2>Les contrats</h2>
+          <button type="button" id="b-contrat" class="btn btn-petit">Ajouter</button>
+        </div>
+        <ul id="liste-contrats" class="liste"></ul>
+      </div>
+
+      <div class="bloc" id="panneau-contrat" hidden>
+        <div class="entete-bloc">
+          <h2>Contrat <span id="ct-cle" class="puce"></span></h2>
+          <button type="button" id="b-contrat-retirer" class="btn btn-petit btn-retrait">Retirer</button>
+        </div>
+        <label>Client<input type="text" id="ct-client" maxlength="90"></label>
+        <label>Objet<input type="text" id="ct-objet" maxlength="120"></label>
+        <div class="paire">
+          <label>Montant HT par échéance (€)<input type="number" id="ct-montant" min="0" step="0.01"></label>
+          <label>Périodicité<select id="ct-periode"></select></label>
+        </div>
+        <div class="paire">
+          <label>Première facture<input type="date" id="ct-debut">
+            <small>La maintenance étant offerte un an, c'est douze mois après
+              la mise en service.</small></label>
+          <label>Fin du contrat<input type="date" id="ct-fin"></label>
+        </div>
+        <div id="ct-echeances" class="echeances"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- -------------------------------------------------------- journal -->
+  <section class="vue" id="vue-journal" hidden>
+    <div class="bloc">
+      <div class="entete-bloc"><h2>Ce qui est en retard</h2></div>
+      <ul id="retards" class="liste"></ul>
+    </div>
+    <div class="bloc">
+      <div class="entete-bloc"><h2>Par trimestre</h2></div>
+      <div id="par-trimestre"></div>
+    </div>
+    <div class="bloc">
+      <div class="entete-bloc"><h2>Par mois</h2></div>
+      <div id="par-mois"></div>
+    </div>
+    <p class="note"><b>Export comptable</b> écrit un CSV que votre comptable
+      ouvre dans un tableur : une ligne par facture, avec sa date, son client,
+      son HT, sa TVA par taux, son TTC et son état. Ce n'est pas un logiciel
+      comptable : il n'y a ni écritures ni bilan. Il y a ce qui est dû, par
+      qui, depuis quand, et la TVA collectée du trimestre.</p>
+  </section>
+</main>
+
+<script type="module">
+import { demarrer } from './js/facturier.js';
+demarrer();
+</script>
+</body>
+</html>

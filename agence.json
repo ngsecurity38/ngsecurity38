@@ -27,6 +27,15 @@
     "ngsecurity38.com"
   ],
   "zone": "Intervention France et Belgique",
+  "banque": {
+    "_note": [
+      "Le compte sur lequel les clients règlent. Une facture qui annonce un",
+      "virement sans donner d'IBAN n'est pas payable : le facturier le",
+      "signale tant que ces deux lignes sont vides."
+    ],
+    "iban": null,
+    "bic": null
+  },
   "aCompleter": {
     "_note": [
       "Deux mentions qu'une SAS porte sur ses documents commerciaux et que",

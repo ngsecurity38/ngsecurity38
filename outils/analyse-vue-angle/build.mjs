@@ -59,6 +59,30 @@ function deModuliser(source) {
 }
 
 /**
+ * Les importations renommées, que la concaténation ne sait pas honorer.
+ *
+ * `import { euros as enEuros }` disparaît avec la ligne d'importation : dans
+ * le fichier unique, `enEuros` ne désigne plus rien. Le pire n'est pas la
+ * page morte — c'est le cas où un autre module déclare, lui, un `enEuros`
+ * qui n'a rien à voir. Le paquet se charge, la page s'affiche, et les
+ * montants sortent sans le signe euro. C'est arrivé au facturier.
+ *
+ * @returns {string[]} les renommages trouvés, vides si le module est sain
+ */
+function importationsRenommees(source) {
+  const renommes = [];
+  const lignes = source.match(/^import\s*\{[^}]*\}\s*from\s*['"][^'"]+['"];/gm) || [];
+  for (const ligne of lignes) {
+    const dedans = ligne.slice(ligne.indexOf('{') + 1, ligne.indexOf('}'));
+    for (const nom of dedans.split(',')) {
+      const m = nom.trim().match(/^([A-Za-z_$][\w$]*)\s+as\s+([A-Za-z_$][\w$]*)$/);
+      if (m) renommes.push(`${m[1]} as ${m[2]}`);
+    }
+  }
+  return renommes;
+}
+
+/**
  * Relève les déclarations de premier niveau pour refuser de produire un fichier
  * cassé : deux modules qui déclarent `const $` passent la concaténation mais
  * font planter la page au chargement.
@@ -91,7 +115,17 @@ function paqueter(modules, fin = '') {
   const vus = new Map();
   const morceaux = [];
   for (const nom of modules) {
-    const source = deModuliser(lire('js', nom));
+    const brut = lire('js', nom);
+    const renommes = importationsRenommees(brut);
+    if (renommes.length) {
+      throw new Error(
+        `Importation renommée dans ${nom} : « ${renommes.join(' », « ')} ». `
+        + 'La concaténation retire la ligne d\'importation : le nouveau nom ne '
+        + 'désignerait plus rien, ou pire, désignerait un homonyme d\'un autre '
+        + 'module. Importer le nom tel quel, et renommer la variable locale.',
+      );
+    }
+    const source = deModuliser(brut);
     for (const declaration of declarations(source)) {
       if (vus.has(declaration)) {
         throw new Error(
@@ -387,6 +421,32 @@ editeur = editeur.replace(
     + `<script>${inerte(paquetEditeur)}</script>`,
 );
 ecrire('editeur.html', editeur);
+
+/* ------------------------------------------------------------ facturier
+ *
+ * Le livre de l'agence : factures, contrats de maintenance, encaissements.
+ * Comme l'éditeur, il reste sur son ordinateur — une comptabilité qui
+ * transite par un site est une comptabilité qu'on ne maîtrise plus. Un
+ * fichier unique, ouvert d'un double-clic, sans serveur ni réseau.
+ */
+const MODULES_FACTURIER = ['dom.js', 'format.js', 'prix.js', 'papier.js',
+  'facture.js', 'facture-fiche.js', 'facturier.js'];
+verifierListe(MODULES_FACTURIER);
+
+const paquetFacturier = paqueter(MODULES_FACTURIER, '\ndemarrer();');
+
+let facturier = marque(lire('facturier.html'));
+facturier = injecter(facturier, '<link rel="stylesheet" href="facturier.css">',
+  `<style>${inerte(lire('facturier.css'))}</style>`);
+facturier = facturier.replace(
+  /<script type="module">[\s\S]*?<\/script>/,
+  () => `<script>window.__agence=${inerte(JSON.stringify({
+    ...JSON.parse(readFileSync(join(ici, '..', '..', 'agence.json'), 'utf8')),
+    logo,
+  }))};</script>\n`
+    + `<script>${inerte(paquetFacturier)}</script>`,
+);
+ecrire('facturier.html', facturier);
 
 /*
  * L'éditeur NE SORT PAS en dossier servi.

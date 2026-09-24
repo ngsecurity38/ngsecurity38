@@ -1,0 +1,553 @@
+/**
+ * Le facturier : l'écran de l'agence.
+ *
+ * Il tient trois choses au même endroit — les factures, les contrats de
+ * maintenance, et ce que les deux donnent une fois additionnés. Le calcul
+ * n'est pas ici : il vient de `facture.js`, le même module que la facture
+ * imprimée. Un écran qui annoncerait d'autres totaux que le document qu'il
+ * imprime ne servirait qu'à se tromper plus vite.
+ *
+ * Tout reste sur l'ordinateur de l'agence. Le livre s'ouvre et s'enregistre
+ * comme un fichier ; rien ne part sur un serveur. Une comptabilité qui
+ * transite par un site est une comptabilité qu'on ne maîtrise plus.
+ */
+
+import { $, $$ } from './dom.js';
+import { fr, echapper } from './format.js';
+import { euros } from './prix.js';
+import {
+  ETATS, PERIODES, prochainNumero, totauxFacture, echeance, retard,
+  echeancesContrat, aFacturer, journal, mentionsManquantes, coordonneesBancaires,
+} from './facture.js';
+import { ficheFacture } from './facture-fiche.js';
+
+/** Dans le facturier, une absence de montant se lit « — », pas « 0,00 € ». */
+const sommeOuTiret = (v) => (Number.isFinite(v) ? euros(v) : '—');
+const aujourdhui = () => new Date().toISOString().slice(0, 10);
+const CLE_LOCALE = 'ngs38-facturier';
+
+const etat = {
+  livre: null,
+  facture: null,
+  contrat: null,
+  vue: 'factures',
+  impayees: false,
+};
+
+/* ------------------------------------------------------------ le livre */
+
+const livreVide = () => ({
+  version: 1,
+  prefixeFacture: 'F',
+  prefixeAvoir: 'A',
+  factures: [],
+  contrats: [],
+});
+
+/** Un livre venu d'ailleurs peut manquer de tout : on le complète. */
+function assainir(lu) {
+  const l = { ...livreVide(), ...(lu || {}) };
+  l.factures = Array.isArray(l.factures) ? l.factures : [];
+  l.contrats = Array.isArray(l.contrats) ? l.contrats : [];
+  return l;
+}
+
+function enregistrerLocal() {
+  try {
+    localStorage.setItem(CLE_LOCALE, JSON.stringify(etat.livre));
+  } catch (e) {
+    // Navigation privée, stockage plein : le fichier reste la vraie sauvegarde.
+  }
+}
+
+/* --------------------------------------------------------- les chiffres */
+
+function chiffres() {
+  const j = journal(etat.livre, aujourdhui());
+  etat.journal = j;
+  const mettre = (sel, v, alerte = false) => {
+    const n = $(sel);
+    n.textContent = v;
+    n.classList.toggle('mauvais', alerte);
+  };
+  mettre('#c-encaisse', sommeOuTiret(j.encaisse));
+  mettre('#c-attendu', sommeOuTiret(j.attendu));
+  mettre('#c-retard', j.enRetard.nombre ? sommeOuTiret(j.enRetard.montant) : '—',
+    j.enRetard.nombre > 0);
+  mettre('#c-ca', sommeOuTiret(j.caHt));
+  mettre('#c-tva', sommeOuTiret(j.tvaCollectee));
+  mettre('#c-emises', String(j.emises));
+
+  const agence = globalThis.__agence || {};
+  const manque = mentionsManquantes(agence);
+  const avis = $('#alertes');
+  const mots = [];
+  if (manque.length) {
+    mots.push(`<b>Mentions légales incomplètes :</b> il manque ${
+      echapper(manque.join(', '))}. Toute facture produite le signalera.`);
+  }
+  // Une facture qui annonce un virement sans dire où virer n'est pas payable.
+  if (!coordonneesBancaires(agence).iban) {
+    mots.push('<b>Aucun IBAN :</b> les factures annoncent un virement sans '
+      + 'donner le compte. À renseigner dans la fiche de l\'agence.');
+  }
+  if (j.enRetard.nombre) {
+    mots.push(`<b>${j.enRetard.nombre} facture(s) en retard</b> pour ${
+      sommeOuTiret(j.enRetard.montant)}.`);
+  }
+  avis.innerHTML = mots.join('<br>');
+  avis.hidden = !mots.length;
+}
+
+/* -------------------------------------------------------- les factures */
+
+function listeFactures() {
+  const liste = [...etat.livre.factures].sort((a, b) => String(b.date).localeCompare(a.date));
+  const vues = etat.impayees ? liste.filter((f) => f.etat === 'emise') : liste;
+  $('#liste-factures').innerHTML = vues.length ? vues.map((f) => {
+    const t = totauxFacture(f);
+    const j = retard(f, aujourdhui());
+    return `<li data-numero="${echapper(f.numero)}" class="${
+      etat.facture === f.numero ? 'active' : ''}">
+      <span class="puce ${f.etat}">${echapper((f.numero || '').slice(-3))}</span>
+      <span class="nom">${echapper((f.client && f.client.nom) || 'Sans client')}</span>
+      <span class="det">${echapper(f.numero)} · ${echapper(f.date || '')} ·
+        ${echapper(ETATS[f.etat] || f.etat)} · ${sommeOuTiret(t.netAPayer)}${
+  j ? ` · <b class="mauvais">${j} j de retard</b>` : ''}</span>
+    </li>`;
+  }).join('') : '<li class="vide">Aucune facture. « Nouvelle facture » pour commencer.</li>';
+
+  $$('#liste-factures li[data-numero]').forEach((n) => n.addEventListener('click', () => {
+    etat.facture = n.dataset.numero;
+    tout();
+  }));
+}
+
+const factureCourante = () => etat.livre.factures.find((f) => f.numero === etat.facture);
+
+function panneauFacture() {
+  const f = factureCourante();
+  $('#panneau-facture').hidden = !f;
+  if (!f) return;
+  const fige = f.etat === 'emise' || f.etat === 'payee' || f.etat === 'annulee';
+
+  $('#p-numero').textContent = f.numero;
+  $('#p-etat').value = f.etat;
+  $('#p-date').value = f.date || '';
+  $('#p-delai').value = f.delaiPaiement ?? 30;
+  $('#p-objet').value = f.objet || '';
+  $('#p-chantier').value = f.chantier || '';
+  $('#p-client-nom').value = (f.client && f.client.nom) || '';
+  $('#p-client-adresse').value = (f.client && f.client.adresse) || '';
+  $('#p-client-siret').value = (f.client && f.client.siret) || '';
+  $('#p-acompte').value = f.acompte ?? 0;
+
+  /*
+   * Une facture émise ne se modifie plus. On grise au lieu de masquer :
+   * l'agence doit pouvoir relire ce qu'elle a envoyé.
+   */
+  $$('#panneau-facture input, #panneau-facture select, #panneau-facture textarea')
+    .forEach((n) => { if (n.id !== 'p-etat') n.disabled = fige; });
+  $('#b-ligne').disabled = fige;
+  $('#b-supprimer').disabled = f.etat !== 'brouillon';
+  $('#b-avoir').hidden = f.etat !== 'emise' && f.etat !== 'payee';
+
+  $('#lignes').innerHTML = (f.lignes || []).map((l, i) => `<li data-i="${i}">
+    <input type="text" data-r="designation" value="${echapper(l.designation || '')}"
+      placeholder="Désignation" ${fige ? 'disabled' : ''}>
+    <input type="text" data-r="detail" value="${echapper(l.detail || '')}"
+      placeholder="Précision" ${fige ? 'disabled' : ''}>
+    <input type="number" data-r="quantite" value="${l.quantite ?? 1}" step="0.01"
+      ${fige ? 'disabled' : ''}>
+    <input type="number" data-r="prixUnitaire" value="${l.prixUnitaire ?? 0}" step="0.01"
+      ${fige ? 'disabled' : ''}>
+    <select data-r="tva" ${fige ? 'disabled' : ''}>
+      ${[0.2, 0.1, 0.055, 0].map((t) => `<option value="${t}" ${
+  Number(l.tva) === t ? 'selected' : ''}>${fr(t * 100, 1)} %</option>`).join('')}
+    </select>
+    <button type="button" class="btn btn-puce btn-retrait" data-r="retirer"
+      ${fige ? 'disabled' : ''}>&#215;</button>
+  </li>`).join('');
+
+  $$('#lignes li').forEach((n) => {
+    const i = Number(n.dataset.i);
+    const champ = (role, ev, fait) => {
+      const c = n.querySelector(`[data-r="${role}"]`);
+      if (c) c.addEventListener(ev, () => { fait(c); majFacture(); });
+    };
+    champ('designation', 'input', (c) => { f.lignes[i].designation = c.value; });
+    champ('detail', 'input', (c) => { f.lignes[i].detail = c.value; });
+    champ('quantite', 'input', (c) => { f.lignes[i].quantite = Number(c.value); });
+    champ('prixUnitaire', 'input', (c) => { f.lignes[i].prixUnitaire = Number(c.value); });
+    champ('tva', 'change', (c) => { f.lignes[i].tva = Number(c.value); });
+    champ('retirer', 'click', () => { f.lignes.splice(i, 1); });
+  });
+
+  totauxAffiches(f);
+}
+
+function totauxAffiches(f) {
+  const t = totauxFacture(f);
+  $('#p-totaux').innerHTML = `
+    <div><span>Total HT</span><b>${sommeOuTiret(t.ht)}</b></div>
+    ${t.tvas.map((x) => `<div><span>TVA ${echapper(fr(x.taux * 100, 1))} %</span>
+      <b>${sommeOuTiret(x.montant)}</b></div>`).join('')}
+    <div><span>Total TTC</span><b>${sommeOuTiret(t.ttc)}</b></div>
+    ${t.acompte ? `<div><span>Acompte</span><b>-${sommeOuTiret(t.acompte)}</b></div>` : ''}
+    <div class="gros"><span>Net à payer</span><b>${sommeOuTiret(t.netAPayer)}</b></div>`;
+}
+
+/** Après toute modification : on recalcule, on réaffiche, on garde. */
+function majFacture() {
+  const f = factureCourante();
+  if (f) totauxAffiches(f);
+  chiffres();
+  listeFactures();
+  enregistrerLocal();
+}
+
+function nouvelleFacture() {
+  const annee = new Date().getFullYear();
+  const f = {
+    numero: prochainNumero(etat.livre.factures, annee, etat.livre.prefixeFacture),
+    type: 'facture',
+    etat: 'brouillon',
+    date: aujourdhui(),
+    delaiPaiement: 30,
+    objet: '',
+    client: { nom: '', adresse: '', siret: '' },
+    lignes: [{ designation: '', quantite: 1, prixUnitaire: 0, tva: 0.2 }],
+    acompte: 0,
+  };
+  etat.livre.factures.push(f);
+  etat.facture = f.numero;
+  tout();
+}
+
+/**
+ * L'avoir.
+ *
+ * Il reprend les lignes de la facture en négatif, porte sa propre suite de
+ * numéros, et bascule la facture d'origine en « annulée ». On ne touche
+ * jamais au document déjà parti chez le client.
+ */
+function etablirAvoir() {
+  const f = factureCourante();
+  if (!f) return;
+  const annee = new Date().getFullYear();
+  const a = {
+    numero: prochainNumero(etat.livre.factures, annee, etat.livre.prefixeAvoir),
+    type: 'avoir',
+    etat: 'emise',
+    date: aujourdhui(),
+    annule: f.numero,
+    motif: '',
+    objet: `Annulation de la facture ${f.numero}`,
+    client: { ...(f.client || {}) },
+    lignes: (f.lignes || []).map((l) => ({ ...l, quantite: -Math.abs(Number(l.quantite) || 0) })),
+    acompte: 0,
+  };
+  etat.livre.factures.push(a);
+  f.etat = 'annulee';
+  etat.facture = a.numero;
+  tout();
+}
+
+/* ------------------------------------------------------ la maintenance */
+
+function listeContrats() {
+  const c = etat.livre.contrats;
+  $('#liste-contrats').innerHTML = c.length ? c.map((x) => {
+    const reste = aFacturer(x, etat.livre.factures, aujourdhui());
+    return `<li data-cle="${echapper(x.cle)}" class="${etat.contrat === x.cle ? 'active' : ''}">
+      <span class="puce">${echapper(x.cle)}</span>
+      <span class="nom">${echapper(x.client || 'Sans client')}</span>
+      <span class="det">${sommeOuTiret(Number(x.montantHt))} ·
+        ${echapper((PERIODES[x.periode] || PERIODES.annuelle).label.toLowerCase())}${
+  reste.length ? ` · <b class="mauvais">${reste.length} échéance(s) à facturer</b>` : ''}</span>
+    </li>`;
+  }).join('') : '<li class="vide">Aucun contrat de maintenance.</li>';
+
+  $$('#liste-contrats li[data-cle]').forEach((n) => n.addEventListener('click', () => {
+    etat.contrat = n.dataset.cle;
+    tout();
+  }));
+}
+
+const contratCourant = () => etat.livre.contrats.find((c) => c.cle === etat.contrat);
+
+function panneauContrat() {
+  const c = contratCourant();
+  $('#panneau-contrat').hidden = !c;
+  if (!c) return;
+  $('#ct-cle').textContent = c.cle;
+  $('#ct-client').value = c.client || '';
+  $('#ct-objet').value = c.objet || '';
+  $('#ct-montant').value = c.montantHt ?? 0;
+  $('#ct-periode').value = c.periode || 'annuelle';
+  $('#ct-debut').value = c.debut || '';
+  $('#ct-fin').value = c.fin || '';
+
+  const reste = aFacturer(c, etat.livre.factures, aujourdhui());
+  const passees = echeancesContrat(c, aujourdhui()).length;
+  $('#ct-echeances').innerHTML = `
+    <p class="det">${passees} échéance(s) échues à ce jour, dont
+      <b>${reste.length} à facturer</b>.</p>
+    ${reste.map((e) => `<div class="echeance">
+      <span>${echapper(e.date)} · ${sommeOuTiret(e.montantHt)} HT</span>
+      <button type="button" class="btn btn-petit" data-echeance="${echapper(e.date)}">
+        Facturer</button>
+    </div>`).join('')}`;
+
+  $$('#ct-echeances [data-echeance]').forEach((n) => n.addEventListener('click', () => {
+    facturerEcheance(c, n.dataset.echeance);
+  }));
+}
+
+/** Une échéance de maintenance devient une facture, en brouillon. */
+function facturerEcheance(contrat, date) {
+  const annee = new Date().getFullYear();
+  const p = PERIODES[contrat.periode] || PERIODES.annuelle;
+  const fin = new Date(`${date}T12:00:00`);
+  fin.setMonth(fin.getMonth() + p.mois);
+  fin.setDate(fin.getDate() - 1);
+  const f = {
+    numero: prochainNumero(etat.livre.factures, annee, etat.livre.prefixeFacture),
+    type: 'facture',
+    etat: 'brouillon',
+    date: aujourdhui(),
+    delaiPaiement: 30,
+    contrat: contrat.cle,
+    periodeDebut: date,
+    periodeFin: fin.toISOString().slice(0, 10),
+    objet: contrat.objet || 'Contrat de maintenance',
+    client: { nom: contrat.client || '' },
+    lignes: [{
+      designation: contrat.objet || 'Maintenance du système de sécurité',
+      detail: `Période du ${date} au ${fin.toISOString().slice(0, 10)}`,
+      quantite: 1,
+      prixUnitaire: Number(contrat.montantHt) || 0,
+      tva: 0.2,
+    }],
+    acompte: 0,
+  };
+  etat.livre.factures.push(f);
+  etat.facture = f.numero;
+  etat.vue = 'factures';
+  tout();
+}
+
+function nouveauContrat() {
+  const n = etat.livre.contrats.length + 1;
+  etat.livre.contrats.push({
+    cle: `C${String(n).padStart(2, '0')}`,
+    client: '',
+    objet: 'Maintenance du système de sécurité',
+    montantHt: 0,
+    periode: 'annuelle',
+    debut: aujourdhui(),
+    fin: '',
+  });
+  etat.contrat = `C${String(n).padStart(2, '0')}`;
+  tout();
+}
+
+/* ----------------------------------------------------------- le journal */
+
+function vueJournal() {
+  const j = etat.journal;
+  $('#retards').innerHTML = j.enRetard.factures.length
+    ? j.enRetard.factures.map((f) => `<li>
+        <span class="puce mauvais">${echapper(String(f.jours))}j</span>
+        <span class="nom">${echapper(f.client)}</span>
+        <span class="det">${echapper(f.numero)} · ${sommeOuTiret(f.montant)}</span>
+      </li>`).join('')
+    : '<li class="vide">Rien en retard.</li>';
+
+  const table = (rangs) => (rangs.length ? `<table>
+    <thead><tr><th>Période</th><th class="n">Factures</th><th class="n">HT</th>
+      <th class="n">TVA</th><th class="n">TTC</th></tr></thead>
+    <tbody>${rangs.map((r) => `<tr><td>${echapper(r.periode)}</td>
+      <td class="n">${r.factures}</td><td class="n">${sommeOuTiret(r.ht)}</td>
+      <td class="n">${sommeOuTiret(r.tva)}</td><td class="n">${sommeOuTiret(r.ttc)}</td></tr>`).join('')}
+    </tbody></table>` : '<p class="det">Rien encore.</p>');
+
+  $('#par-trimestre').innerHTML = table(j.parTrimestre);
+  $('#par-mois').innerHTML = table(j.parMois);
+}
+
+/* ------------------------------------------------------------- fichiers */
+
+function telecharger(nom, texte, type) {
+  const lien = document.createElement('a');
+  lien.href = URL.createObjectURL(new Blob([texte], { type }));
+  lien.download = nom;
+  lien.click();
+  URL.revokeObjectURL(lien.href);
+}
+
+/**
+ * L'export comptable.
+ *
+ * Un CSV que le comptable ouvre dans un tableur. Le point-virgule et le
+ * BOM sont là pour qu'Excel en français l'ouvre en colonnes du premier coup,
+ * sans passer par l'assistant d'importation.
+ */
+function exportComptable() {
+  const colonnes = ['Numéro', 'Date', 'Échéance', 'Client', 'Objet', 'État',
+    'Total HT', 'TVA', 'Total TTC', 'Acompte', 'Net à payer'];
+  const champ = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const nombre = (v) => String(Number(v).toFixed(2)).replace('.', ',');
+  const lignes = etat.livre.factures
+    .filter((f) => f.etat !== 'brouillon')
+    .sort((a, b) => String(a.date).localeCompare(b.date))
+    .map((f) => {
+      const t = totauxFacture(f);
+      return [
+        champ(f.numero), champ(f.date),
+        champ(f.echeance || echeance(f.date, f.delaiPaiement || 30)),
+        champ((f.client && f.client.nom) || ''), champ(f.objet || ''),
+        champ(ETATS[f.etat] || f.etat),
+        nombre(t.ht), nombre(t.tva), nombre(t.ttc), nombre(t.acompte),
+        nombre(t.netAPayer),
+      ].join(';');
+    });
+  const csv = `﻿${colonnes.map(champ).join(';')}\n${lignes.join('\n')}\n`;
+  telecharger(`comptabilite-${aujourdhui()}.csv`, csv, 'text/csv;charset=utf-8');
+}
+
+function produireFacture() {
+  const f = factureCourante();
+  if (!f) return;
+  const html = ficheFacture(f, globalThis.__agence || {}, { aujourdhui: aujourdhui() });
+  const fen = window.open('', '_blank');
+  if (!fen) {
+    telecharger(`${(f.numero || 'facture').toLowerCase()}.html`, html, 'text/html;charset=utf-8');
+    return;
+  }
+  fen.document.write(html);
+  fen.document.close();
+}
+
+/* --------------------------------------------------------------- montage */
+
+function tout() {
+  chiffres();
+  listeFactures();
+  panneauFacture();
+  listeContrats();
+  panneauContrat();
+  vueJournal();
+  for (const v of ['factures', 'maintenance', 'journal']) {
+    $(`#vue-${v}`).hidden = etat.vue !== v;
+  }
+  $$('#onglets .onglet').forEach((o) => o.classList.toggle('actif', o.dataset.vue === etat.vue));
+  enregistrerLocal();
+}
+
+export function monter(livre) {
+  etat.livre = assainir(livre);
+
+  $('#p-etat').innerHTML = Object.entries(ETATS)
+    .map(([cle, label]) => `<option value="${cle}">${label}</option>`).join('');
+  $('#ct-periode').innerHTML = Object.entries(PERIODES)
+    .map(([cle, p]) => `<option value="${cle}">${p.label}</option>`).join('');
+
+  const champ = (sel, ev, fait) => $(sel).addEventListener(ev, () => {
+    const f = factureCourante();
+    if (!f) return;
+    fait(f, $(sel));
+    majFacture();
+    if (sel === '#p-etat') panneauFacture();
+  });
+  champ('#p-etat', 'change', (f, n) => { f.etat = n.value; });
+  champ('#p-date', 'change', (f, n) => { f.date = n.value; });
+  champ('#p-delai', 'change', (f, n) => { f.delaiPaiement = Number(n.value); });
+  champ('#p-objet', 'input', (f, n) => { f.objet = n.value; });
+  champ('#p-chantier', 'input', (f, n) => { f.chantier = n.value; });
+  champ('#p-acompte', 'input', (f, n) => { f.acompte = Number(n.value); });
+  champ('#p-client-nom', 'input', (f, n) => { f.client.nom = n.value; });
+  champ('#p-client-adresse', 'input', (f, n) => { f.client.adresse = n.value; });
+  champ('#p-client-siret', 'input', (f, n) => { f.client.siret = n.value; });
+
+  const champC = (sel, ev, fait) => $(sel).addEventListener(ev, () => {
+    const c = contratCourant();
+    if (!c) return;
+    fait(c, $(sel));
+    tout();
+  });
+  champC('#ct-client', 'change', (c, n) => { c.client = n.value; });
+  champC('#ct-objet', 'change', (c, n) => { c.objet = n.value; });
+  champC('#ct-montant', 'change', (c, n) => { c.montantHt = Number(n.value); });
+  champC('#ct-periode', 'change', (c, n) => { c.periode = n.value; });
+  champC('#ct-debut', 'change', (c, n) => { c.debut = n.value; });
+  champC('#ct-fin', 'change', (c, n) => { c.fin = n.value; });
+
+  $('#b-facture').addEventListener('click', nouvelleFacture);
+  $('#b-contrat').addEventListener('click', nouveauContrat);
+  $('#b-ligne').addEventListener('click', () => {
+    const f = factureCourante();
+    if (!f) return;
+    f.lignes.push({ designation: '', quantite: 1, prixUnitaire: 0, tva: 0.2 });
+    panneauFacture();
+    majFacture();
+  });
+  $('#b-supprimer').addEventListener('click', () => {
+    const f = factureCourante();
+    if (!f || f.etat !== 'brouillon') return;
+    etat.livre.factures = etat.livre.factures.filter((x) => x.numero !== f.numero);
+    etat.facture = null;
+    tout();
+  });
+  $('#b-contrat-retirer').addEventListener('click', () => {
+    if (!etat.contrat) return;
+    etat.livre.contrats = etat.livre.contrats.filter((c) => c.cle !== etat.contrat);
+    etat.contrat = null;
+    tout();
+  });
+  $('#b-avoir').addEventListener('click', etablirAvoir);
+  $('#b-imprimer').addEventListener('click', produireFacture);
+  $('#b-export').addEventListener('click', exportComptable);
+  $('#f-impayees').addEventListener('change', () => {
+    etat.impayees = $('#f-impayees').checked;
+    listeFactures();
+  });
+
+  $('#b-enregistrer').addEventListener('click', () => {
+    telecharger('facturier.json', `${JSON.stringify(etat.livre, null, 1)}\n`,
+      'application/json');
+  });
+  $('#b-ouvrir').addEventListener('click', () => $('#fichier').click());
+  $('#fichier').addEventListener('change', async (ev) => {
+    const f = ev.target.files[0];
+    if (!f) return;
+    try {
+      etat.livre = assainir(JSON.parse(await f.text()));
+      etat.facture = null;
+      etat.contrat = null;
+      tout();
+    } catch (err) {
+      $('#alertes').hidden = false;
+      $('#alertes').innerHTML = `<b>Fichier refusé.</b> ${echapper(err.message)}`;
+    }
+    ev.target.value = '';
+  });
+
+  $$('#onglets .onglet').forEach((o) => o.addEventListener('click', () => {
+    etat.vue = o.dataset.vue;
+    tout();
+  }));
+
+  tout();
+}
+
+export function demarrer() {
+  let livre = null;
+  try {
+    const garde = localStorage.getItem(CLE_LOCALE);
+    if (garde) livre = JSON.parse(garde);
+  } catch (e) {
+    livre = null;
+  }
+  monter(livre || globalThis.__livre || livreVide());
+}

@@ -3223,6 +3223,156 @@ console.log('\nBlocs à coller (WordPress)');
   await page.close();
 }
 
+/* --------------------------------------- 15. le facturier de l'agence */
+
+console.log('\nFacturier');
+{
+  const page = await contexte.newPage();
+  const erreurs = surveiller(page);
+  await page.goto(`${BASE}/dist/facturier.html`, { waitUntil: 'load' });
+  await page.evaluate(() => localStorage.clear());
+  await page.reload({ waitUntil: 'load' });
+  await page.waitForSelector('#liste-factures');
+
+  const ligne = async (i, designation, quantite, prix) => {
+    const li = `#lignes li[data-i="${i}"]`;
+    await page.fill(`${li} [data-r="designation"]`, designation);
+    await page.fill(`${li} [data-r="quantite"]`, String(quantite));
+    await page.fill(`${li} [data-r="prixUnitaire"]`, String(prix));
+  };
+
+  await cas('une facture se monte et se totalise', async () => {
+    await page.click('#b-facture');
+    await page.fill('#p-client-nom', 'GO FORMATION');
+    await page.fill('#p-objet', 'Installation d\'un système de vidéoprotection');
+    await ligne(0, 'Caméra panoramique', 6, 165.65);
+    await page.click('#b-ligne');
+    await ligne(1, 'Main-d\'œuvre', 20, 73.81);
+    await page.fill('#p-acompte', '500');
+
+    const t = serre(await page.textContent('#p-totaux'));
+    // 6 × 165,65 + 20 × 73,81 = 2 470,10 HT, 2 964,12 TTC, 2 464,12 à payer.
+    affirmer(t.includes('2470,10€'), `total HT : ${t}`);
+    affirmer(t.includes('2964,12€'), `total TTC : ${t}`);
+    affirmer(t.includes('2464,12€'), `net à payer, acompte déduit : ${t}`);
+  });
+
+  await cas('les montants portent le signe euro', async () => {
+    /*
+     * Ils l'avaient perdu : `import { euros as enEuros }` disparaît avec la
+     * ligne d'importation, et `enEuros` désignait alors l'homonyme d'un autre
+     * module — qui, lui, ne met pas le signe. La page s'affichait sans rien
+     * signaler, et les montants sortaient nus.
+     */
+    const partout = await page.evaluate(() => ['#c-ca', '#c-tva', '#c-attendu']
+      .map((s) => document.querySelector(s).textContent));
+    affirmer(partout.every((x) => x.includes('€')), `les chiffres : ${JSON.stringify(partout)}`);
+    affirmer(serre(await page.textContent('#liste-factures')).includes('€'),
+      'la liste aussi doit porter le signe');
+  });
+
+  await cas('la facture imprimée tient sur une feuille', async () => {
+    /*
+     * Une seconde page qui ne porte que le pied et deux mentions donne l'air
+     * d'un document mal réglé, et elle coûte une enveloppe plus épaisse à
+     * chaque envoi. A4 portrait, marges 14/12/15 mm : il reste 703 × 1013 px
+     * de papier utile, à 96 points par pouce.
+     */
+    await page.fill('#lignes li[data-i="0"] [data-r="detail"]', 'DS-2CD2346G2P-ISU/SL');
+    await page.fill('#lignes li[data-i="1"] [data-r="detail"]', 'Pose et paramétrage');
+    await page.click('#b-ligne');
+    await ligne(2, 'Enregistreur réseau 16 voies', 1, 715);
+    await page.fill('#lignes li[data-i="2"] [data-r="detail"]', 'Deux baies SATA, 16 ports PoE');
+    await page.fill('#p-chantier', 'GO FORMATION, 12 rue de l\'Industrie, 89100 Sens');
+    await page.evaluate(() => {
+      window.__agence.aCompleter = {
+        capitalSocial: '2 000 €', rcsGreffe: 'Sens', assuranceRcPro: 'AXA France IARD',
+      };
+      window.__agence.banque = { iban: 'FR76 0000 0000 0000 0000 0000 000', bic: 'AAAAFRPP' };
+    });
+    const [feuille] = await Promise.all([
+      contexte.waitForEvent('page'),
+      page.click('#b-imprimer'),
+    ]);
+    await feuille.waitForLoadState('domcontentloaded');
+    await feuille.setViewportSize({ width: 703, height: 1013 });
+    await feuille.emulateMedia({ media: 'print' });
+    const r = await feuille.evaluate(() => ({
+      hauteur: Math.round(document.querySelector('.feuille').scrollHeight),
+      iban: document.querySelector('.reglement').textContent.includes('IBAN'),
+    }));
+    affirmer(r.hauteur <= 1013, `la facture déborde de ${r.hauteur - 1013} px sur une 2e page`);
+    affirmer(r.iban, 'un virement sans IBAN n\'est pas payable');
+    await feuille.close();
+  });
+
+  await cas('une facture émise ne se modifie plus', async () => {
+    await page.selectOption('#p-etat', 'emise');
+    affirmer(await page.isDisabled('#p-objet'), 'l\'objet doit être figé');
+    affirmer(await page.isDisabled('#lignes li[data-i="0"] [data-r="prixUnitaire"]'),
+      'les prix aussi');
+    affirmer(await page.isDisabled('#b-supprimer'),
+      'une facture partie ne se supprime pas : elle s\'annule par un avoir');
+  });
+
+  await cas('un contrat de maintenance produit ses échéances', async () => {
+    await page.click('.onglet[data-vue="maintenance"]');
+    await page.click('#b-contrat');
+    await page.fill('#ct-client', 'GO FORMATION');
+    await page.fill('#ct-montant', '780');
+    await page.dispatchEvent('#ct-montant', 'change');
+    await page.fill('#ct-debut', '2024-03-15');
+    await page.dispatchEvent('#ct-debut', 'change');
+
+    const boutons = await page.$$('#ct-echeances [data-echeance]');
+    affirmer(boutons.length === 3, `trois échéances échues : ${boutons.length}`);
+    await boutons[0].click();
+    await page.waitForSelector('#vue-factures:not([hidden])');
+    const d = await page.inputValue('#lignes li[data-i="0"] [data-r="detail"]');
+    affirmer(/2024-03-15/.test(d) && /2025-03-14/.test(d), `la période facturée : ${d}`);
+  });
+
+  await cas('un avoir annule la facture sans fausser le chiffre d\'affaires', async () => {
+    const avant = nombre(serre(await page.textContent('#c-ca')).replace('€', ''));
+    await page.selectOption('#p-etat', 'emise');
+    const avec = nombre(serre(await page.textContent('#c-ca')).replace('€', ''));
+    affirmer(Math.abs(avec - (avant + 780)) < 0.01, `la maintenance entre au CA : ${avec}`);
+
+    await page.click('#b-avoir');
+    const apres = nombre(serre(await page.textContent('#c-ca')).replace('€', ''));
+    /*
+     * Retirer la facture annulée sans retirer son avoir amputait le chiffre
+     * d'affaires deux fois : une fois par la facture qui s'en va, une fois par
+     * l'avoir resté seul, en négatif.
+     */
+    affirmer(Math.abs(apres - avant) < 0.01,
+      `la paire se neutralise, le CA revient à ${avant} : ${apres}`);
+  });
+
+  await cas('l\'export comptable s\'ouvre en colonnes', async () => {
+    const [fichier] = await Promise.all([
+      page.waitForEvent('download'),
+      page.click('#b-export'),
+    ]);
+    const csv = await readFile(await fichier.path(), 'utf8');
+    affirmer(csv.charCodeAt(0) === 0xfeff, 'le BOM fait ouvrir Excel en UTF-8');
+    affirmer(csv.split('\n')[0].split(';').length === 11,
+      `onze colonnes séparées par des points-virgules : ${csv.split('\n')[0]}`);
+    affirmer(!/;\d+\.\d+;/.test(csv), 'les décimales s\'écrivent à la française');
+    affirmer(!csv.includes('Brouillon'), 'un brouillon n\'entre pas en comptabilité');
+  });
+
+  await cas('le livre survit à la fermeture', async () => {
+    await page.reload({ waitUntil: 'load' });
+    await page.waitForSelector('#liste-factures li');
+    const n = await page.$$eval('#liste-factures li[data-numero]', (l) => l.length);
+    affirmer(n === 3, `deux factures et un avoir retrouvés : ${n}`);
+  });
+
+  await cas('aucune erreur de console', () => affirmer(!erreurs.length, erreurs.join(' | ')));
+  await page.close();
+}
+
 await navigateur.close();
 serveur.close();
 
