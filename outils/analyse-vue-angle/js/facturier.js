@@ -520,6 +520,22 @@ async function produireFacture() {
     nom: `${(f.numero || 'facture').toLowerCase()}.html`,
   };
   $('#apercu-titre').textContent = `${f.type === 'avoir' ? 'Avoir' : 'Facture'} ${f.numero}`;
+
+  /*
+   * Le rappel des mentions manquantes est ici, dans la barre — et nulle part
+   * sur le document. Il a figuré un temps sur la facture elle-même : le
+   * client recevait donc un papier lui annonçant qu'il n'était pas en règle.
+   * C'est à l'agence que l'avertissement sert, pas à lui.
+   */
+  const manque = mentionsManquantes(globalThis.__agence || {});
+  const aide = $('#apercu-aide');
+  aide.classList.toggle('mauvais', manque.length > 0);
+  aide.innerHTML = manque.length
+    ? `<b>Visible par vous seul :</b> ce document part sans ${echapper(manque.join(', '))}. `
+      + 'Dans la fenêtre d\'impression, choisissez « Enregistrer au format PDF ».'
+    : 'Dans la fenêtre d\'impression, choisissez '
+      + '<b>« Enregistrer au format PDF »</b> comme imprimante.';
+
   $('#apercu').hidden = false;
   await poser($('#apercu-page'), etat.document.html);
 }

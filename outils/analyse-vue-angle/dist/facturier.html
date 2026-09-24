@@ -203,6 +203,8 @@ td.n, th.n { text-align:right; }
 .apercu-aide b { font-size:12.5px; color:var(--encre); }
 .apercu-actions { display:flex; gap:8px; }
 .apercu iframe { flex:1; width:100%; border:0; background:#fff; }
+.apercu-aide.mauvais { color:var(--rouge); }
+.apercu-aide.mauvais b { color:var(--rouge); }
 </style>
 </head>
 <body>
@@ -370,7 +372,7 @@ td.n, th.n { text-align:right; }
 <div class="apercu" id="apercu" hidden>
   <div class="apercu-barre">
     <b id="apercu-titre">Aperçu</b>
-    <p class="apercu-aide">Dans la fenêtre d'impression, choisissez
+    <p class="apercu-aide" id="apercu-aide">Dans la fenêtre d'impression, choisissez
       <b>« Enregistrer au format PDF »</b> comme imprimante.</p>
     <div class="apercu-actions">
       <button type="button" id="b-pdf" class="btn btn-plein">Enregistrer en PDF</button>
@@ -1527,9 +1529,14 @@ function mentionsManquantes(agence) {
  * reconnaît la facture sans la lire.
  *
  * Ce document porte les mentions que le code de commerce impose. Celles qui
- * manquent encore à l'identité de l'agence s'affichent en clair, en haut :
- * une facture irrégulière qui le dit vaut mieux qu'une facture irrégulière
- * qui se tait.
+ * manquent encore à l'identité de l'agence ne s'affichent PAS ici, et c'est
+ * volontaire : ce papier est celui du client. Un bandeau annonçant au client
+ * que la facture qu'il reçoit n'est pas en règle ne lui apprend rien
+ * d'utile, jette un doute sur l'agence, et a déjà été envoyé une fois.
+ *
+ * L'alerte existe, mais de l'autre côté : sur l'écran du facturier, et dans
+ * la barre de l'aperçu, avant que le document ne parte. C'est là qu'elle
+ * sert à quelque chose.
  */
 
 
@@ -1663,7 +1670,6 @@ function ficheFacture(facture, agence, options = {}) {
   const papier = { taille: `${r.format} ${r.orientation}`, marge: MARGES[r.marges].css };
   const avoir = facture.type === 'avoir';
   const fin = facture.echeance || echeance(facture.date, facture.delaiPaiement || 30);
-  const manque = mentionsManquantes(agence);
   const banque = coordonneesBancaires(agence, facture);
   const jours = retard({ ...facture, echeance: fin }, options.aujourdhui);
   const pen = jours
@@ -1715,11 +1721,6 @@ function ficheFacture(facture, agence, options = {}) {
     ? `<p><b>${echapper(ETATS[facture.etat] || facture.etat)}</b></p>` : ''}
   </div>
 </header>
-
-${manque.length ? `<div class="avis"><b>Mentions légales incomplètes.</b>
-  Il manque ${echapper(manque.join(', '))}. Une facture de société doit les
-  porter : renseignez-les dans la fiche de l'agence avant d'envoyer ce
-  document.</div>` : ''}
 
 ${avoir && facture.annule ? `<div class="avis"><b>Avoir.</b> Ce document annule
   la facture ${echapper(facture.annule)}${facture.motif
@@ -2600,6 +2601,22 @@ async function produireFacture() {
     nom: `${(f.numero || 'facture').toLowerCase()}.html`,
   };
   $('#apercu-titre').textContent = `${f.type === 'avoir' ? 'Avoir' : 'Facture'} ${f.numero}`;
+
+  /*
+   * Le rappel des mentions manquantes est ici, dans la barre — et nulle part
+   * sur le document. Il a figuré un temps sur la facture elle-même : le
+   * client recevait donc un papier lui annonçant qu'il n'était pas en règle.
+   * C'est à l'agence que l'avertissement sert, pas à lui.
+   */
+  const manque = mentionsManquantes(globalThis.__agence || {});
+  const aide = $('#apercu-aide');
+  aide.classList.toggle('mauvais', manque.length > 0);
+  aide.innerHTML = manque.length
+    ? `<b>Visible par vous seul :</b> ce document part sans ${echapper(manque.join(', '))}. `
+      + 'Dans la fenêtre d\'impression, choisissez « Enregistrer au format PDF ».'
+    : 'Dans la fenêtre d\'impression, choisissez '
+      + '<b>« Enregistrer au format PDF »</b> comme imprimante.';
+
   $('#apercu').hidden = false;
   await poser($('#apercu-page'), etat.document.html);
 }

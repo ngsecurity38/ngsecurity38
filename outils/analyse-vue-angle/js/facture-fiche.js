@@ -6,16 +6,21 @@
  * reconnaît la facture sans la lire.
  *
  * Ce document porte les mentions que le code de commerce impose. Celles qui
- * manquent encore à l'identité de l'agence s'affichent en clair, en haut :
- * une facture irrégulière qui le dit vaut mieux qu'une facture irrégulière
- * qui se tait.
+ * manquent encore à l'identité de l'agence ne s'affichent PAS ici, et c'est
+ * volontaire : ce papier est celui du client. Un bandeau annonçant au client
+ * que la facture qu'il reçoit n'est pas en règle ne lui apprend rien
+ * d'utile, jette un doute sur l'agence, et a déjà été envoyé une fois.
+ *
+ * L'alerte existe, mais de l'autre côté : sur l'écran du facturier, et dans
+ * la barre de l'aperçu, avant que le document ne parte. C'est là qu'elle
+ * sert à quelque chose.
  */
 
 import { fr, echapper } from './format.js';
 import { euros } from './prix.js';
 import { reglagesPdf, MARGES } from './papier.js';
 import {
-  totauxFacture, echeance, retard, penalites, mentionsManquantes,
+  totauxFacture, echeance, retard, penalites,
   coordonneesBancaires,
   INDEMNITE_RECOUVREMENT, PENALITE_MULTIPLE, ETATS,
 } from './facture.js';
@@ -147,7 +152,6 @@ export function ficheFacture(facture, agence, options = {}) {
   const papier = { taille: `${r.format} ${r.orientation}`, marge: MARGES[r.marges].css };
   const avoir = facture.type === 'avoir';
   const fin = facture.echeance || echeance(facture.date, facture.delaiPaiement || 30);
-  const manque = mentionsManquantes(agence);
   const banque = coordonneesBancaires(agence, facture);
   const jours = retard({ ...facture, echeance: fin }, options.aujourdhui);
   const pen = jours
@@ -199,11 +203,6 @@ export function ficheFacture(facture, agence, options = {}) {
     ? `<p><b>${echapper(ETATS[facture.etat] || facture.etat)}</b></p>` : ''}
   </div>
 </header>
-
-${manque.length ? `<div class="avis"><b>Mentions légales incomplètes.</b>
-  Il manque ${echapper(manque.join(', '))}. Une facture de société doit les
-  porter : renseignez-les dans la fiche de l'agence avant d'envoyer ce
-  document.</div>` : ''}
 
 ${avoir && facture.annule ? `<div class="avis"><b>Avoir.</b> Ce document annule
   la facture ${echapper(facture.annule)}${facture.motif

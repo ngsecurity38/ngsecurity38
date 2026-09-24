@@ -3440,11 +3440,49 @@ console.log('\nFacturier');
     await page.click('#b-fermer');
 
     affirmer(texte.includes('GOFORMATION'), 'le client doit figurer sur le document');
+    /*
+     * Le client n'a pas à recevoir un papier lui annonçant que la facture
+     * qu'il tient n'est pas en règle : l'avertissement a figuré sur le
+     * document, et il est parti une fois chez un client. Il vit désormais
+     * dans la barre de l'aperçu, que l'agence seule voit.
+     */
+    affirmer(!/Mentionslégalesincomplètes/.test(texte),
+      'aucune alerte de l\'agence ne doit figurer sur le document du client');
     // Le document courant est l'avoir : sa dernière ligne dit « montant de l'avoir ».
     affirmer(/Netàpayer|Montantdel'avoir/.test(texte),
       `le total doit y figurer : ${texte.slice(-120)}`);
     affirmer(imprime === 1, 'la fenêtre d\'impression doit être demandée sur le cadre');
     affirmer(await page.getAttribute('#apercu', 'hidden') !== null, 'l\'aperçu doit se fermer');
+  });
+
+  await cas('l\'agence est seule avertie de ce qui lui manque', async () => {
+    /*
+     * Une facture partie chez un client portait en tête « Mentions légales
+     * incomplètes ». Le client n'y pouvait rien, et y lisait qu'on lui
+     * envoyait un papier irrégulier. L'avertissement est pour l'agence.
+     */
+    await page.evaluate(() => {
+      window.__agence.aCompleter = { capitalSocial: null, rcsGreffe: null, assuranceRcPro: null };
+    });
+    await page.click('#b-imprimer');
+    await page.waitForSelector('#apercu:not([hidden])');
+    await page.waitForTimeout(300);
+    const cadre = page.frames().find((f) => f !== page.mainFrame());
+    const document_ = serre(await cadre.textContent('body'));
+    const barre = serre(await page.textContent('#apercu-aide'));
+    await page.click('#b-fermer');
+
+    affirmer(!/incomplètes|Ilmanquelecapitalsocial/.test(document_),
+      'rien de tout cela ne doit figurer sur le papier du client');
+    affirmer(/Visibleparvousseul/.test(barre),
+      `l'agence, elle, doit être prévenue : ${barre.slice(0, 90)}`);
+    affirmer(/capitalsocial/.test(barre), `et savoir quoi : ${barre.slice(0, 120)}`);
+
+    await page.evaluate(() => {
+      window.__agence.aCompleter = {
+        capitalSocial: '2 000 €', rcsGreffe: 'Sens', assuranceRcPro: 'AXA France IARD',
+      };
+    });
   });
 
   await cas('l\'export comptable s\'ouvre en colonnes', async () => {
