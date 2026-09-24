@@ -84,8 +84,19 @@
         </div>
 
         <h3>Les lignes</h3>
+
+        <div class="catalogue" id="catalogue">
+          <div class="cat-barre">
+            <input type="search" id="cat-q" autocomplete="off"
+              placeholder="Chercher dans le catalogue : caméra, câble, alarme, déplacement…">
+            <select id="cat-famille" aria-label="Famille de produits"></select>
+          </div>
+          <ul id="cat-resultats" class="cat-liste"></ul>
+        </div>
+
         <ol id="lignes" class="lignes"></ol>
-        <button type="button" id="b-ligne" class="btn btn-petit">Ajouter une ligne</button>
+        <p class="note" id="lignes-sans-prix" hidden></p>
+        <button type="button" id="b-ligne" class="btn btn-petit">Ajouter une ligne vide</button>
 
         <div class="totaux" id="p-totaux"></div>
 

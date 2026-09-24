@@ -3241,13 +3241,60 @@ console.log('\nFacturier');
     await page.fill(`${li} [data-r="prixUnitaire"]`, String(prix));
   };
 
+  await cas('un livre vide ouvre déjà de quoi écrire', async () => {
+    /*
+     * L'écran s'ouvrait sur une liste vide et un panneau caché : aucun champ
+     * où saisir, et l'outil passait pour inerte. La première facture s'ouvre
+     * maintenant d'elle-même, en brouillon.
+     */
+    affirmer(!(await page.getAttribute('#panneau-facture', 'hidden')) === true,
+      'le panneau de saisie doit être ouvert dès l\'arrivée');
+    affirmer(/^F\d{4}-001$/.test((await page.textContent('#p-numero')).trim()),
+      `la première facture est numérotée : ${await page.textContent('#p-numero')}`);
+  });
+
+  await cas('le catalogue pose une ligne en un clic', async () => {
+    /*
+     * Retaper une désignation à chaque facture, c'est trois fautes de frappe
+     * par mois et deux prix qui divergent.
+     */
+    await page.fill('#cat-q', 'panoramique');
+    await page.waitForTimeout(120);
+    await page.click('#cat-resultats button[data-cle="cam-panoramique"]');
+    const l = await page.evaluate(() => {
+      const n = document.querySelector('#lignes li[data-i="0"]');
+      return {
+        designation: n.querySelector('[data-r="designation"]').value,
+        detail: n.querySelector('[data-r="detail"]').value,
+        prix: n.querySelector('[data-r="prixUnitaire"]').value,
+      };
+    });
+    affirmer(/panoramique/i.test(l.designation), `la désignation : ${l.designation}`);
+    affirmer(/DS-2CD2346G2P/.test(l.detail), `la référence part en précision : ${l.detail}`);
+    // 184,06 de marché, moins la remise de 10 % de l'agence.
+    affirmer(l.prix === '165.65', `le prix du devis : ${l.prix}`);
+  });
+
+  await cas('un article non chiffré se pose et se signale', async () => {
+    await page.fill('#cat-q', 'deplacement');
+    await page.waitForTimeout(120);
+    const etiquette = await page.textContent('#cat-resultats .prix');
+    affirmer(/renseigner/.test(etiquette), `le catalogue le dit : ${etiquette}`);
+    await page.click('#cat-resultats button[data-cle="deplacement"]');
+    const avis = await page.textContent('#lignes-sans-prix');
+    affirmer(/Déplacement/.test(avis), `l'écran le redit sur la facture : ${avis}`);
+    // Elle ne doit pas rester sur la facture d'essai.
+    await page.click('#lignes li[data-i="1"] [data-r="retirer"]');
+    await page.fill('#cat-q', '');
+  });
+
   await cas('une facture se monte et se totalise', async () => {
-    await page.click('#b-facture');
     await page.fill('#p-client-nom', 'GO FORMATION');
     await page.fill('#p-objet', 'Installation d\'un système de vidéoprotection');
     await ligne(0, 'Caméra panoramique', 6, 165.65);
     await page.click('#b-ligne');
     await ligne(1, 'Main-d\'œuvre', 20, 73.81);
+    await page.fill('#lignes li[data-i="1"] [data-r="detail"]', '');
     await page.fill('#p-acompte', '500');
 
     const t = serre(await page.textContent('#p-totaux'));

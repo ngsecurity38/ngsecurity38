@@ -430,7 +430,7 @@ ecrire('editeur.html', editeur);
  * fichier unique, ouvert d'un double-clic, sans serveur ni réseau.
  */
 const MODULES_FACTURIER = ['dom.js', 'format.js', 'prix.js', 'papier.js',
-  'facture.js', 'facture-fiche.js', 'facturier.js'];
+  'facture.js', 'facture-fiche.js', 'catalogue-vente.js', 'facturier.js'];
 verifierListe(MODULES_FACTURIER);
 
 const paquetFacturier = paqueter(MODULES_FACTURIER, '\ndemarrer();');
@@ -444,6 +444,9 @@ facturier = facturier.replace(
     ...JSON.parse(readFileSync(join(ici, '..', '..', 'agence.json'), 'utf8')),
     logo,
   }))};</script>\n`
+    // Le catalogue de l'agence : ce qu'elle vend, prêt à poser sur une facture.
+    + `<script>window.__catalogueFacturation=${
+      inerte(lire('catalogue-facturation.json'))};</script>\n`
     + `<script>${inerte(paquetFacturier)}</script>`,
 );
 ecrire('facturier.html', facturier);

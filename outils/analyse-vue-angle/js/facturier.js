@@ -20,6 +20,9 @@ import {
   echeancesContrat, aFacturer, journal, mentionsManquantes, coordonneesBancaires,
 } from './facture.js';
 import { ficheFacture } from './facture-fiche.js';
+import {
+  assainirCatalogue, chercher, ligneDepuisArticle, articlesSansPrix,
+} from './catalogue-vente.js';
 
 /** Dans le facturier, une absence de montant se lit « — », pas « 0,00 € ». */
 const sommeOuTiret = (v) => (Number.isFinite(v) ? euros(v) : '—');
@@ -28,6 +31,7 @@ const CLE_LOCALE = 'ngs38-facturier';
 
 const etat = {
   livre: null,
+  catalogue: null,
   facture: null,
   contrat: null,
   vue: 'factures',
@@ -169,6 +173,25 @@ function panneauFacture() {
       ${fige ? 'disabled' : ''}>&#215;</button>
   </li>`).join('');
 
+  /*
+   * Une ligne posée depuis le catalogue sans prix : elle doit se voir. Un
+   * zéro sur une facture ne se remarque pas, et part chez le client.
+   */
+  const sansPrix = (f.lignes || []).filter((l) => !(Number(l.prixUnitaire) > 0)
+    && (l.designation || '').trim());
+  $$('#lignes li').forEach((n) => {
+    const l = f.lignes[Number(n.dataset.i)];
+    n.classList.toggle('a-chiffrer', !!l && !(Number(l.prixUnitaire) > 0)
+      && !!(l.designation || '').trim());
+  });
+  const note = $('#lignes-sans-prix');
+  note.hidden = !sansPrix.length;
+  note.textContent = sansPrix.length
+    ? `${sansPrix.length} ligne(s) sans prix : ${
+      sansPrix.map((l) => l.designation).join(', ')}. Le total est incomplet tant `
+      + 'que le montant n\'y est pas.'
+    : '';
+
   $$('#lignes li').forEach((n) => {
     const i = Number(n.dataset.i);
     const champ = (role, ev, fait) => {
@@ -183,7 +206,78 @@ function panneauFacture() {
     champ('retirer', 'click', () => { f.lignes.splice(i, 1); });
   });
 
+  catalogueAffiche();
   totauxAffiches(f);
+}
+
+/* ------------------------------------------------------- le catalogue */
+
+/**
+ * Le catalogue, au-dessus des lignes.
+ *
+ * On tape trois lettres, on clique, la ligne est posée : désignation,
+ * référence, unité et prix. C'est le but de l'outil — une facture de dix
+ * lignes ne doit pas coûter un quart d'heure de frappe.
+ *
+ * Un article que l'agence n'a pas encore chiffré s'ajoute quand même. Le prix
+ * manquant se signale au lieu de sortir un zéro qui, lui, passerait.
+ */
+function catalogueAffiche() {
+  const f = factureCourante();
+  const fige = f && f.etat !== 'brouillon';
+  $('#catalogue').hidden = !f || fige;
+  if (!f || fige) return;
+
+  const requete = $('#cat-q').value.trim();
+  const famille = $('#cat-famille').value;
+  const MAX = 12;
+
+  /*
+   * Tant qu'on n'a rien demandé, on ne déroule pas quarante-cinq articles
+   * au-dessus des lignes : le panneau doit rester lisible.
+   */
+  if (!requete && !famille) {
+    $('#cat-resultats').innerHTML = '<li class="vide">Tapez trois lettres, ou '
+      + 'choisissez une famille, pour poser une ligne en un clic.</li>';
+    return;
+  }
+  const trouves = chercher(etat.catalogue, requete, famille);
+
+  $('#cat-resultats').innerHTML = trouves.length
+    ? trouves.slice(0, MAX).map((a) => {
+      const l = ligneDepuisArticle(a, etat.catalogue);
+      return `<li><button type="button" data-cle="${echapper(a.cle)}">
+        <span class="nom">${echapper(a.designation)}</span>
+        <span class="prix${l.aChiffrer ? ' a-chiffrer' : ''}">${
+  l.aChiffrer ? 'prix à renseigner' : `${sommeOuTiret(l.prixUnitaire)}${
+    a.unite && a.unite !== 'u' ? ` / ${echapper(a.unite)}` : ''}`}</span>
+        <span class="det">${echapper([a.reference, (etat.catalogue.familles || {})[a.famille]]
+    .filter(Boolean).join(' · '))}</span>
+      </button></li>`;
+    }).join('') + (trouves.length > MAX
+      ? `<li class="vide">${trouves.length - MAX} autre(s) : précisez la recherche.</li>` : '')
+    : '<li class="vide">Rien à ce nom dans le catalogue. '
+      + '« Ajouter une ligne vide » pour saisir à la main.</li>';
+
+  $$('#cat-resultats button[data-cle]').forEach((n) => n.addEventListener('click', () => {
+    const article = etat.catalogue.articles.find((a) => a.cle === n.dataset.cle);
+    if (!article) return;
+    const fac = factureCourante();
+    /*
+     * La première ligne d'une facture neuve est vide : on la remplit au lieu
+     * d'en ajouter une seconde, sans quoi chaque facture commence par un
+     * blanc que l'agence doit penser à retirer.
+     */
+    const l = ligneDepuisArticle(article, etat.catalogue);
+    const premiere = fac.lignes[0];
+    if (fac.lignes.length === 1 && !premiere.designation && !premiere.prixUnitaire) {
+      fac.lignes[0] = l;
+    } else {
+      fac.lignes.push(l);
+    }
+    panneauFacture();
+    majFacture();
+  }));
 }
 
 function totauxAffiches(f) {
@@ -445,8 +539,15 @@ function tout() {
   enregistrerLocal();
 }
 
-export function monter(livre) {
+export function monter(livre, catalogue) {
   etat.livre = assainir(livre);
+  etat.catalogue = assainirCatalogue(catalogue || globalThis.__catalogueFacturation);
+
+  $('#cat-famille').innerHTML = '<option value="">Toutes les familles</option>'
+    + Object.entries(etat.catalogue.familles)
+      .map(([cle, label]) => `<option value="${cle}">${label}</option>`).join('');
+  $('#cat-q').addEventListener('input', catalogueAffiche);
+  $('#cat-famille').addEventListener('change', catalogueAffiche);
 
   $('#p-etat').innerHTML = Object.entries(ETATS)
     .map(([cle, label]) => `<option value="${cle}">${label}</option>`).join('');
@@ -538,7 +639,14 @@ export function monter(livre) {
     tout();
   }));
 
-  tout();
+  /*
+   * Un livre vide n'offre aucun champ où écrire : l'écran s'ouvrait sur une
+   * liste vide et un panneau caché, et l'on croyait l'outil inerte. La
+   * première facture s'ouvre donc d'elle-même, en brouillon — un brouillon ne
+   * compte nulle part et se supprime d'un bouton.
+   */
+  if (!etat.livre.factures.length) nouvelleFacture();
+  else tout();
 }
 
 export function demarrer() {

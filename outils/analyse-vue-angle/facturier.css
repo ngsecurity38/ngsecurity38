@@ -141,3 +141,36 @@ td.n, th.n { text-align:right; }
   .colonnes > .bloc { width:100%; }
   .lignes li { grid-template-columns:1fr 1fr; }
 }
+
+/*
+ * Le catalogue, au-dessus des lignes.
+ *
+ * Deux gestes, pas plus : on tape trois lettres, on clique. Retaper une
+ * désignation à chaque facture, c'est trois fautes de frappe par mois et
+ * deux prix qui finissent par diverger.
+ */
+.catalogue { border:1px solid var(--bord); border-radius:8px; padding:8px; margin:8px 0 10px;
+  background:var(--fond); }
+.cat-barre { display:flex; gap:8px; }
+.cat-barre input[type=search] {
+  flex:1; font:inherit; font-size:14px; padding:7px 9px;
+  border:1px solid var(--bord); border-radius:7px; background:#fff;
+}
+.cat-barre select { width:auto; min-width:150px; font:inherit; font-size:14px;
+  padding:7px 9px; border:1px solid var(--bord); border-radius:7px; background:#fff; }
+.cat-liste { list-style:none; margin:8px 0 0; padding:0; max-height:220px; overflow:auto; }
+.cat-liste li { margin-bottom:4px; }
+.cat-liste button {
+  width:100%; text-align:left; font:inherit; cursor:pointer;
+  display:grid; grid-template-columns:1fr auto; gap:2px 10px; align-items:baseline;
+  background:#fff; border:1px solid var(--bord); border-radius:7px; padding:6px 10px;
+}
+.cat-liste button:hover { border-color:var(--rouge); }
+.cat-liste .nom { font-size:13.5px; font-weight:600; }
+.cat-liste .det { grid-column:1; font-size:11.5px; }
+.cat-liste .prix { font-size:13.5px; font-weight:700; white-space:nowrap; }
+.cat-liste .prix.a-chiffrer { color:var(--alerte); font-weight:600; font-size:12px; }
+.cat-liste .vide { color:var(--doux); font-size:13px; padding:6px 2px; }
+.lignes li.a-chiffrer input[data-r="prixUnitaire"] { border-color:var(--alerte);
+  background:#fff9ee; }
+.catalogue[hidden] { display:none; }

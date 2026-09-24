@@ -1,0 +1,445 @@
+{
+  "_lisez_moi": [
+    "Ce que l'agence vend, pour le facturier. Une ligne de facture se prend",
+    "ici au lieu de se retaper : désignation, référence, unité, prix.",
+    "",
+    "PRIX. Deux champs, et ils ne veulent pas dire la même chose :",
+    "  marche      le prix de référence, relevé ou donné par l'agence. Sa",
+    "              provenance est écrite dans « source », avec sa date.",
+    "  prixVente   ce que l'agence facture. Renseigné, il s'impose.",
+    "Quand prixVente est vide, le facturier applique la remise ci-dessous au",
+    "prix de marché : c'est la règle de l'agence, et c'est déjà ce que le",
+    "client a vu sur son devis. Un prix inscrit à la main sur la facture",
+    "l'emporte toujours sur les deux.",
+    "",
+    "CE QUI N'A PAS DE PRIX RESTE À NULL. Aucun montant n'est deviné ici. Un",
+    "article sans prix s'ajoute quand même à la facture — désignation et",
+    "unité gagnées — et le facturier réclame le montant au lieu de sortir un",
+    "zéro qui passerait inaperçu.",
+    "",
+    "Champs : cle, famille, designation, reference, unite, marche, prixVente,",
+    "tva, note, source."
+  ],
+  "maj": "24/09/2026",
+  "remise": 0.1,
+  "tva": 0.2,
+  "familles": {
+    "video": "Vidéosurveillance",
+    "reseau": "Câblage et réseau",
+    "acces": "Contrôle d'accès et interphonie",
+    "alarme": "Alarme anti-intrusion",
+    "service": "Main-d'œuvre et déplacement",
+    "contrat": "Maintenance et garantie"
+  },
+  "articles": [
+    {
+      "cle": "cam-varifocale",
+      "famille": "video",
+      "designation": "Caméra varifocale 8 Mpx, zoom motorisé, infrarouge 50 m",
+      "reference": "Hikvision DS-2CD2683G2-IZS",
+      "unite": "u",
+      "marche": 266.0,
+      "source": "Prix public HT constaté chez un revendeur français le 23/09/2026 (w3cam.fr, 319,20 € TTC). Facturé 239,40 € sur le devis GO FORMATION."
+    },
+    {
+      "cle": "cam-tourelle",
+      "famille": "video",
+      "designation": "Caméra tourelle 4 Mpx ColorVu, couleur de nuit, micro intégré",
+      "reference": "Hikvision DS-2CD2346G2H-IU",
+      "unite": "u",
+      "marche": 181.11,
+      "source": "Prix public HT constaté chez un revendeur français le 23/09/2026 (getic.fr). Facturé 163,00 € sur le devis GO FORMATION."
+    },
+    {
+      "cle": "cam-panoramique",
+      "famille": "video",
+      "designation": "Caméra panoramique 180°, 4 Mpx, sirène et flash intégrés",
+      "reference": "Hikvision DS-2CD2346G2P-ISU/SL",
+      "unite": "u",
+      "marche": 184.06,
+      "source": "Prix public HT constaté chez un revendeur français le 23/09/2026 (idealo.fr). Facturé 165,65 € sur le devis GO FORMATION."
+    },
+    {
+      "cle": "enregistreur",
+      "famille": "video",
+      "designation": "Serveur d'enregistrement réseau 16 voies, 2 baies SATA, 16 ports PoE intégrés",
+      "reference": "Hikvision DS-7616NXI-K2/16P",
+      "unite": "u",
+      "marche": 715.0,
+      "source": "Prix donné par l'agence, 24/09/2026 : 715 € hors taxes."
+    },
+    {
+      "cle": "disque",
+      "famille": "video",
+      "designation": "Disque dur de vidéosurveillance, fonctionnement continu 24 h/24",
+      "reference": null,
+      "unite": "u",
+      "marche": 465.42,
+      "note": "Capacité à choisir selon la durée de conservation retenue. Prix relevé sur un modèle 12 To.",
+      "source": "Prix relevé par l'agence sur Internet chez des professionnels, 24/09/2026 : 1 117 € TTC pour deux disques."
+    },
+    {
+      "cle": "ecran",
+      "famille": "video",
+      "designation": "Moniteur de supervision professionnel 27 pouces 4K UHD, dalle IPS, fonctionnement continu, cordons compris",
+      "reference": null,
+      "unite": "u",
+      "marche": 520.0,
+      "note": "Aucune marque imposée : c'est la classe de matériel qui est chiffrée.",
+      "source": "Prix public HT constaté le 24/09/2026 chez un distributeur européen (498,35 € HT), cordon HDMI de 5 m compris."
+    },
+    {
+      "cle": "sirene-interieure",
+      "famille": "video",
+      "designation": "Sirène intérieure à flash, 90 dB",
+      "reference": "Hikvision DS-PS1-I-WE",
+      "unite": "u",
+      "marche": 53.0,
+      "source": "Prix donné par l'agence, 24/09/2026 : 53 €."
+    },
+    {
+      "cle": "sirene-exterieure",
+      "famille": "video",
+      "designation": "Sirène extérieure à flash, 110 dB, autoprotégée",
+      "reference": "Hikvision DS-PS1-E-WE",
+      "unite": "u",
+      "marche": 96.53,
+      "source": "Prix public constaté le 24/09/2026 (115,83 € TTC)."
+    },
+    {
+      "cle": "switch-poe",
+      "famille": "reseau",
+      "designation": "Commutateur 8 ports PoE+ administrable, boîtier coffret",
+      "reference": null,
+      "unite": "u",
+      "marche": 165.0,
+      "note": "PoE+ (802.3at, 30 W par port) : une caméra varifocale à chauffage dépasse les 15,4 W du PoE simple.",
+      "source": "Prix donné par l'agence, 24/09/2026 : 165 € hors taxes l'unité, modèle administrable."
+    },
+    {
+      "cle": "coffret",
+      "famille": "reseau",
+      "designation": "Coffret technique IP55 avec platine, serrure et parafoudre",
+      "reference": null,
+      "unite": "u",
+      "marche": null,
+      "note": "Prix à renseigner : il n'a pas encore été communiqué."
+    },
+    {
+      "cle": "cable-reseau",
+      "famille": "reseau",
+      "designation": "Câble Cat 6 U/UTP 4 paires, touret de 305 m",
+      "reference": null,
+      "unite": "touret",
+      "marche": 320.42,
+      "source": "Prix relevé par l'agence sur Internet chez des professionnels, 24/09/2026 : 769 € TTC pour deux tourets."
+    },
+    {
+      "cle": "cable-commande",
+      "famille": "reseau",
+      "designation": "Câble d'alimentation et commande 2 x 1,5 mm², couronne de 100 m",
+      "reference": null,
+      "unite": "couronne",
+      "marche": 145.0,
+      "source": "Prix donné par l'agence, 24/09/2026 : 145 € hors taxes la couronne."
+    },
+    {
+      "cle": "support-camera",
+      "famille": "reseau",
+      "designation": "Support de caméra avec boîte de raccordement",
+      "reference": null,
+      "unite": "u",
+      "marche": 59.5,
+      "source": "Prix ESTIMÉ par l'agence, 24/09/2026 : 595 € hors taxes pour dix supports et leurs boîtes. À confirmer sur facture fournisseur."
+    },
+    {
+      "cle": "connecteur",
+      "famille": "reseau",
+      "designation": "Connecteur RJ45 Cat 6 blindé",
+      "reference": null,
+      "unite": "u",
+      "marche": 1.35,
+      "source": "Prix donné par l'agence, 24/09/2026 : 35 € pour 26 connecteurs."
+    },
+    {
+      "cle": "goulotte",
+      "famille": "reseau",
+      "designation": "Goulotte, collier et fixation, au mètre de cheminement apparent",
+      "reference": null,
+      "unite": "m",
+      "marche": 1.74,
+      "source": "Prix relevé par l'agence sur Internet chez des professionnels, 24/09/2026 : 315 € pour 181 m."
+    },
+    {
+      "cle": "presse-etoupe",
+      "famille": "reseau",
+      "designation": "Presse-étoupe et jeu d'étanchéité",
+      "reference": null,
+      "unite": "u",
+      "marche": null,
+      "note": "Prix à renseigner : il n'a pas encore été communiqué."
+    },
+    {
+      "cle": "kit-acces",
+      "famille": "acces",
+      "designation": "Kit complet contrôle d'accès et visiophone : platine de rue, moniteur intérieur, lecteurs de badge, ventouses, boutons de sortie et alimentation secourue",
+      "reference": null,
+      "unite": "forfait",
+      "marche": 1148.33,
+      "note": "Un dispositif à reconnaissance faciale relève du RGPD : analyse d'impact et information des personnes avant la pose.",
+      "source": "Prix du kit retenu au devis GO FORMATION, 24/09/2026."
+    },
+    {
+      "cle": "ventouse-simple",
+      "famille": "acces",
+      "designation": "Ventouse électromagnétique 300 kg avec équerre",
+      "reference": null,
+      "unite": "u",
+      "marche": null,
+      "note": "Prix à renseigner."
+    },
+    {
+      "cle": "ventouse-double",
+      "famille": "acces",
+      "designation": "Ventouse électromagnétique double 2 x 300 kg avec équerres",
+      "reference": null,
+      "unite": "u",
+      "marche": null,
+      "note": "Prix à renseigner."
+    },
+    {
+      "cle": "lecteur-badge",
+      "famille": "acces",
+      "designation": "Lecteur de badge extérieur IP65",
+      "reference": null,
+      "unite": "u",
+      "marche": null,
+      "note": "Prix à renseigner."
+    },
+    {
+      "cle": "badge",
+      "famille": "acces",
+      "designation": "Badge de proximité",
+      "reference": null,
+      "unite": "u",
+      "marche": null,
+      "note": "Prix à renseigner."
+    },
+    {
+      "cle": "bouton-sortie",
+      "famille": "acces",
+      "designation": "Bouton de sortie et déclencheur manuel d'urgence",
+      "reference": null,
+      "unite": "u",
+      "marche": null,
+      "note": "Le déclencheur d'urgence est obligatoire sur une issue : une ventouse doit retomber sans électronique. Prix à renseigner."
+    },
+    {
+      "cle": "alim-secourue",
+      "famille": "acces",
+      "designation": "Alimentation 12 V secourue avec batterie",
+      "reference": null,
+      "unite": "u",
+      "marche": null,
+      "note": "Prix à renseigner."
+    },
+    {
+      "cle": "ajax-hub",
+      "famille": "alarme",
+      "designation": "Centrale d'alarme avec vérification photo",
+      "reference": "Ajax Hub 2 Plus",
+      "unite": "u",
+      "marche": null,
+      "note": "Prix à relever chez votre distributeur Ajax."
+    },
+    {
+      "cle": "ajax-ouverture",
+      "famille": "alarme",
+      "designation": "Détecteur d'ouverture porte et fenêtre",
+      "reference": "Ajax DoorProtect",
+      "unite": "u",
+      "marche": null,
+      "note": "Prix à relever chez votre distributeur Ajax."
+    },
+    {
+      "cle": "ajax-mouvement",
+      "famille": "alarme",
+      "designation": "Détecteur de mouvement à immunité animale",
+      "reference": "Ajax MotionProtect",
+      "unite": "u",
+      "marche": null,
+      "note": "Prix à relever chez votre distributeur Ajax."
+    },
+    {
+      "cle": "ajax-mouvement-photo",
+      "famille": "alarme",
+      "designation": "Détecteur de mouvement avec photo à l'alerte",
+      "reference": "Ajax MotionCam",
+      "unite": "u",
+      "marche": null,
+      "note": "Prix à relever chez votre distributeur Ajax."
+    },
+    {
+      "cle": "ajax-bris-vitre",
+      "famille": "alarme",
+      "designation": "Détecteur de bris de vitre",
+      "reference": "Ajax GlassProtect",
+      "unite": "u",
+      "marche": null,
+      "note": "Prix à relever chez votre distributeur Ajax."
+    },
+    {
+      "cle": "ajax-exterieur",
+      "famille": "alarme",
+      "designation": "Détecteur de mouvement extérieur",
+      "reference": "Ajax MotionProtect Outdoor",
+      "unite": "u",
+      "marche": null,
+      "note": "Prix à relever chez votre distributeur Ajax."
+    },
+    {
+      "cle": "ajax-agression",
+      "famille": "alarme",
+      "designation": "Bouton d'alarme discret",
+      "reference": "Ajax Button",
+      "unite": "u",
+      "marche": null,
+      "note": "Prix à relever chez votre distributeur Ajax."
+    },
+    {
+      "cle": "ajax-clavier",
+      "famille": "alarme",
+      "designation": "Clavier de commande",
+      "reference": "Ajax KeyPad",
+      "unite": "u",
+      "marche": null,
+      "note": "Prix à relever chez votre distributeur Ajax."
+    },
+    {
+      "cle": "ajax-telecommande",
+      "famille": "alarme",
+      "designation": "Télécommande quatre boutons",
+      "reference": "Ajax SpaceControl",
+      "unite": "u",
+      "marche": null,
+      "note": "Prix à relever chez votre distributeur Ajax."
+    },
+    {
+      "cle": "ajax-sirene-int",
+      "famille": "alarme",
+      "designation": "Sirène intérieure",
+      "reference": "Ajax HomeSiren",
+      "unite": "u",
+      "marche": null,
+      "note": "Prix à relever chez votre distributeur Ajax."
+    },
+    {
+      "cle": "ajax-sirene-ext",
+      "famille": "alarme",
+      "designation": "Sirène extérieure",
+      "reference": "Ajax StreetSiren",
+      "unite": "u",
+      "marche": null,
+      "note": "Prix à relever chez votre distributeur Ajax."
+    },
+    {
+      "cle": "ajax-relais",
+      "famille": "alarme",
+      "designation": "Relais de portée radio",
+      "reference": "Ajax ReX",
+      "unite": "u",
+      "marche": null,
+      "note": "Prix à relever chez votre distributeur Ajax."
+    },
+    {
+      "cle": "main-oeuvre",
+      "famille": "service",
+      "designation": "Main-d'œuvre : pose, raccordement et paramétrage",
+      "reference": null,
+      "unite": "h",
+      "prixVente": 73.81,
+      "source": "Taux horaire de l'agence, retenu au devis GO FORMATION."
+    },
+    {
+      "cle": "main-oeuvre-nacelle",
+      "famille": "service",
+      "designation": "Main-d'œuvre en hauteur, travail sur nacelle",
+      "reference": null,
+      "unite": "h",
+      "prixVente": 73.81,
+      "note": "La location de la nacelle se facture à part."
+    },
+    {
+      "cle": "nacelle",
+      "famille": "service",
+      "designation": "Location de nacelle élévatrice, journée",
+      "reference": null,
+      "unite": "j",
+      "marche": null,
+      "note": "Prix à renseigner : il dépend du loueur et de la hauteur."
+    },
+    {
+      "cle": "deplacement",
+      "famille": "service",
+      "designation": "Déplacement sur site",
+      "reference": null,
+      "unite": "u",
+      "marche": null,
+      "note": "Prix à renseigner : forfait ou kilométrage, à votre choix."
+    },
+    {
+      "cle": "transport",
+      "famille": "service",
+      "designation": "Transport et livraison du matériel",
+      "reference": null,
+      "unite": "forfait",
+      "marche": null,
+      "note": "Prix à renseigner."
+    },
+    {
+      "cle": "mise-en-service",
+      "famille": "service",
+      "designation": "Mise en service, réglages et formation de l'utilisateur",
+      "reference": null,
+      "unite": "h",
+      "prixVente": 73.81,
+      "note": "Même taux horaire que la pose."
+    },
+    {
+      "cle": "dossier-fin-chantier",
+      "famille": "service",
+      "designation": "Dossier de fin de chantier : plans, comptes, notices et mots de passe",
+      "reference": null,
+      "unite": "forfait",
+      "marche": null,
+      "note": "Prix à renseigner, ou compté en heures de main-d'œuvre."
+    },
+    {
+      "cle": "maintenance-annuelle",
+      "famille": "contrat",
+      "designation": "Contrat de maintenance annuel : visite préventive, mises à jour et assistance",
+      "reference": null,
+      "unite": "an",
+      "marche": null,
+      "note": "Montant à fixer par contrat. La première année est offerte avec l'installation."
+    },
+    {
+      "cle": "visite-maintenance",
+      "famille": "contrat",
+      "designation": "Visite de maintenance préventive : nettoyage, contrôle des vues, sauvegarde des réglages",
+      "reference": null,
+      "unite": "u",
+      "marche": null,
+      "note": "Prix à renseigner, ou compté en heures de main-d'œuvre."
+    },
+    {
+      "cle": "intervention-garantie",
+      "famille": "contrat",
+      "designation": "Intervention sous garantie",
+      "reference": null,
+      "unite": "forfait",
+      "prixVente": 0,
+      "note": "Ligne à zéro euro, à faire figurer : elle prouve que l'intervention a eu lieu et qu'elle était couverte."
+    }
+  ]
+}
