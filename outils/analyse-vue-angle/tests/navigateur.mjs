@@ -3455,6 +3455,63 @@ console.log('\nFacturier');
     affirmer(await page.getAttribute('#apercu', 'hidden') !== null, 'l\'aperçu doit se fermer');
   });
 
+  await cas('le papier ne porte que la facture, jamais l\'écran', async () => {
+    /*
+     * Une facture envoyée à un client est sortie avec tout l'écran du
+     * facturier dessus : la barre d'outils, la liste des factures, les
+     * totaux de l'agence et un bandeau d'alerte en plein milieu. L'agence
+     * était passée par Ctrl+P, qui imprime la page et non le cadre.
+     */
+    await page.click('#b-imprimer');
+    await page.waitForSelector('#apercu:not([hidden])');
+    await page.waitForTimeout(300);
+    await page.emulateMedia({ media: 'print' });
+    const ouvert = await page.evaluate(() => {
+      /*
+       * Une boîte de rendu, pas le style calculé : un élément dont l'ancêtre
+       * est en `display:none` garde son propre `display:block`, et le
+       * contrôle passerait alors qu'il n'est pas imprimé.
+       */
+      const vu = (s) => {
+        const n = document.querySelector(s);
+        return !!n && n.getClientRects().length > 0;
+      };
+      return {
+        barre: vu('.barre'),
+        chiffres: vu('.chiffres'),
+        onglets: vu('.onglets'),
+        listes: vu('#liste-factures'),
+        barreApercu: vu('.apercu-barre'),
+        cadre: vu('#apercu-page'),
+        fond: getComputedStyle(document.body).backgroundColor,
+      };
+    });
+    await page.emulateMedia({ media: null });
+    await page.click('#b-fermer');
+
+    for (const [quoi, present] of Object.entries(ouvert)) {
+      if (['cadre', 'fond'].includes(quoi)) continue;
+      affirmer(!present, `${quoi} ne doit pas s'imprimer sur la facture du client`);
+    }
+    affirmer(ouvert.cadre, 'le document, lui, doit s\'imprimer');
+    affirmer(/255,\s*255,\s*255/.test(ouvert.fond),
+      `le fond gris de l'écran sortait comme une tache : ${ouvert.fond}`);
+  });
+
+  await cas('imprimer sans aperçu ne sort pas l\'écran de travail', async () => {
+    await page.emulateMedia({ media: 'print' });
+    const r = await page.evaluate(() => {
+      const vu = (s) => {
+        const n = document.querySelector(s);
+        return !!n && n.getClientRects().length > 0;
+      };
+      return { barre: vu('.barre'), consigne: vu('.rien-a-imprimer') };
+    });
+    await page.emulateMedia({ media: null });
+    affirmer(!r.barre, 'on n\'imprime pas un écran de travail');
+    affirmer(r.consigne, 'on dit où cliquer plutôt que de rendre une page blanche');
+  });
+
   await cas('aucun rappel de mentions légales nulle part', async () => {
     /*
      * Ce rappel a figuré en tête du document remis au client, où il lui

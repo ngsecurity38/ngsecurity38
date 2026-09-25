@@ -17,7 +17,7 @@ import { fr, echapper } from './format.js';
 import { euros } from './prix.js';
 import {
   ETATS, PERIODES, prochainNumero, totauxFacture, echeance, retard,
-  echeancesContrat, aFacturer, journal, coordonneesBancaires,
+  echeancesContrat, aFacturer, journal,
 } from './facture.js';
 import { ficheFacture } from './facture-fiche.js';
 import {
@@ -84,14 +84,8 @@ function chiffres() {
   mettre('#c-tva', sommeOuTiret(j.tvaCollectee));
   mettre('#c-emises', String(j.emises));
 
-  const agence = globalThis.__agence || {};
   const avis = $('#alertes');
   const mots = [];
-  // Une facture qui annonce un virement sans dire où virer n'est pas payable.
-  if (!coordonneesBancaires(agence).iban) {
-    mots.push('<b>Aucun IBAN :</b> les factures annoncent un virement sans '
-      + 'donner le compte. À renseigner dans la fiche de l\'agence.');
-  }
   if (j.enRetard.nombre) {
     mots.push(`<b>${j.enRetard.nombre} facture(s) en retard</b> pour ${
       sommeOuTiret(j.enRetard.montant)}.`);
@@ -516,8 +510,21 @@ async function produireFacture() {
   };
   $('#apercu-titre').textContent = `${f.type === 'avoir' ? 'Avoir' : 'Facture'} ${f.numero}`;
 
-  $('#apercu').hidden = false;
+  ouvrirApercu(true);
   await poser($('#apercu-page'), etat.document.html);
+}
+
+/**
+ * Ouvrir ou fermer l'aperçu, et le dire à la page entière.
+ *
+ * La classe posée sur `body` est ce à quoi s'accrochent les règles
+ * d'impression : aperçu ouvert, l'écran de l'agence disparaît du papier et
+ * seul le document reste. Un PDF qui emporte la barre d'outils, les listes
+ * et les totaux de l'agence n'est pas un document qu'on envoie à un client.
+ */
+function ouvrirApercu(ouvert) {
+  $('#apercu').hidden = !ouvert;
+  document.body.classList.toggle('apercu-ouvert', ouvert);
 }
 
 /** Le PDF : la fenêtre d'impression du navigateur, sur le seul cadre. */
@@ -616,10 +623,30 @@ export function monter(livre, catalogue) {
   $('#b-html').addEventListener('click', () => {
     if (etat.document) telecharger(etat.document.nom, etat.document.html);
   });
-  $('#b-fermer').addEventListener('click', () => { $('#apercu').hidden = true; });
+  $('#b-fermer').addEventListener('click', () => ouvrirApercu(false));
   document.addEventListener('keydown', (ev) => {
-    if (ev.key === 'Escape' && !$('#apercu').hidden) $('#apercu').hidden = true;
+    if (ev.key === 'Escape' && !$('#apercu').hidden) ouvrirApercu(false);
   });
+
+  /*
+   * Avant toute impression — le bouton, mais aussi Ctrl+P et le menu du
+   * navigateur, par où l'agence est passée — le cadre est ramené à la
+   * hauteur de son contenu. Sans cela il s'imprime tronqué : la dernière
+   * facture sortie s'arrêtait au milieu d'un mot.
+   */
+  window.addEventListener('beforeprint', () => {
+    const cadre = $('#apercu-page');
+    const doc = cadre.contentDocument;
+    if (!doc || $('#apercu').hidden) return;
+    /*
+     * La hauteur se mesure sur la feuille, pas sur le document : le fond
+     * gris de l'aperçu déborde sinon sous la facture, et sort imprimé en
+     * bas de page comme une tache.
+     */
+    const feuille = doc.querySelector('.feuille');
+    cadre.style.height = `${Math.ceil((feuille || doc.documentElement).scrollHeight) + 2}px`;
+  });
+  window.addEventListener('afterprint', () => { $('#apercu-page').style.height = ''; });
   $('#b-export').addEventListener('click', exportComptable);
   $('#f-impayees').addEventListener('change', () => {
     etat.impayees = $('#f-impayees').checked;
