@@ -27,6 +27,22 @@
     "ngsecurity38.com"
   ],
   "zone": "Intervention France et Belgique",
+  "_note_paiements": [
+    "Les moyens de paiement affichés sur la facture, dans cet ordre.",
+    "Connus : virement, carte, paypal, cheque, especes.",
+    "",
+    "Les pictogrammes sont les nôtres. Les logos Visa, Mastercard et PayPal",
+    "sont des marques déposées : leurs propriétaires publient les fichiers",
+    "officiels et en fixent l'usage. Pour les afficher, déposez l'image dans",
+    "logosPaiement sous la même clé (une adresse data: garde le document",
+    "autonome) et elle remplacera le pictogramme."
+  ],
+  "paiements": [
+    "virement",
+    "carte",
+    "paypal"
+  ],
+  "logosPaiement": {},
   "_note_mentions": [
     "Deux mentions qui ne s'impriment que si elles sont écrites ici.",
     "  assurance  l'assureur, le numéro de contrat et la couverture",

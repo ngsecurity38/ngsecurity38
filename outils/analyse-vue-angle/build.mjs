@@ -431,7 +431,8 @@ ecrire('editeur.html', editeur);
  * fichier unique, ouvert d'un double-clic, sans serveur ni réseau.
  */
 const MODULES_FACTURIER = ['dom.js', 'format.js', 'prix.js', 'papier.js',
-  'facture.js', 'facture-fiche.js', 'catalogue-vente.js', 'impression.js', 'facturier.js'];
+  'facture.js', 'paiement.js', 'facture-fiche.js', 'catalogue-vente.js',
+  'impression.js', 'facturier.js'];
 verifierListe(MODULES_FACTURIER);
 
 const paquetFacturier = paqueter(MODULES_FACTURIER, '\ndemarrer();');

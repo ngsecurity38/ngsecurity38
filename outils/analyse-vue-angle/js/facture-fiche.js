@@ -19,6 +19,7 @@
 import { fr, echapper } from './format.js';
 import { euros } from './prix.js';
 import { reglagesPdf, MARGES } from './papier.js';
+import { badgesPaiement } from './paiement.js';
 import {
   totauxFacture, echeance, retard, penalites,
   coordonneesBancaires,
@@ -85,6 +86,12 @@ th:nth-child(5), td:nth-child(5) { width:100px; }
   padding:12px 14px; font-size:12.5px; }
 .conditions b { font-size:13px; }
 .conditions p { margin:6px 0 0; }
+.conditions .banque { font-variant-numeric:tabular-nums; letter-spacing:.01em; }
+.moyens { display:flex; flex-wrap:wrap; gap:6px; margin:8px 0 0; }
+.moyen { display:flex; align-items:center; gap:6px; border:1px solid var(--bord);
+  border-radius:6px; padding:4px 8px; background:#fff; }
+.moyen svg, .moyen img { width:26px; height:18px; display:block; object-fit:contain; }
+.moyen b { font-size:11.5px; font-weight:600; white-space:nowrap; }
 .total { flex:0 0 340px; border:1px solid var(--bord); border-radius:8px; overflow:hidden; }
 .total div { display:flex; justify-content:space-between; padding:8px 14px;
   border-bottom:1px solid var(--bord); font-size:14px; }
@@ -125,10 +132,12 @@ h3 { font-size:14px; margin:24px 0 6px; }
   .feuille { border:0; max-width:none; padding:0; }
   .pdf { display:none; }
   h1 { font-size:19pt; }
-  th, td { padding:4px 9px; }
+  th, td { padding:3px 9px; }
   .garde { padding-bottom:12px; margin-bottom:14px; }
-  .parties { margin-bottom:12px; }
-  .bas { margin-top:10px; }
+  .parties { margin-bottom:10px; }
+  .moyens { margin-top:6px; gap:5px; }
+  .moyen { padding:3px 7px; }
+  .bas { margin-top:8px; }
   .total div { padding:6px 14px; }
   .conditions { font-size:8.6pt; }
   .conditions p { margin-top:4px; }
@@ -260,10 +269,11 @@ ${avoir && facture.annule ? `<div class="avis"><b>Avoir.</b> Ce document annule
 
 <div class="bas">
   <div class="conditions">
-    <b>Conditions de règlement</b>
-    <p>${echapper(facture.moyenPaiement || 'Par virement bancaire')}.${
-  banque.iban ? `<br>IBAN ${echapper(banque.iban)}` : ''}${
-  banque.bic ? `<br>BIC ${echapper(banque.bic)}` : ''}</p>
+    <b>Paiement</b>
+    ${badgesPaiement(agence)}
+    ${facture.moyenPaiement ? `<p>${echapper(facture.moyenPaiement)}.</p>` : ''}
+    ${banque.iban ? `<p class="banque">IBAN ${echapper(banque.iban)}${
+  banque.bic ? `<br>BIC ${echapper(banque.bic)}` : ''}</p>` : ''}
     <p>Paiement à ${echapper(fr(delai, 0))} jours : le montant est exigible au
       plus tard le <b>${echapper(jourFr(fin))}</b>.</p>
     <p>Aucun escompte n'est accordé en cas de paiement anticipé.</p>

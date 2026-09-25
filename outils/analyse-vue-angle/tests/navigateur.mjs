@@ -3362,6 +3362,7 @@ console.log('\nFacturier');
         const r = lu('.reglement');
         return {
           iban: c.includes('IBAN'),
+          moyens: [...document.querySelectorAll('.moyen b')].map((n) => n.textContent),
           echeance: /exigible au plus tard le/.test(c),
           escompte: /escompte/.test(c),
           penalites: /3 fois le taux d'intérêt légal/.test(r),
@@ -3374,6 +3375,9 @@ console.log('\nFacturier');
     await page.click('#b-fermer');
     affirmer(r.hauteur <= 1013, `la facture déborde de ${r.hauteur - 1013} px sur une 2e page`);
     affirmer(r.iban, 'un virement sans IBAN n\'est pas payable');
+    // Les moyens acceptés se voient avant de se lire, et se lisent quand même.
+    affirmer(r.moyens.join(' ') === 'Virement Carte PayPal',
+      `les moyens de paiement : ${JSON.stringify(r.moyens)}`);
     /*
      * Les mentions que le code de commerce impose sur une facture : la date
      * d'exigibilité, les conditions d'escompte, le taux des pénalités de
