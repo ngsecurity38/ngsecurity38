@@ -42,6 +42,7 @@
   <button type="button" class="onglet actif" data-vue="factures">Factures</button>
   <button type="button" class="onglet" data-vue="maintenance">Maintenance</button>
   <button type="button" class="onglet" data-vue="journal">Journal</button>
+  <button type="button" class="onglet" data-vue="agence">Mon entreprise</button>
 </nav>
 
 <main>
@@ -169,6 +170,57 @@
       son HT, sa TVA par taux, son TTC et son état. Ce n'est pas un logiciel
       comptable : il n'y a ni écritures ni bilan. Il y a ce qui est dû, par
       qui, depuis quand, et la TVA collectée du trimestre.</p>
+  </section>
+
+  <!-- ------------------------------------------------------- l'entreprise -->
+  <section class="vue" id="vue-agence" hidden>
+    <div class="colonnes">
+      <div class="bloc">
+        <div class="entete-bloc"><h2>Se faire payer</h2></div>
+
+        <h3>Compte bancaire</h3>
+        <label>IBAN<input type="text" id="ag-iban" maxlength="42"
+          placeholder="FR76 0000 0000 0000 0000 0000 000"></label>
+        <div class="paire">
+          <label>BIC<input type="text" id="ag-bic" maxlength="11"
+            placeholder="XXXXFRPPXXX"></label>
+          <label>Titulaire du compte<input type="text" id="ag-titulaire" maxlength="60"
+            placeholder="NG Security 38"></label>
+        </div>
+
+        <h3>Lien de paiement en ligne</h3>
+        <label>Adresse<input type="text" id="ag-lien" maxlength="200"
+          placeholder="paypal.me/ngsecurity38">
+          <small>Votre lien PayPal, Stripe, SumUp ou celui de votre banque. Il
+            s'imprime sur la facture, cliquable dans le PDF et recopiable sur
+            papier.</small></label>
+
+        <h3>Moyens acceptés</h3>
+        <div class="cases" id="ag-paiements"></div>
+      </div>
+
+      <div class="bloc">
+        <div class="entete-bloc"><h2>Mentions de société</h2></div>
+        <p class="note">Ces quatre lignes ne s'impriment que si elles sont
+          remplies. Une facture de société doit porter les deux premières.</p>
+
+        <div class="paire">
+          <label>Capital social<input type="text" id="ag-capital" maxlength="40"
+            placeholder="2 000 €"></label>
+          <label>Ville du greffe (RCS)<input type="text" id="ag-greffe" maxlength="40"
+            placeholder="Sens"></label>
+        </div>
+        <label>Assurance<input type="text" id="ag-assurance" maxlength="200"
+          placeholder="AXA France IARD, contrat n° …, France métropolitaine">
+          <small>Assureur, numéro de contrat et couverture géographique.
+            Obligatoire sur une facture de travaux de bâtiment.</small></label>
+        <label>Médiateur de la consommation<input type="text" id="ag-mediateur"
+          maxlength="200" placeholder="Nom du médiateur, adresse du site">
+          <small>À porter dès que vous facturez des particuliers.</small></label>
+
+        <p class="note" id="ag-etat"></p>
+      </div>
+    </div>
   </section>
 </main>
 

@@ -22,7 +22,7 @@ import { reglagesPdf, MARGES } from './papier.js';
 import { badgesPaiement } from './paiement.js';
 import {
   totauxFacture, echeance, retard, penalites,
-  coordonneesBancaires,
+  coordonneesBancaires, lienPaiement,
   INDEMNITE_RECOUVREMENT, PENALITE_MULTIPLE, ETATS,
 } from './facture.js';
 
@@ -87,6 +87,8 @@ th:nth-child(5), td:nth-child(5) { width:100px; }
 .conditions b { font-size:13px; }
 .conditions p { margin:6px 0 0; }
 .conditions .banque { font-variant-numeric:tabular-nums; letter-spacing:.01em; }
+.conditions .lien a { color:var(--rouge); text-decoration:none; word-break:break-all; }
+.conditions .lien a:hover { text-decoration:underline; }
 .moyens { display:flex; flex-wrap:wrap; gap:6px; margin:8px 0 0; }
 .moyen { display:flex; align-items:center; gap:6px; border:1px solid var(--bord);
   border-radius:6px; padding:4px 8px; background:#fff; }
@@ -183,6 +185,7 @@ export function ficheFacture(facture, agence, options = {}) {
   const delai = Number(facture.delaiPaiement) > 0 ? Number(facture.delaiPaiement) : 30;
   const fin = facture.echeance || echeance(facture.date, delai);
   const banque = coordonneesBancaires(agence, facture);
+  const lien = lienPaiement(agence, facture);
   const jours = retard({ ...facture, echeance: fin }, options.aujourdhui);
   const pen = jours
     ? penalites({ ...facture, echeance: fin }, options.aujourdhui, options.tauxLegal)
@@ -272,8 +275,11 @@ ${avoir && facture.annule ? `<div class="avis"><b>Avoir.</b> Ce document annule
     <b>Paiement</b>
     ${badgesPaiement(agence)}
     ${facture.moyenPaiement ? `<p>${echapper(facture.moyenPaiement)}.</p>` : ''}
+    ${lien ? `<p class="lien"><b>Payer en ligne :</b>
+      <a href="${echapper(lien.href)}">${echapper(lien.texte)}</a></p>` : ''}
     ${banque.iban ? `<p class="banque">IBAN ${echapper(banque.iban)}${
-  banque.bic ? `<br>BIC ${echapper(banque.bic)}` : ''}</p>` : ''}
+  banque.bic ? `<br>BIC ${echapper(banque.bic)}` : ''}${
+  banque.titulaire ? `<br>${echapper(banque.titulaire)}` : ''}</p>` : ''}
     <p>Paiement à ${echapper(fr(delai, 0))} jours : le montant est exigible au
       plus tard le <b>${echapper(jourFr(fin))}</b>.</p>
     <p>Aucun escompte n'est accordé en cas de paiement anticipé.</p>

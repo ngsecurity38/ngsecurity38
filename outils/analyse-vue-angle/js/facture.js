@@ -302,6 +302,74 @@ export function journal(donnees, aujourdhui = new Date().toISOString().slice(0, 
  * Une facture qui annonce un virement sans dire où virer n'est pas payable :
  * l'écran de l'agence le signale tant que le compte n'est pas renseigné.
  */
+/**
+ * L'identité de l'agence, telle qu'elle doit figurer aujourd'hui.
+ *
+ * Deux sources. Celle du dépôt, `agence.json`, portée par la page à sa
+ * fabrication : le nom, l'adresse, le SIRET, la TVA — ce qui ne bouge pas.
+ * Et celle que l'agence saisit dans l'outil, qui vit dans son livre : le
+ * compte bancaire, le lien de paiement, le capital social, l'assurance.
+ *
+ * L'agence l'emporte sur le dépôt, parce que c'est elle qui sait. Une valeur
+ * laissée vide ne l'emporte sur rien : on ne remplace pas un SIRET juste par
+ * un champ qu'on n'a pas rempli.
+ *
+ * @param {object} base ce que porte la page
+ * @param {object} saisie ce que l'agence a écrit dans son livre
+ */
+export function fusionnerAgence(base, saisie) {
+  const a = { ...(base || {}) };
+  const s = saisie || {};
+  const plein = (v) => v !== null && v !== undefined && String(v).trim() !== '';
+
+  for (const [cle, valeur] of Object.entries(s)) {
+    if (cle === 'banque' || cle === 'aCompleter' || cle === 'logosPaiement') continue;
+    if (cle === 'paiements') {
+      if (Array.isArray(valeur) && valeur.length) a.paiements = valeur;
+      continue;
+    }
+    if (plein(valeur)) a[cle] = valeur;
+  }
+
+  // Les deux sous-ensembles se fondent champ par champ, pas en bloc : sans
+  // cela, saisir un IBAN effacerait le BIC venu du dépôt.
+  for (const cle of ['banque', 'aCompleter', 'logosPaiement']) {
+    const fondu = { ...((base || {})[cle] || {}) };
+    for (const [k, v] of Object.entries(s[cle] || {})) if (plein(v)) fondu[k] = v;
+    a[cle] = fondu;
+  }
+  return a;
+}
+
+/**
+ * Le lien de paiement en ligne, s'il est utilisable.
+ *
+ * Seuls `http` et `https` passent : une facture ne doit pas porter un lien
+ * qui fasse autre chose que d'ouvrir une page. Le reste est écarté plutôt
+ * que corrigé — un lien de paiement à moitié juste ne vaut pas mieux que
+ * pas de lien du tout.
+ *
+ * @returns {{href: string, texte: string}|null}
+ */
+export function lienPaiement(agence, facture = {}) {
+  const brut = String(facture.lienPaiement || agence?.lienPaiement || '').trim();
+  if (!brut) return null;
+  // Un schéma autre que http(s) est refusé avant tout : `javascript:` collé
+  // derrière un `https://` donnerait une adresse absurde plutôt qu'un refus.
+  if (/^[a-z][a-z0-9+.-]*:/i.test(brut) && !/^https?:/i.test(brut)) return null;
+  const avecSchema = /^https?:\/\//i.test(brut) ? brut : `https://${brut}`;
+  let url;
+  try {
+    url = new URL(avecSchema);
+  } catch (e) {
+    return null;
+  }
+  if (!['http:', 'https:'].includes(url.protocol)) return null;
+  // Sur papier, le client recopie : on lui épargne le « https:// ».
+  const texte = avecSchema.replace(/^https?:\/\//i, '').replace(/\/$/, '');
+  return { href: url.href, texte };
+}
+
 export function coordonneesBancaires(agence, facture = {}) {
   const b = (agence && agence.banque) || {};
   return {

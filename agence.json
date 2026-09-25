@@ -43,6 +43,13 @@
     "paypal"
   ],
   "logosPaiement": {},
+  "_note_lien": [
+    "Le lien de paiement en ligne — PayPal, Stripe, SumUp, ou celui de la",
+    "banque. Il s'imprime sur la facture, cliquable dans le PDF. Il se",
+    "saisit aussi dans l'onglet « Mon entreprise » du facturier, et ce qui",
+    "y est écrit l'emporte sur cette ligne."
+  ],
+  "lienPaiement": null,
   "_note_mentions": [
     "Deux mentions qui ne s'impriment que si elles sont écrites ici.",
     "  assurance  l'assureur, le numéro de contrat et la couverture",

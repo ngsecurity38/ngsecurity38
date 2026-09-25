@@ -17,8 +17,10 @@ import { fr, echapper } from './format.js';
 import { euros } from './prix.js';
 import {
   ETATS, PERIODES, prochainNumero, totauxFacture, echeance, retard,
-  echeancesContrat, aFacturer, journal,
+  echeancesContrat, aFacturer, journal, fusionnerAgence, lienPaiement,
+  mentionsManquantes,
 } from './facture.js';
+import { MOYENS } from './paiement.js';
 import { ficheFacture } from './facture-fiche.js';
 import {
   assainirCatalogue, chercher, ligneDepuisArticle, articlesSansPrix,
@@ -48,6 +50,13 @@ const livreVide = () => ({
   prefixeAvoir: 'A',
   factures: [],
   contrats: [],
+  /*
+   * Ce que l'agence saisit elle-même : son compte, son lien de paiement,
+   * ses mentions de société. Ça vit dans le livre et non dans le code —
+   * l'agence n'a ni à me le demander ni à attendre une nouvelle version du
+   * fichier pour changer de banque.
+   */
+  agence: {},
 });
 
 /** Un livre venu d'ailleurs peut manquer de tout : on le complète. */
@@ -55,6 +64,7 @@ function assainir(lu) {
   const l = { ...livreVide(), ...(lu || {}) };
   l.factures = Array.isArray(l.factures) ? l.factures : [];
   l.contrats = Array.isArray(l.contrats) ? l.contrats : [];
+  l.agence = (l.agence && typeof l.agence === 'object') ? l.agence : {};
   return l;
 }
 
@@ -119,6 +129,9 @@ function listeFactures() {
 }
 
 const factureCourante = () => etat.livre.factures.find((f) => f.numero === etat.facture);
+
+/** L'identité portée par la page, complétée de ce que l'agence a saisi. */
+const agenceCourante = () => fusionnerAgence(globalThis.__agence || {}, etat.livre.agence);
 
 function panneauFacture() {
   const f = factureCourante();
@@ -439,6 +452,76 @@ function nouveauContrat() {
   tout();
 }
 
+/* --------------------------------------------------------- l'entreprise */
+
+/*
+ * Où chaque champ de l'écran va se ranger dans le livre. Deux niveaux :
+ * `banque` et `aCompleter` sont des sous-ensembles, le reste est à plat.
+ */
+const CHAMPS_AGENCE = [
+  ['#ag-iban', 'banque', 'iban'],
+  ['#ag-bic', 'banque', 'bic'],
+  ['#ag-titulaire', 'banque', 'titulaire'],
+  ['#ag-lien', null, 'lienPaiement'],
+  ['#ag-capital', 'aCompleter', 'capitalSocial'],
+  ['#ag-greffe', 'aCompleter', 'rcsGreffe'],
+  ['#ag-assurance', null, 'assurance'],
+  ['#ag-mediateur', null, 'mediateur'],
+];
+
+const lireAgence = (sous, cle) => {
+  const a = etat.livre.agence || {};
+  const v = sous ? (a[sous] || {})[cle] : a[cle];
+  return v === null || v === undefined ? '' : String(v);
+};
+
+function ecrireAgence(sous, cle, valeur) {
+  const a = etat.livre.agence;
+  if (sous) {
+    a[sous] = a[sous] || {};
+    a[sous][cle] = valeur;
+  } else {
+    a[cle] = valeur;
+  }
+}
+
+function panneauAgence() {
+  for (const [sel, sous, cle] of CHAMPS_AGENCE) $(sel).value = lireAgence(sous, cle);
+
+  const retenus = agenceCourante().paiements || [];
+  $('#ag-paiements').innerHTML = Object.entries(MOYENS).map(([cle, m]) => `
+    <label class="case"><input type="checkbox" data-moyen="${echapper(cle)}"
+      ${retenus.includes(cle) ? 'checked' : ''}> ${echapper(m.label)}</label>`).join('');
+  $$('#ag-paiements [data-moyen]').forEach((n) => n.addEventListener('change', () => {
+    const choisis = $$('#ag-paiements [data-moyen]')
+      .filter((c) => c.checked).map((c) => c.dataset.moyen);
+    etat.livre.agence.paiements = choisis;
+    enregistrerLocal();
+    etatAgence();
+  }));
+
+  etatAgence();
+}
+
+/**
+ * Ce que porteront les prochaines factures, dit sans reproche.
+ *
+ * C'est un état, pas une alerte : l'agence vient ici pour remplir, elle n'a
+ * pas besoin qu'on le lui rappelle ailleurs.
+ */
+function etatAgence() {
+  const a = agenceCourante();
+  const dit = [];
+  const b = a.banque || {};
+  dit.push(b.iban ? `IBAN : ${b.iban}` : 'Aucun IBAN : vos factures annoncent un '
+    + 'virement sans donner le compte.');
+  const l = lienPaiement(a);
+  if (l) dit.push(`Lien de paiement : ${l.texte}`);
+  const manque = mentionsManquantes(a);
+  if (manque.length) dit.push(`Mentions non renseignées : ${manque.join(', ')}.`);
+  $('#ag-etat').innerHTML = dit.map(echapper).join('<br>');
+}
+
 /* ----------------------------------------------------------- le journal */
 
 function vueJournal() {
@@ -507,7 +590,7 @@ async function produireFacture() {
   const f = factureCourante();
   if (!f) return;
   etat.document = {
-    html: ficheFacture(f, globalThis.__agence || {}, { aujourdhui: aujourdhui() }),
+    html: ficheFacture(f, agenceCourante(), { aujourdhui: aujourdhui() }),
     nom: `${(f.numero || 'facture').toLowerCase()}.html`,
   };
   $('#apercu-titre').textContent = `${f.type === 'avoir' ? 'Avoir' : 'Facture'} ${f.numero}`;
@@ -545,7 +628,8 @@ function tout() {
   listeContrats();
   panneauContrat();
   vueJournal();
-  for (const v of ['factures', 'maintenance', 'journal']) {
+  panneauAgence();
+  for (const v of ['factures', 'maintenance', 'journal', 'agence']) {
     $(`#vue-${v}`).hidden = etat.vue !== v;
   }
   $$('#onglets .onglet').forEach((o) => o.classList.toggle('actif', o.dataset.vue === etat.vue));
@@ -676,6 +760,14 @@ export function monter(livre, catalogue) {
     }
     ev.target.value = '';
   });
+
+  for (const [sel, sous, cle] of CHAMPS_AGENCE) {
+    $(sel).addEventListener('input', () => {
+      ecrireAgence(sous, cle, $(sel).value.trim());
+      enregistrerLocal();
+      etatAgence();
+    });
+  }
 
   $$('#onglets .onglet').forEach((o) => o.addEventListener('click', () => {
     etat.vue = o.dataset.vue;

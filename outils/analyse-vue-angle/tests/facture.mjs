@@ -17,6 +17,7 @@ import { ficheFacture } from '../js/facture-fiche.js';
 import {
   prochainNumero, totauxFacture, echeance, retard, penalites,
   echeancesContrat, aFacturer, journal, mentionsManquantes, coordonneesBancaires,
+  fusionnerAgence, lienPaiement,
   INDEMNITE_RECOUVREMENT, PENALITE_MULTIPLE,
 } from '../js/facture.js';
 
@@ -254,6 +255,52 @@ test('les totaux se regroupent par mois et par trimestre', () => {
   assert.deepEqual(j.parTrimestre.map((t) => t.periode), ['2026-T3']);
   assert.equal(j.parTrimestre[0].ht, 1700);
   assert.equal(j.parTrimestre[0].factures, 3);
+});
+
+/* ------------------------------------------------- l'identité de l'agence */
+
+test('ce que l\'agence saisit l\'emporte, un champ vide n\'efface rien', () => {
+  const page = {
+    siret: '104 732 458 00013', tva: 'FR30',
+    banque: { iban: 'FR76 AAA', bic: 'BBB' },
+    paiements: ['virement'],
+  };
+  const saisie = {
+    siret: '', lienPaiement: 'paypal.me/x',
+    banque: { iban: 'FR76 ZZZ' },
+    paiements: [],
+  };
+  const a = fusionnerAgence(page, saisie);
+  assert.equal(a.siret, '104 732 458 00013', 'un champ laissé vide n\'efface pas le dépôt');
+  assert.equal(a.lienPaiement, 'paypal.me/x');
+  assert.equal(a.banque.iban, 'FR76 ZZZ', 'le compte saisi l\'emporte');
+  assert.equal(a.banque.bic, 'BBB', 'et le BIC du dépôt reste : les sous-ensembles se fondent');
+  assert.deepEqual(a.paiements, ['virement'], 'une liste vide ne remplace pas');
+});
+
+test('l\'agence peut renseigner ce qui manquait à ses factures', () => {
+  const a = fusionnerAgence({ siret: '1', tva: '2' },
+    { aCompleter: { capitalSocial: '2 000 €', rcsGreffe: 'Sens', assuranceRcPro: 'AXA' } });
+  assert.deepEqual(mentionsManquantes(a), []);
+});
+
+test('le lien de paiement accepte une adresse, et rien d\'autre', () => {
+  assert.deepEqual(lienPaiement({ lienPaiement: 'paypal.me/ngs38' }),
+    { href: 'https://paypal.me/ngs38', texte: 'paypal.me/ngs38' });
+  // Le client recopie du papier : on lui épargne le « https:// ».
+  assert.equal(lienPaiement({ lienPaiement: 'https://buy.stripe.com/a/' }).texte,
+    'buy.stripe.com/a');
+  // Une facture ne doit pas porter un lien qui fasse autre chose qu'ouvrir une page.
+  for (const mauvais of ['javascript:alert(1)', 'data:text/html,x', 'ftp://a/b', '  ']) {
+    assert.equal(lienPaiement({ lienPaiement: mauvais }), null, mauvais);
+  }
+  assert.equal(lienPaiement({}), null);
+});
+
+test('la facture peut porter son propre lien', () => {
+  // Un chantier réglé par un lien dédié : la facture l'emporte.
+  assert.equal(lienPaiement({ lienPaiement: 'paypal.me/agence' },
+    { lienPaiement: 'buy.stripe.com/chantier' }).texte, 'buy.stripe.com/chantier');
 });
 
 /* ------------------------------------------------ les mentions obligatoires */

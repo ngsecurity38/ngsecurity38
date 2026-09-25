@@ -3253,6 +3253,25 @@ console.log('\nFacturier');
       `la première facture est numérotée : ${await page.textContent('#p-numero')}`);
   });
 
+  await cas('l\'agence renseigne son compte et son lien elle-même', async () => {
+    /*
+     * L'IBAN et les mentions de société vivaient dans un fichier du dépôt :
+     * l'agence devait les demander et attendre une nouvelle version du
+     * facturier. Elle les saisit maintenant, et ça part sur ses factures.
+     */
+    await page.click('.onglet[data-vue="agence"]');
+    await page.fill('#ag-iban', 'FR76 3000 4000 0300 0000 0000 143');
+    await page.fill('#ag-bic', 'BNPAFRPPXXX');
+    await page.fill('#ag-lien', 'paypal.me/ngsecurity38');
+    await page.fill('#ag-capital', '2 000 €');
+    await page.fill('#ag-greffe', 'Sens');
+    await page.waitForTimeout(150);
+    const etat = serre(await page.textContent('#ag-etat'));
+    affirmer(/FR76300040000300/.test(etat), `l'écran rend le compte saisi : ${etat}`);
+    affirmer(/paypal\.me/.test(etat), 'et le lien de paiement');
+    await page.click('.onglet[data-vue="factures"]');
+  });
+
   await cas('le catalogue pose une ligne en un clic', async () => {
     /*
      * Retaper une désignation à chaque facture, c'est trois fautes de frappe
@@ -3331,13 +3350,6 @@ console.log('\nFacturier');
     await ligne(2, 'Enregistreur réseau 16 voies', 1, 715);
     await page.fill('#lignes li[data-i="2"] [data-r="detail"]', 'Deux baies SATA, 16 ports PoE');
     await page.fill('#p-chantier', 'GO FORMATION, 12 rue de l\'Industrie, 89100 Sens');
-    await page.evaluate(() => {
-      window.__agence.aCompleter = {
-        capitalSocial: '2 000 €', rcsGreffe: 'Sens', assuranceRcPro: 'AXA France IARD',
-      };
-      window.__agence.banque = { iban: 'FR76 0000 0000 0000 0000 0000 000', bic: 'AAAAFRPP' };
-    });
-
     await page.click('#b-imprimer');
     await page.waitForSelector('#apercu:not([hidden])');
     const cadre = page.frames().find((f) => f !== page.mainFrame());
@@ -3361,7 +3373,10 @@ console.log('\nFacturier');
         const c = lu('.conditions');
         const r = lu('.reglement');
         return {
-          iban: c.includes('IBAN'),
+          iban: c.includes('IBAN FR76 3000 4000 0300 0000 0000 143'),
+          lien: (document.querySelector('.conditions .lien a') || {}).href || '',
+          capital: lu('.coord').includes('capital de 2 000 €'),
+          rcs: lu('.coord').includes('RCS Sens'),
           moyens: [...document.querySelectorAll('.moyen b')].map((n) => n.textContent),
           echeance: /exigible au plus tard le/.test(c),
           escompte: /escompte/.test(c),
@@ -3374,7 +3389,11 @@ console.log('\nFacturier');
     await page.emulateMedia({ media: null });
     await page.click('#b-fermer');
     affirmer(r.hauteur <= 1013, `la facture déborde de ${r.hauteur - 1013} px sur une 2e page`);
-    affirmer(r.iban, 'un virement sans IBAN n\'est pas payable');
+    affirmer(r.iban, 'le compte saisi par l\'agence doit figurer sur la facture');
+    affirmer(r.lien === 'https://paypal.me/ngsecurity38',
+      `le lien de paiement, cliquable : ${r.lien}`);
+    affirmer(r.capital && r.rcs,
+      'le capital social et le greffe saisis se posent seuls en tête de facture');
     // Les moyens acceptés se voient avant de se lire, et se lisent quand même.
     affirmer(r.moyens.join(' ') === 'Virement Carte PayPal',
       `les moyens de paiement : ${JSON.stringify(r.moyens)}`);

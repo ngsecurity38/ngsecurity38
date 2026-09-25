@@ -226,3 +226,8 @@ td.n, th.n { text-align:right; }
   }
   .rien-a-imprimer small { display:block; margin-top:10px; font-size:11pt; color:#5b6472; }
 }
+
+/* Le récapitulatif de l'onglet « Mon entreprise », détaché des champs. */
+#ag-etat { margin-top:16px; padding-top:12px; border-top:1px solid var(--bord);
+  line-height:1.7; }
+#ag-paiements { margin-top:8px; display:flex; flex-direction:column; gap:4px; }
