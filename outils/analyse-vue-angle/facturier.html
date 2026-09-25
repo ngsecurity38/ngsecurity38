@@ -108,6 +108,19 @@
         <p class="note" id="lignes-sans-prix" hidden></p>
         <button type="button" id="b-ligne" class="btn btn-petit">Ajouter une ligne vide</button>
 
+        <h3>Remise</h3>
+        <div class="remise-champs">
+          <label>Montant<input type="number" id="p-remise" min="0" step="0.01"></label>
+          <label>Exprimée en<select id="p-remise-type">
+            <option value="taux">pourcentage (%)</option>
+            <option value="montant">euros (€)</option>
+          </select></label>
+          <label>Intitulé<input type="text" id="p-remise-libelle" maxlength="40"
+            placeholder="Remise"></label>
+        </div>
+        <p class="note">Laissez à zéro s'il n'y en a pas. La remise se répartit sur
+          chaque taux de TVA, et la facture en montre le taux et le montant.</p>
+
         <div class="totaux" id="p-totaux"></div>
 
         <div class="boutons">

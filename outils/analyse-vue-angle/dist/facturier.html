@@ -239,6 +239,11 @@ td.n, th.n { text-align:right; }
 #ag-etat { margin-top:16px; padding-top:12px; border-top:1px solid var(--bord);
   line-height:1.7; }
 #ag-paiements { margin-top:8px; display:flex; flex-direction:column; gap:4px; }
+
+/* Les trois champs de la remise, sur une ligne. */
+.remise-champs { display:flex; gap:10px; align-items:flex-end; }
+.remise-champs label { flex:1; margin-top:0; }
+.remise-champs label:last-child { flex:1.4; }
 </style>
 </head>
 <body>
@@ -340,6 +345,19 @@ td.n, th.n { text-align:right; }
         <ol id="lignes" class="lignes"></ol>
         <p class="note" id="lignes-sans-prix" hidden></p>
         <button type="button" id="b-ligne" class="btn btn-petit">Ajouter une ligne vide</button>
+
+        <h3>Remise</h3>
+        <div class="remise-champs">
+          <label>Montant<input type="number" id="p-remise" min="0" step="0.01"></label>
+          <label>Exprimée en<select id="p-remise-type">
+            <option value="taux">pourcentage (%)</option>
+            <option value="montant">euros (€)</option>
+          </select></label>
+          <label>Intitulé<input type="text" id="p-remise-libelle" maxlength="40"
+            placeholder="Remise"></label>
+        </div>
+        <p class="note">Laissez à zéro s'il n'y en a pas. La remise se répartit sur
+          chaque taux de TVA, et la facture en montre le taux et le montant.</p>
 
         <div class="totaux" id="p-totaux"></div>
 
@@ -1272,6 +1290,42 @@ const MARGES = {
   larges: { label: 'Larges', css: '22mm 20mm 24mm' },
 };
 
+/** Les formats, en millimètres, portrait. */
+const TAILLES_MM = {
+  A4: [210, 297],
+  A3: [297, 420],
+  Letter: [215.9, 279.4],
+};
+
+const PX_PAR_MM = 96 / 25.4;
+
+/**
+ * La zone réellement imprimable, en pixels CSS.
+ *
+ * Elle sert à deux choses, et la seconde est la moins évidente : savoir si
+ * un document tient sur une feuille, et savoir quelle hauteur donner au
+ * cadre qui le porte avant de l'envoyer à l'impression. Un cadre plus haut
+ * que son contenu fait sortir une page blanche à la suite ; un cadre plus
+ * court le coupe. Il faut donc la vraie mesure, pas une approximation.
+ *
+ * @returns {{largeur: number, hauteur: number}} en pixels CSS, à 96 ppp
+ */
+function zoneImprimable(reglages) {
+  const r = { ...pdfParDefaut(), ...(reglages || {}) };
+  const [court, long] = TAILLES_MM[r.format] || TAILLES_MM.A4;
+  const [largeurMm, hauteurMm] = r.orientation === 'landscape' ? [long, court] : [court, long];
+
+  // « 14mm 12mm 15mm » : haut, droite et gauche, bas.
+  const marges = (MARGES[r.marges] || MARGES.normales).css
+    .split(/\s+/).map((v) => parseFloat(v) || 0);
+  const [haut, cote, bas] = [marges[0], marges[1] ?? marges[0], marges[2] ?? marges[0]];
+
+  return {
+    largeur: Math.floor((largeurMm - cote * 2) * PX_PAR_MM),
+    hauteur: Math.floor((hauteurMm - haut - bas) * PX_PAR_MM),
+  };
+}
+
 const pdfParDefaut = () => ({
   format: 'A4', orientation: 'portrait', marges: 'normales',
 });
@@ -1351,36 +1405,89 @@ function prochainNumero(factures, annee, prefixe = 'F') {
 }
 
 /**
+ * La remise globale d'une facture, ramenée à un montant.
+ *
+ * Deux façons de l'exprimer, et l'agence emploie les deux : « 10 % » quand
+ * elle négocie, « 150 € » quand elle arrondit une fin de chantier. Le
+ * document, lui, doit montrer les deux — le taux ET le montant : une remise
+ * annoncée en pourcentage sans son montant oblige le client à refaire le
+ * calcul, et la loi veut que toute réduction acquise figure sur la facture.
+ *
+ * Une remise ne peut pas dépasser ce qu'elle réduit : à 120 % d'une facture,
+ * on ne doit pas de l'argent au client, on s'est trompé de champ.
+ */
+function remiseFacture(facture, brut) {
+  const r = facture && facture.remise;
+  if (!r) return null;
+  const valeur = Number(r.valeur) || 0;
+  if (!(valeur > 0) || !(brut > 0)) return null;
+
+  const parTaux = r.type === 'montant';
+  const montant = cent(Math.min(parTaux ? valeur : brut * valeur, brut));
+  if (!(montant > 0)) return null;
+  return {
+    type: parTaux ? 'montant' : 'taux',
+    taux: brut > 0 ? montant / brut : 0,
+    montant,
+    libelle: String(r.libelle || '').trim() || 'Remise',
+  };
+}
+
+/**
  * Les totaux d'une facture, TVA détaillée par taux.
  *
  * Une facture peut porter plusieurs taux — 20 % sur le matériel, 10 % sur la
  * pose en logement ancien. Additionner la TVA d'un seul taux serait faux dès
  * la première facture mixte, et l'erreur ne se verrait qu'au contrôle.
+ *
+ * Une remise globale se répartit sur les taux au prorata de leur base, et non
+ * sur le total : la retrancher du seul total fausserait la TVA de chaque taux
+ * — et c'est la TVA par taux qui est déclarée.
  */
 function totauxFacture(facture) {
   const lignes = facture.lignes || [];
   const parTaux = new Map();
-  let ht = 0;
+  let brut = 0;
 
   for (const l of lignes) {
     const q = Number(l.quantite) || 0;
     const pu = Number(l.prixUnitaire) || 0;
     const remise = Number(l.remise) || 0;
-    const brut = q * pu;
-    const net = cent(brut * (1 - remise));
+    const net = cent(q * pu * (1 - remise));
     const taux = Number.isFinite(Number(l.tva)) ? Number(l.tva) : 0.2;
-    ht = cent(ht + net);
+    brut = cent(brut + net);
     parTaux.set(taux, cent((parTaux.get(taux) || 0) + net));
   }
 
-  const tvas = [...parTaux.entries()]
-    .sort((a, b) => a[0] - b[0])
-    .map(([taux, base]) => ({ taux, base, montant: cent(base * taux) }));
+  const remise = remiseFacture(facture, brut);
+  const ht = remise ? cent(brut - remise.montant) : brut;
+
+  /*
+   * Le prorata arrondi ne retombe pas toujours sur ses pieds : 100 € remisés
+   * de 33,33 % sur trois taux laissent un centime en l'air. On le pose sur la
+   * base la plus grosse, celle où il se voit le moins et ne change rien.
+   */
+  const rangs = [...parTaux.entries()].sort((a, b) => a[0] - b[0])
+    .map(([taux, base]) => ({
+      taux,
+      base: remise && brut > 0 ? cent(base * (1 - remise.montant / brut)) : base,
+    }));
+  if (remise && rangs.length) {
+    const ecart = cent(ht - rangs.reduce((s, r) => s + r.base, 0));
+    if (ecart !== 0) {
+      const grosse = rangs.reduce((a, b) => (b.base > a.base ? b : a));
+      grosse.base = cent(grosse.base + ecart);
+    }
+  }
+
+  const tvas = rangs.map(({ taux, base }) => ({ taux, base, montant: cent(base * taux) }));
   const tva = cent(tvas.reduce((s, t) => s + t.montant, 0));
   const acompte = cent(Number(facture.acompte) || 0);
 
   return {
     lignes: lignes.length,
+    brut,
+    remise,
     ht,
     tvas,
     tva,
@@ -1835,6 +1942,52 @@ function badgesPaiement(agence) {
 
 
 
+/*
+ * Les règles qui ne valent que sur le papier, écrites une fois.
+ *
+ * Elles servent deux fois : à l'impression, et pour mesurer la feuille
+ * avant de l'imprimer. Les écrire deux fois, c'est se garantir qu'un jour
+ * la mesure et le papier ne diront plus la même chose.
+ */
+const REGLES_PAPIER = `
+  body { background:#fff; font-size:10.5pt; }
+  .feuille { border:0; max-width:none; padding:0; }
+  .pdf { display:none; }
+  h1 { font-size:19pt; }
+  th, td { padding:3px 9px; }
+  .garde { padding-bottom:12px; margin-bottom:14px; }
+  .parties { margin-bottom:10px; }
+  .moyens { margin-top:6px; gap:5px; }
+  .moyen { padding:3px 7px; }
+  .bas { margin-top:8px; }
+  .total div { padding:6px 14px; }
+  .conditions { font-size:8.6pt; }
+  .conditions p { margin-top:4px; }
+  h3 { margin:16px 0 4px; }
+  .mentions { font-size:8.2pt; }
+  .mentions li { margin-bottom:2px; }
+  .reglement { margin-top:8px; font-size:8.6pt; }
+  .reglement p { margin-top:4px; }
+  .pied { margin-top:8px; padding-top:6px; }
+  table, .total, .reglement, .avis, .parties { break-inside:avoid; page-break-inside:avoid; }
+  tr, li, .mentions { break-inside:avoid; page-break-inside:avoid; }
+  thead { display:table-header-group; }
+  .pied { break-before:avoid; page-break-before:avoid; }
+`;
+
+/**
+ * Les mêmes règles, chacune rattachée à un préfixe.
+ *
+ * Une feuille de style ne se recopie pas sous une classe toute seule :
+ * chaque sélecteur doit être repris. Les règles ci-dessus sont simples —
+ * pas d'imbrication, pas d'arobase — et ce découpage suffit.
+ */
+const prefixer = (regles, prefixe) => regles.replace(
+  /(^|\})\s*([^{}@]+?)\s*\{/g,
+  (tout, avant, selecteurs) => `${avant}\n${selecteurs.split(',')
+    .map((sel) => `${prefixe} ${sel.trim()}`).join(', ')} {`,
+);
+
 /** Un montant, ou rien du tout : sur une facture, un « 0,00 € » se lit mal. */
 const somme = (v) => (Number.isFinite(v) ? euros(v) : '');
 
@@ -1909,6 +2062,7 @@ th:nth-child(5), td:nth-child(5) { width:100px; }
 .total div:last-child { border-bottom:0; background:var(--encre); color:#fff;
   font-size:17px; font-weight:800; }
 .total .fin { background:var(--fond); font-weight:700; }
+.total .remise { color:var(--rouge); }
 h3 { font-size:14px; margin:24px 0 6px; }
 .mentions { font-size:12px; color:var(--doux); margin:6px 0; }
 .mentions li { margin-bottom:4px; }
@@ -1962,7 +2116,17 @@ h3 { font-size:14px; margin:24px 0 6px; }
   tr, li, .mentions { break-inside:avoid; page-break-inside:avoid; }
   thead { display:table-header-group; }
   .pied { break-before:avoid; page-break-before:avoid; }
-}`;
+}
+
+/*
+ * Les mêmes règles, accrochées à une classe.
+ *
+ * L'écran a besoin de mesurer ce que donnera le papier AVANT d'imprimer :
+ * c'est cette hauteur qui dit au cadre d'aperçu quelle taille prendre.
+ * Un cadre plus haut que son contenu fait sortir une page blanche à la
+ * suite — c'est arrivé — et un cadre plus court le coupe.
+ */
+${prefixer(REGLES_PAPIER, 'html.papier')}`;
 
 /** Le bloc d'identité de l'agence, mentions légales comprises. */
 function emetteur(agence) {
@@ -1990,6 +2154,7 @@ function ficheFacture(facture, agence, options = {}) {
   const t = totauxFacture(facture);
   const r = reglagesPdf(facture);
   const papier = { taille: `${r.format} ${r.orientation}`, marge: MARGES[r.marges].css };
+  const zone = zoneImprimable(r);
   const avoir = facture.type === 'avoir';
   const delai = Number(facture.delaiPaiement) > 0 ? Number(facture.delaiPaiement) : 30;
   const fin = facture.echeance || echeance(facture.date, delai);
@@ -2020,7 +2185,8 @@ function ficheFacture(facture, agence, options = {}) {
     sur ${somme(x.base)}</span><b>${somme(x.montant)}</b></div>`).join('');
 
   return `<!doctype html>
-<html lang="fr"><head><meta charset="utf-8">
+<html lang="fr" data-papier-largeur="${zone.largeur}" data-papier-hauteur="${
+  zone.hauteur}"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${avoir ? 'Avoir' : 'Facture'} ${echapper(facture.numero || '')} · ${
   echapper(agence.nomCommercial || '')}</title>
@@ -2094,6 +2260,9 @@ ${avoir && facture.annule ? `<div class="avis"><b>Avoir.</b> Ce document annule
     <p>Aucun escompte n'est accordé en cas de paiement anticipé.</p>
   </div>
   <div class="total">
+    ${t.remise ? `<div><span>Sous-total HT</span><b>${somme(t.brut)}</b></div>
+    <div class="remise"><span>${echapper(t.remise.libelle)} ${
+  echapper(fr(t.remise.taux * 100, 2))} %</span><b>-${somme(t.remise.montant)}</b></div>` : ''}
     <div><span>Total HT</span><b>${somme(t.ht)}</b></div>
     ${tvaLignes}
     <div class="fin"><span>Total TTC</span><b>${somme(t.ttc)}</b></div>
@@ -2572,6 +2741,15 @@ function panneauFacture() {
   $('#p-client-adresse').value = (f.client && f.client.adresse) || '';
   $('#p-client-siret').value = (f.client && f.client.siret) || '';
   $('#p-acompte').value = f.acompte ?? 0;
+  /*
+   * Un taux se saisit en « 10 », pas en « 0,1 » : personne ne tape une
+   * remise en fraction. Le livre, lui, la garde en fraction.
+   */
+  const r = f.remise || {};
+  $('#p-remise-type').value = r.type === 'montant' ? 'montant' : 'taux';
+  $('#p-remise').value = r.valeur
+    ? String(r.type === 'montant' ? r.valeur : arrondir(r.valeur * 100, 4)) : '';
+  $('#p-remise-libelle').value = r.libelle || '';
 
   /*
    * Une facture émise ne se modifie plus. On grise au lieu de masquer :
@@ -2710,6 +2888,10 @@ function catalogueAffiche() {
 function totauxAffiches(f) {
   const t = totauxFacture(f);
   $('#p-totaux').innerHTML = `
+    ${t.remise ? `<div><span>Sous-total HT</span><b>${sommeOuTiret(t.brut)}</b></div>
+    <div><span>${echapper(t.remise.libelle)} ${
+  echapper(fr(t.remise.taux * 100, 2))} %</span><b class="mauvais">-${
+  sommeOuTiret(t.remise.montant)}</b></div>` : ''}
     <div><span>Total HT</span><b>${sommeOuTiret(t.ht)}</b></div>
     ${t.tvas.map((x) => `<div><span>TVA ${echapper(fr(x.taux * 100, 1))} %</span>
       <b>${sommeOuTiret(x.montant)}</b></div>`).join('')}
@@ -2978,7 +3160,7 @@ function vueJournal() {
  */
 function exportComptable() {
   const colonnes = ['Numéro', 'Date', 'Échéance', 'Client', 'Objet', 'État',
-    'Total HT', 'TVA', 'Total TTC', 'Acompte', 'Net à payer'];
+    'Sous-total HT', 'Remise', 'Total HT', 'TVA', 'Total TTC', 'Acompte', 'Net à payer'];
   const champ = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
   const nombre = (v) => String(Number(v).toFixed(2)).replace('.', ',');
   const lignes = etat.livre.factures
@@ -2991,6 +3173,7 @@ function exportComptable() {
         champ(f.echeance || echeance(f.date, f.delaiPaiement || 30)),
         champ((f.client && f.client.nom) || ''), champ(f.objet || ''),
         champ(ETATS[f.etat] || f.etat),
+        nombre(t.brut), nombre(t.remise ? t.remise.montant : 0),
         nombre(t.ht), nombre(t.tva), nombre(t.ttc), nombre(t.acompte),
         nombre(t.netAPayer),
       ].join(';');
@@ -3031,6 +3214,39 @@ async function produireFacture() {
 function ouvrirApercu(ouvert) {
   $('#apercu').hidden = !ouvert;
   document.body.classList.toggle('apercu-ouvert', ouvert);
+}
+
+/**
+ * Donner au cadre d'aperçu la taille exacte qu'il aura sur le papier.
+ *
+ * L'impression qui part de la page — Ctrl+P, le menu du navigateur — emporte
+ * le cadre tel qu'il est posé. Un cadre plus haut que son contenu fait
+ * sortir une page blanche à la suite ; un cadre plus court coupe la facture.
+ *
+ * La mesure se prend donc dans les conditions du papier : à la largeur de la
+ * feuille, et sous les règles d'impression du document, que celui-ci publie
+ * aussi sous la classe `papier` pour qu'on puisse les appliquer à la
+ * demande. On arrondit ensuite à un nombre entier de pages : le cadre finit
+ * alors exactement sur une coupure, et rien ne déborde derrière.
+ */
+function ajusterCadre() {
+  const cadre = $('#apercu-page');
+  const doc = cadre.contentDocument;
+  if (!doc || $('#apercu').hidden) return;
+  const html = doc.documentElement;
+  const largeur = Number(html.dataset.papierLargeur) || 702;
+  const page = Number(html.dataset.papierHauteur) || 1012;
+
+  const avant = cadre.style.width;
+  cadre.style.width = `${largeur}px`;
+  html.classList.add('papier');
+  // La feuille, pas le document : le fond de l'aperçu déborderait sinon.
+  const feuille = doc.querySelector('.feuille') || html;
+  const hauteur = Math.ceil(feuille.scrollHeight);
+  html.classList.remove('papier');
+  cadre.style.width = avant;
+
+  cadre.style.height = `${Math.max(1, Math.ceil(hauteur / page)) * page}px`;
 }
 
 /** Le PDF : la fenêtre d'impression du navigateur, sur le seul cadre. */
@@ -3087,6 +3303,18 @@ function monter(livre, catalogue) {
   champ('#p-execution', 'change', (f, n) => { f.execution = n.value; });
   champ('#p-reference', 'input', (f, n) => { f.reference = n.value; });
   champ('#p-acompte', 'input', (f, n) => { f.acompte = Number(n.value); });
+
+  const poserRemise = (f) => {
+    const type = $('#p-remise-type').value === 'montant' ? 'montant' : 'taux';
+    const saisi = Number($('#p-remise').value) || 0;
+    f.remise = saisi > 0
+      ? { type, valeur: type === 'montant' ? saisi : arrondir(saisi / 100, 6),
+        libelle: $('#p-remise-libelle').value.trim() }
+      : null;
+  };
+  champ('#p-remise', 'input', poserRemise);
+  champ('#p-remise-type', 'change', poserRemise);
+  champ('#p-remise-libelle', 'input', poserRemise);
   champ('#p-client-nom', 'input', (f, n) => { f.client.nom = n.value; });
   champ('#p-client-adresse', 'input', (f, n) => { f.client.adresse = n.value; });
   champ('#p-client-siret', 'input', (f, n) => { f.client.siret = n.value; });
@@ -3143,19 +3371,12 @@ function monter(livre, catalogue) {
    * hauteur de son contenu. Sans cela il s'imprime tronqué : la dernière
    * facture sortie s'arrêtait au milieu d'un mot.
    */
-  window.addEventListener('beforeprint', () => {
+  window.addEventListener('beforeprint', () => ajusterCadre());
+  window.addEventListener('afterprint', () => {
     const cadre = $('#apercu-page');
-    const doc = cadre.contentDocument;
-    if (!doc || $('#apercu').hidden) return;
-    /*
-     * La hauteur se mesure sur la feuille, pas sur le document : le fond
-     * gris de l'aperçu déborde sinon sous la facture, et sort imprimé en
-     * bas de page comme une tache.
-     */
-    const feuille = doc.querySelector('.feuille');
-    cadre.style.height = `${Math.ceil((feuille || doc.documentElement).scrollHeight) + 2}px`;
+    cadre.style.height = '';
+    cadre.style.width = '';
   });
-  window.addEventListener('afterprint', () => { $('#apercu-page').style.height = ''; });
   $('#b-export').addEventListener('click', exportComptable);
   $('#f-impayees').addEventListener('change', () => {
     etat.impayees = $('#f-impayees').checked;

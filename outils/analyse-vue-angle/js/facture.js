@@ -61,36 +61,89 @@ export function prochainNumero(factures, annee, prefixe = 'F') {
 }
 
 /**
+ * La remise globale d'une facture, ramenée à un montant.
+ *
+ * Deux façons de l'exprimer, et l'agence emploie les deux : « 10 % » quand
+ * elle négocie, « 150 € » quand elle arrondit une fin de chantier. Le
+ * document, lui, doit montrer les deux — le taux ET le montant : une remise
+ * annoncée en pourcentage sans son montant oblige le client à refaire le
+ * calcul, et la loi veut que toute réduction acquise figure sur la facture.
+ *
+ * Une remise ne peut pas dépasser ce qu'elle réduit : à 120 % d'une facture,
+ * on ne doit pas de l'argent au client, on s'est trompé de champ.
+ */
+export function remiseFacture(facture, brut) {
+  const r = facture && facture.remise;
+  if (!r) return null;
+  const valeur = Number(r.valeur) || 0;
+  if (!(valeur > 0) || !(brut > 0)) return null;
+
+  const parTaux = r.type === 'montant';
+  const montant = cent(Math.min(parTaux ? valeur : brut * valeur, brut));
+  if (!(montant > 0)) return null;
+  return {
+    type: parTaux ? 'montant' : 'taux',
+    taux: brut > 0 ? montant / brut : 0,
+    montant,
+    libelle: String(r.libelle || '').trim() || 'Remise',
+  };
+}
+
+/**
  * Les totaux d'une facture, TVA détaillée par taux.
  *
  * Une facture peut porter plusieurs taux — 20 % sur le matériel, 10 % sur la
  * pose en logement ancien. Additionner la TVA d'un seul taux serait faux dès
  * la première facture mixte, et l'erreur ne se verrait qu'au contrôle.
+ *
+ * Une remise globale se répartit sur les taux au prorata de leur base, et non
+ * sur le total : la retrancher du seul total fausserait la TVA de chaque taux
+ * — et c'est la TVA par taux qui est déclarée.
  */
 export function totauxFacture(facture) {
   const lignes = facture.lignes || [];
   const parTaux = new Map();
-  let ht = 0;
+  let brut = 0;
 
   for (const l of lignes) {
     const q = Number(l.quantite) || 0;
     const pu = Number(l.prixUnitaire) || 0;
     const remise = Number(l.remise) || 0;
-    const brut = q * pu;
-    const net = cent(brut * (1 - remise));
+    const net = cent(q * pu * (1 - remise));
     const taux = Number.isFinite(Number(l.tva)) ? Number(l.tva) : 0.2;
-    ht = cent(ht + net);
+    brut = cent(brut + net);
     parTaux.set(taux, cent((parTaux.get(taux) || 0) + net));
   }
 
-  const tvas = [...parTaux.entries()]
-    .sort((a, b) => a[0] - b[0])
-    .map(([taux, base]) => ({ taux, base, montant: cent(base * taux) }));
+  const remise = remiseFacture(facture, brut);
+  const ht = remise ? cent(brut - remise.montant) : brut;
+
+  /*
+   * Le prorata arrondi ne retombe pas toujours sur ses pieds : 100 € remisés
+   * de 33,33 % sur trois taux laissent un centime en l'air. On le pose sur la
+   * base la plus grosse, celle où il se voit le moins et ne change rien.
+   */
+  const rangs = [...parTaux.entries()].sort((a, b) => a[0] - b[0])
+    .map(([taux, base]) => ({
+      taux,
+      base: remise && brut > 0 ? cent(base * (1 - remise.montant / brut)) : base,
+    }));
+  if (remise && rangs.length) {
+    const ecart = cent(ht - rangs.reduce((s, r) => s + r.base, 0));
+    if (ecart !== 0) {
+      const grosse = rangs.reduce((a, b) => (b.base > a.base ? b : a));
+      grosse.base = cent(grosse.base + ecart);
+    }
+  }
+
+  const tvas = rangs.map(({ taux, base }) => ({ taux, base, montant: cent(base * taux) }));
   const tva = cent(tvas.reduce((s, t) => s + t.montant, 0));
   const acompte = cent(Number(facture.acompte) || 0);
 
   return {
     lignes: lignes.length,
+    brut,
+    remise,
     ht,
     tvas,
     tva,

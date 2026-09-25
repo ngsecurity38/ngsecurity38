@@ -17,7 +17,7 @@ import { fileURLToPath } from 'node:url';
 import {
   fiche, sectionsDuDossier, dossierParDefaut, SECTIONS_STANDARD,
 } from '../js/editeur-fiche.js';
-import { reglagesPdf, pdfParDefaut, MARGES } from '../js/papier.js';
+import { reglagesPdf, pdfParDefaut, MARGES, zoneImprimable } from '../js/papier.js';
 import { bilanEtude } from '../js/etude-plan.js';
 
 const ici = dirname(fileURLToPath(import.meta.url));
@@ -407,4 +407,25 @@ test('le serveur d\'enregistrement porte le nom que l\'agence emploie', () => {
   assert.ok(!/16 voies AcuSense/.test(html), 'la mention fausse a disparu');
   assert.ok(!/Pose de l&#39;enregistreur/.test(html));
   assert.ok(html.includes('Pose du serveur d&#39;enregistrement'));
+});
+
+/* ------------------------------------------------------- la zone imprimable */
+
+test('la zone imprimable se déduit du format et des marges', () => {
+  /*
+   * Elle sert à savoir si un document tient sur une feuille, et à donner sa
+   * taille au cadre qui le porte avant l'impression. Un cadre plus haut que
+   * son contenu fait sortir une page blanche à la suite ; un cadre plus
+   * court coupe le document.
+   */
+  // A4 portrait, marges 14 / 12 / 15 mm : 186 x 268 mm, à 96 points par pouce.
+  assert.deepEqual(zoneImprimable({}), { largeur: 702, hauteur: 1012 });
+  // Le paysage échange les deux côtés.
+  const paysage = zoneImprimable({ orientation: 'landscape' });
+  assert.ok(paysage.largeur > paysage.hauteur, JSON.stringify(paysage));
+  // Des marges plus larges laissent moins de papier.
+  assert.ok(zoneImprimable({ marges: 'larges' }).hauteur
+    < zoneImprimable({ marges: 'etroites' }).hauteur);
+  // Un format inconnu retombe sur l'A4 plutôt que de rendre NaN.
+  assert.deepEqual(zoneImprimable({ format: 'Papyrus' }), zoneImprimable({}));
 });

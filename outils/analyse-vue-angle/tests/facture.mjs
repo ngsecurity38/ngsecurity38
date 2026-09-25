@@ -17,7 +17,7 @@ import { ficheFacture } from '../js/facture-fiche.js';
 import {
   prochainNumero, totauxFacture, echeance, retard, penalites,
   echeancesContrat, aFacturer, journal, mentionsManquantes, coordonneesBancaires,
-  fusionnerAgence, lienPaiement,
+  fusionnerAgence, lienPaiement, remiseFacture,
   INDEMNITE_RECOUVREMENT, PENALITE_MULTIPLE,
 } from '../js/facture.js';
 
@@ -255,6 +255,82 @@ test('les totaux se regroupent par mois et par trimestre', () => {
   assert.deepEqual(j.parTrimestre.map((t) => t.periode), ['2026-T3']);
   assert.equal(j.parTrimestre[0].ht, 1700);
   assert.equal(j.parTrimestre[0].factures, 3);
+});
+
+/* ------------------------------------------------------------- la remise */
+
+const l = (q, pu, tva = 0.2, remise) => ({ quantite: q, prixUnitaire: pu, tva, remise });
+
+test('une remise s\'exprime en taux ou en euros, et donne les deux', () => {
+  const brut = 1000;
+  assert.deepEqual(remiseFacture({ remise: { type: 'taux', valeur: 0.1 } }, brut),
+    { type: 'taux', taux: 0.1, montant: 100, libelle: 'Remise' });
+  const m = remiseFacture({ remise: { type: 'montant', valeur: 150 } }, brut);
+  assert.equal(m.montant, 150);
+  assert.equal(m.taux, 0.15, 'le taux réel se déduit du montant');
+});
+
+test('une remise ne dépasse pas ce qu\'elle réduit', () => {
+  // À 120 % d'une facture, on ne doit pas de l'argent au client : on s'est
+  // trompé de champ.
+  const r = remiseFacture({ remise: { type: 'montant', valeur: 5000 } }, 1000);
+  assert.equal(r.montant, 1000);
+  assert.equal(totauxFacture({ lignes: [l(1, 1000)], remise: { type: 'montant', valeur: 5000 } })
+    .netAPayer, 0);
+});
+
+test('une remise absente ou nulle ne change rien', () => {
+  assert.equal(remiseFacture({}, 1000), null);
+  assert.equal(remiseFacture({ remise: { type: 'taux', valeur: 0 } }, 1000), null);
+  assert.equal(totauxFacture({ lignes: [l(1, 100)] }).remise, null);
+});
+
+test('la remise se répartit sur les taux, pas sur le total', () => {
+  /*
+   * La retrancher du seul total fausserait la TVA de chaque taux — et c'est
+   * la TVA par taux qui est déclarée.
+   */
+  const t = totauxFacture({
+    lignes: [l(1, 1000, 0.2), l(1, 1000, 0.1)],
+    remise: { type: 'taux', valeur: 0.1 },
+  });
+  assert.equal(t.brut, 2000);
+  assert.equal(t.ht, 1800);
+  assert.deepEqual(t.tvas.map((x) => x.base), [900, 900]);
+  assert.deepEqual(t.tvas.map((x) => x.montant), [90, 180]);
+  assert.equal(t.tva, 270);
+  assert.equal(t.ttc, 2070);
+});
+
+test('le centime perdu au prorata retombe sur ses pieds', () => {
+  /*
+   * 183,33 € remisés de 33,33 % sur trois taux laissent un centime en l'air.
+   * La somme des bases doit rester égale au total hors taxes, sans quoi la
+   * déclaration de TVA et la facture ne diront pas la même chose.
+   */
+  const t = totauxFacture({
+    lignes: [l(1, 100, 0.2), l(1, 50, 0.1), l(1, 33.33, 0.055)],
+    remise: { type: 'taux', valeur: 0.3333 },
+  });
+  const somme = Math.round(t.tvas.reduce((s, x) => s + x.base, 0) * 100) / 100;
+  assert.equal(somme, t.ht, `${somme} au lieu de ${t.ht}`);
+});
+
+test('une remise de ligne et une remise globale se cumulent', () => {
+  // 100 moins 10 % = 90 sur la ligne, puis moins 50 % = 45.
+  const t = totauxFacture({
+    lignes: [l(1, 100, 0.2, 0.1)],
+    remise: { type: 'taux', valeur: 0.5 },
+  });
+  assert.equal(t.brut, 90);
+  assert.equal(t.ht, 45);
+});
+
+test('l\'intitulé de la remise est celui de l\'agence, ou « Remise »', () => {
+  assert.equal(remiseFacture({ remise: { type: 'taux', valeur: 0.1, libelle: 'Geste commercial' } },
+    100).libelle, 'Geste commercial');
+  assert.equal(remiseFacture({ remise: { type: 'taux', valeur: 0.1, libelle: '  ' } },
+    100).libelle, 'Remise');
 });
 
 /* ------------------------------------------------- l'identité de l'agence */

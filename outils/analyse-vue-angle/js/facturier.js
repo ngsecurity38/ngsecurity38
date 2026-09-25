@@ -13,7 +13,7 @@
  */
 
 import { $, $$ } from './dom.js';
-import { fr, echapper } from './format.js';
+import { fr, echapper, arrondir } from './format.js';
 import { euros } from './prix.js';
 import {
   ETATS, PERIODES, prochainNumero, totauxFacture, echeance, retard,
@@ -151,6 +151,15 @@ function panneauFacture() {
   $('#p-client-adresse').value = (f.client && f.client.adresse) || '';
   $('#p-client-siret').value = (f.client && f.client.siret) || '';
   $('#p-acompte').value = f.acompte ?? 0;
+  /*
+   * Un taux se saisit en « 10 », pas en « 0,1 » : personne ne tape une
+   * remise en fraction. Le livre, lui, la garde en fraction.
+   */
+  const r = f.remise || {};
+  $('#p-remise-type').value = r.type === 'montant' ? 'montant' : 'taux';
+  $('#p-remise').value = r.valeur
+    ? String(r.type === 'montant' ? r.valeur : arrondir(r.valeur * 100, 4)) : '';
+  $('#p-remise-libelle').value = r.libelle || '';
 
   /*
    * Une facture émise ne se modifie plus. On grise au lieu de masquer :
@@ -289,6 +298,10 @@ function catalogueAffiche() {
 function totauxAffiches(f) {
   const t = totauxFacture(f);
   $('#p-totaux').innerHTML = `
+    ${t.remise ? `<div><span>Sous-total HT</span><b>${sommeOuTiret(t.brut)}</b></div>
+    <div><span>${echapper(t.remise.libelle)} ${
+  echapper(fr(t.remise.taux * 100, 2))} %</span><b class="mauvais">-${
+  sommeOuTiret(t.remise.montant)}</b></div>` : ''}
     <div><span>Total HT</span><b>${sommeOuTiret(t.ht)}</b></div>
     ${t.tvas.map((x) => `<div><span>TVA ${echapper(fr(x.taux * 100, 1))} %</span>
       <b>${sommeOuTiret(x.montant)}</b></div>`).join('')}
@@ -557,7 +570,7 @@ function vueJournal() {
  */
 function exportComptable() {
   const colonnes = ['Numéro', 'Date', 'Échéance', 'Client', 'Objet', 'État',
-    'Total HT', 'TVA', 'Total TTC', 'Acompte', 'Net à payer'];
+    'Sous-total HT', 'Remise', 'Total HT', 'TVA', 'Total TTC', 'Acompte', 'Net à payer'];
   const champ = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
   const nombre = (v) => String(Number(v).toFixed(2)).replace('.', ',');
   const lignes = etat.livre.factures
@@ -570,6 +583,7 @@ function exportComptable() {
         champ(f.echeance || echeance(f.date, f.delaiPaiement || 30)),
         champ((f.client && f.client.nom) || ''), champ(f.objet || ''),
         champ(ETATS[f.etat] || f.etat),
+        nombre(t.brut), nombre(t.remise ? t.remise.montant : 0),
         nombre(t.ht), nombre(t.tva), nombre(t.ttc), nombre(t.acompte),
         nombre(t.netAPayer),
       ].join(';');
@@ -610,6 +624,39 @@ async function produireFacture() {
 function ouvrirApercu(ouvert) {
   $('#apercu').hidden = !ouvert;
   document.body.classList.toggle('apercu-ouvert', ouvert);
+}
+
+/**
+ * Donner au cadre d'aperçu la taille exacte qu'il aura sur le papier.
+ *
+ * L'impression qui part de la page — Ctrl+P, le menu du navigateur — emporte
+ * le cadre tel qu'il est posé. Un cadre plus haut que son contenu fait
+ * sortir une page blanche à la suite ; un cadre plus court coupe la facture.
+ *
+ * La mesure se prend donc dans les conditions du papier : à la largeur de la
+ * feuille, et sous les règles d'impression du document, que celui-ci publie
+ * aussi sous la classe `papier` pour qu'on puisse les appliquer à la
+ * demande. On arrondit ensuite à un nombre entier de pages : le cadre finit
+ * alors exactement sur une coupure, et rien ne déborde derrière.
+ */
+function ajusterCadre() {
+  const cadre = $('#apercu-page');
+  const doc = cadre.contentDocument;
+  if (!doc || $('#apercu').hidden) return;
+  const html = doc.documentElement;
+  const largeur = Number(html.dataset.papierLargeur) || 702;
+  const page = Number(html.dataset.papierHauteur) || 1012;
+
+  const avant = cadre.style.width;
+  cadre.style.width = `${largeur}px`;
+  html.classList.add('papier');
+  // La feuille, pas le document : le fond de l'aperçu déborderait sinon.
+  const feuille = doc.querySelector('.feuille') || html;
+  const hauteur = Math.ceil(feuille.scrollHeight);
+  html.classList.remove('papier');
+  cadre.style.width = avant;
+
+  cadre.style.height = `${Math.max(1, Math.ceil(hauteur / page)) * page}px`;
 }
 
 /** Le PDF : la fenêtre d'impression du navigateur, sur le seul cadre. */
@@ -666,6 +713,18 @@ export function monter(livre, catalogue) {
   champ('#p-execution', 'change', (f, n) => { f.execution = n.value; });
   champ('#p-reference', 'input', (f, n) => { f.reference = n.value; });
   champ('#p-acompte', 'input', (f, n) => { f.acompte = Number(n.value); });
+
+  const poserRemise = (f) => {
+    const type = $('#p-remise-type').value === 'montant' ? 'montant' : 'taux';
+    const saisi = Number($('#p-remise').value) || 0;
+    f.remise = saisi > 0
+      ? { type, valeur: type === 'montant' ? saisi : arrondir(saisi / 100, 6),
+        libelle: $('#p-remise-libelle').value.trim() }
+      : null;
+  };
+  champ('#p-remise', 'input', poserRemise);
+  champ('#p-remise-type', 'change', poserRemise);
+  champ('#p-remise-libelle', 'input', poserRemise);
   champ('#p-client-nom', 'input', (f, n) => { f.client.nom = n.value; });
   champ('#p-client-adresse', 'input', (f, n) => { f.client.adresse = n.value; });
   champ('#p-client-siret', 'input', (f, n) => { f.client.siret = n.value; });
@@ -722,19 +781,12 @@ export function monter(livre, catalogue) {
    * hauteur de son contenu. Sans cela il s'imprime tronqué : la dernière
    * facture sortie s'arrêtait au milieu d'un mot.
    */
-  window.addEventListener('beforeprint', () => {
+  window.addEventListener('beforeprint', () => ajusterCadre());
+  window.addEventListener('afterprint', () => {
     const cadre = $('#apercu-page');
-    const doc = cadre.contentDocument;
-    if (!doc || $('#apercu').hidden) return;
-    /*
-     * La hauteur se mesure sur la feuille, pas sur le document : le fond
-     * gris de l'aperçu déborde sinon sous la facture, et sort imprimé en
-     * bas de page comme une tache.
-     */
-    const feuille = doc.querySelector('.feuille');
-    cadre.style.height = `${Math.ceil((feuille || doc.documentElement).scrollHeight) + 2}px`;
+    cadre.style.height = '';
+    cadre.style.width = '';
   });
-  window.addEventListener('afterprint', () => { $('#apercu-page').style.height = ''; });
   $('#b-export').addEventListener('click', exportComptable);
   $('#f-impayees').addEventListener('change', () => {
     etat.impayees = $('#f-impayees').checked;

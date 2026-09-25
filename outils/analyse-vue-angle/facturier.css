@@ -231,3 +231,8 @@ td.n, th.n { text-align:right; }
 #ag-etat { margin-top:16px; padding-top:12px; border-top:1px solid var(--bord);
   line-height:1.7; }
 #ag-paiements { margin-top:8px; display:flex; flex-direction:column; gap:4px; }
+
+/* Les trois champs de la remise, sur une ligne. */
+.remise-champs { display:flex; gap:10px; align-items:flex-end; }
+.remise-champs label { flex:1; margin-top:0; }
+.remise-champs label:last-child { flex:1.4; }

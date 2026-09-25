@@ -23,6 +23,42 @@ export const MARGES = {
   larges: { label: 'Larges', css: '22mm 20mm 24mm' },
 };
 
+/** Les formats, en millimètres, portrait. */
+export const TAILLES_MM = {
+  A4: [210, 297],
+  A3: [297, 420],
+  Letter: [215.9, 279.4],
+};
+
+const PX_PAR_MM = 96 / 25.4;
+
+/**
+ * La zone réellement imprimable, en pixels CSS.
+ *
+ * Elle sert à deux choses, et la seconde est la moins évidente : savoir si
+ * un document tient sur une feuille, et savoir quelle hauteur donner au
+ * cadre qui le porte avant de l'envoyer à l'impression. Un cadre plus haut
+ * que son contenu fait sortir une page blanche à la suite ; un cadre plus
+ * court le coupe. Il faut donc la vraie mesure, pas une approximation.
+ *
+ * @returns {{largeur: number, hauteur: number}} en pixels CSS, à 96 ppp
+ */
+export function zoneImprimable(reglages) {
+  const r = { ...pdfParDefaut(), ...(reglages || {}) };
+  const [court, long] = TAILLES_MM[r.format] || TAILLES_MM.A4;
+  const [largeurMm, hauteurMm] = r.orientation === 'landscape' ? [long, court] : [court, long];
+
+  // « 14mm 12mm 15mm » : haut, droite et gauche, bas.
+  const marges = (MARGES[r.marges] || MARGES.normales).css
+    .split(/\s+/).map((v) => parseFloat(v) || 0);
+  const [haut, cote, bas] = [marges[0], marges[1] ?? marges[0], marges[2] ?? marges[0]];
+
+  return {
+    largeur: Math.floor((largeurMm - cote * 2) * PX_PAR_MM),
+    hauteur: Math.floor((hauteurMm - haut - bas) * PX_PAR_MM),
+  };
+}
+
 export const pdfParDefaut = () => ({
   format: 'A4', orientation: 'portrait', marges: 'normales',
 });

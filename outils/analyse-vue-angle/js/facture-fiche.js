@@ -18,13 +18,59 @@
 
 import { fr, echapper } from './format.js';
 import { euros } from './prix.js';
-import { reglagesPdf, MARGES } from './papier.js';
+import { reglagesPdf, MARGES, zoneImprimable } from './papier.js';
 import { badgesPaiement } from './paiement.js';
 import {
   totauxFacture, echeance, retard, penalites,
   coordonneesBancaires, lienPaiement,
   INDEMNITE_RECOUVREMENT, PENALITE_MULTIPLE, ETATS,
 } from './facture.js';
+
+/*
+ * Les règles qui ne valent que sur le papier, écrites une fois.
+ *
+ * Elles servent deux fois : à l'impression, et pour mesurer la feuille
+ * avant de l'imprimer. Les écrire deux fois, c'est se garantir qu'un jour
+ * la mesure et le papier ne diront plus la même chose.
+ */
+const REGLES_PAPIER = `
+  body { background:#fff; font-size:10.5pt; }
+  .feuille { border:0; max-width:none; padding:0; }
+  .pdf { display:none; }
+  h1 { font-size:19pt; }
+  th, td { padding:3px 9px; }
+  .garde { padding-bottom:12px; margin-bottom:14px; }
+  .parties { margin-bottom:10px; }
+  .moyens { margin-top:6px; gap:5px; }
+  .moyen { padding:3px 7px; }
+  .bas { margin-top:8px; }
+  .total div { padding:6px 14px; }
+  .conditions { font-size:8.6pt; }
+  .conditions p { margin-top:4px; }
+  h3 { margin:16px 0 4px; }
+  .mentions { font-size:8.2pt; }
+  .mentions li { margin-bottom:2px; }
+  .reglement { margin-top:8px; font-size:8.6pt; }
+  .reglement p { margin-top:4px; }
+  .pied { margin-top:8px; padding-top:6px; }
+  table, .total, .reglement, .avis, .parties { break-inside:avoid; page-break-inside:avoid; }
+  tr, li, .mentions { break-inside:avoid; page-break-inside:avoid; }
+  thead { display:table-header-group; }
+  .pied { break-before:avoid; page-break-before:avoid; }
+`;
+
+/**
+ * Les mêmes règles, chacune rattachée à un préfixe.
+ *
+ * Une feuille de style ne se recopie pas sous une classe toute seule :
+ * chaque sélecteur doit être repris. Les règles ci-dessus sont simples —
+ * pas d'imbrication, pas d'arobase — et ce découpage suffit.
+ */
+const prefixer = (regles, prefixe) => regles.replace(
+  /(^|\})\s*([^{}@]+?)\s*\{/g,
+  (tout, avant, selecteurs) => `${avant}\n${selecteurs.split(',')
+    .map((sel) => `${prefixe} ${sel.trim()}`).join(', ')} {`,
+);
 
 /** Un montant, ou rien du tout : sur une facture, un « 0,00 € » se lit mal. */
 const somme = (v) => (Number.isFinite(v) ? euros(v) : '');
@@ -100,6 +146,7 @@ th:nth-child(5), td:nth-child(5) { width:100px; }
 .total div:last-child { border-bottom:0; background:var(--encre); color:#fff;
   font-size:17px; font-weight:800; }
 .total .fin { background:var(--fond); font-weight:700; }
+.total .remise { color:var(--rouge); }
 h3 { font-size:14px; margin:24px 0 6px; }
 .mentions { font-size:12px; color:var(--doux); margin:6px 0; }
 .mentions li { margin-bottom:4px; }
@@ -153,7 +200,17 @@ h3 { font-size:14px; margin:24px 0 6px; }
   tr, li, .mentions { break-inside:avoid; page-break-inside:avoid; }
   thead { display:table-header-group; }
   .pied { break-before:avoid; page-break-before:avoid; }
-}`;
+}
+
+/*
+ * Les mêmes règles, accrochées à une classe.
+ *
+ * L'écran a besoin de mesurer ce que donnera le papier AVANT d'imprimer :
+ * c'est cette hauteur qui dit au cadre d'aperçu quelle taille prendre.
+ * Un cadre plus haut que son contenu fait sortir une page blanche à la
+ * suite — c'est arrivé — et un cadre plus court le coupe.
+ */
+${prefixer(REGLES_PAPIER, 'html.papier')}`;
 
 /** Le bloc d'identité de l'agence, mentions légales comprises. */
 function emetteur(agence) {
@@ -181,6 +238,7 @@ export function ficheFacture(facture, agence, options = {}) {
   const t = totauxFacture(facture);
   const r = reglagesPdf(facture);
   const papier = { taille: `${r.format} ${r.orientation}`, marge: MARGES[r.marges].css };
+  const zone = zoneImprimable(r);
   const avoir = facture.type === 'avoir';
   const delai = Number(facture.delaiPaiement) > 0 ? Number(facture.delaiPaiement) : 30;
   const fin = facture.echeance || echeance(facture.date, delai);
@@ -211,7 +269,8 @@ export function ficheFacture(facture, agence, options = {}) {
     sur ${somme(x.base)}</span><b>${somme(x.montant)}</b></div>`).join('');
 
   return `<!doctype html>
-<html lang="fr"><head><meta charset="utf-8">
+<html lang="fr" data-papier-largeur="${zone.largeur}" data-papier-hauteur="${
+  zone.hauteur}"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${avoir ? 'Avoir' : 'Facture'} ${echapper(facture.numero || '')} · ${
   echapper(agence.nomCommercial || '')}</title>
@@ -285,6 +344,9 @@ ${avoir && facture.annule ? `<div class="avis"><b>Avoir.</b> Ce document annule
     <p>Aucun escompte n'est accordé en cas de paiement anticipé.</p>
   </div>
   <div class="total">
+    ${t.remise ? `<div><span>Sous-total HT</span><b>${somme(t.brut)}</b></div>
+    <div class="remise"><span>${echapper(t.remise.libelle)} ${
+  echapper(fr(t.remise.taux * 100, 2))} %</span><b>-${somme(t.remise.montant)}</b></div>` : ''}
     <div><span>Total HT</span><b>${somme(t.ht)}</b></div>
     ${tvaLignes}
     <div class="fin"><span>Total TTC</span><b>${somme(t.ttc)}</b></div>

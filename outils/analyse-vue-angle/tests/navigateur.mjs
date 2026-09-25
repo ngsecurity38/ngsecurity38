@@ -3354,14 +3354,24 @@ console.log('\nFacturier');
     await page.waitForSelector('#apercu:not([hidden])');
     const cadre = page.frames().find((f) => f !== page.mainFrame());
     affirmer(!!cadre, 'le document doit être dans un cadre de la page');
-    // Le cadre est ramené à la largeur du papier : le texte y revient à la ligne
-    // comme il le fera à l'impression.
-    await page.evaluate(() => {
+    /*
+     * Le cadre est ramené aux mesures du papier, que le document annonce
+     * lui-même : le texte y revient à la ligne comme il le fera à
+     * l'impression. Les chiffres ne sont plus écrits ici — ils changeraient
+     * avec le format sans que personne ne pense à ce fichier.
+     */
+    const papier = await cadre.evaluate(() => ({
+      largeur: Number(document.documentElement.dataset.papierLargeur),
+      hauteur: Number(document.documentElement.dataset.papierHauteur),
+    }));
+    affirmer(papier.largeur > 0 && papier.hauteur > 0,
+      `le document doit annoncer son papier : ${JSON.stringify(papier)}`);
+    await page.evaluate((p) => {
       const n = document.querySelector('#apercu-page');
       n.style.flex = 'none';
-      n.style.width = '703px';
-      n.style.height = '1013px';
-    });
+      n.style.width = `${p.largeur}px`;
+      n.style.height = `${p.hauteur}px`;
+    }, papier);
     await page.emulateMedia({ media: 'print' });
     await page.waitForTimeout(200);
     const r = await cadre.evaluate(() => ({
@@ -3388,7 +3398,8 @@ console.log('\nFacturier');
     }));
     await page.emulateMedia({ media: null });
     await page.click('#b-fermer');
-    affirmer(r.hauteur <= 1013, `la facture déborde de ${r.hauteur - 1013} px sur une 2e page`);
+    affirmer(r.hauteur <= papier.hauteur,
+      `la facture déborde de ${r.hauteur - papier.hauteur} px sur une 2e page`);
     affirmer(r.iban, 'le compte saisi par l\'agence doit figurer sur la facture');
     affirmer(r.lien === 'https://paypal.me/ngsecurity38',
       `le lien de paiement, cliquable : ${r.lien}`);
@@ -3408,6 +3419,35 @@ console.log('\nFacturier');
     affirmer(r.penalites, 'le taux des pénalités de retard');
     affirmer(r.indemnite, 'l\'indemnité forfaitaire de 40 €');
     affirmer(r.complement, 'l\'indemnisation complémentaire sur justification');
+  });
+
+  await cas('une remise se pose et se répartit sur les taux', async () => {
+    /*
+     * Rien ne permettait de faire un geste commercial. La remise se
+     * retranche de chaque base de TVA au prorata, et non du seul total :
+     * c'est la TVA par taux qui est déclarée.
+     */
+    await page.selectOption('#lignes li[data-i="2"] [data-r="tva"]', '0.1');
+    await page.fill('#p-remise', '10');
+    await page.fill('#p-remise-libelle', 'Remise commerciale');
+    await page.waitForTimeout(150);
+    const t = serre(await page.textContent('#p-totaux'));
+    affirmer(/Sous-totalHT/.test(t), `le brut doit apparaître : ${t}`);
+    affirmer(/Remisecommerciale10%/.test(t), `l'intitulé et le taux : ${t}`);
+
+    // En euros : la facture montre alors le taux que ça représente.
+    await page.selectOption('#p-remise-type', 'montant');
+    await page.fill('#p-remise', '250');
+    await page.waitForTimeout(150);
+    const m = serre(await page.textContent('#p-totaux'));
+    affirmer(/-250,00€/.test(m), `le montant demandé : ${m}`);
+    affirmer(/Remisecommerciale\d+,\d+%/.test(m), `et le taux qu'il représente : ${m}`);
+
+    // On la retire : la facture doit revenir exactement où elle était.
+    await page.fill('#p-remise', '');
+    await page.waitForTimeout(150);
+    affirmer(!/Sous-totalHT/.test(serre(await page.textContent('#p-totaux'))),
+      'sans remise, pas de sous-total');
   });
 
   await cas('une facture émise ne se modifie plus', async () => {
@@ -3451,6 +3491,28 @@ console.log('\nFacturier');
      */
     affirmer(Math.abs(apres - avant) < 0.01,
       `la paire se neutralise, le CA revient à ${avant} : ${apres}`);
+  });
+
+  await cas('le cadre d\'impression finit sur une coupure de page', async () => {
+    /*
+     * Le cadre était mesuré sur l'écran, plus large que le papier : plus haut
+     * que son contenu, il faisait sortir une page blanche à la suite. Il est
+     * maintenant arrondi à un nombre entier de pages.
+     */
+    await page.click('#b-imprimer');
+    await page.waitForSelector('#apercu:not([hidden])');
+    await page.waitForTimeout(300);
+    const r = await page.evaluate(() => {
+      window.dispatchEvent(new Event('beforeprint'));
+      const cadre = document.querySelector('#apercu-page');
+      return {
+        hauteur: parseFloat(cadre.style.height),
+        page: Number(cadre.contentDocument.documentElement.dataset.papierHauteur),
+      };
+    });
+    await page.click('#b-fermer');
+    affirmer(r.hauteur > 0 && r.hauteur % r.page === 0,
+      `${r.hauteur} px pour des pages de ${r.page} px`);
   });
 
   await cas('le PDF sort sans ouvrir de fenêtre', async () => {
@@ -3599,8 +3661,10 @@ console.log('\nFacturier');
     ]);
     const csv = await readFile(await fichier.path(), 'utf8');
     affirmer(csv.charCodeAt(0) === 0xfeff, 'le BOM fait ouvrir Excel en UTF-8');
-    affirmer(csv.split('\n')[0].split(';').length === 11,
-      `onze colonnes séparées par des points-virgules : ${csv.split('\n')[0]}`);
+    affirmer(csv.split('\n')[0].split(';').length === 13,
+      `treize colonnes séparées par des points-virgules : ${csv.split('\n')[0]}`);
+    affirmer(/"Sous-total HT";"Remise";"Total HT"/.test(csv),
+      'le comptable doit voir la remise, pas seulement son effet');
     affirmer(!/;\d+\.\d+;/.test(csv), 'les décimales s\'écrivent à la française');
     affirmer(!csv.includes('Brouillon'), 'un brouillon n\'entre pas en comptabilité');
   });
