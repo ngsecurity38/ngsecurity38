@@ -72,8 +72,20 @@ th:nth-child(3), td:nth-child(3) { width:92px; }
 th:nth-child(4), td:nth-child(4) { width:62px; }
 th:nth-child(5), td:nth-child(5) { width:100px; }
 .det { display:block; font-size:11.5px; color:var(--doux); margin-top:2px; }
-.comptes { display:flex; justify-content:flex-end; margin-top:14px; }
-.total { width:340px; border:1px solid var(--bord); border-radius:8px; overflow:hidden; }
+/*
+ * Le bas de la facture, en deux colonnes.
+ *
+ * Les comptes tenaient seuls à droite, et la moitié gauche de la feuille
+ * restait blanche pendant que les conditions de règlement poussaient la
+ * facture sur une deuxième page. Elles occupent maintenant cette place :
+ * c'est la mise en page d'usage, et elle rend la feuille.
+ */
+.bas { display:flex; gap:18px; align-items:flex-start; margin-top:16px; }
+.conditions { flex:1 1 0; border:1px solid var(--bord); border-radius:8px;
+  padding:12px 14px; font-size:12.5px; }
+.conditions b { font-size:13px; }
+.conditions p { margin:6px 0 0; }
+.total { flex:0 0 340px; border:1px solid var(--bord); border-radius:8px; overflow:hidden; }
 .total div { display:flex; justify-content:space-between; padding:8px 14px;
   border-bottom:1px solid var(--bord); font-size:14px; }
 .total div:last-child { border-bottom:0; background:var(--encre); color:#fff;
@@ -82,9 +94,14 @@ th:nth-child(5), td:nth-child(5) { width:100px; }
 h3 { font-size:14px; margin:24px 0 6px; }
 .mentions { font-size:12px; color:var(--doux); margin:6px 0; }
 .mentions li { margin-bottom:4px; }
-.reglement { display:flex; gap:18px; margin-top:18px; }
-.reglement div { flex:1 1 0; border:1px solid var(--bord); border-radius:8px;
-  padding:12px 14px; font-size:13px; }
+.reglement { display:flex; gap:18px; margin-top:16px; align-items:flex-start; }
+.reglement > div { flex:1 1 0; border:1px solid var(--bord); border-radius:8px;
+  padding:12px 14px; font-size:12.5px; }
+.reglement b { font-size:13px; }
+.reglement p { margin:6px 0 0; }
+.reglement p:last-child { margin-bottom:0; }
+.reglement .mentions { flex:1 1 0; margin:0; padding-left:18px; }
+.precisions { margin-top:12px; }
 .pied { color:var(--doux); font-size:11.5px; text-align:center; padding:16px 0 0;
   border-top:1px solid var(--bord); margin-top:26px; line-height:1.6; }
 .pdf { position:fixed; right:20px; bottom:20px; z-index:9; background:var(--rouge);
@@ -108,16 +125,19 @@ h3 { font-size:14px; margin:24px 0 6px; }
   .feuille { border:0; max-width:none; padding:0; }
   .pdf { display:none; }
   h1 { font-size:19pt; }
-  th, td { padding:5px 9px; }
-  .garde { padding-bottom:14px; margin-bottom:18px; }
-  .parties { margin-bottom:16px; }
-  .comptes { margin-top:10px; }
-  .total div { padding:7px 14px; }
+  th, td { padding:4px 9px; }
+  .garde { padding-bottom:12px; margin-bottom:14px; }
+  .parties { margin-bottom:12px; }
+  .bas { margin-top:10px; }
+  .total div { padding:6px 14px; }
+  .conditions { font-size:8.6pt; }
+  .conditions p { margin-top:4px; }
   h3 { margin:16px 0 4px; }
-  .mentions { font-size:8.8pt; }
+  .mentions { font-size:8.2pt; }
   .mentions li { margin-bottom:2px; }
-  .reglement { margin-top:12px; }
-  .pied { margin-top:12px; padding-top:8px; }
+  .reglement { margin-top:8px; font-size:8.6pt; }
+  .reglement p { margin-top:4px; }
+  .pied { margin-top:8px; padding-top:6px; }
   table, .total, .reglement, .avis, .parties { break-inside:avoid; page-break-inside:avoid; }
   tr, li, .mentions { break-inside:avoid; page-break-inside:avoid; }
   thead { display:table-header-group; }
@@ -151,7 +171,8 @@ export function ficheFacture(facture, agence, options = {}) {
   const r = reglagesPdf(facture);
   const papier = { taille: `${r.format} ${r.orientation}`, marge: MARGES[r.marges].css };
   const avoir = facture.type === 'avoir';
-  const fin = facture.echeance || echeance(facture.date, facture.delaiPaiement || 30);
+  const delai = Number(facture.delaiPaiement) > 0 ? Number(facture.delaiPaiement) : 30;
+  const fin = facture.echeance || echeance(facture.date, delai);
   const banque = coordonneesBancaires(agence, facture);
   const jours = retard({ ...facture, echeance: fin }, options.aujourdhui);
   const pen = jours
@@ -224,7 +245,10 @@ ${avoir && facture.annule ? `<div class="avis"><b>Avoir.</b> Ce document annule
     ${facture.periodeDebut ? `<p class="det">Période du ${
   echapper(jourFr(facture.periodeDebut))}${facture.periodeFin
   ? ` au ${echapper(jourFr(facture.periodeFin))}` : ''}</p>` : ''}
-    ${facture.reference ? `<p class="det">Référence ${echapper(facture.reference)}</p>` : ''}
+    ${facture.execution ? `<p class="det">Exécution le ${
+  echapper(jourFr(facture.execution))}</p>` : ''}
+    ${facture.reference ? `<p class="det">Bon de commande ${
+  echapper(facture.reference)}</p>` : ''}
   </div>
 </div>
 
@@ -234,7 +258,16 @@ ${avoir && facture.annule ? `<div class="avis"><b>Avoir.</b> Ce document annule
   <tbody>${lignes}</tbody>
 </table>
 
-<div class="comptes">
+<div class="bas">
+  <div class="conditions">
+    <b>Conditions de règlement</b>
+    <p>${echapper(facture.moyenPaiement || 'Par virement bancaire')}.${
+  banque.iban ? `<br>IBAN ${echapper(banque.iban)}` : ''}${
+  banque.bic ? `<br>BIC ${echapper(banque.bic)}` : ''}</p>
+    <p>Paiement à ${echapper(fr(delai, 0))} jours : le montant est exigible au
+      plus tard le <b>${echapper(jourFr(fin))}</b>.</p>
+    <p>Aucun escompte n'est accordé en cas de paiement anticipé.</p>
+  </div>
   <div class="total">
     <div><span>Total HT</span><b>${somme(t.ht)}</b></div>
     ${tvaLignes}
@@ -255,32 +288,33 @@ ${pen ? `<div class="avis"><b>Facture en retard de ${pen.jours} jours.</b>
 
 <div class="reglement">
   <div>
-    <b>Règlement</b><br>
-    ${echapper(facture.moyenPaiement || 'Virement bancaire')}<br>
-    ${banque.iban ? `IBAN ${echapper(banque.iban)}<br>` : ''}
-    ${banque.bic ? `BIC ${echapper(banque.bic)}<br>` : ''}
-    À réception, au plus tard le ${echapper(jourFr(fin))}.
+    <b>Retard de paiement</b>
+    <p>Toute somme non réglée à cette échéance porte de plein droit, dès le
+      jour suivant et sans qu'un rappel soit nécessaire, des pénalités de
+      retard au taux de <b>${echapper(fr(PENALITE_MULTIPLE, 0))} fois le taux
+      d'intérêt légal</b> en vigueur.</p>
+    <p>S'y ajoute une indemnité forfaitaire pour frais de recouvrement de
+      <b>${echapper(fr(INDEMNITE_RECOUVREMENT, 0))} €</b>. Lorsque les frais
+      exposés sont supérieurs à ce montant, une indemnisation complémentaire
+      peut être demandée sur justification.</p>
   </div>
-  <div>
-    <b>Retard de paiement</b><br>
-    Pénalités au taux de ${echapper(fr(PENALITE_MULTIPLE, 0))} fois le taux
-    d'intérêt légal, exigibles sans rappel dès le lendemain de l'échéance,
-    et indemnité
-    forfaitaire de ${echapper(fr(INDEMNITE_RECOUVREMENT, 0))} € pour frais de
-    recouvrement.
-  </div>
+  <ul class="mentions">
+  <li><b>Réserve de propriété.</b> Les fournitures et équipements demeurent la
+    propriété de ${echapper(agence.nomCommercial || 'l\'entreprise')} jusqu'au
+    paiement intégral du prix. Les risques sont transférés au client dès la
+    livraison.</li>
+  <li><b>Réclamations.</b> Toute réclamation portant sur les travaux ou les
+    fournitures est à formuler par écrit dans les huit jours suivant la
+    réception.</li>
+  ${agence.assurance ? `<li><b>Assurance.</b> ${echapper(agence.assurance)}.</li>` : ''}
+  ${agence.mediateur ? `<li><b>Médiation de la consommation.</b> Pour un
+    différend avec un client particulier n'ayant pas trouvé d'issue amiable :
+    ${echapper(agence.mediateur)}.</li>` : ''}
+  </ul>
 </div>
 
-${facture.mentions ? `<h3>Précisions</h3><p class="mentions">${
+${facture.mentions ? `<p class="mentions precisions"><b>Précisions.</b> ${
   echapper(facture.mentions)}</p>` : ''}
-
-<ul class="mentions">
-  <li>Pas d'escompte pour paiement anticipé.</li>
-  <li>Les marchandises restent la propriété du vendeur jusqu'au paiement
-    intégral du prix.</li>
-  <li>Toute réclamation est à formuler dans les huit jours suivant la
-    réception.</li>
-</ul>
 
 <p class="pied">${echapper(agence.nomCommercial || '')} ·
   ${echapper(agence.adresse || '')} · ${echapper(agence.telephone || '')} ·

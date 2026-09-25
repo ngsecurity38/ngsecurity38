@@ -132,6 +132,8 @@ function panneauFacture() {
   $('#p-delai').value = f.delaiPaiement ?? 30;
   $('#p-objet').value = f.objet || '';
   $('#p-chantier').value = f.chantier || '';
+  $('#p-execution').value = f.execution || '';
+  $('#p-reference').value = f.reference || '';
   $('#p-client-nom').value = (f.client && f.client.nom) || '';
   $('#p-client-adresse').value = (f.client && f.client.adresse) || '';
   $('#p-client-siret').value = (f.client && f.client.siret) || '';
@@ -577,6 +579,8 @@ export function monter(livre, catalogue) {
   champ('#p-delai', 'change', (f, n) => { f.delaiPaiement = Number(n.value); });
   champ('#p-objet', 'input', (f, n) => { f.objet = n.value; });
   champ('#p-chantier', 'input', (f, n) => { f.chantier = n.value; });
+  champ('#p-execution', 'change', (f, n) => { f.execution = n.value; });
+  champ('#p-reference', 'input', (f, n) => { f.reference = n.value; });
   champ('#p-acompte', 'input', (f, n) => { f.acompte = Number(n.value); });
   champ('#p-client-nom', 'input', (f, n) => { f.client.nom = n.value; });
   champ('#p-client-adresse', 'input', (f, n) => { f.client.adresse = n.value; });

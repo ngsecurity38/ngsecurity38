@@ -3354,12 +3354,37 @@ console.log('\nFacturier');
     await page.waitForTimeout(200);
     const r = await cadre.evaluate(() => ({
       hauteur: Math.round(document.querySelector('.feuille').scrollHeight),
-      iban: document.querySelector('.reglement').textContent.includes('IBAN'),
+      ...(() => {
+        // Le gabarit revient à la ligne : sans cela « exigible au plus tard »
+        // porte une espace de plus et aucun contrôle ne tombe juste.
+        const lu = (s) => document.querySelector(s).textContent.replace(/\s+/g, ' ');
+        const c = lu('.conditions');
+        const r = lu('.reglement');
+        return {
+          iban: c.includes('IBAN'),
+          echeance: /exigible au plus tard le/.test(c),
+          escompte: /escompte/.test(c),
+          penalites: /3 fois le taux d'intérêt légal/.test(r),
+          indemnite: /40 €/.test(r),
+          complement: /indemnisation complémentaire/.test(r),
+        };
+      })(),
     }));
     await page.emulateMedia({ media: null });
+    await page.click('#b-fermer');
     affirmer(r.hauteur <= 1013, `la facture déborde de ${r.hauteur - 1013} px sur une 2e page`);
     affirmer(r.iban, 'un virement sans IBAN n\'est pas payable');
-    await page.click('#b-fermer');
+    /*
+     * Les mentions que le code de commerce impose sur une facture : la date
+     * d'exigibilité, les conditions d'escompte, le taux des pénalités de
+     * retard et l'indemnité forfaitaire de recouvrement, l'indemnisation
+     * complémentaire sur justification (art. L441-9 et L441-10).
+     */
+    affirmer(r.echeance, 'la date à laquelle le règlement doit intervenir');
+    affirmer(r.escompte, 'les conditions d\'escompte, même quand il n\'y en a pas');
+    affirmer(r.penalites, 'le taux des pénalités de retard');
+    affirmer(r.indemnite, 'l\'indemnité forfaitaire de 40 €');
+    affirmer(r.complement, 'l\'indemnisation complémentaire sur justification');
   });
 
   await cas('une facture émise ne se modifie plus', async () => {

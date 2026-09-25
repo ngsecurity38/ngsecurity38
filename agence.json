@@ -27,6 +27,18 @@
     "ngsecurity38.com"
   ],
   "zone": "Intervention France et Belgique",
+  "_note_mentions": [
+    "Deux mentions qui ne s'impriment que si elles sont écrites ici.",
+    "  assurance  l'assureur, le numéro de contrat et la couverture",
+    "             géographique. Obligatoire sur les factures de travaux de",
+    "             bâtiment (article L241-1 du code des assurances).",
+    "  mediateur  le médiateur de la consommation, nom et adresse du site.",
+    "             À porter dès qu'on facture des particuliers (article",
+    "             L616-1 du code de la consommation).",
+    "Laissées vides, les lignes correspondantes n'apparaissent pas."
+  ],
+  "assurance": null,
+  "mediateur": null,
   "banque": {
     "_note": [
       "Le compte sur lequel les clients règlent. Une facture qui annonce un",
