@@ -26,69 +26,94 @@
     "contact": ""
   },
 
-  "objet": "Vidéoprotection d'un commerce de proximité, intérieur et extérieur",
+  "objet": "Vidéoprotection intelligente d'un commerce de proximité, intérieur et extérieur",
 
   "besoin": [
     "Le commerce présente trois zones sensibles distinctes. À l'extérieur, un étal de fruits et légumes est exposé sur le trottoir devant la vitrine, hors de la vue du comptoir dès qu'un client occupe la caisse. À l'intérieur, le poste de caisse concentre le numéraire, les cigarettes et les spiritueux, et c'est le point d'attaque d'un vol à main armée comme d'une démarque au comptoir. Enfin les linéaires et le fond de magasin, peu visibles depuis la caisse, appellent une surveillance de dissuasion.",
-    "Six caméras couvrent ces trois zones : deux à l'extérieur, quatre à l'intérieur. Le parti retenu est celui de l'identification au plus près des valeurs : une caméra qui filme large dissuade, une caméra qui identifie sert de preuve. Les deux sont nécessaires et ne se placent pas au même endroit."
+    "Six caméras couvrent ces trois zones : trois tubulaires à l'extérieur, robustes et visibles, dont la seule présence dissuade ; trois dômes à l'intérieur, discrets et difficiles à désorienter. Le parti retenu est celui de l'identification au plus près des valeurs : une caméra qui filme large dissuade, une caméra qui identifie sert de preuve, et les deux ne se placent pas au même endroit.",
+    "Le système ne se contente pas d'enregistrer. Chaque caméra analyse son image, distingue une personne d'un véhicule ou d'un animal, et ne signale que ce qui se passe dans les zones que nous traçons avec vous. L'alerte part sur votre téléphone en quelques secondes, avec l'image. Une sirène extérieure la double sur place : le passage à l'acte s'interrompt le plus souvent dans les premières secondes."
   ],
 
   "cameras": [
     {
       "cle": "C1",
       "nom": "Étal et devanture",
-      "situation": "Extérieur, sous l'auvent, en surplomb de l'étal",
-      "role": "Couvre les cageots exposés sur le trottoir et toute la largeur de la vitrine. Détecte le geste, suit la personne jusqu'à la sortie du champ.",
+      "situation": "Extérieur, tubulaire, sous l'auvent, en surplomb de l'étal",
+      "role": "Couvre les cageots exposés sur le trottoir et toute la largeur de la vitrine. Zone de détection tracée sur l'étal : toute présence hors horaires déclenche l'alerte.",
       "exterieur": true,
       "reserve": "Cadrage limité à l'emprise du commerce. La voie publique ne doit pas être surveillée."
     },
     {
       "cle": "C2",
       "nom": "Entrée, vue des visages",
-      "situation": "Extérieur, sous l'auvent, à hauteur de visage, face à la porte",
+      "situation": "Extérieur, tubulaire, sous l'auvent, à hauteur de visage, face à la porte",
       "role": "Identifie chaque personne qui entre et qui sort. C'est la caméra qui produit une image exploitable par les services d'enquête.",
       "exterieur": true,
       "reserve": "Inclinée vers la porte et non vers la rue."
     },
     {
       "cle": "C3",
-      "nom": "Caisse, vue client",
-      "situation": "Intérieur, au-dessus du comptoir, tournée vers le client",
-      "role": "Identification au comptoir : agression, paiement contesté, chèque ou billet douteux. Couvre le présentoir à cigarettes derrière le poste.",
-      "exterieur": false
+      "nom": "Devanture, angle opposé",
+      "situation": "Extérieur, tubulaire, à l'autre extrémité de la façade",
+      "role": "Prend la devanture dans l'autre sens. Personne ne traverse la façade en n'étant vu que de dos, et le second axe rattrape ce que le premier perd à contre-jour.",
+      "exterieur": true,
+      "reserve": "Même limite d'emprise que les deux autres."
     },
     {
       "cle": "C4",
-      "nom": "Caisse, vue comptoir",
-      "situation": "Intérieur, en surplomb du poste de caisse",
-      "role": "Filme le plan de travail et le tiroir-caisse. Tranche les litiges de rendu de monnaie et documente la démarque au comptoir.",
+      "nom": "Caisse, vue client et comptoir",
+      "situation": "Intérieur, dôme, au-dessus du poste, tourné vers le client",
+      "role": "Identification au comptoir et vue du plan de travail : agression, paiement contesté, billet douteux, rendu de monnaie. Couvre le présentoir à cigarettes derrière le poste.",
       "exterieur": false
     },
     {
       "cle": "C5",
       "nom": "Allée et linéaires",
-      "situation": "Intérieur, en bout d'allée, dans l'axe des rayons",
+      "situation": "Intérieur, dôme, en bout d'allée, dans l'axe des rayons",
       "role": "Surveille toute la longueur des linéaires. Rôle de dissuasion d'abord, de constat ensuite.",
       "exterieur": false
     },
     {
       "cle": "C6",
       "nom": "Fond de magasin et spiritueux",
-      "situation": "Intérieur, au fond, orientée vers les alcools et la porte de réserve",
+      "situation": "Intérieur, dôme, au fond, orienté vers les alcools et la porte de réserve",
       "role": "Protège les produits à forte valeur unitaire et l'accès à la réserve, deux points hors de vue depuis la caisse.",
       "exterieur": false
     }
   ],
 
+  "capacites": [
+    "<b>Détection intelligente à bord de chaque caméra.</b> L'analyse se fait dans la caméra, pas sur un serveur : elle distingue une personne d'un véhicule, d'un animal ou d'une branche qui bouge. Les alertes inutiles, celles qu'on finit par ne plus lire, disparaissent.",
+    "<b>Zones tracées avec vous.</b> Sur chaque caméra, nous dessinons ce qui compte : l'étal, le seuil, le rayon des spiritueux, la porte de réserve. Une alerte ne part que si quelque chose entre dans ces zones, et seulement aux heures que vous fixez.",
+    "<b>Remontée des événements sur votre téléphone.</b> Chaque détection arrive en notification avec l'image du moment. Vous voyez ce qui se passe avant de décider d'appeler.",
+    "<b>Sirène extérieure sur intrusion.</b> L'alerte ne part pas que chez vous : elle sonne sur place. Un passage à l'acte s'interrompt le plus souvent dans les premières secondes.",
+    "<b>Une seule application.</b> Caméras, alarme et sirène dans la même application sur votre téléphone : vue en direct, relecture, extraction d'une séquence, état du système. Pas trois logiciels à apprendre.",
+    "<b>Relecture et export.</b> Retrouver un fait par sa date et son heure, puis en sortir un fichier pour la gendarmerie ou l'assurance, se fait en deux minutes. La formation est comprise."
+  ],
+
   "lots": [
     {
-      "titre": "Caméras",
+      "titre": "Caméras extérieures",
       "lignes": [
         {
-          "designation": "Caméra tourelle 4K (8 Mpx), objectif 2,8 mm, infrarouge 35 m, IP65, détection de personne et de véhicule",
+          "designation": "Caméra tubulaire 4K (8 Mpx), objectif 2,8 mm, infrarouge, IP65, détection de personne et de véhicule à bord",
+          "reference": "Ajax BulletCam 8 Mpx / 2,8 mm",
+          "note": "Angle de vue de 100° à 110°, alimentation par le câble réseau (PoE+ 802.3at). Le format tubulaire se voit de loin : à l'extérieur, une caméra qu'on remarque travaille déjà.",
+          "quantite": 3,
+          "unite": "u",
+          "marche": 295.0,
+          "source": "Prix public HT relevé chez un revendeur professionnel français le 26/09/2026 (integral-systeme.fr). D'autres enseignes affichent moins cher en promotion."
+        }
+      ]
+    },
+    {
+      "titre": "Caméras intérieures",
+      "lignes": [
+        {
+          "designation": "Caméra dôme 4K (8 Mpx), objectif 2,8 mm, infrarouge 35 m, détection de personne et de véhicule à bord",
           "reference": "Ajax TurretCam 8 Mpx / 2,8 mm (AJ-TURRETCAM-8-W)",
-          "note": "Angle de vue de 100° à 110°, alimentation PoE 802.3at, carte microSD acceptée en secours d'enregistrement. Le même modèle à l'intérieur et à l'extérieur : un seul type de pièce à stocker, un seul réglage à connaître.",
-          "quantite": 6,
+          "note": "Même définition et même analyse que les tubulaires, dans un boîtier discret qu'on ne désoriente pas d'un coup de manche à balai. Carte microSD acceptée en secours d'enregistrement.",
+          "quantite": 3,
           "unite": "u",
           "marche": 317.26,
           "source": "Prix public HT relevé chez un revendeur français le 26/09/2026 (getic.fr)."
@@ -110,7 +135,7 @@
         {
           "designation": "Disque dur de vidéosurveillance 12 To, fonctionnement continu 24 h/24",
           "reference": null,
-          "note": "Six caméras en 4K à 15 images par seconde produisent 26 Mbit/s. Ce disque tient trente jours d'enregistrement permanent, marge de sécurité comprise.",
+          "note": "Six caméras en 4K à 15 images par seconde produisent 26 Mbit/s, soit 338 Go par jour. Ce disque couvre les trente jours autorisés. Un disque de 1 To, celui des kits d'entrée de gamme, ne tiendrait que trois jours.",
           "quantite": 1,
           "unite": "u",
           "marche": 465.42,
@@ -119,11 +144,34 @@
         {
           "designation": "Commutateur 8 ports PoE+ administrable",
           "reference": null,
-          "note": "À retirer si votre enregistreur porte des ports PoE. Les caméras demandent du PoE+ (802.3at), et le PoE simple ne suffit pas pour un modèle à chauffage ou à infrarouge puissant.",
+          "note": "Les caméras sont alimentées par le câble réseau, sans prise de courant à leur pied. Le commutateur alimente les six, en PoE+ (802.3at) : le PoE simple ne suffit pas pour un modèle à infrarouge puissant.",
           "quantite": 1,
           "unite": "u",
           "marche": 165.0,
           "source": "Prix donné par l'agence le 24/09/2026 : 165 € HT l'unité, modèle administrable."
+        }
+      ]
+    },
+    {
+      "titre": "Détection et alerte",
+      "lignes": [
+        {
+          "designation": "Centrale d'alarme avec vérification photo, passerelle des scénarios et des notifications",
+          "reference": "Ajax Hub 2 Plus",
+          "note": "C'est elle qui relie la détection des caméras à la sirène et qui porte les scénarios : telle zone, à telle heure, déclenche telle action. Elle accepte aussi des détecteurs d'ouverture ou de mouvement si vous étendez plus tard.",
+          "quantite": 1,
+          "unite": "u",
+          "prixVente": 115.0,
+          "source": "Prix pratiqué par l'agence, facture du 24/09/2026."
+        },
+        {
+          "designation": "Sirène extérieure sans fil, 113 dB, autoprotégée, signal lumineux",
+          "reference": "Ajax StreetSiren",
+          "note": "Posée en façade, hors d'atteinte. Autonomie annoncée jusqu'à cinq ans sur piles, et l'autoprotection déclenche si on tente de l'arracher.",
+          "quantite": 1,
+          "unite": "u",
+          "marche": 159.94,
+          "source": "Prix public HT relevé chez un revendeur français le 26/09/2026 (getic.fr). Prix public conseillé constaté à 182 € HT."
         }
       ]
     },
@@ -151,8 +199,8 @@
         {
           "designation": "Support de caméra avec boîte de raccordement étanche",
           "reference": null,
-          "note": "Pour les deux caméras extérieures. Les quatre caméras intérieures se fixent directement au plafond.",
-          "quantite": 2,
+          "note": "Pour les trois caméras extérieures. Les trois dômes intérieurs se fixent directement au plafond.",
+          "quantite": 3,
           "unite": "u",
           "marche": 59.5,
           "source": "Prix estimé par l'agence le 24/09/2026 : 595 € HT les dix supports et leurs boîtes. À confirmer sur facture fournisseur."
@@ -169,8 +217,8 @@
         {
           "designation": "Presse-étoupe et jeu d'étanchéité",
           "reference": null,
-          "note": "Pour les deux pénétrations extérieures.",
-          "quantite": 2,
+          "note": "Pour les trois pénétrations extérieures.",
+          "quantite": 3,
           "unite": "u",
           "marche": null
         }
@@ -199,6 +247,18 @@
           "unite": "h"
         },
         {
+          "designation": "Tracé des zones de détection et réglage des alertes",
+          "note": "Une zone par caméra au moins, tracée avec vous sur l'image réelle, filtrée sur la personne, avec ses horaires. C'est ce réglage qui fait la différence entre un système qu'on écoute et un système qu'on finit par couper.",
+          "quantite": 3,
+          "unite": "h"
+        },
+        {
+          "designation": "Pose de la centrale et de la sirène, essais d'intrusion",
+          "note": "Association des appareils, scénarios de déclenchement, réglage du niveau sonore, essais réels de jour et de nuit.",
+          "quantite": 2,
+          "unite": "h"
+        },
+        {
           "designation": "Mise en service et recette",
           "note": "Vérification des six champs de jour et de nuit, essai de relecture, essai d'export.",
           "quantite": 4,
@@ -206,7 +266,7 @@
         },
         {
           "designation": "Formation de l'exploitant",
-          "note": "Relecture, extraction d'une séquence sur réquisition, accès depuis un téléphone, conduite à tenir après un fait.",
+          "note": "Application sur téléphone, relecture, extraction d'une séquence sur réquisition, conduite à tenir après un fait.",
           "quantite": 2,
           "unite": "h"
         },
@@ -227,30 +287,27 @@
       "marche": null
     },
     {
-      "designation": "Contrat de maintenance annuel",
-      "note": "Visite préventive, nettoyage des optiques, contrôle des champs, mises à jour, assistance. La première année est offerte avec l'installation.",
+      "designation": "Détecteurs d'ouverture et de mouvement",
+      "note": "La centrale posée ici les accepte sans travaux : porte de réserve, issue de secours, volume du magasin fermé. L'alarme complète la vidéo au lieu de la doubler.",
       "marche": null
     },
     {
-      "designation": "Report d'alarme et levée de doute vidéo",
-      "note": "Association du système à une centrale d'alarme : l'intrusion déclenche, l'image confirme avant d'appeler.",
+      "designation": "Contrat de maintenance annuel",
+      "note": "Visite préventive, nettoyage des optiques, contrôle des champs et des zones, mises à jour, assistance. La première année est offerte avec l'installation.",
+      "marche": null
+    },
+    {
+      "designation": "Télésurveillance avec levée de doute vidéo",
+      "note": "Un centre reçoit l'alerte, regarde l'image et alerte les forces de l'ordre à votre place, la nuit et les jours de fermeture.",
       "marche": null
     }
   ],
-
-  "stockage": {
-    "camerasDebitMbps": 4.35,
-    "total": 26.1,
-    "jours": 30,
-    "disqueTo": 12,
-    "note": "Six caméras en 4K, 15 images par seconde, codec H.265. À 20 images par seconde, le même disque tient vingt-deux jours."
-  },
 
   "obligations": [
     "Un commerce est un lieu ouvert au public : le système doit faire l'objet d'une <b>autorisation préfectorale</b> avant sa mise en service, renouvelable tous les cinq ans. Le dossier de demande vous est remis complété.",
     "<b>Des panneaux d'information</b> visibles doivent être apposés à l'entrée et dans le magasin, mentionnant l'existence du dispositif, le responsable et le droit d'accès aux images.",
     "<b>Les salariés doivent être informés</b> individuellement, et les représentants du personnel consultés lorsqu'il en existe. Aucune caméra ne peut filmer un local de pause ni surveiller un poste de travail en continu.",
-    "<b>La voie publique ne peut pas être filmée</b> par un particulier : seules les autorités publiques y sont autorisées. Les deux caméras extérieures sont cadrées sur l'emprise du commerce, et le champ résiduel sur le trottoir est masqué au réglage.",
+    "<b>La voie publique ne peut pas être filmée</b> par un particulier : seules les autorités publiques y sont autorisées. Les trois caméras extérieures sont cadrées sur l'emprise du commerce, et le champ résiduel sur le trottoir est masqué au réglage.",
     "<b>La durée de conservation</b> est limitée à un mois. Trente jours sont proposés ici, et une durée plus courte reste possible et se règle en une minute.",
     "L'accès aux images est <b>nominatif et tracé</b>. Un registre des traitements et une consigne d'extraction sur réquisition vous sont remis avec le dossier."
   ],

@@ -151,6 +151,8 @@ td.n, th.n { text-align:right; white-space:nowrap; }
 .total .fin { background:var(--fond); font-weight:700; }
 .avis { background:#fff4f5; border:1px solid #f0c8ce; border-left:4px solid var(--rouge);
   border-radius:6px; padding:10px 13px; margin:12px 0 0; font-size:12.5px; color:#7a0a1c; }
+ul.capacites { font-size:12.5px; margin:6px 0; padding-left:18px; }
+ul.capacites li { margin-bottom:5px; text-align:justify; }
 ul.loi { font-size:12.5px; color:var(--encre); margin:6px 0; padding-left:18px; }
 ul.loi li { margin-bottom:5px; text-align:justify; }
 .options td:first-child { width:auto; }
@@ -304,6 +306,9 @@ export function ficheOffre(offre, agence = {}) {
 
 <h2>Les six points de vue</h2>
 ${tableauCameras(offre)}
+
+${(offre.capacites || []).length ? `<h2>Ce que le système sait faire</h2>
+<ul class="capacites">${offre.capacites.map((c) => `<li>${c}</li>`).join('')}</ul>` : ''}
 
 <h2>Le détail du prix</h2>
 ${c.lots.map((lot) => tableauLot(lot, offre)).join('')}
