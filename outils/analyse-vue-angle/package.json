@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "build": "node build.mjs",
-    "test": "node --test tests/run.mjs tests/boutique.mjs tests/etude.mjs tests/fiche.mjs tests/plan.mjs tests/photo.mjs tests/reseau.mjs tests/stockage.mjs tests/cable.mjs tests/secours.mjs tests/ecran.mjs tests/etude-plan.mjs tests/dossier.mjs tests/devis-etude.mjs tests/synoptique.mjs tests/paquets.mjs tests/murs.mjs tests/prix.mjs tests/offre.mjs tests/photo-client.mjs tests/menu.mjs tests/alarme.mjs tests/referencement.mjs tests/ensemble.mjs tests/pays.mjs tests/tarif.mjs tests/facture.mjs tests/catalogue-vente.mjs tests/paiement.mjs",
+    "test": "node --test tests/run.mjs tests/boutique.mjs tests/etude.mjs tests/fiche.mjs tests/plan.mjs tests/photo.mjs tests/reseau.mjs tests/stockage.mjs tests/cable.mjs tests/secours.mjs tests/ecran.mjs tests/etude-plan.mjs tests/dossier.mjs tests/devis-etude.mjs tests/synoptique.mjs tests/paquets.mjs tests/murs.mjs tests/prix.mjs tests/offre.mjs tests/photo-client.mjs tests/menu.mjs tests/alarme.mjs tests/referencement.mjs tests/ensemble.mjs tests/pays.mjs tests/tarif.mjs tests/facture.mjs tests/catalogue-vente.mjs tests/paiement.mjs tests/offre-commerciale.mjs",
     "test:navigateur": "node tests/navigateur.mjs",
     "start": "npx --yes http-server -p 8080 ."
   }

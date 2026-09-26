@@ -10,8 +10,9 @@
  * Exécution : npm run build
  */
 
-import { readFileSync, writeFileSync, mkdirSync, copyFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, copyFileSync, existsSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { ficheOffre } from './js/offre-fiche.js';
 import { dirname, join } from 'node:path';
 
 const ici = dirname(fileURLToPath(import.meta.url));
@@ -452,6 +453,27 @@ facturier = facturier.replace(
     + `<script>${inerte(paquetFacturier)}</script>`,
 );
 ecrire('facturier.html', facturier);
+
+/* --------------------------------------------------------------- les offres
+ *
+ * Une offre par affaire, dans `offres/`. Chacune sort en une page qu'on
+ * ouvre d'un double-clic et qu'on imprime en PDF : rien à installer chez le
+ * client, rien à servir sur un site. Le dossier est vide ? Rien ne sort.
+ */
+const dossierOffres = join(ici, '..', '..', 'offres');
+if (existsSync(dossierOffres)) {
+  const agenceOffre = {
+    ...JSON.parse(readFileSync(join(ici, '..', '..', 'agence.json'), 'utf8')),
+    logo,
+  };
+  for (const nom of readdirSync(dossierOffres)) {
+    const fichier = join(dossierOffres, nom, 'offre.json');
+    if (!existsSync(fichier)) continue;
+    const offre = JSON.parse(readFileSync(fichier, 'utf8'));
+    const page = marque(ficheOffre(offre, agenceOffre));
+    ecrire(`offre-${nom}.html`, page);
+  }
+}
 
 /*
  * L'éditeur NE SORT PAS en dossier servi.

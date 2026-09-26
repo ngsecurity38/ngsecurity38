@@ -1,0 +1,264 @@
+{
+  "_lisez_moi": [
+    "Une offre commerciale : ce qu'on installe, ce que ça couvre, ce que ça coûte.",
+    "",
+    "PRIX. Deux champs par ligne, et ils ne veulent pas dire la même chose :",
+    "  marche     prix de référence relevé, avec sa provenance dans « source » ;",
+    "  prixVente  ce que l'agence facture. Renseigné, il s'impose.",
+    "Sans prixVente, la remise ci-dessous s'applique au prix de marché. La",
+    "main-d'œuvre n'est jamais remisée : un taux horaire n'est pas un tarif",
+    "catalogue.",
+    "",
+    "Ce qui n'a pas de prix relevé reste à null et s'imprime « à chiffrer ».",
+    "Aucun montant n'est deviné."
+  ],
+  "reference": "OFF-2026-001",
+  "date": "2026-09-26",
+  "validite": 30,
+  "remise": 0.1,
+  "tva": 0.2,
+  "tauxHoraire": 73.81,
+
+  "client": {
+    "nom": "Marché de la Gare",
+    "activite": "Commerce d'alimentation générale, caves et spiritueux",
+    "adresse": "Adresse à compléter",
+    "contact": ""
+  },
+
+  "objet": "Vidéoprotection d'un commerce de proximité, intérieur et extérieur",
+
+  "besoin": [
+    "Le commerce présente trois zones sensibles distinctes. À l'extérieur, un étal de fruits et légumes est exposé sur le trottoir devant la vitrine, hors de la vue du comptoir dès qu'un client occupe la caisse. À l'intérieur, le poste de caisse concentre le numéraire, les cigarettes et les spiritueux, et c'est le point d'attaque d'un vol à main armée comme d'une démarque au comptoir. Enfin les linéaires et le fond de magasin, peu visibles depuis la caisse, appellent une surveillance de dissuasion.",
+    "Six caméras couvrent ces trois zones : deux à l'extérieur, quatre à l'intérieur. Le parti retenu est celui de l'identification au plus près des valeurs : une caméra qui filme large dissuade, une caméra qui identifie sert de preuve. Les deux sont nécessaires et ne se placent pas au même endroit."
+  ],
+
+  "cameras": [
+    {
+      "cle": "C1",
+      "nom": "Étal et devanture",
+      "situation": "Extérieur, sous l'auvent, en surplomb de l'étal",
+      "role": "Couvre les cageots exposés sur le trottoir et toute la largeur de la vitrine. Détecte le geste, suit la personne jusqu'à la sortie du champ.",
+      "exterieur": true,
+      "reserve": "Cadrage limité à l'emprise du commerce. La voie publique ne doit pas être surveillée."
+    },
+    {
+      "cle": "C2",
+      "nom": "Entrée, vue des visages",
+      "situation": "Extérieur, sous l'auvent, à hauteur de visage, face à la porte",
+      "role": "Identifie chaque personne qui entre et qui sort. C'est la caméra qui produit une image exploitable par les services d'enquête.",
+      "exterieur": true,
+      "reserve": "Inclinée vers la porte et non vers la rue."
+    },
+    {
+      "cle": "C3",
+      "nom": "Caisse, vue client",
+      "situation": "Intérieur, au-dessus du comptoir, tournée vers le client",
+      "role": "Identification au comptoir : agression, paiement contesté, chèque ou billet douteux. Couvre le présentoir à cigarettes derrière le poste.",
+      "exterieur": false
+    },
+    {
+      "cle": "C4",
+      "nom": "Caisse, vue comptoir",
+      "situation": "Intérieur, en surplomb du poste de caisse",
+      "role": "Filme le plan de travail et le tiroir-caisse. Tranche les litiges de rendu de monnaie et documente la démarque au comptoir.",
+      "exterieur": false
+    },
+    {
+      "cle": "C5",
+      "nom": "Allée et linéaires",
+      "situation": "Intérieur, en bout d'allée, dans l'axe des rayons",
+      "role": "Surveille toute la longueur des linéaires. Rôle de dissuasion d'abord, de constat ensuite.",
+      "exterieur": false
+    },
+    {
+      "cle": "C6",
+      "nom": "Fond de magasin et spiritueux",
+      "situation": "Intérieur, au fond, orientée vers les alcools et la porte de réserve",
+      "role": "Protège les produits à forte valeur unitaire et l'accès à la réserve, deux points hors de vue depuis la caisse.",
+      "exterieur": false
+    }
+  ],
+
+  "lots": [
+    {
+      "titre": "Caméras",
+      "lignes": [
+        {
+          "designation": "Caméra tourelle 4K (8 Mpx), objectif 2,8 mm, infrarouge 35 m, IP65, détection de personne et de véhicule",
+          "reference": "Ajax TurretCam 8 Mpx / 2,8 mm (AJ-TURRETCAM-8-W)",
+          "note": "Angle de vue de 100° à 110°, alimentation PoE 802.3at, carte microSD acceptée en secours d'enregistrement. Le même modèle à l'intérieur et à l'extérieur : un seul type de pièce à stocker, un seul réglage à connaître.",
+          "quantite": 6,
+          "unite": "u",
+          "marche": 317.26,
+          "source": "Prix public HT relevé chez un revendeur français le 26/09/2026 (getic.fr)."
+        }
+      ]
+    },
+    {
+      "titre": "Enregistrement",
+      "lignes": [
+        {
+          "designation": "Enregistreur vidéo réseau 8 canaux, une baie disque",
+          "reference": "Ajax NVR (8 canaux)",
+          "note": "Huit canaux pour six caméras : deux voies restent libres pour une extension sans changer de machine.",
+          "quantite": 1,
+          "unite": "u",
+          "marche": 450.16,
+          "source": "Prix public HT relevé chez un distributeur français le 26/09/2026 (neklan.fr, 450,16 € HT / 540,19 € TTC)."
+        },
+        {
+          "designation": "Disque dur de vidéosurveillance 12 To, fonctionnement continu 24 h/24",
+          "reference": null,
+          "note": "Six caméras en 4K à 15 images par seconde produisent 26 Mbit/s. Ce disque tient trente jours d'enregistrement permanent, marge de sécurité comprise.",
+          "quantite": 1,
+          "unite": "u",
+          "marche": 465.42,
+          "source": "Prix relevé par l'agence chez des professionnels le 24/09/2026 : 1 117 € TTC les deux disques."
+        },
+        {
+          "designation": "Commutateur 8 ports PoE+ administrable",
+          "reference": null,
+          "note": "À retirer si votre enregistreur porte des ports PoE. Les caméras demandent du PoE+ (802.3at), et le PoE simple ne suffit pas pour un modèle à chauffage ou à infrarouge puissant.",
+          "quantite": 1,
+          "unite": "u",
+          "marche": 165.0,
+          "source": "Prix donné par l'agence le 24/09/2026 : 165 € HT l'unité, modèle administrable."
+        }
+      ]
+    },
+    {
+      "titre": "Câblage et fixations",
+      "lignes": [
+        {
+          "designation": "Câble réseau Cat 6 U/UTP 4 paires",
+          "reference": null,
+          "note": "Un lien par caméra, du poste d'enregistrement à chaque point. Métré estimé sur les photos, à confirmer au relevé.",
+          "quantite": 150,
+          "unite": "m",
+          "marche": 1.05,
+          "source": "Prix relevé par l'agence chez des professionnels le 24/09/2026 : 320,42 € HT le touret de 305 m."
+        },
+        {
+          "designation": "Connecteur RJ45 Cat 6 blindé",
+          "reference": null,
+          "note": "Deux par lien, plus les liaisons du poste d'enregistrement.",
+          "quantite": 14,
+          "unite": "u",
+          "marche": 1.35,
+          "source": "Prix donné par l'agence le 24/09/2026 : 35 € les 26 connecteurs."
+        },
+        {
+          "designation": "Support de caméra avec boîte de raccordement étanche",
+          "reference": null,
+          "note": "Pour les deux caméras extérieures. Les quatre caméras intérieures se fixent directement au plafond.",
+          "quantite": 2,
+          "unite": "u",
+          "marche": 59.5,
+          "source": "Prix estimé par l'agence le 24/09/2026 : 595 € HT les dix supports et leurs boîtes. À confirmer sur facture fournisseur."
+        },
+        {
+          "designation": "Goulotte, collier et fixation, au mètre de cheminement apparent",
+          "reference": null,
+          "note": "Le magasin est en exploitation, et le cheminement se fait en apparent, proprement, sans reprise de plafond.",
+          "quantite": 60,
+          "unite": "m",
+          "marche": 1.74,
+          "source": "Prix relevé par l'agence chez des professionnels le 24/09/2026."
+        },
+        {
+          "designation": "Presse-étoupe et jeu d'étanchéité",
+          "reference": null,
+          "note": "Pour les deux pénétrations extérieures.",
+          "quantite": 2,
+          "unite": "u",
+          "marche": null
+        }
+      ]
+    },
+    {
+      "titre": "Pose et mise en service",
+      "mainOeuvre": true,
+      "lignes": [
+        {
+          "designation": "Pose, raccordement et réglage des caméras",
+          "note": "Deux heures par caméra pour la fixation, la connectique, l'orientation et le réglage du champ sur écran.",
+          "quantite": 12,
+          "unite": "h"
+        },
+        {
+          "designation": "Tirage et cheminement des câbles",
+          "note": "Deux heures aux cent mètres de cheminement.",
+          "quantite": 3,
+          "unite": "h"
+        },
+        {
+          "designation": "Pose et paramétrage de l'enregistreur",
+          "note": "Montage du disque, adressage des caméras, plages d'enregistrement, comptes d'accès.",
+          "quantite": 3,
+          "unite": "h"
+        },
+        {
+          "designation": "Mise en service et recette",
+          "note": "Vérification des six champs de jour et de nuit, essai de relecture, essai d'export.",
+          "quantite": 4,
+          "unite": "h"
+        },
+        {
+          "designation": "Formation de l'exploitant",
+          "note": "Relecture, extraction d'une séquence sur réquisition, accès depuis un téléphone, conduite à tenir après un fait.",
+          "quantite": 2,
+          "unite": "h"
+        },
+        {
+          "designation": "Dossier de fin de chantier",
+          "note": "Plan d'implantation, comptes et mots de passe, notices, attestation de conformité, modèle de registre et panneaux d'information.",
+          "quantite": 2,
+          "unite": "h"
+        }
+      ]
+    }
+  ],
+
+  "options": [
+    {
+      "designation": "Coffret technique fermant à clé pour l'enregistreur",
+      "note": "Un enregistreur emporté avec les images n'a servi à rien. Le coffret le met hors d'atteinte.",
+      "marche": null
+    },
+    {
+      "designation": "Contrat de maintenance annuel",
+      "note": "Visite préventive, nettoyage des optiques, contrôle des champs, mises à jour, assistance. La première année est offerte avec l'installation.",
+      "marche": null
+    },
+    {
+      "designation": "Report d'alarme et levée de doute vidéo",
+      "note": "Association du système à une centrale d'alarme : l'intrusion déclenche, l'image confirme avant d'appeler.",
+      "marche": null
+    }
+  ],
+
+  "stockage": {
+    "camerasDebitMbps": 4.35,
+    "total": 26.1,
+    "jours": 30,
+    "disqueTo": 12,
+    "note": "Six caméras en 4K, 15 images par seconde, codec H.265. À 20 images par seconde, le même disque tient vingt-deux jours."
+  },
+
+  "obligations": [
+    "Un commerce est un lieu ouvert au public : le système doit faire l'objet d'une <b>autorisation préfectorale</b> avant sa mise en service, renouvelable tous les cinq ans. Le dossier de demande vous est remis complété.",
+    "<b>Des panneaux d'information</b> visibles doivent être apposés à l'entrée et dans le magasin, mentionnant l'existence du dispositif, le responsable et le droit d'accès aux images.",
+    "<b>Les salariés doivent être informés</b> individuellement, et les représentants du personnel consultés lorsqu'il en existe. Aucune caméra ne peut filmer un local de pause ni surveiller un poste de travail en continu.",
+    "<b>La voie publique ne peut pas être filmée</b> par un particulier : seules les autorités publiques y sont autorisées. Les deux caméras extérieures sont cadrées sur l'emprise du commerce, et le champ résiduel sur le trottoir est masqué au réglage.",
+    "<b>La durée de conservation</b> est limitée à un mois. Trente jours sont proposés ici, et une durée plus courte reste possible et se règle en une minute.",
+    "L'accès aux images est <b>nominatif et tracé</b>. Un registre des traitements et une consigne d'extraction sur réquisition vous sont remis avec le dossier."
+  ],
+
+  "conditions": {
+    "delai": "Trois semaines à compter de l'acceptation, sous réserve de la disponibilité du matériel.",
+    "acompte": 0.3,
+    "garantie": "Trois ans sur le matériel, un an de maintenance incluse sur l'installation.",
+    "chantier": "Intervention en horaires d'ouverture ou de fermeture, à votre convenance. Le magasin reste exploitable pendant toute la durée des travaux."
+  }
+}
