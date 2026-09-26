@@ -96,9 +96,9 @@
       "titre": "Caméras extérieures",
       "lignes": [
         {
-          "designation": "Caméra tubulaire 4K (8 Mpx), objectif 2,8 mm, infrarouge, IP65, détection de personne et de véhicule à bord",
+          "designation": "Caméra tubulaire 4K (8 Mpx) blanche, objectif 2,8 mm, infrarouge, IP65, détection de personne et de véhicule à bord",
           "reference": "Ajax BulletCam 8 Mpx / 2,8 mm",
-          "note": "Angle de vue de 100° à 110°, alimentation par le câble réseau (PoE+ 802.3at). Le format tubulaire se voit de loin : à l'extérieur, une caméra qu'on remarque travaille déjà.",
+          "note": "Angle de vue de 100° à 110°, alimentation par le câble réseau (PoE+ 802.3at), rotule de fixation murale fournie. Le format tubulaire se voit de loin : à l'extérieur, une caméra qu'on remarque travaille déjà.",
           "quantite": 3,
           "unite": "u",
           "marche": 295.0,
@@ -110,7 +110,7 @@
       "titre": "Caméras intérieures",
       "lignes": [
         {
-          "designation": "Caméra dôme 4K (8 Mpx), objectif 2,8 mm, infrarouge 35 m, détection de personne et de véhicule à bord",
+          "designation": "Caméra dôme 4K (8 Mpx) blanche, objectif 2,8 mm, infrarouge 35 m, détection de personne et de véhicule à bord",
           "reference": "Ajax TurretCam 8 Mpx / 2,8 mm (AJ-TURRETCAM-8-W)",
           "note": "Même définition et même analyse que les tubulaires, dans un boîtier discret qu'on ne désoriente pas d'un coup de manche à balai. Carte microSD acceptée en secours d'enregistrement.",
           "quantite": 3,
@@ -197,13 +197,13 @@
           "source": "Prix donné par l'agence le 24/09/2026 : 35 € les 26 connecteurs."
         },
         {
-          "designation": "Support de caméra avec boîte de raccordement étanche",
+          "designation": "Boîte de raccordement étanche et jeu de fixation",
           "reference": null,
-          "note": "Pour les trois caméras extérieures. Les trois dômes intérieurs se fixent directement au plafond.",
+          "note": "Pour les trois caméras extérieures : la connectique RJ45 se loge dans un boîtier étanche derrière la caméra, hors des intempéries et hors d'atteinte. La rotule de fixation, elle, est livrée avec la caméra. Les trois dômes intérieurs se fixent directement au plafond.",
           "quantite": 3,
           "unite": "u",
           "marche": 59.5,
-          "source": "Prix estimé par l'agence le 24/09/2026 : 595 € HT les dix supports et leurs boîtes. À confirmer sur facture fournisseur."
+          "source": "Prix estimé par l'agence le 24/09/2026 pour un ensemble support et boîte. La rotule étant fournie avec la caméra, ce montant sera revu à la baisse sur facture fournisseur."
         },
         {
           "designation": "Goulotte, collier et fixation, au mètre de cheminement apparent",
