@@ -340,7 +340,8 @@ ${(offre.options || []).length ? `<h2>En option</h2>
 <table class="options">
   <thead><tr><th>Désignation</th><th class="n">Prix HT</th></tr></thead>
   <tbody>${offre.options.map((o) => `<tr>
-    <td>${echapper(o.designation)}${o.note
+    <td>${echapper(o.designation)}${o.reference
+  ? `<span class="det">${echapper(o.reference)}</span>` : ''}${o.note
   ? `<span class="det">${echapper(o.note)}</span>` : ''}</td>
     <td class="n">${somme(prixLigne(o, offre))}</td>
   </tr>`).join('')}</tbody>

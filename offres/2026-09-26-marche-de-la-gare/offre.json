@@ -210,12 +210,13 @@
           "source": "Prix relevé par l'agence chez des professionnels le 24/09/2026."
         },
         {
-          "designation": "Presse-étoupe et jeu d'étanchéité",
+          "designation": "Presse-étoupe IP68 et joint d'étanchéité",
           "reference": null,
-          "note": "Pour les trois pénétrations extérieures.",
+          "note": "Pour les trois pénétrations extérieures. Le câble entre par un passage serré sur son diamètre : c'est ce qui empêche l'eau de suivre la gaine jusqu'à l'intérieur du mur.",
           "quantite": 3,
           "unite": "u",
-          "marche": null
+          "marche": 2.16,
+          "source": "Prix public HT relevé chez un distributeur français le 26/09/2026 pour un modèle métal IP68 de marque établie."
         }
       ]
     },
@@ -240,14 +241,30 @@
   ],
   "options": [
     {
-      "designation": "Coffret technique fermant à clé pour l'enregistreur",
-      "note": "Un enregistreur emporté avec les images n'a servi à rien. Le coffret le met hors d'atteinte.",
-      "marche": null
+      "designation": "Moniteur de supervision 27 pouces 4K UHD, dalle IPS, fonctionnement continu 24 h/24, cordons compris",
+      "note": "Un écran au poste de caisse ou en réserve : les six vues en mosaïque, en direct, sans sortir le téléphone. Un client qui voit qu'on le regarde renonce plus souvent qu'un client qui l'ignore. Marque au choix de l'installateur, à condition que la dalle soit donnée pour un fonctionnement continu.",
+      "marche": 520.0,
+      "source": "Prix public HT constaté le 24/09/2026 chez un distributeur européen (498,35 € HT), cordon HDMI de 5 m compris."
     },
     {
-      "designation": "Détecteurs d'ouverture et de mouvement",
-      "note": "La centrale posée ici les accepte sans travaux : porte de réserve, issue de secours, volume du magasin fermé. L'alarme complète la vidéo au lieu de la doubler.",
-      "marche": null
+      "designation": "Coffret technique métallique fermant à clé, pour l'enregistreur et le commutateur",
+      "note": "Un enregistreur emporté avec les images n'a servi à rien. Le coffret le met hors d'atteinte, et sa serrure limite aussi l'accès aux images à qui de droit.",
+      "marche": 110.6,
+      "source": "Prix HT relevé chez un distributeur français le 26/09/2026 pour un coffret mural 19 pouces à porte pleine et fermeture à clé."
+    },
+    {
+      "designation": "Détecteur d'ouverture de porte ou de fenêtre",
+      "note": "S'associe à la centrale posée ici, sans travaux ni câble : porte de réserve, issue de secours, rideau métallique. Prix à l'unité.",
+      "reference": "Ajax DoorProtect",
+      "prixVente": 31.7,
+      "source": "Prix pratiqué par l'agence, facture du 24/09/2026."
+    },
+    {
+      "designation": "Détecteur de mouvement à immunité animale",
+      "note": "Couvre un volume fermé la nuit, quand la vidéo seule ne fait que constater. Prix à l'unité.",
+      "reference": "Ajax MotionProtect",
+      "prixVente": 67.0,
+      "source": "Prix pratiqué par l'agence, facture du 24/09/2026."
     }
   ],
   "obligations": [
