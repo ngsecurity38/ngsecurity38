@@ -220,55 +220,19 @@
       ]
     },
     {
-      "titre": "Pose et mise en service",
+      "titre": "Pose et programmation",
       "mainOeuvre": true,
       "lignes": [
         {
-          "designation": "Pose, raccordement et réglage des caméras",
-          "note": "Deux heures par caméra pour la fixation, la connectique, l'orientation et le réglage du champ sur écran.",
-          "quantite": 12,
+          "designation": "Pose",
+          "note": "Fixation des six caméras, tirage et cheminement des câbles en apparent, connectique, pose de l'enregistreur et de son disque, pose de la centrale et de la sirène en façade.",
+          "quantite": 20,
           "unite": "h"
         },
         {
-          "designation": "Tirage et cheminement des câbles",
-          "note": "Deux heures aux cent mètres de cheminement.",
-          "quantite": 3,
-          "unite": "h"
-        },
-        {
-          "designation": "Pose et paramétrage de l'enregistreur",
-          "note": "Montage du disque, adressage des caméras, plages d'enregistrement, comptes d'accès.",
-          "quantite": 3,
-          "unite": "h"
-        },
-        {
-          "designation": "Tracé des zones de détection et réglage des alertes",
-          "note": "Une zone par caméra au moins, tracée avec vous sur l'image réelle, filtrée sur la personne, avec ses horaires. C'est ce réglage qui fait la différence entre un système qu'on écoute et un système qu'on finit par couper.",
-          "quantite": 3,
-          "unite": "h"
-        },
-        {
-          "designation": "Pose de la centrale et de la sirène, essais d'intrusion",
-          "note": "Association des appareils, scénarios de déclenchement, réglage du niveau sonore, essais réels de jour et de nuit.",
-          "quantite": 2,
-          "unite": "h"
-        },
-        {
-          "designation": "Mise en service et recette",
-          "note": "Vérification des six champs de jour et de nuit, essai de relecture, essai d'export.",
-          "quantite": 4,
-          "unite": "h"
-        },
-        {
-          "designation": "Formation de l'exploitant",
-          "note": "Application sur téléphone, relecture, extraction d'une séquence sur réquisition, conduite à tenir après un fait.",
-          "quantite": 2,
-          "unite": "h"
-        },
-        {
-          "designation": "Dossier de fin de chantier",
-          "note": "Plan d'implantation, comptes et mots de passe, notices, attestation de conformité, modèle de registre et panneaux d'information.",
-          "quantite": 2,
+          "designation": "Programmation et mise en service",
+          "note": "Adressage des caméras, plages d'enregistrement et comptes d'accès, tracé des zones de détection et réglage des alertes, scénarios de déclenchement de la sirène, essais de jour et de nuit, formation à l'application et dossier de fin de chantier.",
+          "quantite": 11,
           "unite": "h"
         }
       ]
