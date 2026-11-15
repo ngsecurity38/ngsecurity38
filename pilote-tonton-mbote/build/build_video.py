@@ -74,7 +74,7 @@ def synth(k, style, speed, pitch, text, path, tmp):
     sf.write(raw, audio, sr)
     af = f"rubberband=pitch={pitch}," if pitch != 1.0 else ""
     subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", raw,
-                    "-af", f"{af}aresample=44100,loudnorm=I=-16:TP=-1.5",
+                    "-af", f"{af}loudnorm=I=-16:TP=-1.5,aresample=44100",
                     "-ac", "1", path], check=True)
     os.remove(raw)
     return sf.info(path).duration
@@ -164,7 +164,7 @@ def main():
             src = os.path.join(voice_dir, f"{idx:02d}.mp3")
             af = f"rubberband=pitch={PITCH[who]}," if who in PITCH else ""
             subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", src, "-af",
-                            f"{af}aresample=44100,loudnorm=I=-16:TP=-1.5", "-ac", "1", wav], check=True)
+                            f"{af}loudnorm=I=-16:TP=-1.5,aresample=44100", "-ac", "1", wav], check=True)
             durs.append(sf.info(wav).duration)
         else:
             style, speed, pitch = vs[who]
@@ -203,7 +203,7 @@ def main():
     ff = subprocess.Popen(["ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24",
                            "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-", "-i", voice_track,
                            "-c:v", "libx264", "-preset", "medium", "-crf", "20", "-pix_fmt", "yuv420p",
-                           "-c:a", "aac", "-b:a", "160k", "-shortest", "-movflags", "+faststart", out],
+                           "-af", "apad", "-c:a", "aac", "-b:a", "160k", "-shortest", "-movflags", "+faststart", out],
                           stdin=subprocess.PIPE)
     bg = imgs[LINES[0][1]]
     for fr_img in card(bg, title, ep, int(intro_s * FPS)):
