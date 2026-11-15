@@ -52,7 +52,9 @@ LINES = [
      "Un téléphone qui écoute tout... c'est une belle-mère !",
      "Téléphone oyo eyokaka nyonso... ezali bokilo !"),
 ]
-NAMES = {"K": ("KÉVINO", (255, 214, 0)), "T": ("TONTON MBOTE", (255, 120, 40))}
+NAMES = {"K": ("KÉVINO", (255, 214, 0)), "T": ("TONTON MBOTE", (255, 120, 40)),
+         "G": ("LA DAME DU GPS", (90, 220, 255))}
+PITCH = {"K": 1.07}  # neveu un peu plus jeune
 TITLE = {"fr": ("TONTON MBOTE", "Épisode 1 : Le smartphone", "Abonne-toi pour l'épisode 2 !"),
          "ln": ("TONTON MBOTE", "Épisode 1 : Smartphone", "Abonne-toi mpo na épisode 2 !")}
 
@@ -127,7 +129,20 @@ def card(bg, big, small, n):
         yield base
 
 
+def load_episode(path):
+    """Fichier JSON d'épisode : {"img_dir", "title": {lang: [titre, sous-titre, fin]},
+    "lines": [[perso, image, centre_x_sur_768, effet, texte_fr, texte_ln], ...]}"""
+    import json
+    global LINES, TITLE, IMG_DIR
+    ep = json.load(open(path))
+    LINES = [tuple(l) for l in ep["lines"]]
+    TITLE = {k: tuple(v) for k, v in ep["title"].items()}
+    IMG_DIR = os.path.join(os.path.dirname(os.path.abspath(path)), ep.get("img_dir", "images"))
+
+
 def main():
+    if len(sys.argv) > 5:
+        load_episode(sys.argv[5])
     lang, model_dir, out_dir = sys.argv[1], sys.argv[2], os.path.abspath(sys.argv[3])
     os.makedirs(out_dir, exist_ok=True)
     tmp = os.path.join(out_dir, "tmp_" + lang)
@@ -147,7 +162,7 @@ def main():
         wav = os.path.join(tmp, f"{idx:02d}.wav")
         if voice_dir:
             src = os.path.join(voice_dir, f"{idx:02d}.mp3")
-            af = "rubberband=pitch=1.07," if who == "K" else ""  # neveu un peu plus jeune
+            af = f"rubberband=pitch={PITCH[who]}," if who in PITCH else ""
             subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", src, "-af",
                             f"{af}aresample=44100,loudnorm=I=-16:TP=-1.5", "-ac", "1", wav], check=True)
             durs.append(sf.info(wav).duration)
@@ -183,13 +198,14 @@ def main():
 
     # Vidéo : images générées image par image, envoyées à ffmpeg.
     suffix = "_" + os.path.basename(os.path.normpath(voice_dir)) if voice_dir else ""
-    out = os.path.join(out_dir, f"tonton_mbote_ep1_{lang}{suffix}.mp4")
+    ep_name = os.path.splitext(os.path.basename(sys.argv[5]))[0] if len(sys.argv) > 5 else "tonton_mbote_ep1"
+    out = os.path.join(out_dir, f"{ep_name}_{lang}{suffix}.mp4")
     ff = subprocess.Popen(["ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24",
                            "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-", "-i", voice_track,
                            "-c:v", "libx264", "-preset", "medium", "-crf", "20", "-pix_fmt", "yuv420p",
                            "-c:a", "aac", "-b:a", "160k", "-shortest", "-movflags", "+faststart", out],
                           stdin=subprocess.PIPE)
-    bg = imgs["scene2_tonton_crie.jpg"]
+    bg = imgs[LINES[0][1]]
     for fr_img in card(bg, title, ep, int(intro_s * FPS)):
         ff.stdin.write(fr_img.tobytes())
     for (who, img, cx, eff, fr, ln), d in zip(LINES, durs):
