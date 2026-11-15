@@ -1,24 +1,76 @@
 {
-  "img_dir": "images",
-  "title": {
-    "fr": ["TONTON MBOTE", "Épisode 2 : Le GPS", "Abonne-toi pour l'épisode 3 !"]
-  },
-  "lines": [
-    ["K", "scene1_taxi.jpg", 200, "zoom",
-     "Tonton, j'ai mis le GPS. La dame va nous guider jusqu'au mariage.", ""],
-    ["T", "scene1_taxi.jpg", 560, "zoom",
-     "Une dame ? Dans le téléphone ? Elle est mariée, au moins ?", ""],
-    ["G", "scene1_taxi.jpg", 600, "zoom",
-     "Dans deux cents mètres, tournez à droite.", ""],
-    ["T", "scene2_rue.jpg", 210, "shake",
-     "Madame ! Ici c'est Kinshasa ! On tourne quand l'embouteillage nous donne la permission !", ""],
-    ["G", "scene2_rue.jpg", 300, "zoom",
-     "Recalcul de l'itinéraire.", ""],
-    ["T", "scene2_rue.jpg", 210, "zoom",
-     "Tu vois ? Elle est perdue ! Même elle, Kinshasa l'a fatiguée !", ""],
-    ["K", "scene3_mariage.jpg", 200, "zoom",
-     "Tonton... on est arrivés. Mais le mariage est fini depuis une heure.", ""],
-    ["T", "scene3_mariage.jpg", 560, "punch",
-     "Pas grave ! On dira qu'on vient pour le deuxième mariage... avec la dame du GPS !", ""]
+ "img_dir": "images",
+ "title": {
+  "fr": [
+   "TONTON MBOTE",
+   "Épisode 2 : Le GPS",
+   "Abonne-toi pour l'épisode 3 !"
   ]
+ },
+ "lines": [
+  [
+   "K",
+   "scene1_taxi.jpg",
+   215,
+   "zoom",
+   "Tonton, j'ai mis le GPS. La dame va nous guider jusqu'au mariage.",
+   ""
+  ],
+  [
+   "T",
+   "scene1_taxi.jpg",
+   563,
+   "zoom",
+   "Une dame ? Dans le téléphone ? Elle est mariée, au moins ?",
+   ""
+  ],
+  [
+   "G",
+   "scene1_taxi.jpg",
+   600,
+   "zoom",
+   "Dans deux cents mètres, tournez à droite.",
+   ""
+  ],
+  [
+   "T",
+   "scene2_rue.jpg",
+   192,
+   "shake",
+   "Madame ! Ici c'est Kinshasa ! On tourne quand l'embouteillage nous donne la permission !",
+   ""
+  ],
+  [
+   "G",
+   "scene2_rue.jpg",
+   400,
+   "zoom",
+   "Recalcul de l'itinéraire.",
+   ""
+  ],
+  [
+   "T",
+   "scene2_rue.jpg",
+   192,
+   "zoom",
+   "Tu vois ? Elle est perdue ! Même elle, Kinshasa l'a fatiguée !",
+   ""
+  ],
+  [
+   "K",
+   "scene3_mariage.jpg",
+   216,
+   "zoom",
+   "Tonton... on est arrivés. Mais le mariage est fini depuis une heure.",
+   ""
+  ],
+  [
+   "T",
+   "scene3_mariage.jpg",
+   480,
+   "punch",
+   "Pas grave ! On dira qu'on vient pour le deuxième mariage... avec la dame du GPS !",
+   ""
+  ]
+ ]
 }
