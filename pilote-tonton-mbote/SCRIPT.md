@@ -31,3 +31,9 @@ Décor : parcelle à Kinshasa (Matongé), tôles ondulées, chaises en plastique
 2. Répliques alternées Kévino / Tonton, sous-titres incrustés en gros.
 3. Petit bruitage + musique rumba/ndombolo libre de droits en fond.
 4. Carton final : « Abonne-toi pour l'épisode 2 ! »
+
+## Version test v1 (voix open source Kokoro, montage automatique)
+- `videos/tonton_mbote_ep1_fr.mp4` — français, ~32 s, 720x1280
+- `videos/tonton_mbote_ep1_ln.mp4` — lingala (test), ~34 s
+- Reconstruire : `pip install kokoro-onnx soundfile pillow`, télécharger `kokoro-v1.0.onnx` et `voices-v1.0.bin`
+  (releases GitHub thewh1teagle/kokoro-onnx), puis `python3 build/build_video.py fr <dossier_modeles> videos/`
