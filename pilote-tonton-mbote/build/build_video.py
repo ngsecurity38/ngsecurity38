@@ -1,6 +1,9 @@
 """Monte le pilote « Tonton Mbote et le smartphone » en vidéo verticale 9:16.
 
-Usage : python3 build_video.py <fr|ln> <dossier_modeles_kokoro> <dossier_sortie>
+Usage : python3 build_video.py <fr|ln> <dossier_modeles_kokoro> <dossier_sortie> [dossier_voix]
+
+Si [dossier_voix] est fourni (fichiers 00.mp3 ... 07.mp3 dans l'ordre des répliques,
+par ex. voix vidIQ), ces voix remplacent la synthèse Kokoro.
 
 Voix : Kokoro TTS (open source, local). Images : scènes générées (dossier images/).
 Animation : recadrage vertical sur le personnage qui parle, zoom lent,
@@ -95,6 +98,7 @@ def subtitle(img, who, text):
 def shot_frames(src, cx, effect, n):
     """Images d'un plan : recadrage vertical animé sur le personnage."""
     sw, sh = src.size
+    cx = cx * sw / 768  # centres donnés pour une image de 768 px de large
     for i in range(n):
         p = i / max(n - 1, 1)
         if effect == "punch":
@@ -113,7 +117,8 @@ def shot_frames(src, cx, effect, n):
 
 
 def card(bg, big, small, n):
-    base = bg.resize((W, H), Image.LANCZOS, box=(200, 0, 443, 432)).filter(ImageFilter.GaussianBlur(14))
+    k = bg.size[0] / 768
+    base = bg.resize((W, H), Image.LANCZOS, box=(200 * k, 0, 443 * k, bg.size[1])).filter(ImageFilter.GaussianBlur(14))
     d = ImageDraw.Draw(base)
     outlined(d, (W // 2, H // 2 - 60), big, ImageFont.truetype(FONT, 76), (255, 214, 0), stroke=7)
     for i, ln in enumerate(textwrap.wrap(small, 22)):
@@ -123,21 +128,32 @@ def card(bg, big, small, n):
 
 
 def main():
-    lang, model_dir, out_dir = sys.argv[1], sys.argv[2], sys.argv[3]
+    lang, model_dir, out_dir = sys.argv[1], sys.argv[2], os.path.abspath(sys.argv[3])
     os.makedirs(out_dir, exist_ok=True)
     tmp = os.path.join(out_dir, "tmp_" + lang)
     os.makedirs(tmp, exist_ok=True)
     k = Kokoro(os.path.join(model_dir, "kokoro-v1.0.onnx"), os.path.join(model_dir, "voices-v1.0.bin"))
     vs = voices(k)
-    imgs = {f: Image.open(os.path.join(IMG_DIR, f)).convert("RGB") for f in {l[1] for l in LINES}}
+    def load(f):
+        hd = os.path.join(IMG_DIR, f.replace(".jpg", "_hd.jpg"))
+        return Image.open(hd if os.path.exists(hd) else os.path.join(IMG_DIR, f)).convert("RGB")
+    imgs = {f: load(f) for f in {l[1] for l in LINES}}
+    voice_dir = sys.argv[4] if len(sys.argv) > 4 else None
 
     title, ep, outro = TITLE[lang]
     intro_s, outro_s = 2.0, 2.5
     clips, durs = [], []
     for idx, (who, img, cx, eff, fr, ln) in enumerate(LINES):
-        style, speed, pitch = vs[who]
         wav = os.path.join(tmp, f"{idx:02d}.wav")
-        durs.append(synth(k, style, speed, pitch, fr if lang == "fr" else ln, wav, wav))
+        if voice_dir:
+            src = os.path.join(voice_dir, f"{idx:02d}.mp3")
+            af = "rubberband=pitch=1.07," if who == "K" else ""  # neveu un peu plus jeune
+            subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", src, "-af",
+                            f"{af}aresample=44100,loudnorm=I=-16:TP=-1.5", "-ac", "1", wav], check=True)
+            durs.append(sf.info(wav).duration)
+        else:
+            style, speed, pitch = vs[who]
+            durs.append(synth(k, style, speed, pitch, fr if lang == "fr" else ln, wav, wav))
         clips.append(wav)
 
     # Piste audio : silence d'intro, répliques séparées par GAP, silence de fin.
@@ -149,8 +165,13 @@ def main():
     subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-f", "lavfi", "-i",
                     "anullsrc=r=44100:cl=mono", "-t", str(intro_s), intro_sil], check=True)
     outro_sil = os.path.join(tmp, "outro.wav")
+    # « Ba-dum-tss » synthétisé après la chute.
+    hit = "sin(2*PI*{f}*t)*exp(-{d}*t)"
+    expr = (f"0.8*if(lt(t,0.18),{hit.format(f=180, d=18)},0)"
+            f"+0.8*if(between(t,0.22,0.40),{hit.format(f=140, d=18).replace('t)', '(t-0.22))')},0)"
+            f"+0.5*if(gt(t,0.45),(random(0)*2-1)*exp(-6*(t-0.45)),0)")
     subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-f", "lavfi", "-i",
-                    "anullsrc=r=44100:cl=mono", "-t", str(outro_s), outro_sil], check=True)
+                    f"aevalsrc='{expr}':s=44100:d={outro_s}", "-ac", "1", outro_sil], check=True)
     with open(concat, "w") as fh:
         fh.write(f"file '{intro_sil}'\n")
         for c in clips:
@@ -161,7 +182,8 @@ def main():
                     "-i", concat, voice_track], check=True)
 
     # Vidéo : images générées image par image, envoyées à ffmpeg.
-    out = os.path.join(out_dir, f"tonton_mbote_ep1_{lang}.mp4")
+    suffix = "_" + os.path.basename(os.path.normpath(voice_dir)) if voice_dir else ""
+    out = os.path.join(out_dir, f"tonton_mbote_ep1_{lang}{suffix}.mp4")
     ff = subprocess.Popen(["ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24",
                            "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-", "-i", voice_track,
                            "-c:v", "libx264", "-preset", "medium", "-crf", "20", "-pix_fmt", "yuv420p",
